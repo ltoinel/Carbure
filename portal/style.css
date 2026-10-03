@@ -3161,15 +3161,6 @@ button .material-icons {
     color: var(--text-secondary);
 }
 
-.sync-errors {
-    margin: 0 0 12px;
-    padding: 10px 14px 10px 30px;
-    background: var(--error-light);
-    border-radius: var(--border-radius-md);
-    color: var(--error-color);
-    font-size: 13px;
-}
-
 .sync-log {
     max-height: 360px;
     overflow-y: auto;
@@ -3184,4 +3175,105 @@ button .material-icons {
 
 .sync-log li {
     padding: 1px 0;
+}
+
+/* Synchronization steps */
+.sync-steps {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 14px;
+    margin-bottom: 14px;
+}
+
+.sync-account,
+.sync-global {
+    border: 1px solid var(--divider);
+    border-radius: var(--border-radius-md);
+    padding: 12px 14px;
+}
+
+.sync-global {
+    grid-column: 1 / -1;
+    list-style: none;
+    margin: 0;
+}
+
+.sync-account ul {
+    list-style: none;
+    margin: 8px 0 0;
+    padding: 0;
+}
+
+.sync-account-name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.sync-account-name .material-icons {
+    font-size: 20px;
+    color: var(--primary-color);
+}
+
+.sync-step {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 5px 0;
+    font-size: 14px;
+    color: var(--text-primary);
+}
+
+.sync-step .material-icons {
+    font-size: 20px;
+}
+
+.sync-step.step-running .material-icons { color: var(--info-color); }
+.sync-step.step-ok .material-icons { color: var(--success-color); }
+.sync-step.step-error .material-icons { color: var(--error-color); }
+
+.sync-step-count {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.sync-step-state {
+    margin-left: auto;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.sync-step.step-ok .sync-step-state { color: var(--success-color); }
+.sync-step.step-error .sync-step-state { color: var(--error-color); }
+.sync-step.step-running .sync-step-state { color: var(--info-color); }
+
+.sync-step-error {
+    flex-basis: 100%;
+    margin-left: 28px;
+    padding: 6px 10px;
+    border-radius: var(--border-radius-sm);
+    background: var(--error-light);
+    color: var(--error-color);
+    font-size: 12px;
+    word-break: break-word;
+}
+
+.sync-log-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 10px;
+}
+
+.sync-step-label {
+    flex: 1;
+    min-width: 0;
+}
+
+.sync-step-count {
+    margin-left: 6px;
 }

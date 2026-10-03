@@ -90,10 +90,6 @@
                     </button>
                 </form>
 
-                <div class="language-switcher login-lang-switcher">
-                    <button @click="changeLocale('fr')" :class="{ active: locale === 'fr' }">FR</button>
-                    <button @click="changeLocale('en')" :class="{ active: locale === 'en' }">EN</button>
-                </div>
             </div>
         </div>
 
@@ -819,10 +815,42 @@
                                 <span>{{ t('syncStatus_' + syncStatus) }}</span>
                                 <span v-if="syncDuration !== null" class="sync-duration">{{ t('syncDuration', { seconds: syncDuration }) }}</span>
                             </div>
-                            <ul v-if="syncErrors.length" class="sync-errors">
-                                <li v-for="(e, i) in syncErrors" :key="i">{{ e }}</li>
-                            </ul>
-                            <ol class="sync-log" aria-live="polite">
+                            <div class="sync-steps">
+                                <div v-for="acc in syncSteps.accounts" :key="acc.id" class="sync-account">
+                                    <div class="sync-account-name">
+                                        <span class="material-icons">account_balance</span>
+                                        {{ acc.id.split('@')[1].toUpperCase() }} ···{{ acc.id.split('@')[0].slice(-4) }}
+                                    </div>
+                                    <ul>
+                                        <li v-for="(step, i) in acc.steps" :key="i" class="sync-step" :class="'step-' + step.status">
+                                            <span class="material-icons" :class="{ spin: step.status === 'running' }">
+                                                {{ { running: 'sync', ok: 'check_circle', error: 'cancel' }[step.status] }}
+                                            </span>
+                                            <span class="sync-step-label">
+                                                {{ t('syncStep_' + step.kind) }}
+                                                <span v-if="step.count" class="sync-step-count">{{ t('syncStepCount', { count: step.count }) }}</span>
+                                            </span>
+                                            <span class="sync-step-state">{{ t('syncState_' + step.status) }}</span>
+                                            <div v-if="step.error" class="sync-step-error">{{ step.error }}</div>
+                                        </li>
+                                    </ul>
+                                </div>
+                                <ul v-if="syncSteps.global.length" class="sync-global">
+                                    <li v-for="(step, i) in syncSteps.global" :key="i" class="sync-step" :class="'step-' + step.status">
+                                        <span class="material-icons" :class="{ spin: step.status === 'running' }">
+                                            {{ { running: 'sync', ok: 'check_circle', error: 'cancel' }[step.status] }}
+                                        </span>
+                                        <span class="sync-step-label">{{ t('syncStep_' + step.kind) }}</span>
+                                        <span class="sync-step-state">{{ t('syncState_' + step.status) }}</span>
+                                        <div v-if="step.error" class="sync-step-error">{{ step.error }}</div>
+                                    </li>
+                                </ul>
+                            </div>
+                            <button class="btn-secondary sync-log-toggle" @click="showSyncLog = !showSyncLog" :aria-expanded="showSyncLog ? 'true' : 'false'">
+                                <span class="material-icons">{{ showSyncLog ? 'expand_less' : 'expand_more' }}</span>
+                                {{ showSyncLog ? t('syncHideLog') : t('syncShowLog') }}
+                            </button>
+                            <ol v-if="showSyncLog" class="sync-log" aria-live="polite">
                                 <li v-for="(line, i) in syncLog" :key="i">{{ line }}</li>
                             </ol>
                         </section>

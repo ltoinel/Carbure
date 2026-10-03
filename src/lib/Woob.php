@@ -120,7 +120,11 @@ final class Woob {
 
         if ($return_var != 0) {
             Logger::error("Error while calling woob (exit code: $return_var)", ["stdout" => $stdout, "stderr" => $stderr]);
-            throw new Exception("Error while calling woob (exit code: $return_var)");
+
+            // The last line of the error output usually gives the cause (e.g. a Python exception)
+            $lines = array_values(array_filter(array_map('trim', explode("\n", $stderr))));
+            $cause = $lines ? ': ' . mb_substr(end($lines), 0, 200) : '';
+            throw new Exception("Error while calling woob (exit code: $return_var)$cause");
         }
 
         return $stdout;

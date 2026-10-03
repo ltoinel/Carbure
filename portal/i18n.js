@@ -20,6 +20,18 @@ const i18n = {
         syncStatus_error: 'Synchronisation terminée avec des erreurs',
         syncStatus_busy: 'Une synchronisation est déjà en cours, réessayez dans quelques minutes',
         syncDuration: 'en {seconds} s',
+        syncStep_coming: 'Opérations à venir',
+        syncStep_history: 'Historique',
+        syncStep_notify: 'Notifications',
+        syncStep_sync: 'Synchronisation',
+        syncStep_categories: 'Catégorisation automatique',
+        syncStep_error: 'Erreur',
+        syncState_running: 'en cours',
+        syncState_ok: 'OK',
+        syncState_error: 'KO',
+        syncStepCount: '{count} transaction(s)',
+        syncShowLog: 'Voir le journal détaillé',
+        syncHideLog: 'Masquer le journal',
         chooseCategory: 'Catégoriser…',
         ruleSuggestion: 'Toujours classer « {label} » dans {category} ?',
         createRule: 'Créer une règle',
@@ -254,6 +266,18 @@ const i18n = {
         syncStatus_error: 'Synchronization complete with errors',
         syncStatus_busy: 'A synchronization is already running, try again in a few minutes',
         syncDuration: 'in {seconds}s',
+        syncStep_coming: 'Pending operations',
+        syncStep_history: 'History',
+        syncStep_notify: 'Notifications',
+        syncStep_sync: 'Synchronization',
+        syncStep_categories: 'Automatic categorization',
+        syncStep_error: 'Error',
+        syncState_running: 'running',
+        syncState_ok: 'OK',
+        syncState_error: 'Failed',
+        syncStepCount: '{count} transaction(s)',
+        syncShowLog: 'Show detailed log',
+        syncHideLog: 'Hide log',
         chooseCategory: 'Categorize…',
         ruleSuggestion: 'Always file "{label}" under {category}?',
         createRule: 'Create a rule',
@@ -469,9 +493,14 @@ const i18n = {
     }
 };
 
+// Language before login: the browser one (the profile language applies after login)
+function defaultLocale() {
+    return (navigator.language || '').toLowerCase().startsWith('en') ? 'en' : 'fr';
+}
+
 // Helper function to get translated text
 function t(key, params = {}) {
-    const locale = localStorage.getItem('locale') || 'fr';
+    const locale = localStorage.getItem('locale') || defaultLocale();
     const keys = key.split('.');
     let value = i18n[locale];
     

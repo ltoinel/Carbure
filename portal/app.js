@@ -60,7 +60,7 @@ createApp({
             activeTab: 'transactions',
             selectedMonth: new Date().getMonth() + 1,
             selectedYear: new Date().getFullYear(),
-            locale: localStorage.getItem('locale') || 'fr',
+            locale: localStorage.getItem('locale') || defaultLocale(),
             apiBaseUrl: null,
             
             // Authentication state

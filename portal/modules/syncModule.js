@@ -21,11 +21,76 @@ export function createSyncModule(getApiService) {
                 syncStatus: 'idle',
                 syncLog: [],
                 syncStartedAt: null,
-                syncDuration: null
+                syncDuration: null,
+                showSyncLog: false
             };
         },
 
         computed: {
+            /**
+             * Steps of the synchronization built from the progress messages:
+             * per account (coming, history, notification), then categorization.
+             * Each step: {kind, status: running|ok|error, count, error}
+             * @returns {{accounts: Array<{id: string, steps: Array}>, global: Array}}
+             */
+            syncSteps() {
+                const accounts = [];
+                const global = [];
+                let current = null;
+
+                const close = status => {
+                    if (current && current.status === 'running') {
+                        current.status = status;
+                    }
+                };
+                const account = id => {
+                    let found = accounts.find(a => a.id === id);
+                    if (!found) {
+                        found = { id, steps: [] };
+                        accounts.push(found);
+                    }
+                    return found;
+                };
+
+                for (const line of this.syncLog) {
+                    let match;
+                    if ((match = line.match(/^Syncing (.+) \((coming|history)\)\.\.\.$/))) {
+                        close('ok');
+                        current = { kind: match[2], status: 'running', count: 0, error: null };
+                        account(match[1]).steps.push(current);
+                    } else if ((match = line.match(/^Error syncing (.+?): (.*)$/))) {
+                        if (current && current.status === 'running') {
+                            current.status = 'error';
+                            current.error = match[2];
+                        } else {
+                            account(match[1]).steps.push({ kind: 'sync', status: 'error', count: 0, error: match[2] });
+                        }
+                    } else if ((match = line.match(/^Notifying users of (.+)\.\.\.$/))) {
+                        close('ok');
+                        current = { kind: 'notify', status: 'running', count: 0, error: null };
+                        account(match[1]).steps.push(current);
+                    } else if (line.startsWith('Updating missing categories')) {
+                        close('ok');
+                        current = { kind: 'categories', status: 'running', count: 0, error: null };
+                        global.push(current);
+                    } else if (line.startsWith('Synchronization complete')) {
+                        close('ok');
+                    } else if (line.startsWith('Error')) {
+                        global.push({ kind: 'error', status: 'error', count: 0, error: line });
+                    } else if (current && !line.includes('already in progress')) {
+                        // Any other message is a transaction being saved
+                        current.count++;
+                    }
+                }
+
+                // The stream ended while a step was still running
+                if (this.syncStatus !== 'running') {
+                    close('error');
+                }
+
+                return { accounts, global };
+            },
+
             /**
              * Errors reported during the last synchronization
              * @returns {Array<string>}

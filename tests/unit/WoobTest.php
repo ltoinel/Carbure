@@ -30,7 +30,7 @@ class WoobTest extends TestCase
     public function testFailureThrows()
     {
         $this->expectException(Exception::class);
-        $this->expectExceptionMessage('exit code: 1');
+        $this->expectExceptionMessage("exit code: 1): AttributeError: 'NoneType' object has no attribute 'iter_accounts'");
         Woob::getBankData('history', 'fail@bank');
     }
 
