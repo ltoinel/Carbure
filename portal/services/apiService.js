@@ -235,6 +235,23 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
     }
 
     /**
+     * State of the MCP server
+     * @returns {Promise<Object>} {enabled}
+     */
+    async function fetchMcpSettings() {
+        return request(`${baseUrl}/mcp/settings`, {}, 'Failed to read the MCP server state');
+    }
+
+    /**
+     * Enables or disables the MCP server (administrators)
+     * @param {boolean} enabled - New state
+     * @returns {Promise<Object>} {enabled}
+     */
+    async function updateMcpSettings(enabled) {
+        return request(`${baseUrl}/mcp/settings`, { method: 'PUT', body: JSON.stringify({ enabled }) }, 'Failed to change the MCP server state');
+    }
+
+    /**
      * Fetches the API tokens of the authenticated user (without the tokens themselves)
      * @returns {Promise<Array>} Array of {id, name, token_hint, created_at, last_used_at}
      */
@@ -761,6 +778,8 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
         fetchMe,
         fetchDevices,
         fetchApiTokens,
+        fetchMcpSettings,
+        updateMcpSettings,
         fetchSchemaStatus,
         migrateSchema,
         fetchInsightDefinitions,

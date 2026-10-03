@@ -42,8 +42,9 @@
   le seuil que vous avez choisi.
 - 👨‍👩‍👧 **Pensé pour le foyer** : plusieurs utilisateurs, des données partagées, chacun sa langue
   et ses appareils.
-- 🤖 **Interrogez vos comptes avec Claude** : un serveur MCP intégré (lecture seule) permet
-  de demander « combien en restaurants cette année ? » ou « où dépasse-t-on le budget ? ».
+- 🤖 **Interrogez vos comptes avec votre agent IA** (Claude, ChatGPT, Cursor, Copilot,
+  Gemini) : un serveur MCP intégré, en lecture seule et désactivable, permet de demander
+  « combien en restaurants cette année ? » ou « où dépasse-t-on le budget ? ».
 - 🔒 **Tout reste chez vous, sans abonnement** : Carbure est gratuit et open source, il tourne
   sur votre propre serveur (un NAS suffit). Pas de compte à créer, pas d'agrégateur bancaire tiers,
   pas de cloud : vos identifiants et vos données bancaires restent dans votre base locale.

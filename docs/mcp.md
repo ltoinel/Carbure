@@ -1,50 +1,54 @@
-# Analyser ses données avec Claude (MCP)
+# Agents IA (MCP)
 
 Carbure embarque un **serveur MCP** ([Model Context Protocol](https://modelcontextprotocol.io/))
-qui permet à Claude de consulter les données du foyer et de répondre à des questions
-comme « Combien avons-nous dépensé en restaurants cette année ? », « Quelles catégories
-dépassent leur budget ce mois-ci ? » ou « Comment évolue notre épargne depuis 6 mois ? ».
+qui permet à un agent IA (Claude, ChatGPT, Cursor, Copilot, Gemini…) de consulter les
+données du foyer et de répondre à des questions comme « Combien avons-nous dépensé en
+restaurants cette année ? », « Quelles catégories dépassent leur budget ce mois-ci ? » ou
+« Comment évolue notre épargne depuis 6 mois ? ».
 
 - **Lecture seule** : aucun outil ne modifie les données.
 - **Rien à installer** : le serveur est une route de l'API (`/api/mcp`), servie par le même
   serveur web que le portail.
-- **Accès révocable** : Claude s'authentifie avec un jeton d'accès créé dans le portail.
+- **Sous contrôle** : désactivé par défaut, un administrateur l'active ; chaque utilisateur
+  crée ses jetons d'accès et les révoque quand il veut.
 
 !!! warning "Confidentialité"
-    Carbure reste hébergé chez vous, mais les données que Claude consulte (libellés,
-    montants, catégories) sont envoyées à Anthropic pour être analysées. N'activez cet
+    Carbure reste hébergé chez vous, mais les données qu'un agent IA consulte (libellés,
+    montants, catégories) sont envoyées à son fournisseur pour être analysées. N'activez cet
     accès que si cela vous convient.
 
-## 1. Créer un jeton d'accès
+## 1. Activer le serveur MCP
 
-Dans le portail : **menu utilisateur → Mon profil → Accès pour Claude (MCP) → +**.
-Donnez-lui un nom (par exemple « Claude Code sur mon portable »). Le jeton (`cbt_…`) n'est
-affiché **qu'une seule fois** : copiez-le, ou copiez directement la commande proposée.
+Onglet **Agents IA** du portail : un administrateur active **Serveur MCP activé**. Tant
+qu'il est désactivé, `/api/mcp` répond `403`, même avec un jeton valide.
 
-Seule son empreinte SHA-256 est conservée en base ; la date de dernière utilisation est
-affichée, et le jeton se révoque d'un clic.
+## 2. Créer un jeton d'accès
 
-## 2. Ajouter Carbure à Claude
+Toujours dans l'onglet **Agents IA**, bouton **+** : donnez un nom au jeton (par exemple
+« Claude Code sur mon portable »). Le jeton (`cbt_…`) n'est affiché **qu'une seule fois**,
+avec la configuration prête à copier pour chaque agent. La liste des jetons montre leur
+date de dernière utilisation ; la corbeille révoque un jeton immédiatement.
 
-### Claude Code
+Seule l'empreinte SHA-256 du jeton est conservée en base.
 
-```bash
-claude mcp add --transport http carbure https://carbure.example/api/mcp \
-  --header "Authorization: Bearer cbt_xxxxxxxx"
-```
+## 3. Connecter son agent IA
 
-Puis, dans Claude Code : `/mcp` pour vérifier la connexion, et posez vos questions.
+| Agent | Configuration (proposée par le portail) |
+|---|---|
+| Claude Code | `claude mcp add --transport http carbure <url> --header "Authorization: Bearer <jeton>"` |
+| Claude Desktop | bloc `mcpServers` de `claude_desktop_config.json`, via `npx mcp-remote` (Node.js) |
+| ChatGPT | connecteur en mode développeur, URL `<url>?token=<jeton>` (HTTPS public requis) |
+| Cursor | bloc `mcpServers` de `~/.cursor/mcp.json` avec l'en-tête `Authorization` |
+| VS Code (Copilot) | bloc `servers` de `mcp.json` (type `http`) avec l'en-tête `Authorization` |
+| Gemini CLI | `gemini mcp add --transport http --header "Authorization: Bearer <jeton>" carbure <url>` |
 
-### Autres clients (Claude Desktop…)
+`<url>` est `https://<votre-serveur>/api/mcp`. Tout client MCP compatible avec le transport
+**Streamable HTTP** fonctionne de la même façon.
 
-Tout client MCP compatible avec le transport **Streamable HTTP** et les en-têtes
-personnalisés fonctionne : URL `https://<votre-serveur>/api/mcp`, en-tête
-`Authorization: Bearer <jeton>`.
-
-!!! note "Connecteurs de claude.ai"
-    Les connecteurs personnalisés de claude.ai (web et mobile) exigent un serveur joignable
-    depuis Internet et une authentification OAuth, que Carbure ne propose pas : utilisez
-    Claude Code ou un client qui accepte un en-tête d'authentification.
+!!! note "Jeton dans l'URL"
+    Pour les agents qui ne savent pas envoyer d'en-tête (ChatGPT), le jeton peut être passé
+    en paramètre `?token=`. Il n'est pas écrit dans les logs de Carbure, mais peut l'être par
+    un proxy : préférez l'en-tête quand l'agent le permet.
 
 ## Outils disponibles
 
@@ -64,7 +68,10 @@ personnalisés fonctionne : URL `https://<votre-serveur>/api/mcp`, en-tête
   et répond en JSON ; une notification reçoit `202` sans corps ; `GET /api/mcp` répond `405`
   (pas de flux SSE).
 - Versions du protocole : `2025-11-25`, `2025-06-18`, `2025-03-26`, `2024-11-05`.
-- Authentification : jeton d'accès (`cbt_…`) ou JWT du portail ; `401` sinon. Une requête
-  portant un en-tête `Origin` d'un autre site est refusée (`403`).
+- Authentification : jeton d'accès (`cbt_…`, en-tête `Authorization` ou `?token=`) ou JWT du
+  portail ; `401` sinon. Une requête portant un en-tête `Origin` d'un autre site est refusée
+  (`403`), comme toute requête quand le serveur est désactivé.
+- État du serveur : `GET /api/mcp/settings`, `PUT /api/mcp/settings` (`enabled`,
+  administrateurs), table `settings`.
 - Les outils s'exécutent avec les droits de l'utilisateur du jeton.
 - Code : `src/resources/Mcp.php` (protocole et outils), `src/resources/ApiToken.php` (jetons).

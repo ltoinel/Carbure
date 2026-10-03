@@ -347,6 +347,13 @@
                 {{ t('tabAccounts') }}
             </button>
             <button 
+                class="tab-button" 
+                :class="{ active: activeTab === 'agents' }" 
+                @click="setActiveTab('agents')">
+                <span class="material-icons">smart_toy</span>
+                {{ t('tabAgents') }}
+            </button>
+            <button 
                 v-if="isAdmin"
                 class="tab-button" 
                 :class="{ active: activeTab === 'users' }" 
@@ -1114,6 +1121,61 @@
                     </div>
                 </div>
 
+                <!-- AI Agents Tab: MCP server and access tokens -->
+                <div v-else-if="activeTab === 'agents'" key="agents" class="tab-panel">
+                    <div class="trends-view">
+                        <section class="trends-card">
+                            <div class="panel-header">
+                                <div>
+                                    <h2>{{ t('apiTokensTitle') }}</h2>
+                                    <p class="rules-help">{{ t('apiTokensHelp') }}</p>
+                                </div>
+                                <div class="panel-actions">
+                                    <button class="btn-add btn-add-icon" @click="openApiTokenModal" :disabled="!mcpEnabled"
+                                            :title="t('addApiToken')" :aria-label="t('addApiToken')">
+                                        <span class="material-icons" aria-hidden="true">add</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="mcp-switch-row">
+                                <label v-if="isAdmin" class="toggle-switch" :class="{ on: mcpEnabled }">
+                                    <input type="checkbox" role="switch" :checked="mcpEnabled" :disabled="switchingMcp" @change="toggleMcp" />
+                                    <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
+                                    <span class="toggle-label">{{ t('mcpEnabled') }}</span>
+                                </label>
+                                <span v-else class="category-chip" :class="{ 'role-admin': mcpEnabled }">{{ t(mcpEnabled ? 'mcpOn' : 'mcpOff') }}</span>
+                                <span class="rules-help">{{ t(mcpEnabled ? 'mcpOnHelp' : (isAdmin ? 'mcpOffHelpAdmin' : 'mcpOffHelp')) }}</span>
+                            </div>
+                            <p class="rules-help api-token-privacy">
+                                <span class="material-icons inline-icon" aria-hidden="true">privacy_tip</span>{{ t('apiTokenPrivacy') }}
+                            </p>
+                        </section>
+
+                        <section class="trends-card">
+                            <h3>{{ t('myApiTokens') }}</h3>
+                            <div v-if="apiTokens.length === 0" class="transactions-hint">{{ t('noApiTokens') }}</div>
+                            <ul v-else class="device-list">
+                                <li v-for="apiToken in apiTokens" :key="apiToken.id" class="device-item">
+                                    <span class="material-icons device-icon" aria-hidden="true">key</span>
+                                    <div class="device-details">
+                                        <div class="device-name">{{ apiToken.name }}</div>
+                                        <div class="device-meta">
+                                            {{ t('apiTokenCreated') }} : {{ formatDate(apiToken.created_at) }} ·
+                                            {{ apiToken.last_used_at ? t('apiTokenLastUsed') + ' : ' + formatDate(apiToken.last_used_at) : t('apiTokenNeverUsed') }}
+                                        </div>
+                                        <code class="device-token">{{ apiToken.token_hint }}…</code>
+                                    </div>
+                                    <div class="device-actions">
+                                        <button class="btn-icon btn-icon-delete" @click="revokeApiToken(apiToken)" :title="t('revokeApiToken')" :aria-label="t('revokeApiToken') + ' ' + apiToken.name">
+                                            <span class="material-icons" aria-hidden="true">delete</span>
+                                        </button>
+                                    </div>
+                                </li>
+                            </ul>
+                        </section>
+                    </div>
+                </div>
+
                 <!-- Users Tab -->
                 <div v-else-if="activeTab === 'users'" key="users" class="tab-panel">
                     <div v-if="loadingUsers" class="loading">
@@ -1258,36 +1320,6 @@
                             </ul>
                         </div>
 
-                        <div class="profile-container profile-devices">
-                            <div class="users-header">
-                                <div>
-                                    <h2>{{ t('apiTokensTitle') }}</h2>
-                                    <p class="rules-help">{{ t('apiTokensHelp') }}</p>
-                                </div>
-                                <button class="btn-add btn-add-icon" @click="openApiTokenModal" :title="t('addApiToken')" :aria-label="t('addApiToken')">
-                                    <span class="material-icons">add</span>
-                                </button>
-                            </div>
-                            <div v-if="apiTokens.length === 0" class="transactions-hint">{{ t('noApiTokens') }}</div>
-                            <ul v-else class="device-list">
-                                <li v-for="apiToken in apiTokens" :key="apiToken.id" class="device-item">
-                                    <span class="material-icons device-icon">key</span>
-                                    <div class="device-details">
-                                        <div class="device-name">{{ apiToken.name }}</div>
-                                        <div class="device-meta">
-                                            {{ t('apiTokenCreated') }} : {{ formatDate(apiToken.created_at) }} ·
-                                            {{ apiToken.last_used_at ? t('apiTokenLastUsed') + ' : ' + formatDate(apiToken.last_used_at) : t('apiTokenNeverUsed') }}
-                                        </div>
-                                        <code class="device-token">{{ apiToken.token_hint }}…</code>
-                                    </div>
-                                    <div class="device-actions">
-                                        <button class="btn-icon btn-icon-delete" @click="revokeApiToken(apiToken)" :title="t('revokeApiToken')" :aria-label="t('revokeApiToken') + ' ' + apiToken.name">
-                                            <span class="material-icons">delete</span>
-                                        </button>
-                                    </div>
-                                </li>
-                            </ul>
-                        </div>
                     </div>
                 </div>
             </transition>
@@ -1386,26 +1418,34 @@
                 </form>
                 <div v-else class="modal-body">
                     <p class="api-token-warning" role="alert">
-                        <span class="material-icons inline-icon">warning</span>{{ t('apiTokenShownOnce') }}
+                        <span class="material-icons inline-icon" aria-hidden="true">warning</span>{{ t('apiTokenShownOnce') }}
                     </p>
                     <div class="form-group">
-                        <label>{{ t('apiToken') }}</label>
+                        <label id="api-token-label">{{ t('apiToken') }}</label>
                         <div class="copy-field">
-                            <code>{{ newApiToken.token }}</code>
+                            <code aria-labelledby="api-token-label">{{ newApiToken.token }}</code>
                             <button type="button" class="btn-icon" @click="copyText(newApiToken.token)" :title="t('copyToken')" :aria-label="t('copyToken')">
-                                <span class="material-icons">content_copy</span>
+                                <span class="material-icons" aria-hidden="true">content_copy</span>
                             </button>
                         </div>
                     </div>
                     <div class="form-group">
-                        <label>{{ t('apiTokenClaudeCode') }}</label>
-                        <div class="copy-field">
-                            <code>{{ claudeCommand(newApiToken.token) }}</code>
-                            <button type="button" class="btn-icon" @click="copyText(claudeCommand(newApiToken.token))" :title="t('copy')" :aria-label="t('copy')">
-                                <span class="material-icons">content_copy</span>
-                            </button>
+                        <label id="agent-choice-label">{{ t('agentChoose') }}</label>
+                        <div class="agent-tabs" role="tablist" aria-labelledby="agent-choice-label">
+                            <button v-for="a in agentConfigs" :key="a.id" type="button" role="tab" class="agent-tab"
+                                    :class="{ active: selectedAgentConfig && selectedAgentConfig.id === a.id }"
+                                    :aria-selected="selectedAgentConfig && selectedAgentConfig.id === a.id ? 'true' : 'false'"
+                                    @click="selectedAgent = a.id">{{ a.name }}</button>
                         </div>
-                        <small>{{ t('apiTokenPrivacy') }}</small>
+                        <div v-if="selectedAgentConfig" role="tabpanel" class="agent-panel">
+                            <p class="setup-help">{{ t(selectedAgentConfig.how) }}</p>
+                            <div class="copy-field">
+                                <pre><code>{{ selectedAgentConfig.code }}</code></pre>
+                                <button type="button" class="btn-icon" @click="copyText(selectedAgentConfig.code)" :title="t('copy')" :aria-label="t('copy') + ' ' + selectedAgentConfig.name">
+                                    <span class="material-icons" aria-hidden="true">content_copy</span>
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">

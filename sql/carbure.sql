@@ -115,6 +115,17 @@ CREATE TABLE `budget_insight` (
 -- --------------------------------------------------------
 
 --
+-- Structure de la table `settings`
+--
+
+CREATE TABLE `settings` (
+  `name` varchar(50) NOT NULL,
+  `value` varchar(255) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Structure de la table `api_tokens`
 --
 
@@ -210,6 +221,12 @@ ALTER TABLE `budget`
 --
 ALTER TABLE `budget_insight`
   ADD PRIMARY KEY (`id`);
+
+--
+-- Index pour la table `settings`
+--
+ALTER TABLE `settings`
+  ADD PRIMARY KEY (`name`);
 
 --
 -- Index pour la table `api_tokens`

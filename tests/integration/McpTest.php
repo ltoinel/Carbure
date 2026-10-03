@@ -7,6 +7,7 @@ class McpTest extends DatabaseTestCase
     protected function setUp(): void
     {
         parent::setUp();
+        Setting::set('mcp_enabled', '1');
         $this->loginAs(self::USER);
         $this->token = ApiToken::create('test')['token'];
         $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer ' . $this->token;
@@ -140,6 +141,40 @@ class McpTest extends DatabaseTestCase
         $this->expectException(Error::class);
         $this->expectExceptionCode(403);
         Mcp::handle('2.0', 'ping', 1);
+    }
+
+    public function testDisabledByDefaultAndSwitchedByAnAdministrator()
+    {
+        Db::query("DELETE FROM settings");
+        $this->assertFalse(Mcp::settings()['enabled']);
+        try {
+            Mcp::handle('2.0', 'ping', 1);
+            $this->fail('Answered while disabled');
+        } catch (Error $e) {
+            $this->assertSame(403, $e->getCode());
+        }
+
+        // A user cannot enable it
+        $this->loginAs(self::USER);
+        try {
+            Mcp::updateSettings(true);
+            $this->fail('Enabled by a user');
+        } catch (Error $e) {
+            $this->assertSame(403, $e->getCode());
+        }
+
+        $this->loginAs(self::ADMIN);
+        $this->assertTrue(Mcp::updateSettings(true)['enabled']);
+        $this->assertTrue(Mcp::settings()['enabled']);
+        $this->assertFalse(Mcp::updateSettings('false')['enabled']);
+    }
+
+    public function testTokenInTheUrl()
+    {
+        // For the agents that cannot send an Authorization header
+        unset($_SERVER['HTTP_AUTHORIZATION']);
+        $response = json_decode(Mcp::handle('2.0', 'ping', 1, null, null, null, $this->token), true);
+        $this->assertArrayHasKey('result', $response);
     }
 
     public function testGetIsNotAllowed()

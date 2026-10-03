@@ -335,7 +335,7 @@ jeton (`token`, préfixe `cbt_`) **une seule fois** ; la liste ne donne que `id`
 ### `POST /api/mcp` — jeton d'accès
 
 Serveur MCP (JSON-RPC 2.0, transport Streamable HTTP) en lecture seule, authentifié par
-`Authorization: Bearer <jeton>`. Voir [Claude (MCP)](mcp.md).
+`Authorization: Bearer <jeton>`. Voir [Agents IA (MCP)](mcp.md).
 
 ## Spécification OpenAPI
 

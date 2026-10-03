@@ -150,10 +150,12 @@ Le dernier administrateur ne peut pas perdre son rôle.
   de l'afficher en entier, de le copier (HTTPS requis ; sinon le token est affiché) ou
   de **supprimer** un ancien appareil.
 
-### Accès pour Claude (MCP)
+## Agents IA
 
-Création (dans une modale) et révocation des jetons d'accès du serveur MCP. Le jeton et la
-commande `claude mcp add` à copier ne sont affichés qu'une fois. Voir [Claude (MCP)](mcp.md).
+Connexion d'un agent IA (Claude, ChatGPT, Cursor, Copilot, Gemini…) au serveur MCP de
+Carbure, en lecture seule : un administrateur active ou désactive le serveur ; chaque
+utilisateur crée ses jetons d'accès (le jeton et la configuration de chaque agent ne sont
+affichés qu'une fois) et les révoque à tout moment. Voir [Agents IA (MCP)](mcp.md).
 
 ## Mode debug
 

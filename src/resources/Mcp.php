@@ -7,8 +7,9 @@
  * analyse the household data: JSON-RPC 2.0 messages on POST /api/mcp, one JSON
  * response per request, no session. The tools are read-only.
  *
- * Authentication: "Authorization: Bearer <API token>" (created in the profile of
- * the portal) or a JWT.
+ * Authentication: "Authorization: Bearer <API token>" (created in the AI agents
+ * tab of the portal), the token in ?token= for the agents that cannot send a
+ * header, or a JWT. An administrator enables or disables the server.
  *
  * @author     Ludovic Toinel
  * @copyright  2026 Carbure App
@@ -42,14 +43,18 @@ final class Mcp {
      * @param array|null      $params  The parameters of the method
      * @param mixed           $result  Response of the client to a server request (unused)
      * @param mixed           $error   Error of the client to a server request (unused)
+     * @param string|null     $token   API token, for the agents that cannot send a header
      * @return string The JSON-RPC response, or '' (HTTP 202) for a notification
-     * @throws Error If unauthenticated (401) or from another site (403)
+     * @throws Error If disabled (403), unauthenticated (401) or from another site (403)
      */
     #[ApiRoute('/mcp', method: 'POST', public: true, raw: true)]
-    public static function handle($jsonrpc = null, $method = null, $id = null, $params = null, $result = null, $error = null)
+    public static function handle($jsonrpc = null, $method = null, $id = null, $params = null, $result = null, $error = null, $token = null)
     {
+        if (!self::enabled()) {
+            throw new Error("The MCP server is disabled: an administrator enables it in the AI agents tab", 403);
+        }
         self::checkOrigin();
-        self::authenticate();
+        self::authenticate($token);
 
         // Notifications and responses of the client: accepted, nothing to answer
         if ($method === null || $id === null) {
@@ -77,6 +82,41 @@ final class Mcp {
             default:
                 return self::error($id, self::METHOD_NOT_FOUND, "Method not found: $method");
         }
+    }
+
+    /**
+     * State of the MCP server, for the AI agents tab.
+     *
+     * @return array enabled
+     */
+    #[ApiRoute('/mcp/settings', method: 'GET')]
+    public static function settings()
+    {
+        return ['enabled' => self::enabled()];
+    }
+
+    /**
+     * Enable or disable the MCP server (administrators).
+     *
+     * @param bool $enabled True to enable it
+     * @return array enabled
+     */
+    #[ApiRoute('/mcp/settings', method: 'PUT')]
+    public static function updateSettings($enabled)
+    {
+        User::requireAdmin();
+        Setting::set('mcp_enabled', filter_var($enabled, FILTER_VALIDATE_BOOLEAN) ? '1' : '0');
+        return ['enabled' => self::enabled()];
+    }
+
+    /**
+     * Check if the MCP server is enabled (disabled until an administrator enables it).
+     *
+     * @return bool True if enabled
+     */
+    public static function enabled()
+    {
+        return Setting::get('mcp_enabled', '0') === '1';
     }
 
     /**
@@ -118,12 +158,13 @@ final class Mcp {
      * Authenticate the client with an API token or a JWT; the tools then run as
      * this user.
      *
+     * @param string|null $queryToken API token given in the URL
      * @return int The user id
      * @throws Error If the token is missing or invalid (401)
      */
-    private static function authenticate()
+    private static function authenticate($queryToken = null)
     {
-        $token = Jwt::getTokenFromHeader();
+        $token = Jwt::getTokenFromHeader() ?: $queryToken;
         $userId = null;
         if ($token) {
             if (str_starts_with($token, ApiToken::PREFIX)) {

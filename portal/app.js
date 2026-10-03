@@ -25,6 +25,7 @@ import { createSyncModule } from './modules/syncModule.js';
 import { createAccountsModule } from './modules/accountsModule.js';
 import { createCategoriesModule } from './modules/categoriesModule.js';
 import { createSetupModule } from './modules/setupModule.js';
+import { createAgentsModule } from './modules/agentsModule.js';
 
 /** Tabs reserved to administrators */
 const ADMIN_TABS = ['rules', 'categories', 'accounts', 'users'];
@@ -64,7 +65,8 @@ createApp({
         createSyncModule(() => apiService),
         createAccountsModule(() => apiService),
         createCategoriesModule(() => apiService),
-        createSetupModule()
+        createSetupModule(),
+        createAgentsModule(() => apiService)
     ],
 
     data() {
@@ -227,6 +229,9 @@ createApp({
                     break;
                 case 'rules':
                     this.loadRules();
+                    break;
+                case 'agents':
+                    this.loadAgents();
                     break;
                 case 'categories':
                     this.loadCategories();

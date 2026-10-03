@@ -18,7 +18,8 @@ try {
     if (strpos($_SERVER["REQUEST_URI"], ".") === false) {
 
         // Log the request
-        Logger::info("Request : " . $_SERVER["REQUEST_URI"]);
+        // Tokens given in the URL (sync, MCP) are not written in the logs
+        Logger::info("Request : " . preg_replace('/([?&]token=)[^&]*/i', '$1***', $_SERVER["REQUEST_URI"]));
 
         // We execute the webservice
         echo Webservice::exec();

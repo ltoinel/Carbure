@@ -549,7 +549,7 @@ button .material-icons {
 /* Tabs System - compact style applied globally (was limited to small screens) */
 .tabs {
     display: flex;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     background: var(--surface);
     border-radius: var(--border-radius-xl);
     padding: 8px;
@@ -4315,4 +4315,75 @@ a.footer-brand:hover {
     justify-content: center;
     width: 44px;
     padding: 0;
+}
+
+/* ===== AI agents ===== */
+.mcp-switch-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.mcp-switch-row .rules-help {
+    margin: 0;
+}
+
+.api-token-privacy {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    margin-top: 12px;
+}
+
+.agent-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+
+.agent-tab {
+    padding: 6px 12px;
+    border: 1px solid var(--divider);
+    border-radius: 16px;
+    background: var(--surface);
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 500;
+    text-transform: none;
+    letter-spacing: normal;
+    box-shadow: none;
+}
+
+.agent-tab:hover {
+    border-color: var(--primary-color);
+    background: var(--surface);
+    transform: none;
+    box-shadow: none;
+}
+
+.agent-tab.active {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    color: #fff;
+}
+
+.agent-panel .copy-field pre {
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+    padding: 10px 12px;
+    border-radius: var(--border-radius-md);
+    background: var(--background);
+    overflow-x: auto;
+}
+
+.agent-panel .copy-field pre code {
+    padding: 0;
+    background: none;
+    font-size: 12px;
+    white-space: pre-wrap;
+    word-break: break-all;
 }

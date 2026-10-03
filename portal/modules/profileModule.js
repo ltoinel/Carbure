@@ -149,7 +149,6 @@ export function createProfileModule(getApiService) {
                 };
                 this.setActiveTab('profile');
                 this.loadDevices();
-                this.loadApiTokens();
             },
 
             /**
@@ -192,7 +191,8 @@ export function createProfileModule(getApiService) {
              * Opens the modal to create an API token
              */
             openApiTokenModal() {
-                this.apiTokenName = 'Claude';
+                this.apiTokenName = '';
+                this.selectedAgent = 'claude-code';
                 this.newApiToken = null;
                 this.showApiTokenModal = true;
                 this.$nextTick(() => document.getElementById('api-token-name')?.select());
@@ -230,15 +230,6 @@ export function createProfileModule(getApiService) {
              */
             mcpUrl() {
                 return new URL(`${this.apiBaseUrl.replace(/\/$/, '')}/mcp`, window.location.href).href;
-            },
-
-            /**
-             * Command adding Carbure to Claude Code
-             * @param {string} token - API token
-             * @returns {string}
-             */
-            claudeCommand(token) {
-                return `claude mcp add --transport http carbure ${this.mcpUrl()} --header "Authorization: Bearer ${token}"`;
             },
 
             /**
