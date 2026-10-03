@@ -20,6 +20,22 @@ Un administrateur ne peut pas supprimer son propre compte ; un utilisateur propr
 de transactions ne peut pas être supprimé ; le dernier administrateur ne peut pas perdre
 son rôle.
 
+## En-têtes HTTP
+
+| En-tête | API (PHP, toute installation) | Portail (nginx de l'image, `.htaccess` Apache) |
+|---|---|---|
+| `Content-Security-Policy` | `default-src 'none'; frame-ancestors 'none'` | ressources du serveur uniquement ; `'unsafe-eval'` (Vue compile les modèles dans le navigateur) et styles en ligne |
+| `X-Content-Type-Options` | `nosniff` | `nosniff` |
+| `X-Frame-Options` | `DENY` | `DENY` |
+| `Referrer-Policy` | `no-referrer` | `no-referrer` |
+| `Cache-Control` | `no-store` (données bancaires) | — |
+| `Permissions-Policy`, `Cross-Origin-Opener-Policy` | — | caméra, micro, géolocalisation, paiement désactivés ; `same-origin` |
+
+L'API ne révèle pas la version de PHP (`X-Powered-By` retiré) et nginx pas la sienne
+(`server_tokens off`). **HSTS** est à activer sur le proxy HTTPS placé devant Carbure (proxy
+inversé du NAS, Traefik, Caddy…), le conteneur servant du HTTP. Sur un serveur nginx sans
+Docker, reprendre les en-têtes de `docker/nginx.conf`.
+
 ## Assistant d'installation
 
 Tant que `conf/prod.ini` n'existe pas, l'API ne répond qu'à `/api/setup` (le reste renvoie

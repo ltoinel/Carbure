@@ -57,8 +57,13 @@ final class Setup {
         [$status, $body] = $setup->handle($_SERVER['REQUEST_METHOD'] ?? 'GET', $path, is_array($data) ? $data : []);
 
         http_response_code($status);
+        header_remove('X-Powered-By');
         header('Content-Type: application/json; charset=utf-8');
         header('Cache-Control: no-store');
+        header('X-Content-Type-Options: nosniff');
+        header('X-Frame-Options: DENY');
+        header('Referrer-Policy: no-referrer');
+        header("Content-Security-Policy: default-src 'none'; frame-ancestors 'none'");
         echo json_encode($body, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     }
 

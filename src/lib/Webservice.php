@@ -36,6 +36,9 @@ final class Webservice {
 
         if (!headers_sent()) {
             http_response_code($code);
+            self::securityHeaders();
+            header(self::CONTENT_TYPE_JSON);
+            header('Cache-Control: no-store');
         }
 
         // We return the error message + UID for tracking
@@ -163,10 +166,12 @@ final class Webservice {
      */
     private static function setResponseHeaders($isStream)
     {
+        self::securityHeaders();
+
         if ($isStream) {
             // Server-Sent Events headers
             header(self::CONTENT_TYPE_SSE);
-            header('Cache-Control: no-cache');
+            header('Cache-Control: no-store');
             header('Connection: keep-alive');
             header('X-Accel-Buffering: no');
             
@@ -175,9 +180,29 @@ final class Webservice {
         } else {
             // Standard JSON response headers
             header(self::CONTENT_TYPE_JSON);
-            header('Cache-Control: no-cache');
+            // Bank data: never kept by the browser or a proxy
+            header('Cache-Control: no-store');
             header('Connection: keep-alive');
         }
+    }
+
+    /**
+     * Security headers of every API response (whatever the web server): no
+     * sniffing, no framing, no referrer, nothing to run in a JSON response.
+     *
+     * @return void
+     */
+    public static function securityHeaders()
+    {
+        if (headers_sent()) {
+            return;
+        }
+        header_remove('X-Powered-By');
+        header('X-Content-Type-Options: nosniff');
+        header('X-Frame-Options: DENY');
+        header('Referrer-Policy: no-referrer');
+        header("Content-Security-Policy: default-src 'none'; frame-ancestors 'none'");
+        header('Cross-Origin-Resource-Policy: same-origin');
     }
 
     /**
