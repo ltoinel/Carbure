@@ -994,12 +994,11 @@
                                 <div v-for="group in groupedRules" :key="group.category" class="rules-group">
                                     <div class="rules-group-name">{{ group.category }}</div>
                                     <div class="rules-chips">
-                                        <span v-for="rule in group.rules" :key="rule.id" class="rule-chip">
+                                        <button v-for="rule in group.rules" :key="rule.id" type="button" class="rule-chip"
+                                                @click="openRuleModal(rule)" :aria-label="t('editRule') + ' ' + rule.keyword">
                                             {{ rule.keyword }}
-                                            <button @click="removeRule(rule)" :title="t('deleteRule')" :aria-label="t('deleteRule') + ' ' + rule.keyword">
-                                                <span class="material-icons">close</span>
-                                            </button>
-                                        </span>
+                                            <span v-if="Number(rule.notify)" class="material-icons rule-notify" :title="t('ruleNotify')" aria-hidden="true">notifications_active</span>
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -1583,7 +1582,7 @@
             <div class="modal modal-form">
                 <div class="modal-header">
                     <span class="material-icons">rule</span>
-                    <h3>{{ t('addRuleTitle') }}</h3>
+                    <h3>{{ newRule.id ? t('editRule') : t('addRuleTitle') }}</h3>
                     <button class="modal-close" @click="showRuleModal = false">
                         <span class="material-icons">close</span>
                     </button>
@@ -1599,8 +1598,20 @@
                         <category-picker v-model="newRule.category" :categories="ruleCategories" :t="t"
                                          :icon-for="categoryIcon" :color-for="categoryColor"></category-picker>
                     </div>
+                    <label class="setup-checkbox">
+                        <input type="checkbox" v-model="newRule.notify" />
+                        {{ t('ruleNotifyLabel') }}
+                    </label>
+                    <p v-if="newRule.id && ruleCount" class="rule-count" aria-live="polite">
+                        <span class="material-icons inline-icon" aria-hidden="true">receipt_long</span>
+                        {{ t('ruleCount', { matching: ruleCount.matching, categorized: ruleCount.categorized }) }}
+                    </p>
                 </form>
                 <div class="modal-footer">
+                    <button v-if="newRule.id" type="button" class="btn-danger btn-danger-icon modal-footer-start" @click="removeRule(newRule)"
+                            :title="t('deleteRule')" :aria-label="t('deleteRule')">
+                        <span class="material-icons" aria-hidden="true">delete</span>
+                    </button>
                     <button class="btn-secondary" @click="showRuleModal = false">
                         <span class="material-icons">cancel</span>
                         {{ t('cancel') }}

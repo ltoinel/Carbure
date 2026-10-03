@@ -4028,7 +4028,7 @@ a.footer-brand:hover {
 }
 
 .modal-insight {
-    max-width: 640px;
+    max-width: 960px;
 }
 
 .modal-body textarea {
@@ -4242,7 +4242,7 @@ a.footer-brand:hover {
 /* ===== SQL editor (insights) ===== */
 .sql-editor .CodeMirror {
     height: auto;
-    min-height: 120px;
+    min-height: 280px;
     border: 1px solid var(--divider);
     border-radius: var(--border-radius-md);
     font-family: 'Roboto Mono', ui-monospace, monospace;
@@ -4602,4 +4602,43 @@ a.footer-brand:hover {
 .transaction-detail-list dd {
     margin: 0;
     color: var(--text-primary);
+}
+
+/* ===== Rules: clickable chips ===== */
+button.rule-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 12px;
+    font-weight: 400;
+    cursor: pointer;
+    text-transform: none;
+    letter-spacing: normal;
+    box-shadow: none;
+}
+
+button.rule-chip:hover,
+button.rule-chip:focus-visible {
+    background: color-mix(in srgb, var(--primary-color) 14%, transparent);
+    color: var(--primary-color);
+    transform: none;
+    box-shadow: none;
+}
+
+.rule-notify {
+    font-size: 14px;
+    color: var(--primary-color);
+}
+
+.rule-count {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 12px 0 0;
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.sql-editor .CodeMirror-scroll {
+    min-height: 280px;
 }

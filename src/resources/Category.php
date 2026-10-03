@@ -186,7 +186,10 @@ final class Category {
     #[ApiRoute('/category/keyword', method: 'GET')]
     public static function getKeywords()
     {
-        $sql = "SELECT k.id, k.keyword, k.category, c.name AS category_name
+        // notify exists once the migration 2026-10-13_rule_notify.sql is applied
+        $notify = Db::queryOne("SELECT COUNT(*) AS n FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE()
+            AND TABLE_NAME = 'bank_transaction_category_keyword' AND COLUMN_NAME = 'notify'", "")['n'] > 0;
+        $sql = "SELECT k.id, k.keyword, k.category, c.name AS category_name, " . ($notify ? "k.notify" : "0 AS notify") . "
                 FROM bank_transaction_category_keyword k
                 JOIN bank_transaction_category c ON c.id = k.category
                 ORDER BY c.name, k.keyword";
@@ -198,11 +201,12 @@ final class Category {
      *
      * @param string $keyword  The text to find in the transaction labels (stored in upper case)
      * @param int    $category The category to set
+     * @param bool   $notify   Notify the household when a new transaction matches (optional)
      * @return array The created rule
      * @throws Error If the keyword is empty or already exists, or the category does not exist
      */
     #[ApiRoute('/category/keyword', method: 'POST')]
-    public static function createKeyword($keyword, $category)
+    public static function createKeyword($keyword, $category, $notify = false)
     {
         User::requireAdmin();
 
@@ -220,9 +224,67 @@ final class Category {
             throw new Error("This keyword already exists", 409);
         }
 
-        $stmt = Db::execute("INSERT INTO bank_transaction_category_keyword (keyword, category) VALUES (?, ?)", "si", $keyword, $category);
+        $notify = filter_var($notify, FILTER_VALIDATE_BOOLEAN) ? 1 : 0;
+        $stmt = $notify
+            ? Db::execute("INSERT INTO bank_transaction_category_keyword (keyword, category, notify) VALUES (?, ?, 1)", "si", $keyword, $category)
+            : Db::execute("INSERT INTO bank_transaction_category_keyword (keyword, category) VALUES (?, ?)", "si", $keyword, $category);
 
-        return ['id' => $stmt->insert_id, 'keyword' => $keyword, 'category' => (int)$category];
+        return ['id' => $stmt->insert_id, 'keyword' => $keyword, 'category' => (int)$category, 'notify' => $notify];
+    }
+
+    /**
+     * Modify a categorization rule (administrators).
+     *
+     * @param int    $id       The rule
+     * @param string $keyword  The keyword found in the labels
+     * @param int    $category The category given to the transactions
+     * @param bool   $notify   Notify the household when a new transaction matches
+     * @return array The rule
+     * @throws Error If not found, invalid or the keyword already exists
+     */
+    #[ApiRoute('/category/keyword', method: 'PUT')]
+    public static function updateKeyword($id, $keyword, $category, $notify = false)
+    {
+        User::requireAdmin();
+        if (!Db::queryOne("SELECT id FROM bank_transaction_category_keyword WHERE id=?", "i", $id)) {
+            throw new Error("Rule not found", 404);
+        }
+        $keyword = strtoupper(trim((string)$keyword));
+        if ($keyword === '' || strlen($keyword) > 60) {
+            throw new Error("The keyword must contain 1 to 60 characters", 400);
+        }
+        if (!Db::queryOne("SELECT id FROM bank_transaction_category WHERE id=?", "i", $category)) {
+            throw new Error("Category not found", 404);
+        }
+        if (Db::queryOne("SELECT id FROM bank_transaction_category_keyword WHERE keyword=? AND id<>?", "si", $keyword, $id)) {
+            throw new Error("This keyword already exists", 409);
+        }
+        $notify = filter_var($notify, FILTER_VALIDATE_BOOLEAN) ? 1 : 0;
+        Db::execute("UPDATE bank_transaction_category_keyword SET keyword=?, category=?, notify=? WHERE id=?", "siii", $keyword, $category, $notify, $id);
+
+        return ['id' => (int)$id, 'keyword' => $keyword, 'category' => (int)$category, 'notify' => $notify];
+    }
+
+    /**
+     * Number of transactions whose label contains the keyword of a rule
+     * (administrators).
+     *
+     * @param int $id The rule
+     * @return array matching (transactions), categorized (with the category of the rule)
+     * @throws Error If not found
+     */
+    #[ApiRoute('/category/keyword/count', method: 'GET')]
+    public static function countKeyword($id)
+    {
+        User::requireAdmin();
+        $rule = Db::queryOne("SELECT keyword, category FROM bank_transaction_category_keyword WHERE id=?", "i", $id);
+        if (!$rule) {
+            throw new Error("Rule not found", 404);
+        }
+        $pattern = '%' . addcslashes($rule['keyword'], '%_\\') . '%';
+        $row = Db::queryOne("SELECT COUNT(*) AS matching, SUM(category = ?) AS categorized FROM bank_transaction WHERE label LIKE ?",
+            "is", $rule['category'], $pattern);
+        return ['matching' => (int)$row['matching'], 'categorized' => (int)$row['categorized']];
     }
 
     /**

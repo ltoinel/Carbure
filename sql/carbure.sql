@@ -82,7 +82,8 @@ CREATE TABLE `bank_transaction_category` (
 CREATE TABLE `bank_transaction_category_keyword` (
   `id` int(10) UNSIGNED NOT NULL,
   `keyword` varchar(60) NOT NULL,
-  `category` tinyint(3) UNSIGNED NOT NULL
+  `category` tinyint(3) UNSIGNED NOT NULL,
+  `notify` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Push to the household when a new transaction matches'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------

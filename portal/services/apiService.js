@@ -518,13 +518,38 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
      * Creates an automatic categorization rule
      * @param {string} keyword - Text to find in the labels
      * @param {number} category - Category to set
+     * @param {boolean} notify - Notify the household when a new transaction matches
      * @returns {Promise<Object>} Created rule
      */
-    async function createRule(keyword, category) {
+    async function createRule(keyword, category, notify = false) {
         return request(`${baseUrl}/category/keyword`, {
             method: 'POST',
-            body: JSON.stringify({ keyword, category: Number(category) })
+            body: JSON.stringify({ keyword, category: Number(category), notify: !!notify })
         }, 'Failed to create rule');
+    }
+
+    /**
+     * Modifies an automatic categorization rule
+     * @param {number} id - Rule ID
+     * @param {string} keyword - Text to find in the labels
+     * @param {number} category - Category to set
+     * @param {boolean} notify - Notify the household when a new transaction matches
+     * @returns {Promise<Object>} The rule
+     */
+    async function updateRule(id, keyword, category, notify) {
+        return request(`${baseUrl}/category/keyword`, {
+            method: 'PUT',
+            body: JSON.stringify({ id, keyword, category: Number(category), notify: !!notify })
+        }, 'Failed to modify the rule');
+    }
+
+    /**
+     * Number of transactions whose label contains the keyword of a rule
+     * @param {number} id - Rule ID
+     * @returns {Promise<Object>} {matching, categorized}
+     */
+    async function countRule(id) {
+        return request(`${baseUrl}/category/keyword/count?id=${encodeURIComponent(id)}`, {}, 'Failed to count the transactions');
     }
 
     /**
@@ -856,6 +881,8 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
         setTransactionCategory,
         fetchRules,
         createRule,
+        updateRule,
+        countRule,
         deleteRule,
         applyRules,
         fetchTrends,

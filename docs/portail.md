@@ -144,6 +144,11 @@ la catégorie choisie.
   catégorisées de l'historique et affiche le nombre de transactions mises à jour. Les
   règles sont aussi appliquées automatiquement après chaque synchronisation (transactions
   du dernier mois).
+- Un clic sur une règle ouvre sa fenêtre : modifier le mot-clé et la catégorie, voir combien
+  de transactions contiennent le mot-clé (et combien sont déjà dans la catégorie), la
+  supprimer (corbeille), et cocher **Notifier le foyer** : chaque nouvelle transaction
+  synchronisée qui correspond à la règle envoie une notification à tous les utilisateurs du
+  foyer (cloche sur la règle).
 
 ## Catégories (administrateurs)
 

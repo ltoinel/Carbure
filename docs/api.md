@@ -369,6 +369,17 @@ curl -X POST https://exemple.fr/api/category/keyword -H "Authorization: Bearer $
   -H 'Content-Type: application/json' -d '{"keyword":"decathlon","category":9}'
 ```
 
+### `PUT /category/keyword` — administrateur
+
+`id`, `keyword`, `category`, `notify` : modifie une règle (`409` si le mot-clé existe déjà).
+`POST /category/keyword` accepte aussi `notify` : chaque nouvelle transaction synchronisée
+qui contient le mot-clé envoie alors une notification à tous les utilisateurs du foyer.
+
+### `GET /category/keyword/count?id=` — administrateur
+
+Nombre de transactions dont le libellé contient le mot-clé (`matching`), dont celles déjà
+dans la catégorie de la règle (`categorized`).
+
 ### `DELETE /category/keyword` — administrateur
 
 `id` : supprime une règle (404 si inconnue).

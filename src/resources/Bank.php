@@ -421,6 +421,7 @@ final class Bank {
                 Webservice::sendProgress("Notifying users of $bankId...");
                 self::notifyBankUsers($bankId, $status);
                 self::alertLargeExpenses($bankId, $created);
+                self::alertRuleMatches($created);
             }
             
             // Update missing categories
@@ -552,6 +553,58 @@ final class Bank {
      * @param array  $transactions The new transactions (label, amount)
      * @return int The number of alerts sent
      */
+    /**
+     * Notify the household of the new transactions matching a rule marked
+     * "notify" (one notification per transaction and user).
+     *
+     * @param array $transactions The new transactions (label, amount)
+     * @return int The number of notifications sent
+     */
+    public static function alertRuleMatches($transactions)
+    {
+        if (empty($transactions)) {
+            return 0;
+        }
+        try {
+            $rules = Db::execute("SELECT keyword FROM bank_transaction_category_keyword WHERE notify = 1", "")->get_result()->fetch_all(MYSQLI_ASSOC);
+        } catch (Throwable $e) {
+            // Column not created yet (migration 2026-10-13_rule_notify.sql)
+            return 0;
+        }
+        if (!$rules) {
+            return 0;
+        }
+
+        // The household is notified: every user
+        $users = Db::execute("SELECT id, language FROM users", "")->get_result()->fetch_all(MYSQLI_ASSOC);
+        $sent = 0;
+        foreach ($transactions as $transaction) {
+            $label = strtoupper((string)$transaction['label']);
+            foreach ($rules as $rule) {
+                if (strpos($label, $rule['keyword']) === false) {
+                    continue;
+                }
+                foreach ($users as $user) {
+                    $french = $user['language'] === 'fr';
+                    $amount = number_format((float)$transaction['amount'], 2, $french ? ',' : '.', $french ? ' ' : ',');
+                    Device::sendNotification(
+                        $user['id'],
+                        ($french ? "Nouvelle transaction : " : "New transaction: ") . $rule['keyword'],
+                        trim($transaction['label']) . " : $amount €",
+                        Transaction::countUnpointed()
+                    );
+                    $sent++;
+                }
+                // One notification per transaction, even if several rules match
+                break;
+            }
+        }
+        if ($sent > 0) {
+            Logger::info("$sent rule notification(s) sent");
+        }
+        return $sent;
+    }
+
     public static function alertLargeExpenses($bankId, $transactions)
     {
         if (empty($transactions)) {

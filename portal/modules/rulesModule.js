@@ -20,7 +20,10 @@ export function createRulesModule(getApiService) {
                 ruleCategories: [],
                 loadingRules: false,
                 ruleFilter: '',
-                newRule: { keyword: '', category: '' },
+                // Rule of the modal: {id (null for a new one), keyword, category, notify}
+                newRule: { id: null, keyword: '', category: '', notify: false },
+                // Transactions matching the rule of the modal: {matching, categorized}
+                ruleCount: null,
                 showRuleModal: false,
                 savingRule: false,
                 applyingRules: false
@@ -97,7 +100,16 @@ export function createRulesModule(getApiService) {
              * @param {Object|null} rule - {keyword, category}
              */
             openRuleModal(rule = null) {
-                this.newRule = { keyword: rule?.keyword || '', category: rule?.category ?? '' };
+                this.newRule = {
+                    id: rule?.id ? Number(rule.id) : null,
+                    keyword: rule?.keyword || '',
+                    category: rule?.category !== undefined && rule?.category !== '' ? Number(rule.category) : '',
+                    notify: !!Number(rule?.notify || 0)
+                };
+                this.ruleCount = null;
+                if (this.newRule.id) {
+                    getApiService().countRule(this.newRule.id).then(count => { this.ruleCount = count; }).catch(() => {});
+                }
                 this.showRuleModal = true;
                 // Let the user shorten the keyword (dates, card numbers...)
                 this.$nextTick(() => {
@@ -121,9 +133,13 @@ export function createRulesModule(getApiService) {
 
                 this.savingRule = true;
                 try {
-                    await getApiService().createRule(this.newRule.keyword, this.newRule.category);
+                    if (this.newRule.id) {
+                        await getApiService().updateRule(this.newRule.id, this.newRule.keyword, this.newRule.category, this.newRule.notify);
+                    } else {
+                        await getApiService().createRule(this.newRule.keyword, this.newRule.category, this.newRule.notify);
+                    }
                     this.showRuleModal = false;
-                    this.showToast(this.t('ruleAdded'));
+                    this.showToast(this.t(this.newRule.id ? 'ruleUpdated' : 'ruleAdded'));
                     this.rules = await getApiService().fetchRules();
                 } catch (error) {
                     this.showToast(error.message);
@@ -144,7 +160,8 @@ export function createRulesModule(getApiService) {
 
                 try {
                     await getApiService().deleteRule(rule.id);
-                    this.rules = this.rules.filter(r => r.id !== rule.id);
+                    this.rules = this.rules.filter(r => Number(r.id) !== Number(rule.id));
+                    this.showRuleModal = false;
                     this.showToast(this.t('ruleDeleted'));
                 } catch (error) {
                     this.showToast(error.message);

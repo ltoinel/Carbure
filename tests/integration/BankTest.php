@@ -352,6 +352,19 @@ class BankTest extends DatabaseTestCase
         $this->assertSame(0, Db::queryOne("SELECT COUNT(*) AS n FROM bank_transaction WHERE user=2", "")['n']);
     }
 
+    public function testRuleNotification()
+    {
+        Db::query("UPDATE bank_transaction_category_keyword SET notify = 1 WHERE keyword = 'EDF'");
+        $sent = Bank::alertRuleMatches([
+            ['label' => 'PRLV SEPA EDF', 'amount' => -50.0],
+            ['label' => 'CB BOULANGERIE', 'amount' => -3.2],
+        ]);
+        // One user of the data set has a device; every user is notified
+        $this->assertSame((int)Db::queryOne("SELECT COUNT(*) AS n FROM users", "")['n'], $sent);
+        $this->assertNotEmpty(FakeApnsServer::requests());
+        $this->assertSame(0, Bank::alertRuleMatches([]));
+    }
+
     public function testNotifyEveryUserOfTheHousehold()
     {
         // The devices of every user are notified, whoever added the account
