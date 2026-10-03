@@ -4387,3 +4387,8 @@ a.footer-brand:hover {
     white-space: pre-wrap;
     word-break: break-all;
 }
+
+.user-last-login {
+    white-space: nowrap;
+    color: var(--text-secondary);
+}

@@ -1201,6 +1201,7 @@
                                             <th>{{ t('firstname') }}</th>
                                             <th>{{ t('lastname') }}</th>
                                             <th>{{ t('userRole') }}</th>
+                                            <th>{{ t('lastLogin') }}</th>
                                             <th class="actions-column">{{ t('actions') }}</th>
                                         </tr>
                                     </thead>
@@ -1216,6 +1217,7 @@
                                             <td>{{ user.firstname || '-' }}</td>
                                             <td>{{ user.lastname || '-' }}</td>
                                             <td><span class="category-chip" :class="{ 'role-admin': Number(user.is_admin) }">{{ Number(user.is_admin) ? t('role_admin') : t('role_user') }}</span></td>
+                                            <td class="user-last-login">{{ user.last_login ? formatSyncDate(user.last_login) : t('neverLoggedIn') }}</td>
                                             <td class="actions-column">
                                                 <div class="row-actions">
                                                     <button class="btn-icon btn-icon-edit" @click="openEditUserModal(user)" :title="t('editUser')" :aria-label="t('editUser') + ' ' + user.username">

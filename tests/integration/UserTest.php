@@ -9,6 +9,14 @@ class UserTest extends DatabaseTestCase
         $this->assertSame(self::ADMIN, Jwt::parseJwt($token['token'])->sub);
     }
 
+    public function testLoginRecordsTheDate()
+    {
+        $this->loginAs(self::ADMIN);
+        $this->assertNull(array_column(User::get(), 'last_login', 'username')['user']);
+        User::login('user', 'userpass');
+        $this->assertNotNull(array_column(User::get(), 'last_login', 'username')['user']);
+    }
+
     public function testLoginRegistersTheDevice()
     {
         User::login('user', 'userpass', ['name' => 'iPad', 'token' => str_repeat('b', 64)]);

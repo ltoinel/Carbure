@@ -47,6 +47,15 @@ final class User {
         }
              
         $token = Jwt::createJwt($user['id']);
+
+        // Shown to the administrators (Users tab)
+        try {
+            Db::execute("UPDATE users SET last_login = NOW() WHERE id = ?", "i", $user['id']);
+        } catch (Throwable $e) {
+            // Column not created yet (migration 2026-10-10_last_login.sql): the login goes on
+            Logger::error("Unable to record the last login: " . $e->getMessage());
+        }
+
         return $token;
 
     }
@@ -121,13 +130,17 @@ final class User {
     }
 
     /**
-     * Get all users (administrator) or the authenticated user only.
+     * Get all users (administrator) or the authenticated user only, with the date
+     * of their last login.
      * @return array List of users (without passwords)
      */
     #[ApiRoute('/user', method: 'GET')]
     public static function get()
     {
-        $sql = "SELECT " . self::COLUMNS . " FROM users";
+        // last_login exists once the migration 2026-10-10_last_login.sql is applied
+        $lastLogin = Db::queryOne("SELECT COUNT(*) AS n FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'last_login'", "")['n'] > 0;
+        $sql = "SELECT " . self::COLUMNS . ($lastLogin ? ", last_login" : ", NULL AS last_login") . " FROM users";
         if (self::isAdmin()) {
             $stmt = Db::execute($sql . " ORDER BY username", "");
         } else {
