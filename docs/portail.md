@@ -1,32 +1,58 @@
 # Portail web
 
-Le portail (`portal/`) est une application Vue 3 servie en fichiers statiques, par
-exemple sous `https://<serveur>/portal/`. Il utilise la même API que l'app iOS.
+Le portail (`portal/`) est une application Vue 3 servie en fichiers statiques, sous
+`https://<serveur>/portal/` (l'adresse racine y redirige). Il utilise la même API que
+l'app iOS.
 
-## Connexion
+## Installation
+
+Tant que Carbure n'est pas installé, le portail affiche l'**assistant d'installation**,
+en trois étapes :
+
+1. **Base de données** : serveur, port, nom de la base, utilisateur et mot de passe, déjà
+   remplis avec Docker (laisser le mot de passe vide : celui de `docker-compose.yml` est
+   utilisé). Depuis Internet, un **code d'installation** est aussi demandé (journaux du
+   conteneur ou fichier `conf/setup.code`).
+2. **Installation** : l'assistant indique ce qu'il va faire — créer les tables d'une base
+   vide, conserver une base Carbure à jour, ou mettre à jour une base Carbure existante
+   (après avoir coché « J'ai une sauvegarde de ma base de données »). Il demande
+   l'identifiant, le mot de passe (8 caractères minimum), l'e-mail et la langue du
+   **compte administrateur** s'il n'en existe pas encore.
+3. **Terminé** : connexion avec ce compte.
+
+## Connexion et profils
 
 L'écran de connexion demande l'URL de l'API, l'identifiant et le mot de passe. Le JWT et
-l'URL sont conservés dans le navigateur (`localStorage`) jusqu'à la déconnexion.
+l'URL sont conservés dans le navigateur (`localStorage`) jusqu'à la déconnexion ou
+l'expiration de la session (30 jours). Après **5 échecs de connexion** d'affilée, le
+compte est bloqué 24 heures ; un administrateur peut le débloquer.
 
-Les pages d'administration (Règles, Catégories, Comptes, Utilisateurs) suivent la même
-présentation : un bouton **+** en haut à droite ouvre le formulaire dans une fenêtre
-modale, qui sert aussi à la modification.
+Deux profils existent :
 
-Deux profils existent : **utilisateur** (transactions, budget, tendances, analyses,
-synchronisation) et **administrateur**, qui gère en plus les onglets **Règles**,
-**Catégories**, **Comptes** et **Utilisateurs** (invisibles pour un utilisateur).
+| Profil | Onglets |
+|---|---|
+| **Utilisateur** | Transactions, Budget, Insights, Tendances, Agents IA, et son profil |
+| **Administrateur** | En plus : Règles, Catégories, Comptes et Utilisateurs ; ajout et modification des insights ; activation du serveur MCP ; mise à jour de la base de données |
 
-Le sélecteur de mois et d'année en haut de page s'applique aux onglets Transactions,
-Budget et Analyses. Les onglets Tendances et Règles ont leurs propres réglages.
+Les pages d'administration (Règles, Catégories, Comptes, Utilisateurs) et les onglets
+Insights et Agents IA suivent la même présentation : un bouton rond **+** en haut à droite
+ouvre le formulaire dans une fenêtre modale, qui sert aussi à la modification.
 
-## En-tête et menu utilisateur
+## En-tête
 
-Le titre **Carbure** ramène à l'accueil (transactions du mois en cours).
-En haut à droite, le bouton affiche le **login** de l'utilisateur connecté. Son menu
-déroulant donne accès à :
+- Le titre **Carbure** ramène à l'accueil : transactions du mois en cours.
+- En haut à droite, le bouton affiche le **login** de l'utilisateur connecté ; son menu
+  donne accès à **Mon profil** et **Déconnexion**.
+- Le sélecteur de **mois** et d'**année** et le bouton rond **Actualiser** (icône seule) s'appliquent aux
+  onglets Transactions, Budget et Insights. Les onglets Tendances et Règles ont leurs
+  propres réglages.
 
-- **Mon profil** ;
-- **Déconnexion**.
+!!! note "Mise à jour de la base de données"
+    Quand une nouvelle version de Carbure modifie la base (migrations en attente), un
+    bandeau **Mise à jour de la base de données disponible** s'affiche pour les
+    administrateurs. Après avoir sauvegardé la base, le bouton **Mettre à jour** applique
+    les migrations (`POST /system/migrate`) ; les données sont conservées. Avec Docker,
+    elles sont de toute façon appliquées à chaque démarrage du conteneur.
 
 ## Transactions
 
@@ -36,14 +62,14 @@ déroulant donne accès à :
 - Liste compacte des transactions avec icône du type, libellé, date et montant.
 - **Pointage** : le bouton rond à gauche de chaque transaction la marque comme vérifiée
   (coche verte) ou non vérifiée. Les transactions non vérifiées sont en gras.
-- **Filtre** : à côté du nombre de transactions, un interrupteur on/off limite la liste
-  aux transactions non vérifiées (avec leur nombre).
+- **Filtre** : à côté du nombre de transactions, un interrupteur limite la liste aux
+  transactions non vérifiées (avec leur nombre).
 - **Recherche** : le champ de recherche (2 caractères minimum) interroge
   `GET /transaction/search` sur tous les mois et affiche le **total** des transactions
   trouvées ; le filtre s'applique aussi aux résultats. La croix efface la recherche.
 - **Catégorisation manuelle** : une transaction sans catégorie propose un sélecteur
-  « Catégoriser… ». Après le choix (la transaction est aussi pointée), un bandeau
-  propose de **créer une règle** pour classer automatiquement ce libellé : il ouvre
+  « Catégoriser… » ; la transaction est aussi pointée. Pour un administrateur, un bandeau
+  propose ensuite de **créer une règle** pour classer automatiquement ce libellé : il ouvre
   l'onglet Règles avec le libellé et la catégorie pré-remplis, le mot-clé pouvant être
   raccourci (dates, numéros de carte…).
 
@@ -51,6 +77,11 @@ déroulant donne accès à :
 
 ![Budget](assets/screenshot-budget.png)
 
+- **Flux du mois** (en haut de l'onglet, au premier niveau) : diagramme de Sankey qui
+  montre d'où vient l'argent du mois et où il va — revenus par catégorie → revenus du mois
+  → dépenses par catégorie principale (les 8 plus importantes, le reste regroupé dans
+  « Autres »), épargne et **Reste** (ou **Déficit**). Les virements internes (hors budget)
+  sont exclus. « Voir le tableau » affiche les mêmes flux en tableau (`GET /budget/flow`).
 - **Synthèse du mois** : dépensé, budgété, reste (ou dépassement) et jauge globale des
   dépenses budgétées.
 - **Cartes par catégorie** avec l'icône et la couleur de la catégorie, le montant
@@ -62,6 +93,18 @@ déroulant donne accès à :
   comprises) avec leur total et le pointage ; si elle a des sous-catégories, leurs
   cartes s'affichent, avec un fil d'Ariane pour remonter.
 - Bouton de réglage d'une carte : modification du montant budgété pour le mois.
+
+## Insights
+
+Indicateurs du mois sélectionné, sous forme de cartes (icône, couleur, montant).
+
+Un administrateur les ajoute (bouton **+**) et les modifie (crayon de chaque carte ; la
+suppression se fait dans la modale) : un nom (20 caractères au plus), une couleur parmi
+13, une icône et une requête SQL `SELECT … AS amount` où `{month}` et `{year}` sont
+remplacés par le mois affiché. L'éditeur colore la syntaxe SQL et fait vérifier la requête
+par le serveur pendant la saisie : erreur (mot-clé interdit, syntaxe MariaDB…) ou résultat
+pour le mois affiché. La requête est exécutée en lecture seule et ne peut pas lire les
+tables `users`, `api_tokens` et `devices` (voir [Sécurité](securite.md#insights-sql-stocke)).
 
 ## Tendances
 
@@ -77,65 +120,78 @@ déroulant donne accès à :
   planifié et épargne des deux périodes.
 - **Revenus, dépenses et budget planifié** : barres mensuelles crédit / débit / hors
   budget et ligne du budget planifié, avec infobulle détaillée au survol.
-- **Épargne mensuelle** : montants versés sur la catégorie **Épargne** et ses
+- **Épargne mensuelle** : montants versés sur la catégorie **Epargne** et ses
   sous-catégories, moins les retraits (barres bleues, rouges pour un mois de retrait net).
-  Le nom de la catégorie se règle avec `savings_category`. Le taux d'épargne est
-  `épargne / revenus`.
+  Le nom de la catégorie se règle avec `savings_category` (casse et accents ignorés). Le
+  taux d'épargne est `épargne / revenus`.
 - Vue **tableau** des données mois par mois.
 
-## Règles
+## Règles (administrateurs)
 
-Gestion de la catégorisation automatique : une transaction dont le libellé contient le
-mot-clé reçoit la catégorie choisie.
+Catégorisation automatique : une transaction dont le libellé contient le mot-clé reçoit
+la catégorie choisie.
 
-- Ajout d'une règle (mot-clé + catégorie ou sous-catégorie) dans une modale. Le sélecteur
-  de catégorie affiche l'icône, la couleur et le parent de chaque catégorie, regroupées par
-  type (dépenses, revenus, hors budget), avec une recherche.
+- **+** : ajout d'une règle (mot-clé + catégorie ou sous-catégorie) dans une modale. Le
+  sélecteur de catégorie affiche l'icône, la couleur et le parent de chaque catégorie,
+  regroupées par type (dépenses, revenus, hors budget), avec une recherche.
 - Liste des règles regroupées par catégorie, filtrable, avec suppression.
-- **Resynchroniser** : applique les règles aux transactions non catégorisées, immédiatement
-  l'historique et affiche le nombre de transactions mises à jour. Les règles sont
-  aussi appliquées automatiquement après chaque synchronisation (dernier mois).
+- **Resynchroniser** : applique immédiatement les règles à toutes les transactions non
+  catégorisées de l'historique et affiche le nombre de transactions mises à jour. Les
+  règles sont aussi appliquées automatiquement après chaque synchronisation (transactions
+  du dernier mois).
 
-## Catégories
+## Catégories (administrateurs)
 
 Arborescence des catégories (un niveau de sous-catégories) regroupée par type (dépenses,
-revenus, hors budget), avec ajout et modification dans une modale, et suppression. L'icône et la couleur se choisissent parmi celles que l'application iOS sait
-afficher (SF Symbols, couleurs SwiftUI), avec un aperçu. Supprimer une catégorie fait passer
-ses transactions en « Non catégorisé » et supprime ses budgets et règles ; une catégorie qui
-a des sous-catégories ne peut pas être supprimée. La catégorie « Non catégorisé » (0) est
+revenus, hors budget). **+** ajoute une catégorie, le crayon la modifie (dans une modale),
+la corbeille la supprime. L'icône et la couleur se choisissent parmi celles que
+l'application iOS sait afficher, avec un aperçu. Supprimer une catégorie fait passer ses
+transactions en « Non catégorisé » et supprime ses budgets et règles ; une catégorie qui a
+des sous-catégories ne peut pas être supprimée. La catégorie « Non catégorisé » (0) est
 protégée.
 
-## Comptes
+## Comptes (administrateurs)
 
 - **Comptes du foyer** (partagés par tous les utilisateurs) : chaque compte suivi avec
-  l'utilisateur qui l'a ajouté, la date et le statut de sa
-  dernière synchronisation (le détail de l'erreur au survol), et trois actions :
-  synchroniser ce compte seul, modifier, ne plus suivre (les transactions déjà importées sont
-  conservées).
-- **Ajouter un compte** (fenêtre modale) : « Rechercher mes comptes dans woob » liste les
-  comptes des banques configurées dans woob (libellé, solde) et remplit le formulaire en un
-  clic ; sinon choisir la banque (configurées dans woob, ou toutes celles que woob supporte),
-  et l'identifiant du compte. Les identifiants bancaires ne passent jamais par le
-  portail : une nouvelle banque se configure avec `php tools/carbure.php add-bank`.
-- **Synchronisation** : bouton de synchronisation de chaque compte, avec progression en direct, statut OK/KO de chaque
-  étape par compte (opérations à venir, historique, notifications) et nombre de transactions
-  reçues et nouvelles. En cas d'échec woob, un lien ouvre la recherche des tickets woob sur le
-  module concerné.
+  « Ajouté par » (l'utilisateur qui l'a ajouté), la date et le statut de sa dernière
+  synchronisation (Synchronisé, Échec ou Jamais synchronisé ; le détail au survol), et
+  trois actions : **synchroniser ce compte**, modifier, ne plus suivre (les transactions
+  déjà importées sont conservées).
+- **+** (fenêtre modale) : « Rechercher mes comptes dans woob » liste les comptes des
+  banques configurées dans woob (libellé, solde) et les suit en un clic ; sinon choisir la
+  banque (configurée dans woob, ou parmi toutes celles que woob supporte) et saisir
+  l'identifiant du compte. Les identifiants bancaires ne passent jamais par le portail :
+  une nouvelle banque se configure avec `php tools/carbure.php add-bank` (voir
+  [Installation](installation.md)).
+- **Synchronisation** : progression en direct, statut OK/KO de chaque étape par compte
+  (opérations à venir, historique, notifications), nombre de transactions reçues et
+  nouvelles, journal détaillé. En cas d'échec woob, un lien ouvre la recherche des tickets
+  woob sur le module concerné. Pendant une synchronisation, l'icône de l'onglet tourne.
 
-## Analyses
+La synchronisation de tous les comptes est planifiée côté serveur (`SYNC_INTERVAL` avec
+Docker, ou une tâche cron).
 
-Indicateurs du mois sélectionné (table `budget_insight`). Un administrateur les ajoute
-(bouton **+**) et les modifie (crayon de chaque carte ; la suppression se fait dans la
-modale) : un nom, une couleur, une icône et une requête SQL `SELECT … AS amount` où
-`{month}` et `{year}` sont remplacés par le mois affiché. L'éditeur colore la syntaxe SQL et
-fait vérifier la requête par le serveur pendant la saisie : erreur de syntaxe de MariaDB, ou
-résultat pour le mois affiché.
+## Agents IA
+
+Connexion d'un agent IA (Claude, ChatGPT, Cursor, Copilot, Gemini…) au serveur MCP de
+Carbure, en lecture seule. Voir [Agents IA (MCP)](mcp.md).
+
+- **Serveur MCP activé** : interrupteur réservé aux administrateurs (désactivé par
+  défaut) ; les utilisateurs voient seulement son état.
+- **+** : création d'un jeton d'accès (nom et durée de validité : 30 jours, 90 jours, 1 an
+  ou sans expiration), possible seulement quand le serveur est activé. Le jeton et la
+  configuration prête à copier pour chaque agent ne sont affichés qu'une fois.
+- **Mes jetons d'accès** : date de création, dernière utilisation, expiration (ou
+  « Expiré ») ; la corbeille révoque un jeton.
 
 ## Utilisateurs (administrateurs)
 
-L'onglet n'est visible que pour un administrateur (`is_admin`) : liste, création,
-modification (dont le profil utilisateur ou administrateur) et suppression des utilisateurs.
-Le dernier administrateur ne peut pas perdre son rôle.
+Liste des utilisateurs avec leur **profil** (Utilisateur ou Administrateur) et leur
+**dernière connexion** ; un compte bloqué après trop d'échecs de connexion affiche
+« Bloqué jusqu'au … » et un bouton **Débloquer**. **+** crée un utilisateur ; le crayon le
+modifie (dont son profil) ; la corbeille le supprime. Le dernier administrateur ne peut
+pas perdre son rôle, et un utilisateur propriétaire de transactions ne peut pas être
+supprimé.
 
 ## Mon profil
 
@@ -150,12 +206,10 @@ Le dernier administrateur ne peut pas perdre son rôle.
   de l'afficher en entier, de le copier (HTTPS requis ; sinon le token est affiché) ou
   de **supprimer** un ancien appareil.
 
-## Agents IA
+## Pied de page
 
-Connexion d'un agent IA (Claude, ChatGPT, Cursor, Copilot, Gemini…) au serveur MCP de
-Carbure, en lecture seule : un administrateur active ou désactive le serveur ; chaque
-utilisateur crée ses jetons d'accès (le jeton et la configuration de chaque agent ne sont
-affichés qu'une fois) et les révoque à tout moment. Voir [Agents IA (MCP)](mcp.md).
+Lien vers le dépôt GitHub de Carbure et **version** de l'instance (`v1.2.0`, ou `dev` hors
+release), lue dans `GET /api/health`.
 
 ## Mode debug
 
@@ -166,12 +220,13 @@ des logs dans la console du navigateur.
 
 | Fichier | Rôle |
 |---|---|
-| `index.html` | Gabarit Vue (tous les écrans) |
-| `app.js` | Application racine : authentification, onglets, initialisation |
-| `modules/*.js` | Mixins par domaine : transactions, budget, analyses, tendances, règles, utilisateurs, profil |
+| `index.html` | Gabarit Vue (tous les écrans, dont l'assistant d'installation) |
+| `app.js` | Application racine : authentification, onglets (onglets d'administration réservés), initialisation |
+| `modules/*.js` | Mixins par domaine : `setup` (assistant), `transaction`, `budget`, `insights`, `trends`, `rules`, `categories`, `accounts`, `sync`, `agents`, `user`, `profile` (profil, appareils, mise à jour de la base) |
 | `services/apiService.js` | Appels HTTP vers l'API |
 | `stores/budgetStore.js` | Navigation dans l'arborescence des budgets |
-| `components/*.js` | Composants (fil d'Ariane, élément de budget, modale) |
+| `components/*.js` | Composants : fil d'Ariane et élément de budget, modale de budget, diagramme de flux (`FlowChart`), sélecteur de catégorie (`CategoryPicker`), éditeur SQL (`SqlEditor`) |
 | `i18n.js` | Traductions `fr` et `en` |
-| `utils/formatters.js` | Formatage des montants, dates, icônes |
+| `utils/formatters.js`, `utils/categoryIcons.js` | Formatage des montants, dates, icônes ; icônes et couleurs des catégories |
+| `vendor/` | Vue, CodeMirror (éditeur SQL) et polices, servis localement |
 | `style.css` | Styles (variables CSS dans `:root`) |

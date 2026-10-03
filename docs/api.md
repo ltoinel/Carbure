@@ -3,24 +3,33 @@
 - **Base** : `https://<serveur>/api`
 - **Format** : JSON en entrée (corps) et en sortie. Les paramètres peuvent aussi être
   passés en query string ; corps et query string sont fusionnés.
-- **Authentification** : en-tête `Authorization: Bearer <token>` sur toutes les routes,
-  sauf `POST /user/login` et `GET /bank/sync` (voir ci-dessous).
+- **Authentification** : en-tête `Authorization: Bearer <token>` (JWT obtenu par
+  `POST /user/login`) sur toutes les routes, sauf les routes **publiques** :
+  `POST /user/login`, `GET /bank/sync` (JWT ou `sync_token`), `POST /mcp` et `GET /mcp`
+  (jeton d'accès ou JWT) et `GET /health`. Un test unitaire vérifie cette liste.
 - **Paramètres nommés** : chaque clé de la requête correspond à un paramètre de la
   méthode PHP. Une clé inconnue renvoie une erreur 400.
+- **Profils** : un **utilisateur** consulte et pointe les transactions, les budgets, les
+  insights et les tendances. Un **administrateur** gère en plus les règles, les
+  catégories, les comptes, les insights, le serveur MCP et les utilisateurs : les routes
+  marquées « administrateur » renvoient `403` aux autres.
 
 ## Erreurs
 
 | Code | Cas |
 |---|---|
 | 400 | Paramètre manquant, inconnu ou invalide ; JSON invalide |
-| 401 | Identifiants invalides |
-| 403 | JWT absent/invalide, ou action réservée à un administrateur |
+| 401 | JWT absent, invalide ou expiré ; identifiants invalides ; jeton d'accès MCP invalide |
+| 403 | Action réservée à un administrateur ; serveur MCP désactivé ; origine refusée ; code d'installation erroné |
 | 404 | Route ou ressource introuvable |
-| 409 | Conflit (ex. suppression d'un utilisateur propriétaire de transactions) |
-| 500 | Erreur serveur (base de données, woob, APNs…) |
+| 405 | `GET /mcp` (le serveur MCP n'ouvre pas de flux) |
+| 409 | Conflit (doublon, suppression d'un utilisateur propriétaire de transactions, dernier administrateur…) |
+| 423 | Compte bloqué après trop d'échecs de connexion |
+| 500 | Erreur serveur (base de données, woob, APNs, migration…) |
+| 503 | Carbure n'est pas encore installé (voir [Assistant d'installation](#assistant-dinstallation)) |
 
 ```json
-{ "error": "Unauthorized - Invalid or missing JWT token", "code": 403, "uid": "6ac106d3912d9" }
+{ "error": "Unauthorized - Invalid or missing JWT token", "code": 401, "uid": "6ac106d3912d9" }
 ```
 
 `uid` identifie la requête dans `logs/carbure_AAAAMMJJ.log`.
@@ -45,14 +54,16 @@ curl -X POST https://exemple.fr/api/user/login \
 { "exp": 1762000000, "sub": 1, "iat": 1759400000, "token": "eyJ0eXAiOiJKV1Qi…" }
 ```
 
-Le jeton est valable 30 jours.
+Le jeton est valable 30 jours. La date de connexion est enregistrée (`last_login`).
 
-`401` si les identifiants sont faux ; `423` si le compte est bloqué (24 h après 5 échecs
-d'affilée).
+`401` si les identifiants sont faux ; `423` si le compte est bloqué : après 5 échecs
+d'affilée, le compte est bloqué 24 heures, même avec le bon mot de passe. Une connexion
+réussie remet le compteur à zéro.
 
 ### `POST /user/unlock` — administrateur
 
-`id` : débloque un compte bloqué après trop d'échecs de connexion.
+`id` : débloque un compte bloqué après trop d'échecs de connexion (`404` si l'utilisateur
+n'existe pas).
 
 ### `GET /user/me`
 
@@ -65,12 +76,14 @@ curl https://exemple.fr/api/user/me -H "Authorization: Bearer $TOKEN"
 
 ### `GET /user`
 
-Liste des utilisateurs pour un administrateur ; l'utilisateur lui-même sinon.
+Liste des utilisateurs pour un administrateur ; l'utilisateur lui-même sinon. Mêmes champs
+que `GET /user/me`, plus `last_login` (dernière connexion réussie, `null` si jamais) et
+`locked_until` (fin du blocage, `null` si le compte n'est pas bloqué).
 
 ### `POST /user` — administrateur
 
 `username`, `password`, `email` (requis), `firstname`, `lastname`, `is_admin` (facultatifs ;
-profil utilisateur par défaut).
+profil utilisateur par défaut). `400` si l'identifiant ou l'e-mail existe déjà.
 
 ### `PUT /user`
 
@@ -97,28 +110,25 @@ propriétaire de transactions (409).
 
 ## Comptes et synchronisation
 
+Les comptes bancaires appartiennent au **foyer** : tous les utilisateurs voient tous les
+comptes et leurs transactions. `user_id` d'un compte indique seulement l'utilisateur qui
+l'a ajouté.
+
 ### `GET /bank`
 
-Comptes bancaires du foyer, visibles par tous les utilisateurs (un compte suivi plusieurs
-fois n'apparaît qu'une fois) :
+Comptes bancaires du foyer, visibles par tous les utilisateurs (un compte n'apparaît
+qu'une fois) :
 
 ```json
-[{ "bankId": "12345678@bnp", "account_number": "12345678", "bank_name": "bnp" }]
+[{ "id": 1, "bankId": "12345678@bnp", "account_number": "12345678", "bank_name": "bnp" }]
 ```
-
-!!! note "Profils"
-    Un **utilisateur** consulte et pointe les transactions, les budgets, les tendances et
-    lance une synchronisation. Un **administrateur** gère en plus les règles, les catégories,
-    les comptes et les utilisateurs : les routes marquées « administrateur » renvoient `403`
-    aux autres.
 
 ### `GET /bank/accounts` — administrateur
 
 Tous les comptes du foyer avec l'utilisateur qui les a ajoutés et le résultat de leur
 dernière synchronisation : `id`, `bankId`, `account_number`, `bank_name`, `user_id` et
-`username` (qui l'a ajouté),
-`last_sync_at`, `last_sync_status` (`OK`, `ERROR` ou `null`), `last_sync_message` (nombre
-de nouvelles transactions ou erreur).
+`username` (qui l'a ajouté), `last_sync_at`, `last_sync_status` (`OK`, `ERROR` ou `null`),
+`last_sync_message` (nombre de nouvelles transactions ou erreur).
 
 ### `POST /bank` — administrateur
 
@@ -128,7 +138,8 @@ l'ajoute. `409` si le foyer suit déjà ce compte, `400` si un identifiant est i
 
 ### `PUT /bank` — administrateur
 
-Modifie un compte suivi : `id`, `account_number`, `bank_name`.
+Modifie un compte suivi : `id`, `account_number`, `bank_name` (`404` si inconnu, `409` si
+le foyer suit déjà le compte visé).
 
 ### `DELETE /bank?id=` — administrateur
 
@@ -137,7 +148,8 @@ Ne suit plus le compte ; ses transactions déjà importées sont conservées.
 ### `GET /bank/backends`, `GET /bank/modules` — administrateur
 
 Banques configurées dans woob (`name`, `module`) et banques supportées par woob (`module`,
-`description`).
+`description`). Une banque doit être configurée dans woob (identifiants bancaires) avec
+`php tools/carbure.php add-bank` avant que ses comptes puissent être synchronisés.
 
 ### `GET /bank/discover` — administrateur
 
@@ -151,29 +163,33 @@ Lance la synchronisation de **tous** les comptes, ou d'un seul avec
 `?account=<account_number>@<bank_name>` (`404` s'il n'est pas suivi). La date et le résultat
 sont enregistrés pour chaque compte. Accès autorisé avec :
 
-- un JWT valide, **ou**
+- un JWT valide (n'importe quel utilisateur), **ou**
 - le `sync_token` de la configuration, dans l'en-tête `X-Sync-Token` ou le paramètre
-  `?token=`.
+  `?token=` ;
 
-La réponse est un flux `text/event-stream` : messages `data: …` (progression, libellés
-importés) et commentaires `: heartbeat` toutes les 15 s pendant l'exécution de woob. Une
-seule synchronisation peut tourner à la fois.
+`401` sinon. La réponse est un flux `text/event-stream` : messages `data: …` (progression,
+résultat de chaque étape) et commentaires `: heartbeat` toutes les 15 s pendant
+l'exécution de woob. Une seule synchronisation peut tourner à la fois (sinon :
+`data: Synchronization already in progress`).
 
 ```bash
 curl -N -H "X-Sync-Token: $SYNC_TOKEN" https://exemple.fr/api/bank/sync
 ```
 
-Pendant la synchronisation, chaque **nouvelle** dépense (transaction absente jusque-là)
-dont le montant atteint le seuil `alert_threshold` d'un propriétaire du compte déclenche
-une notification « Dépense importante à vérifier » (dans la langue de l'utilisateur).
-
 ```text
 data: Syncing 12345678@bnp (coming)...
+data: Done 12345678@bnp (coming): 3 received, 1 new
 data: Syncing 12345678@bnp (history)...
+data: Done 12345678@bnp (history): 100 received, 4 new
 data: Notifying users of 12345678@bnp...
 data: Updating missing categories...
 data: Synchronization complete
 ```
+
+Après chaque compte, **tous les utilisateurs** du foyer reçoivent une notification (succès
+ou échec, nombre de transactions à vérifier), et chaque **nouvelle** dépense (transaction
+absente jusque-là) dont le montant atteint le seuil `alert_threshold` d'un utilisateur lui
+envoie une notification « Dépense importante à vérifier » (dans sa langue).
 
 ## Transactions
 
@@ -208,7 +224,8 @@ curl "https://exemple.fr/api/transaction/search?query=amazon" -H "Authorization:
 
 ### `PUT /transaction/category`
 
-`id`, `category` : affecte la catégorie et pointe la transaction.
+`id`, `category` : affecte la catégorie et pointe la transaction (`autoPointed=false`
+pour ne pas la pointer).
 
 ### `PUT /transaction/pointed`
 
@@ -219,13 +236,28 @@ curl -X PUT https://exemple.fr/api/transaction/pointed -H "Authorization: Bearer
   -H 'Content-Type: application/json' -d '{"id":42,"pointed":false}'
 ```
 
-## Budgets et analyses
+## Budgets et tendances
 
 ### `GET /budget`
 
 `month`, `year`, `category` (catégorie parente, `0` = racine). Pour chaque catégorie :
 `id`, `name`, `type`, `icon`, `color`, `budget`, `consummed` (somme absolue des
 transactions de la catégorie et de ses sous-catégories), `progress` (%).
+
+### `GET /budget/flow`
+
+`month`, `year` (mois courant par défaut) : flux d'argent du mois, pour le diagramme
+« Flux du mois ». Les montants sont regroupés par catégorie de premier niveau ; les
+catégories `HORS-BUDGET` (virements internes) sont exclues, sauf la catégorie d'épargne
+(`savings_category`) ; les transactions non catégorisées sont conservées.
+
+| Champ | Description |
+|---|---|
+| `month` | `AAAA-MM` |
+| `income`, `expenses` | Revenus et dépenses par catégorie de premier niveau : `id`, `name`, `color`, `icon`, `amount` (positif), du plus grand au plus petit |
+| `savings` | Montant net versé sur la catégorie d'épargne et ses sous-catégories |
+| `totalIncome`, `totalExpenses` | Totaux des revenus et des dépenses |
+| `balance` | Reste : revenus − dépenses − épargne (si elle est positive) ; négatif en cas de déficit |
 
 ### `POST /budget`
 
@@ -258,27 +290,43 @@ curl "https://exemple.fr/api/budget/trends?months=6&offset=12" -H "Authorization
 [{ "month": "2025-05", "debit": 2130.37, "credit": 5114, "offBudget": -500, "planned": 2330, "savings": 2983.63 }]
 ```
 
+## Insights
+
 ### `GET /budget/insights`
 
-`month`, `year` : indicateurs définis dans la table `budget_insight` (`id`, `name`,
-`color`, `amount`).
-
-### `GET /insight`, `POST /insight`, `PUT /insight`, `DELETE /insight?id=` — administrateur
-
-Gestion des insights : `name` (1 à 20 caractères), `color` (`red`, `orange`, `amber`,
-`lime`, `green`, `teal`, `cyan`, `blue`, `indigo`, `purple`, `pink`, `brown`, `gray`), `icon` (icône Material, facultative), `sql`. `POST /insight/check`
-(`sql`, `month`, `year`) vérifie une requête sans l'enregistrer : `{valid, amount}` ou
-`{valid: false, error}`. La requête doit être un unique `SELECT` renvoyant une colonne
-`amount`, sans commentaire ni mot-clé d'écriture ou d'administration, et ne peut pas lire
-les tables `users`, `api_tokens`, `devices` ni les schémas système ; elle est testée sur le
-mois courant avant l'enregistrement (`400` avec la cause sinon). `POST` et `PUT` renvoient le
-montant du mois courant.
+`month`, `year` : valeur de chaque insight pour le mois (`id`, `name`, `color`, `icon`,
+`amount`). Une requête en échec donne `0` sans bloquer les autres.
 
 ### `GET /budget/insights/history`
 
-`year` : pour chaque indicateur, la liste `history` des montants mois par mois.
+`year` : pour chaque insight, la liste `history` des montants mois par mois.
 
-## Catégories
+### `GET /insight`, `POST /insight`, `PUT /insight`, `DELETE /insight?id=` — administrateur
+
+Gestion des insights, avec leur requête SQL :
+
+| Paramètre | Requis | Description |
+|---|---|---|
+| `id` | `PUT`, `DELETE` | Insight à modifier ou supprimer (`404` si inconnu) |
+| `name` | oui | 1 à 20 caractères |
+| `color` | oui | `red`, `orange`, `amber`, `lime`, `green`, `teal`, `cyan`, `blue`, `indigo`, `purple`, `pink`, `brown` ou `gray` |
+| `sql` | oui | Requête `SELECT … AS amount` (500 caractères au plus) ; `{month}` et `{year}` sont remplacés par le mois demandé |
+| `icon` | non | Icône Material (`[a-z0-9_]`) ; choisie d'après le nom si vide |
+
+La requête doit être un unique `SELECT` renvoyant une colonne `amount`, sans `;` ni
+commentaire, sans mot-clé d'écriture, d'administration, de fichier ou de temporisation, et
+ne peut pas lire les tables `users`, `api_tokens`, `devices` ni les schémas système. Elle
+est testée sur le mois courant avant l'enregistrement (`400` avec la cause sinon) et
+exécutée dans une transaction en lecture seule. `POST` et `PUT` renvoient l'insight avec
+le montant du mois courant.
+
+### `POST /insight/check` — administrateur
+
+`sql`, `month`, `year` (mois courant par défaut) : vérifie une requête sans l'enregistrer
+(mêmes contrôles), pendant la saisie. Renvoie `{"valid": true, "amount": …}` ou
+`{"valid": false, "error": "…"}` (toujours `200`).
+
+## Catégories et règles
 
 ### `GET /category`
 
@@ -297,7 +345,7 @@ transactions passent en catégorie 0 et les budgets et règles de la catégorie 
 
 Règles de catégorisation automatique : `id`, `keyword`, `category`, `category_name`.
 
-### `POST /category/keyword`
+### `POST /category/keyword` — administrateur
 
 `keyword` (1 à 60 caractères, enregistré en majuscules), `category` : ajoute une règle.
 Erreurs : 400 mot-clé vide, 404 catégorie inconnue, 409 mot-clé déjà existant.
@@ -307,13 +355,13 @@ curl -X POST https://exemple.fr/api/category/keyword -H "Authorization: Bearer $
   -H 'Content-Type: application/json' -d '{"keyword":"decathlon","category":9}'
 ```
 
-### `DELETE /category/keyword`
+### `DELETE /category/keyword` — administrateur
 
 `id` : supprime une règle (404 si inconnue).
 
-### `POST /category/keyword/apply`
+### `POST /category/keyword/apply` — administrateur
 
-Applique les règles à toutes les transactions sans catégorie. Renvoie
+Applique les règles à toutes les transactions sans catégorie (tout l'historique). Renvoie
 `{ "updated": <nombre de transactions catégorisées> }`.
 
 ## Appareils
@@ -331,27 +379,63 @@ notifications). 404 si l'appareil n'existe pas ou appartient à un autre utilisa
 
 Envoie une notification de test à tous les appareils de l'utilisateur connecté.
 
-## Jetons d'accès et serveur MCP
+## Agents IA (MCP)
 
 ### `GET /token`, `POST /token`, `DELETE /token?id=`
 
-Jetons d'accès de l'utilisateur connecté, pour le serveur MCP. `POST` (`name`, `days` : 30,
-90, 365 ou 0 pour sans expiration) renvoie le jeton (`token`, préfixe `cbt_`) **une seule
-fois** ; la liste ne donne que `id`, `name`, `token_hint`, `created_at`, `last_used_at`,
-`expires_at` et `expired`.
+Jetons d'accès de l'utilisateur connecté, pour le serveur MCP. `POST` (`name` : 1 à 50
+caractères ; `days` : `30`, `90`, `365`, ou `0`/vide pour sans expiration) renvoie le jeton
+(`token`, préfixe `cbt_`) **une seule fois**, avec `id`, `name`, `token_hint` et
+`expires_at` ; `409` au-delà de 20 jetons. La liste ne donne que `id`, `name`,
+`token_hint`, `created_at`, `last_used_at`, `expires_at` (`null` = sans expiration) et
+`expired`. `DELETE` révoque un jeton (`404` s'il n'existe pas ou appartient à un autre
+utilisateur).
 
-### `POST /api/mcp` — jeton d'accès
+### `GET /mcp/settings`, `PUT /mcp/settings`
+
+`{"enabled": true|false}` : état du serveur MCP (désactivé par défaut). `PUT` (`enabled`)
+l'active ou le désactive — administrateur.
+
+### `POST /mcp` — publique (jeton d'accès)
 
 Serveur MCP (JSON-RPC 2.0, transport Streamable HTTP) en lecture seule, authentifié par
-`Authorization: Bearer <jeton>`. Voir [Agents IA (MCP)](mcp.md).
+`Authorization: Bearer <jeton>` (ou `?token=`). `GET /mcp` répond `405`. Voir
+[Agents IA (MCP)](mcp.md).
 
-## Supervision
+## Système
 
 ### `GET /health` — publique
 
 État de l'instance pour le `HEALTHCHECK` Docker et les outils de supervision, sans
-authentification ni donnée : `{"status":"ok","database":"ok","schema":"<version>"}`, `500`
-si la base ne répond pas, `{"status":"setup"}` tant que Carbure n'est pas installé.
+authentification ni donnée : `{"status":"ok","version":"1.2.0","database":"ok","schema":"<version du schéma>"}`,
+`500` si la base ne répond pas, `{"status":"setup","version":"…"}` tant que Carbure n'est
+pas installé. `version` est la version de Carbure (fichier `VERSION`, `dev` hors release).
+
+### `GET /system/schema` — administrateur
+
+Version du schéma de la base et migrations à appliquer :
+`{"version": "2026-10-12_login_lockout", "pending": []}`.
+
+### `POST /system/migrate` — administrateur
+
+Applique les migrations en attente (bouton **Mettre à jour** du portail) :
+`{"version": "…", "applied": ["…"]}` ; `500` avec la cause si une migration échoue (les
+suivantes ne sont pas exécutées).
+
+## Assistant d'installation
+
+Tant que `conf/prod.ini` n'existe pas, l'API ne répond qu'à ces routes (toutes les autres
+renvoient `503` avec `"setup": true`) :
+
+| Route | Rôle |
+|---|---|
+| `GET /setup` | État de l'assistant : `codeRequired`, `dbPasswordFromEnvironment` et valeurs par défaut (`db_host`, `db_port`, `db_name`, `db_user`, `admin_user`, `language`) issues de l'environnement Docker |
+| `POST /setup/database` | Teste la connexion (`db_host`, `db_port`, `db_name`, `db_user`, `db_password`) et décrit l'installation : `state` (`none` = base vide, `current` = à jour, `outdated` = migrations à appliquer), `version`, `pending`, `hasAdmin` |
+| `POST /setup/install` | Crée ou migre le schéma, crée le premier administrateur s'il n'y en a pas (`admin_user`, `admin_password` de 8 caractères minimum, `admin_email`, `language`) et écrit la configuration ; `409` sans `backup_confirmed` quand des migrations sont à appliquer |
+| `GET /health` | `{"status":"setup"}` |
+
+Depuis Internet, ou si `conf/setup.code` existe, les requêtes `POST` exigent le paramètre
+`code` (code d'installation), sinon `403`. Voir [Sécurité](securite.md#assistant-dinstallation).
 
 ## Spécification OpenAPI
 

@@ -4,13 +4,17 @@
 
 | Chemin | Contenu |
 |---|---|
-| `src/lib/` | Socle technique (configuration, base, logs, JWT, routage, woob, APNs) |
+| `src/lib/` | Socle technique (configuration, base, logs, JWT, routage, woob, APNs, assistant d'installation, migrations, réglages) |
 | `src/resources/` | Ressources de l'API |
 | `portal/` | Portail web Vue 3 |
 | `swagger/` | Générateur OpenAPI et Swagger UI |
 | `sql/` | Schéma et migrations |
 | `tests/unit/`, `tests/integration/` | Tests PHPUnit |
-| `tools/phpunit.phar` | PHPUnit 11 |
+| `tools/carbure.php` | Maintenance : `add-bank` (configurer une banque dans woob et suivre ses comptes), `rotate-jwt-secret` |
+| `tools/migrate.php` | Migrations du schéma (`--status`, `--dry-run`, `--baseline`) |
+| `tools/phpunit.phar`, `tools/coverage-check.php` | PHPUnit 11 et contrôle du seuil de couverture |
+| `Dockerfile`, `docker/`, `docker-compose.yml` | Image nginx + PHP-FPM + woob, et déploiement avec MariaDB |
+| `VERSION` | Version de Carbure (`dev` dans le dépôt, écrite par le build de release) |
 | `docs/`, `mkdocs.yml` | Cette documentation |
 
 Règles détaillées pour les contributeurs et agents de code : `AGENTS.md`.
@@ -40,8 +44,11 @@ final class Transaction {
   (nom de fichier = nom de classe).
 - Les clés de la requête sont passées **par nom** : le nom des paramètres fait partie
   du contrat d'API.
-- `public: true` désactive le contrôle du JWT ; `stream: true` produit une réponse SSE.
-  Un test unitaire vérifie la liste des routes publiques.
+- `public: true` désactive le contrôle du JWT ; `stream: true` produit une réponse SSE ;
+  `raw: true` renvoie tel quel le texte retourné par la méthode (serveur MCP). Un test
+  unitaire vérifie la liste des routes publiques.
+- Route d'administration : appeler `User::requireAdmin()` en premier (`403` sinon), et
+  ajouter l'onglet ou l'action du portail à la liste réservée aux administrateurs.
 - Erreur client : `throw new Error("message", 400)` ; erreur serveur : `Exception`.
 - Utilisateur courant : `Jwt::getUserIdFromToken()`.
 
@@ -89,8 +96,8 @@ git config core.hooksPath .githooks
 
 | Workflow | Déclencheur | Étapes |
 |---|---|---|
-| CI | Pull request, push sur `main` | Lint PHP/JS, tests unitaires et d'intégration (MariaDB), couverture ≥ 90 %, scan de secrets |
-| Release | Tag `v*` | Tests, archive de l'application, publication de la release GitHub |
+| CI | Pull request, push sur `main` | Lint PHP/JS/CSS, tests unitaires et d'intégration (MariaDB), couverture ≥ 90 %, scan de secrets (gitleaks) ; image Docker : hadolint, build, scan Trivy, démarrage avec `docker compose`, installation par l'assistant et test de fumée |
+| Release | Tag `v*` | CI, archive de l'application (`src`, `portal`, `swagger`, `sql`, `tools/carbure.php`, `tools/migrate.php`, `VERSION` écrit depuis le tag) et release GitHub ; image Docker `amd64`/`arm64` publiée sur `ghcr.io` (version passée par `CARBURE_VERSION`), avec SBOM et provenance |
 | Docs | Push sur `main` | Construction MkDocs et déploiement GitHub Pages |
 
 Publier une version :
@@ -104,8 +111,9 @@ git push origin v1.2.0
 
 Le schéma est versionné : la table `schema_migrations` liste les migrations appliquées, la
 version du schéma est la dernière. `tools/migrate.php` applique celles qui manquent, dans
-l'ordre de leur nom ; le conteneur Docker le lance à chaque démarrage et l'installeur à
-chaque exécution.
+l'ordre de leur nom ; le conteneur Docker le lance à chaque démarrage, l'assistant
+d'installation migre une base existante, et un administrateur peut les appliquer depuis le
+bandeau du portail (`POST /api/system/migrate`).
 
 1. Créer `sql/migrations/AAAA-MM-JJ_description.sql`.
 2. Y déclarer **obligatoirement** une ligne `-- applied-if: <requête>` qui renvoie un nombre
@@ -113,8 +121,10 @@ chaque exécution.
    `information_schema.COLUMNS`) : une base créée depuis `sql/carbure.sql`, ou migrée à la
    main, est alors reconnue au lieu d'échouer. Un test le vérifie.
 3. Reporter la modification dans `sql/carbure.sql` (installations neuves et tests).
-4. Hors Docker, ne déployer le code qui en dépend qu'après `php tools/migrate.php` (ou
-   l'application du fichier) en production, et le noter dans `TODO.md`.
+4. Tant que la migration peut ne pas être appliquée (instance hors Docker pas encore mise à
+   jour), le code qui en dépend doit rester tolérant (voir `Setting::get` ou
+   `User::login`), ou n'être déployé qu'après `php tools/migrate.php` ; le noter dans
+   `TODO.md`.
 
 ## Documentation
 

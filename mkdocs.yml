@@ -8,6 +8,9 @@ edit_uri: edit/main/docs/
 theme:
   name: material
   language: fr
+  # Icon of the application in the header and the browser tab
+  logo: assets/logo.png
+  favicon: assets/logo.png
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default

@@ -2,7 +2,8 @@
 
 Ce tutoriel installe Carbure sur un NAS Synology (DSM 7.2 ou plus) avec **Container
 Manager**, en utilisant la base **MariaDB 10** du NAS. Tout se fait depuis l'interface de
-DSM et le navigateur : aucune ligne de commande. Comptez une quinzaine de minutes.
+DSM et le navigateur ; seule la configuration de votre banque dans woob demande une
+commande, une fois (étape 6). Comptez une quinzaine de minutes.
 
 !!! info "Ce qu'il vous faut"
     - Un NAS compatible avec Container Manager (la plupart des modèles « + » et récents,
@@ -99,10 +100,26 @@ puis **Démarrer**).
 
 ## 6. Ajouter vos comptes bancaires
 
-Dans le portail, onglet **Comptes** → **+** : choisissez votre banque dans la liste des
-banques supportées par [woob](https://woob.tech/), puis vos comptes. La synchronisation se
-lance compte par compte avec le bouton de synchronisation, et automatiquement chaque jour
-grâce à `SYNC_INTERVAL`.
+Vos identifiants bancaires ne passent jamais par le portail : ils sont enregistrés par
+[woob](https://woob.tech/), une fois par banque.
+
+1. **Container Manager** → **Conteneur** → ouvrez le conteneur de Carbure (par exemple
+   `carbure-carbure-1`) → onglet **Terminal** → **Créer** → **Lancer avec la commande** :
+
+    ```bash
+    su -s /bin/sh www-data -c "php tools/carbure.php add-bank"
+    ```
+
+    (ou, en SSH : `sudo docker exec -it -u www-data carbure-carbure-1 php tools/carbure.php add-bank`).
+2. Saisissez le module woob de votre banque (`list` affiche les banques supportées, par
+   exemple `bnp`, `creditmutuel`, `boursorama`), puis les identifiants demandés par woob.
+3. Choisissez les comptes à suivre (`all` pour tous).
+
+Les comptes apparaissent dans l'onglet **Comptes** du portail (administrateurs), où vous
+pouvez aussi en ajouter (**+** → « Rechercher mes comptes dans woob »), les modifier ou ne
+plus les suivre. Le bouton de synchronisation de chaque compte lance une synchronisation
+immédiate ; tous les comptes sont ensuite synchronisés chaque jour grâce à
+`SYNC_INTERVAL`.
 
 ## 7. (Facultatif) Un accès HTTPS avec un nom de domaine
 
@@ -119,9 +136,10 @@ derrière le proxy, augmentez les délais d'expiration dans les paramètres avan
 règle.
 
 !!! warning "Exposition sur Internet"
-    Installez Carbure (étape 5) **avant** de l'ouvrir sur Internet. Si quelqu'un y accède
-    depuis Internet avant l'installation, l'assistant exige un code affiché dans le
-    **Journal** du conteneur (Container Manager → Conteneur → carbure → Journal).
+    Installez Carbure (étape 5) **avant** de l'ouvrir sur Internet. Derrière le proxy
+    inversé de DSM, les requêtes semblent venir du NAS lui-même : l'assistant
+    d'installation ne demanderait alors pas de code d'installation. Une fois Carbure
+    installé, l'assistant disparaît.
 
 ## Mettre à jour Carbure
 

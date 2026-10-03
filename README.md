@@ -34,14 +34,17 @@
   [woob](https://woob.tech/), chaque jour.
 - 🏷️ **Catégorisation automatique** : des règles simples (« CARREFOUR → Supermarché ») classent
   chaque transaction. Une nouvelle ? Choisissez sa catégorie, Carbure vous propose la règle.
-- 🎯 **Budgets mensuels** : dépensé, restant, dépassement, catégorie par catégorie, d'un coup d'œil.
+- 🎯 **Budgets mensuels** : dépensé, restant, dépassement, catégorie par catégorie, d'un coup d'œil,
+  et le **flux du mois** : d'où vient l'argent et où il part (dépenses, épargne, reste).
 - 📈 **Tendances** : revenus, dépenses, épargne sur 3, 6 ou 12 mois, comparés à la période
   précédente ou à l'an dernier.
 - ✅ **Pointage** : vérifiez vos transactions en un clic, filtrez celles qui restent à contrôler.
 - 🔔 **Alertes sur iPhone** : un push après chaque synchronisation, et dès qu'une dépense dépasse
   le seuil que vous avez choisi.
-- 👨‍👩‍👧 **Pensé pour le foyer** : plusieurs utilisateurs, des données partagées, chacun sa langue
-  et ses appareils.
+- 📊 **Insights** : vos propres indicateurs du mois (courses, carburant, abonnements…).
+- 👨‍👩‍👧 **Pensé pour le foyer** : plusieurs utilisateurs, des comptes et des données partagés,
+  chacun sa langue et ses appareils ; un administrateur gère comptes, catégories, règles et
+  utilisateurs.
 - 🤖 **Interrogez vos comptes avec votre agent IA** (Claude, ChatGPT, Cursor, Copilot,
   Gemini) : un serveur MCP intégré, en lecture seule et désactivable, permet de demander
   « combien en restaurants cette année ? » ou « où dépasse-t-on le budget ? ».
@@ -62,6 +65,7 @@ flowchart LR
     end
     portal[Portail web] <--> api
     ios[App iOS] <--> api
+    ai[Agent IA] <-->|MCP| api
     sync -->|APNs| push[Notifications iPhone]
 ```
 

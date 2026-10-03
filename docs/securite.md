@@ -13,8 +13,10 @@
 
 | Rôle | Droits |
 |---|---|
-| Utilisateur | Données du foyer (transactions, budgets, tendances, analyses), pointage et catégorie des transactions, synchronisation, son profil, ses appareils |
-| Administrateur (`users.is_admin = 1`) | En plus : règles de catégorisation, catégories, comptes bancaires suivis et utilisateurs (dont leur profil) |
+| Utilisateur | Données du foyer (comptes, transactions, budgets, insights, tendances), pointage et catégorie des transactions, montants des budgets, synchronisation par l'API, son profil, ses appareils, ses jetons d'accès MCP |
+| Administrateur (`users.is_admin = 1`) | En plus : règles de catégorisation, catégories, comptes bancaires suivis (et leur synchronisation depuis le portail), insights (requêtes SQL), activation du serveur MCP, mise à jour de la base de données, utilisateurs (profil, déblocage) |
+
+Les routes réservées renvoient `403` ; le portail masque les onglets correspondants.
 
 Après **5 tentatives de connexion échouées** d'affilée, le compte est **bloqué 24 heures**
 (`423`), même avec le bon mot de passe ; une connexion réussie remet le compteur à zéro. Un
@@ -33,7 +35,12 @@ son rôle.
 | `X-Frame-Options` | `DENY` | `DENY` |
 | `Referrer-Policy` | `no-referrer` | `no-referrer` |
 | `Cache-Control` | `no-store` (données bancaires) | — |
-| `Permissions-Policy`, `Cross-Origin-Opener-Policy` | — | caméra, micro, géolocalisation, paiement désactivés ; `same-origin` |
+| `Cross-Origin-Resource-Policy` | `same-origin` | — |
+| `Permissions-Policy`, `Cross-Origin-Opener-Policy` | — | caméra, micro, géolocalisation, paiement, USB désactivés ; `same-origin` |
+
+Les en-têtes de l'API sont posés par PHP (`Webservice::securityHeaders`, et l'assistant
+d'installation), quel que soit le serveur web. Ceux du portail et de Swagger UI sont posés
+par nginx (`docker/nginx.conf`) ; Carbure ne fournit pas de `.htaccess`.
 
 L'API ne révèle pas la version de PHP (`X-Powered-By` retiré) et nginx pas la sienne
 (`server_tokens off`). **HSTS** est à activer sur le proxy HTTPS placé devant Carbure (proxy
@@ -51,6 +58,17 @@ de passe de la base fourni par Docker (`DB_PASSWORD`) n'est utilisé que pour la
 l'environnement, jamais pour un autre serveur saisi dans l'assistant. Une fois la
 configuration écrite, l'assistant disparaît et le code est supprimé.
 
+!!! warning "Proxy inversé"
+    L'adresse prise en compte est celle qui se connecte au serveur PHP (`REMOTE_ADDR`).
+    Derrière un proxy inversé, c'est l'adresse du proxy, donc une adresse locale : le code
+    n'est alors pas demandé. Installez Carbure avant de l'exposer sur Internet, ou créez
+    `conf/setup.code` (Docker : `/data/conf/setup.code`) avec un code de votre choix pour
+    l'imposer.
+
+Les mises à jour de schéma ultérieures se font sans l'assistant : migrations appliquées
+au démarrage du conteneur Docker ou par un administrateur depuis le portail
+(`POST /system/migrate`).
+
 ## Insights (SQL stocké)
 
 Les insights sont des requêtes SQL stockées en base et exécutées par le serveur. Seul un
@@ -65,9 +83,11 @@ administrateur peut les gérer, et chaque requête est encadrée :
 
 ## Jetons d'accès (MCP)
 
-Le serveur MCP (`/api/mcp`) accepte des jetons d'accès créés par chaque utilisateur dans
-son profil : 192 bits aléatoires, préfixe `cbt_`, **seule l'empreinte SHA-256 est stockée**,
-révocables, avec la date de dernière utilisation. Ils ne donnent accès qu'aux outils en
+Le serveur MCP (`/api/mcp`) est **désactivé par défaut** ; un administrateur l'active dans
+l'onglet **Agents IA**. Il accepte des jetons d'accès créés par chaque utilisateur dans cet
+onglet : 192 bits aléatoires, préfixe `cbt_`, **seule l'empreinte SHA-256 est stockée**,
+durée de validité au choix (30, 90 ou 365 jours, ou sans expiration), révocables, avec la
+date de dernière utilisation. Ils ne donnent accès qu'aux outils en
 lecture seule du serveur MCP, pas au reste de l'API. Le serveur refuse les requêtes
 portant un en-tête `Origin` d'un autre site (protection contre le DNS rebinding).
 
@@ -84,7 +104,8 @@ Seules ces routes ne demandent pas de JWT (un test unitaire le vérifie) :
 
 ## Données sensibles
 
-- Les logs masquent les champs `password` et `token` des requêtes.
+- Les logs masquent les champs `password` et `token` des requêtes, et le paramètre
+  `token=` des URL (synchronisation, MCP).
 - Les messages d'erreur ne renvoient ni hachage ni secret ; l'`uid` permet de retrouver
   le détail dans les logs serveur.
 - `conf/prod.ini`, `conf/certs/*.p8`, `logs/` et `woob/` (identifiants bancaires woob)

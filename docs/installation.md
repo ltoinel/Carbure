@@ -20,6 +20,15 @@ Ouvrez `http://<hôte>:8080/` : l'assistant d'installation s'affiche, déjà rem
 base de données de `docker-compose.yml`. Cliquez sur **Continuer**, choisissez le mot de
 passe administrateur, puis **Installer**. C'est tout.
 
+Configurez ensuite chaque banque une fois (woob demande vos identifiants bancaires, qui ne
+passent jamais par le portail) et suivez ses comptes :
+
+```bash
+docker compose exec -it -u www-data carbure php tools/carbure.php add-bank
+```
+
+Les comptes se gèrent ensuite dans l'onglet **Comptes** du portail.
+
 Pour choisir vous-même le mot de passe de la base, créez un fichier `.env` à côté de
 `docker-compose.yml` **avant** le premier démarrage :
 
@@ -31,17 +40,28 @@ DB_PASSWORD=un-mot-de-passe-solide
 |---|---|---|
 | `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` | Base de données proposée par l'assistant (le mot de passe n'a pas à être ressaisi) | `db`, `3306`, `carbure`, `carbure` |
 | `LANGUAGE` | Langue proposée pour l'administrateur (`fr`, `en`) | `fr` |
-| `SYNC_INTERVAL` | Synchronisation automatique toutes les N secondes (`86400` = une fois par jour) | désactivée |
+| `SYNC_INTERVAL` | Synchronisation automatique de tous les comptes toutes les N secondes (`86400` = une fois par jour) | désactivée |
+| `CARBURE_WOOB_PATH` | Commande woob écrite dans la configuration par l'assistant ; l'image la définit déjà (`env HOME=/data/woob woob`) | `woob` |
 
 Le volume `/data` conserve la configuration écrite par l'assistant (`/data/conf/prod.ini`,
 avec des secrets aléatoires), la clé APNs (`/data/conf/certs`), les logs et la
-configuration woob (vos banques).
+configuration woob (vos banques). Aucun mot de passe administrateur n'est passé par
+l'environnement : il est choisi dans l'assistant.
+
+L'image contient nginx (portail, Swagger et API sur le port 80), PHP-FPM et woob. Son
+`HEALTHCHECK` interroge `GET /api/health` toutes les 30 secondes : `docker ps` affiche
+`healthy` quand la base répond.
 
 !!! note "Accès depuis Internet"
     Depuis votre réseau local, l'assistant est directement accessible. Si Carbure est
-    appelé depuis Internet avant d'être installé, l'assistant demande un **code
-    d'installation**, affiché dans les journaux du conteneur
-    (`docker compose logs carbure`) : personne d'autre que vous ne peut l'installer.
+    appelé depuis une adresse publique avant d'être installé, l'assistant demande un
+    **code d'installation**, affiché dans les journaux du conteneur
+    (`docker compose logs carbure`) et écrit dans `/data/conf/setup.code`.
+
+    Derrière un proxy inversé (proxy du NAS, Traefik, Caddy…), les requêtes semblent
+    venir du proxy, donc du réseau local : **installez Carbure avant de l'exposer sur
+    Internet**, ou imposez le code en créant au préalable `/data/conf/setup.code`
+    contenant un code de votre choix.
 
 ### Récupérer l'image
 
@@ -94,6 +114,7 @@ docker compose restart carbure
 ```bash
 docker compose logs -f carbure                                         # journaux nginx, PHP et démarrage
 docker compose exec carbure ls /data/logs                              # logs de Carbure
+docker compose exec -u www-data carbure php tools/migrate.php --status # version du schéma de la base
 docker compose exec -it -u www-data carbure php tools/carbure.php add-bank           # ajouter une banque
 docker compose exec -u www-data carbure php tools/carbure.php rotate-jwt-secret      # nouveau jwtsecret
 ```
@@ -111,15 +132,19 @@ docker compose exec -u www-data carbure php tools/carbure.php rotate-jwt-secret 
 - PHP **8.2** ou plus avec `mysqli`, `curl`, `openssl` et `json` ; APCu recommandé (cache
   des routes).
 - MariaDB ≥ 10.3 ou MySQL 8, avec une base et un utilisateur pour Carbure.
-- Un serveur web avec PHP-FPM (nginx, Apache…).
+- Un serveur web capable de transmettre `/api/` à PHP-FPM, par exemple nginx (exemple
+  ci-dessous). Carbure ne fournit pas de fichier `.htaccess` : la protection des dossiers
+  sensibles est à configurer dans le serveur.
 - [woob](https://woob.tech/) installé pour l'utilisateur du serveur web. Le module BNP
   récent nécessite `curl_cffi` (`pip install "curl_cffi>=0.7"`).
 - Facultatif : une clé APNs `.p8` (Apple Developer) pour les notifications iOS.
 
 ### 1. Copier Carbure
 
-Copiez le contenu du dépôt (ou de l'archive d'une release) dans le dossier du site, par
-exemple `/var/www/carbure`. Le dossier `conf/` doit être **modifiable par le serveur web** :
+Copiez l'archive d'une release (`carbure-vX.Y.Z.tar.gz` : `src`, `portal`, `swagger`,
+`sql`, `tools/carbure.php`, `tools/migrate.php`, `conf/prod.sample.ini` et le fichier
+`VERSION` affiché dans le pied de page du portail) ou le contenu du dépôt dans le dossier
+du site, par exemple `/var/www/carbure`. Le dossier `conf/` doit être **modifiable par le serveur web** :
 l'assistant y écrit la configuration.
 
 ### 2. Configurer le serveur web
@@ -150,9 +175,27 @@ location ~ ^/(conf|logs|sql|tests|tools|woob)/ { deny all; }
 Ouvrez le portail (`https://<votre-serveur>/portal/`) : l'assistant demande la base de
 données, crée ses tables (ou met à jour une base Carbure existante, après confirmation
 d'une sauvegarde) et le compte administrateur, puis écrit `conf/prod.ini` avec des
-secrets aléatoires.
+secrets aléatoires (`jwtsecret`, `sync_token`…). La commande woob y est `woob` : adaptez
+`woob_path` si woob est installé ailleurs (voir [Configuration](configuration.md#woob)).
 
-### 4. Planifier la synchronisation
+Depuis une adresse publique, l'assistant demande le code d'installation écrit dans
+`conf/setup.code` (et dans le journal d'erreurs PHP). Voir
+[Sécurité](securite.md#assistant-dinstallation).
+
+### 4. Ajouter une banque
+
+Les identifiants bancaires ne passent jamais par le portail : ils sont enregistrés par
+woob. Configurez chaque banque une fois, en tant qu'utilisateur du serveur web :
+
+```bash
+sudo -u www-data php tools/carbure.php add-bank
+```
+
+La commande demande le module woob de la banque (`list` les affiche), laisse woob
+demander vos identifiants, puis propose de suivre les comptes trouvés. Les comptes se
+gèrent ensuite dans l'onglet **Comptes** du portail.
+
+### 5. Planifier la synchronisation
 
 La clé `sync_token` de `conf/prod.ini` permet d'appeler la synchronisation sans compte :
 

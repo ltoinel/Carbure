@@ -9,23 +9,28 @@ Carbure est un portail web de suivi du budget et des transactions bancaires du f
 un **portail** `portal/` (Vue 3, sans build) et une **API REST PHP 8.2+** `src/` (sans
 framework, sans Composer), aussi consommée par **l'app iOS**. Les transactions sont
 synchronisées par [woob](https://woob.tech/), catégorisées par mots-clés, et des
-notifications APNs sont envoyées à l'application iOS.
+notifications APNs sont envoyées à l'application iOS. Un serveur MCP en lecture seule
+(`/api/mcp`) ouvre les données aux agents IA. Déploiement recommandé : image Docker
+(nginx + PHP-FPM + woob), installée depuis le navigateur.
 
 ## Organisation
 
 | Chemin | Contenu |
 |---|---|
-| `src/api.php` | Point d'entrée HTTP (`/api/*`) |
+| `src/api.php` | Point d'entrée HTTP (`/api/*`) ; sans `conf/<env>.ini`, ne sert que l'assistant d'installation (`/api/setup`) |
 | `src/autoload.php` | Chargement des classes et de la configuration (`APP_ENV`) |
-| `src/lib/` | Socle : `Config`, `Db` (mysqli), `Logger`, `Jwt`, `Webservice`, `ApiResolver`, `ApiRoute`, `Woob`, `Apns` |
-| `src/resources/` | Ressources de l'API : `User`, `Bank`, `Transaction`, `Budget`, `Category`, `Device` |
+| `src/lib/` | Socle : `Config`, `Db` (mysqli), `Logger`, `Jwt`, `Webservice` (dont les en-têtes de sécurité), `ApiResolver`, `ApiRoute`, `Woob`, `Apns`, `Setup` et `Installer` (assistant d'installation), `Migrator` (versions du schéma), `Setting` (réglages en base) |
+| `src/resources/` | Ressources de l'API : `User`, `Bank`, `Transaction`, `Budget`, `Category`, `Insight`, `Device`, `ApiToken`, `Mcp`, `System` |
 | `portal/` | Portail web (Vue 3 global build, mixins dans `modules/`, i18n fr/en dans `i18n.js`) |
 | `swagger/` | Génération OpenAPI par réflexion + Swagger UI |
 | `sql/carbure.sql` | Schéma complet (installation neuve) |
-| `sql/migrations/` | Migrations datées pour les bases existantes |
+| `sql/migrations/` | Migrations datées pour les bases existantes (appliquées par `Migrator`, table `schema_migrations`) |
+| `tools/carbure.php`, `tools/migrate.php` | Maintenance (`add-bank`, `rotate-jwt-secret`) et migrations en ligne de commande |
+| `Dockerfile`, `docker/`, `docker-compose.yml` | Image nginx + PHP-FPM + woob (`HEALTHCHECK` sur `/api/health`) |
 | `conf/*.sample.ini`, `conf/testing.ini` | Configuration d'exemple et de test (`prod.ini` n'est jamais versionné) |
 | `tests/unit/`, `tests/integration/` | Tests PHPUnit (unitaires sans dépendance ; intégration avec MariaDB) |
 | `tools/phpunit.phar` | PHPUnit 11 |
+| `VERSION` | Version (`dev` dans le dépôt, écrite par la release) |
 | `docs/`, `mkdocs.yml` | Documentation GitHub Pages (MkDocs Material) |
 | `TODO.md` | Tâches restantes |
 
@@ -46,7 +51,9 @@ en pre-push).
 ## Conventions de code
 
 - Une route = une méthode **publique statique** d'une classe de `src/resources/`, annotée
-  `#[ApiRoute('/chemin', method: 'GET', public: false, stream: false)]`.
+  `#[ApiRoute('/chemin', method: 'GET', public: false, stream: false, raw: false)]`.
+- Action d'administration : `User::requireAdmin()` en premier ; dans le portail, onglet
+  ou bouton visible seulement si `isAdmin`.
 - Les paramètres de requête (JSON + query string) sont injectés **par nom** dans les
   paramètres de la méthode : le nom d'un paramètre fait partie du contrat d'API.
 - Erreurs : `Error` avec un code HTTP 4xx pour les erreurs client, `Exception` pour les
@@ -65,17 +72,21 @@ en pre-push).
   N'ajouter que des routes ou des paramètres facultatifs ; ne jamais renommer, supprimer
   ou changer le format d'une réponse existante.
 - **Schéma** : toute modification passe par un fichier `sql/migrations/AAAA-MM-JJ_nom.sql`
-  (avec sa ligne `-- applied-if: …`, voir docs/developpement.md) **et** par
-  `sql/carbure.sql`. `tools/migrate.php` les applique (table `schema_migrations`). Le code
-  ne doit pas dépendre d'une migration non appliquée.
+  (avec sa ligne `-- applied-if: …` obligatoire, vérifiée par un test, voir
+  docs/developpement.md) **et** par `sql/carbure.sql`. Les migrations sont appliquées au
+  démarrage du conteneur Docker, par l'assistant d'installation ou depuis le portail
+  (bandeau administrateur) ; `tools/migrate.php` en ligne de commande. Le code ne doit pas
+  dépendre d'une migration non appliquée.
 - **Secrets** : jamais de secret, d'identifiant bancaire, d'e-mail personnel ou de log
   dans le dépôt (`conf/prod.ini`, `conf/certs/`, `logs/`, `woob/` sont ignorés). Les
   fichiers d'exemple ne contiennent que des valeurs factices.
 - **UUID des transactions** : le libellé nettoyé entre dans l'UUID ; modifier
   `Transaction::cleanLabel()` ou les `regex_label` crée des doublons sans migration.
-- Les routes publiques sont limitées à `POST /user/login` et `GET /bank/sync` (protégée
-  par JWT ou `sync_token`) ; un test unitaire échoue si une nouvelle route publique
-  apparaît.
+- Les routes publiques sont limitées à `POST /user/login`, `GET /bank/sync` (protégée
+  par JWT ou `sync_token`), `POST /mcp` et `GET /mcp` (jeton d'accès ou JWT) et
+  `GET /health` ; un test unitaire échoue si une nouvelle route publique apparaît.
+- Les en-têtes de sécurité de l'API sont posés par PHP ; ceux du portail par nginx
+  (`docker/nginx.conf`, pas de `.htaccess`).
 
 ## Définition de « terminé »
 

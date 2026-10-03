@@ -19,18 +19,22 @@ restaurants cette année ? », « Quelles catégories dépassent leur budget ce 
 
 ## 1. Activer le serveur MCP
 
-Onglet **Agents IA** du portail : un administrateur active **Serveur MCP activé**. Tant
-qu'il est désactivé, `/api/mcp` répond `403`, même avec un jeton valide.
+Onglet **Agents IA** du portail : un administrateur active l'interrupteur **Serveur MCP
+activé** (le réglage `mcp_enabled` est enregistré en base). Tant qu'il est désactivé,
+`/api/mcp` répond `403`, même avec un jeton valide, et les utilisateurs ne peuvent pas créer
+de jeton.
 
 ## 2. Créer un jeton d'accès
 
 Toujours dans l'onglet **Agents IA**, bouton **+** : donnez un nom au jeton (par exemple
 « Claude Code sur mon portable ») et choisissez sa **durée de validité** (30 jours, 90 jours,
-1 an ou sans expiration ; un jeton expiré est refusé et signalé dans la liste). Le jeton (`cbt_…`) n'est affiché **qu'une seule fois**,
-avec la configuration prête à copier pour chaque agent. La liste des jetons montre leur
-date de dernière utilisation ; la corbeille révoque un jeton immédiatement.
+1 an ou sans expiration ; un jeton expiré est refusé et signalé « Expiré » dans la
+liste). Le jeton (`cbt_…`) n'est affiché **qu'une seule fois**, avec la configuration prête
+à copier pour chaque agent. La liste **Mes jetons d'accès** montre leur date de création,
+de dernière utilisation et d'expiration ; la corbeille révoque un jeton immédiatement.
 
-Seule l'empreinte SHA-256 du jeton est conservée en base.
+Chaque utilisateur peut avoir 20 jetons au plus. Seule l'empreinte SHA-256 du jeton est
+conservée en base.
 
 ## 3. Connecter son agent IA
 
