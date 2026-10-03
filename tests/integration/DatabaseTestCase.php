@@ -43,7 +43,8 @@ abstract class DatabaseTestCase extends TestCase
 
     protected function tearDown(): void
     {
-        unset($_SERVER['HTTP_AUTHORIZATION'], $_SERVER['HTTP_X_SYNC_TOKEN']);
+        unset($_SERVER['HTTP_AUTHORIZATION'], $_SERVER['HTTP_X_SYNC_TOKEN'], $_SERVER['HTTP_ORIGIN'], $_SERVER['HTTP_HOST']);
+        Jwt::actAs(null);
     }
 
     /**
@@ -69,7 +70,7 @@ abstract class DatabaseTestCase extends TestCase
     {
         Db::query("SET FOREIGN_KEY_CHECKS=0");
         foreach (['bank_account', 'bank_transaction', 'bank_transaction_category', 'bank_transaction_category_keyword',
-                  'budget', 'budget_insight', 'devices', 'users'] as $table) {
+                  'budget', 'budget_insight', 'devices', 'api_tokens', 'users'] as $table) {
             Db::query("TRUNCATE TABLE `$table`");
         }
         Db::query("SET SESSION sql_mode = CONCAT(@@sql_mode, ',NO_AUTO_VALUE_ON_ZERO')");

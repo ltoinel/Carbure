@@ -3971,3 +3971,37 @@ a.footer-brand:hover {
         align-self: flex-end;
     }
 }
+
+/* ===== API tokens ===== */
+.api-token-warning {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 12px;
+    margin-bottom: 16px;
+    border-radius: var(--border-radius-md);
+    background: color-mix(in srgb, var(--warning-color, #b26a00) 12%, transparent);
+    color: var(--text-primary);
+    font-size: 14px;
+}
+
+.copy-field {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.copy-field code {
+    flex: 1;
+    min-width: 0;
+    padding: 10px 12px;
+    border-radius: var(--border-radius-md);
+    background: var(--background);
+    font-size: 13px;
+    word-break: break-all;
+    user-select: all;
+}
+
+.profile-devices .users-header .rules-help {
+    margin: 4px 0 0;
+}

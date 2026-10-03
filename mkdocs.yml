@@ -64,6 +64,7 @@ nav:
   - Utilisation:
       - API: api.md
       - Portail web: portail.md
+      - Claude (MCP): mcp.md
   - Technique:
       - Modèle de données: modele-donnees.md
       - Développement: developpement.md

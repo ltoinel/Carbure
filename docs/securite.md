@@ -20,14 +20,23 @@ Un administrateur ne peut pas supprimer son propre compte ; un utilisateur propr
 de transactions ne peut pas être supprimé ; le dernier administrateur ne peut pas perdre
 son rôle.
 
+## Jetons d'accès (MCP)
+
+Le serveur MCP (`/api/mcp`) accepte des jetons d'accès créés par chaque utilisateur dans
+son profil : 192 bits aléatoires, préfixe `cbt_`, **seule l'empreinte SHA-256 est stockée**,
+révocables, avec la date de dernière utilisation. Ils ne donnent accès qu'aux outils en
+lecture seule du serveur MCP, pas au reste de l'API. Le serveur refuse les requêtes
+portant un en-tête `Origin` d'un autre site (protection contre le DNS rebinding).
+
 ## Routes publiques
 
-Seules deux routes ne demandent pas de JWT (un test unitaire le vérifie) :
+Seules ces routes ne demandent pas de JWT (un test unitaire le vérifie) :
 
 - `POST /user/login` ;
 - `GET /bank/sync`, qui exige **soit** un JWT, **soit** le `sync_token` de la
   configuration (en-tête `X-Sync-Token` de préférence, ou `?token=`). Sans `sync_token`
-  configuré, seul un utilisateur connecté peut lancer la synchronisation.
+  configuré, seul un utilisateur connecté peut lancer la synchronisation ;
+- `POST /mcp` et `GET /mcp` (serveur MCP), qui exigent un jeton d'accès ou un JWT.
 
 ## Données sensibles
 

@@ -189,6 +189,7 @@ mysql -u root -p carbure < sql/migrations/2026-10-03_audit.sql
 mysql -u root -p carbure < sql/migrations/2026-10-04_alerts.sql
 mysql -u root -p carbure < sql/migrations/2026-10-05_schema.sql
 mysql -u root -p carbure < sql/migrations/2026-10-06_sync_status.sql
+mysql -u root -p carbure < sql/migrations/2026-10-07_api_tokens.sql
 ```
 
 !!! warning "Migrations avant le code"

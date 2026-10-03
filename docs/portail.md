@@ -144,6 +144,11 @@ Le dernier administrateur ne peut pas perdre son rôle.
   de l'afficher en entier, de le copier (HTTPS requis ; sinon le token est affiché) ou
   de **supprimer** un ancien appareil.
 
+### Accès pour Claude (MCP)
+
+Création (dans une modale) et révocation des jetons d'accès du serveur MCP. Le jeton et la
+commande `claude mcp add` à copier ne sont affichés qu'une fois. Voir [Claude (MCP)](mcp.md).
+
 ## Mode debug
 
 Ajouter `?debug=true` à l'URL affiche un panneau avec la dernière requête API et active

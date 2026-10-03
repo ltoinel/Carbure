@@ -178,6 +178,33 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
     }
 
     /**
+     * Fetches the API tokens of the authenticated user (without the tokens themselves)
+     * @returns {Promise<Array>} Array of {id, name, token_hint, created_at, last_used_at}
+     */
+    async function fetchApiTokens() {
+        const data = await request(`${baseUrl}/token`, {}, 'Failed to fetch the API tokens');
+        return Array.isArray(data) ? data : [];
+    }
+
+    /**
+     * Creates an API token (its value is returned only this time)
+     * @param {string} name - Name to recognize it
+     * @returns {Promise<Object>} {id, name, token, token_hint}
+     */
+    async function createApiToken(name) {
+        return request(`${baseUrl}/token`, { method: 'POST', body: JSON.stringify({ name }) }, 'Failed to create the API token');
+    }
+
+    /**
+     * Revokes an API token
+     * @param {number} id - Token ID
+     * @returns {Promise<void>}
+     */
+    async function deleteApiToken(id) {
+        await request(`${baseUrl}/token?id=${encodeURIComponent(id)}`, { method: 'DELETE' }, 'Failed to revoke the API token');
+    }
+
+    /**
      * Fetches the monthly trends of the household
      * @param {number} months - Number of months
      * @param {number} offset - Months between the current month and the end of the period
@@ -678,6 +705,9 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
         fetchUsers,
         fetchMe,
         fetchDevices,
+        fetchApiTokens,
+        createApiToken,
+        deleteApiToken,
         fetchBankAccounts,
         createBankAccount,
         updateBankAccount,

@@ -114,6 +114,22 @@ CREATE TABLE `budget_insight` (
 -- --------------------------------------------------------
 
 --
+-- Structure de la table `api_tokens`
+--
+
+CREATE TABLE `api_tokens` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `user_id` int(10) UNSIGNED NOT NULL,
+  `name` varchar(50) NOT NULL,
+  `token_hash` char(64) NOT NULL COMMENT 'SHA-256 of the token, the token itself is never stored',
+  `token_hint` varchar(16) NOT NULL COMMENT 'Start of the token, to recognize it',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `last_used_at` datetime DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Structure de la table `devices`
 --
 
@@ -195,6 +211,14 @@ ALTER TABLE `budget_insight`
   ADD PRIMARY KEY (`id`);
 
 --
+-- Index pour la table `api_tokens`
+--
+ALTER TABLE `api_tokens`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `token_hash` (`token_hash`),
+  ADD KEY `fk_api_token_user` (`user_id`);
+
+--
 -- Index pour la table `devices`
 --
 ALTER TABLE `devices`
@@ -251,6 +275,12 @@ ALTER TABLE `budget_insight`
   MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT pour la table `api_tokens`
+--
+ALTER TABLE `api_tokens`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT pour la table `devices`
 --
 ALTER TABLE `devices`
@@ -296,6 +326,12 @@ ALTER TABLE `bank_transaction_category_keyword`
 --
 ALTER TABLE `budget`
   ADD CONSTRAINT `fk_budget_category` FOREIGN KEY (`category`) REFERENCES `bank_transaction_category` (`id`);
+
+--
+-- Contraintes pour la table `api_tokens`
+--
+ALTER TABLE `api_tokens`
+  ADD CONSTRAINT `fk_api_token_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Contraintes pour la table `devices`

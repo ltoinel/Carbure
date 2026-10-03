@@ -20,6 +20,11 @@ export function createProfileModule(getApiService) {
                 showUserMenu: false,
                 savingProfile: false,
                 devices: [],
+                apiTokens: [],
+                // Token just created: {name, token}, shown once
+                newApiToken: null,
+                showApiTokenModal: false,
+                apiTokenName: '',
                 loadingDevices: false,
                 revealedTokens: {},
                 profileForm: {
@@ -104,6 +109,7 @@ export function createProfileModule(getApiService) {
                 };
                 this.setActiveTab('profile');
                 this.loadDevices();
+                this.loadApiTokens();
             },
 
             /**
@@ -126,6 +132,104 @@ export function createProfileModule(getApiService) {
                     this.showToast(error.message);
                 } finally {
                     this.loadingDevices = false;
+                }
+            },
+
+            /**
+             * Loads the API tokens (MCP server for Claude) of the authenticated user
+             * @returns {Promise<void>}
+             */
+            async loadApiTokens() {
+                try {
+                    this.apiTokens = await getApiService().fetchApiTokens();
+                } catch (error) {
+                    // Database not migrated yet (2026-10-07_api_tokens.sql): the section stays empty
+                    this.apiTokens = [];
+                }
+            },
+
+            /**
+             * Opens the modal to create an API token
+             */
+            openApiTokenModal() {
+                this.apiTokenName = 'Claude';
+                this.newApiToken = null;
+                this.showApiTokenModal = true;
+                this.$nextTick(() => document.getElementById('api-token-name')?.select());
+            },
+
+            /**
+             * Closes the API token modal (the new token can no longer be displayed)
+             */
+            closeApiTokenModal() {
+                this.showApiTokenModal = false;
+                this.newApiToken = null;
+            },
+
+            /**
+             * Creates an API token and shows it once
+             * @returns {Promise<void>}
+             */
+            async createApiToken() {
+                const name = this.apiTokenName.trim();
+                if (!name) {
+                    this.showToast(this.t('apiTokenNameRequired'));
+                    return;
+                }
+                try {
+                    this.newApiToken = await getApiService().createApiToken(name);
+                    await this.loadApiTokens();
+                } catch (error) {
+                    this.showToast(error.message);
+                }
+            },
+
+            /**
+             * URL of the MCP server
+             * @returns {string}
+             */
+            mcpUrl() {
+                return new URL(`${this.apiBaseUrl.replace(/\/$/, '')}/mcp`, window.location.href).href;
+            },
+
+            /**
+             * Command adding Carbure to Claude Code
+             * @param {string} token - API token
+             * @returns {string}
+             */
+            claudeCommand(token) {
+                return `claude mcp add --transport http carbure ${this.mcpUrl()} --header "Authorization: Bearer ${token}"`;
+            },
+
+            /**
+             * Copies a text to the clipboard
+             * @param {string} text - Text to copy
+             * @returns {Promise<void>}
+             */
+            async copyText(text) {
+                try {
+                    await navigator.clipboard.writeText(text);
+                    this.showToast(this.t('copied'));
+                } catch (error) {
+                    this.showToast(this.t('copyUnavailable'));
+                }
+            },
+
+            /**
+             * Revokes an API token after confirmation
+             * @param {Object} apiToken - Token
+             * @returns {Promise<void>}
+             */
+            async revokeApiToken(apiToken) {
+                if (!confirm(this.t('confirmRevokeApiToken', { name: apiToken.name }))) {
+                    return;
+                }
+                try {
+                    await getApiService().deleteApiToken(apiToken.id);
+                    this.apiTokens = this.apiTokens.filter(t => t.id !== apiToken.id);
+                    this.showToast(this.t('apiTokenRevoked'));
+                } catch (error) {
+                    this.showToast(error.message);
                 }
             },
 

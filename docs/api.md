@@ -312,6 +312,19 @@ notifications). 404 si l'appareil n'existe pas ou appartient à un autre utilisa
 
 Envoie une notification de test à tous les appareils de l'utilisateur connecté.
 
+## Jetons d'accès et serveur MCP
+
+### `GET /token`, `POST /token`, `DELETE /token?id=`
+
+Jetons d'accès de l'utilisateur connecté, pour le serveur MCP. `POST` (`name`) renvoie le
+jeton (`token`, préfixe `cbt_`) **une seule fois** ; la liste ne donne que `id`, `name`,
+`token_hint`, `created_at` et `last_used_at`.
+
+### `POST /api/mcp` — jeton d'accès
+
+Serveur MCP (JSON-RPC 2.0, transport Streamable HTTP) en lecture seule, authentifié par
+`Authorization: Bearer <jeton>`. Voir [Claude (MCP)](mcp.md).
+
 ## Spécification OpenAPI
 
 `swagger/swagger.php` génère une spécification OpenAPI 3 par réflexion sur les

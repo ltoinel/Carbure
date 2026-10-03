@@ -1090,9 +1090,100 @@
                                 </li>
                             </ul>
                         </div>
+
+                        <div class="profile-container profile-devices">
+                            <div class="users-header">
+                                <div>
+                                    <h2>{{ t('apiTokensTitle') }}</h2>
+                                    <p class="rules-help">{{ t('apiTokensHelp') }}</p>
+                                </div>
+                                <button class="btn-add btn-add-icon" @click="openApiTokenModal" :title="t('addApiToken')" :aria-label="t('addApiToken')">
+                                    <span class="material-icons">add</span>
+                                </button>
+                            </div>
+                            <div v-if="apiTokens.length === 0" class="transactions-hint">{{ t('noApiTokens') }}</div>
+                            <ul v-else class="device-list">
+                                <li v-for="apiToken in apiTokens" :key="apiToken.id" class="device-item">
+                                    <span class="material-icons device-icon">key</span>
+                                    <div class="device-details">
+                                        <div class="device-name">{{ apiToken.name }}</div>
+                                        <div class="device-meta">
+                                            {{ t('apiTokenCreated') }} : {{ formatDate(apiToken.created_at) }} ·
+                                            {{ apiToken.last_used_at ? t('apiTokenLastUsed') + ' : ' + formatDate(apiToken.last_used_at) : t('apiTokenNeverUsed') }}
+                                        </div>
+                                        <code class="device-token">{{ apiToken.token_hint }}…</code>
+                                    </div>
+                                    <div class="device-actions">
+                                        <button class="btn-icon btn-icon-delete" @click="revokeApiToken(apiToken)" :title="t('revokeApiToken')" :aria-label="t('revokeApiToken') + ' ' + apiToken.name">
+                                            <span class="material-icons">delete</span>
+                                        </button>
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
             </transition>
+        </div>
+
+        <!-- API Token Modal -->
+        <div v-if="showApiTokenModal" class="modal-overlay" @click.self="closeApiTokenModal">
+            <div class="modal modal-form">
+                <div class="modal-header">
+                    <span class="material-icons">key</span>
+                    <h3>{{ t('addApiToken') }}</h3>
+                    <button class="modal-close" @click="closeApiTokenModal" :aria-label="t('close')">
+                        <span class="material-icons">close</span>
+                    </button>
+                </div>
+                <form v-if="!newApiToken" class="modal-body" id="api-token-form" @submit.prevent="createApiToken">
+                    <div class="form-group">
+                        <label for="api-token-name">{{ t('apiTokenName') }} *</label>
+                        <input id="api-token-name" v-model="apiTokenName" maxlength="50" />
+                        <small>{{ t('apiTokenNameHelp') }}</small>
+                    </div>
+                </form>
+                <div v-else class="modal-body">
+                    <p class="api-token-warning" role="alert">
+                        <span class="material-icons inline-icon">warning</span>{{ t('apiTokenShownOnce') }}
+                    </p>
+                    <div class="form-group">
+                        <label>{{ t('apiToken') }}</label>
+                        <div class="copy-field">
+                            <code>{{ newApiToken.token }}</code>
+                            <button type="button" class="btn-icon" @click="copyText(newApiToken.token)" :title="t('copyToken')" :aria-label="t('copyToken')">
+                                <span class="material-icons">content_copy</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>{{ t('apiTokenClaudeCode') }}</label>
+                        <div class="copy-field">
+                            <code>{{ claudeCommand(newApiToken.token) }}</code>
+                            <button type="button" class="btn-icon" @click="copyText(claudeCommand(newApiToken.token))" :title="t('copy')" :aria-label="t('copy')">
+                                <span class="material-icons">content_copy</span>
+                            </button>
+                        </div>
+                        <small>{{ t('apiTokenPrivacy') }}</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <template v-if="!newApiToken">
+                        <button class="btn-secondary" @click="closeApiTokenModal">
+                            <span class="material-icons">cancel</span>
+                            {{ t('cancel') }}
+                        </button>
+                        <button type="submit" form="api-token-form">
+                            <span class="material-icons">check_circle</span>
+                            {{ t('create') }}
+                        </button>
+                    </template>
+                    <button v-else @click="closeApiTokenModal">
+                        <span class="material-icons">done</span>
+                        {{ t('done') }}
+                    </button>
+                </div>
+            </div>
         </div>
 
         <!-- Rule Modal -->

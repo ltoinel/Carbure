@@ -15,6 +15,7 @@ class ApiRoute {
     public string $method;
     public bool $public;
     public bool $stream;
+    public bool $raw = false;
 
     /**
      * Declare an API route on a public static method.
@@ -23,16 +24,20 @@ class ApiRoute {
      * @param string $method The HTTP method (GET, POST, PUT, DELETE)
      * @param bool   $public True if the route does not require a JWT
      * @param bool   $stream True if the route answers with Server-Sent Events
+     * @param bool   $raw    True if the method returns the response body itself
+     *                       (already encoded JSON, or '' for an empty body)
      */
     public function __construct(
         string $path, 
         string $method = 'GET', 
         bool $public = false,
-        bool $stream = false
+        bool $stream = false,
+        bool $raw = false
     ) {
         $this->path = $path;
         $this->method = $method;
         $this->public = $public;
         $this->stream = $stream;
+        $this->raw = $raw;
     }
 }

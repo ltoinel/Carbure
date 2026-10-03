@@ -12,6 +12,23 @@
 final class Jwt {
 
     /**
+     * User authenticated by another mean than a JWT (API token of the MCP server)
+     */
+    private static ?int $actingUser = null;
+
+    /**
+     * Run the next calls as a user authenticated by another mean (an API token):
+     * getUserIdFromToken() then returns this user. null goes back to the JWT.
+     *
+     * @param int|null $userId The user, or null
+     * @return void
+     */
+    public static function actAs($userId)
+    {
+        self::$actingUser = $userId === null ? null : (int)$userId;
+    }
+
+    /**
      * Create a JWT token for a user.
      *
      * @param int $userId The user id
@@ -128,7 +145,7 @@ final class Jwt {
      * Extract JWT token from Authorization header
      * @return string|null The token or null if not found
      */
-    private static function getTokenFromHeader()
+    public static function getTokenFromHeader()
     {
         $authHeader = Webservice::getHeader('Authorization');
 
@@ -151,6 +168,10 @@ final class Jwt {
      */
     public static function getUserIdFromToken()
     {
+        if (self::$actingUser !== null) {
+            return self::$actingUser;
+        }
+
         $token = self::getTokenFromHeader();
         
         if (!$token) {

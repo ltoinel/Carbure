@@ -134,7 +134,7 @@ final class Webservice {
         self::checkAccess($route['apiRoute']);
 
         // Call the service
-        $response = self::callService($route['class'], $route['method'], $data);
+        $response = self::callService($route['class'], $route['method'], $data, $route['apiRoute']->raw ?? false);
 
         // A stream has already sent its events: nothing more to output
         return ($route['apiRoute']->stream ?? false) ? '' : $response;
@@ -186,9 +186,10 @@ final class Webservice {
      * @param string $resource The resource class name
      * @param string $method   The method name to call
      * @param array  $data     The request data
+     * @param bool   $raw      True if the method returns the response body itself
      * @return string The JSON encoded response
      */
-    public static function callService($resource, $method, $data)
+    public static function callService($resource, $method, $data, $raw = false)
     {
         Logger::info("Calling : $resource.$method", $data ? self::maskSensitive($data) : null);
 
@@ -204,6 +205,10 @@ final class Webservice {
         }
 
         Logger::debug("Result", $response);
+
+        if ($raw) {
+            return (string)$response;
+        }
 
         // Return JSON response with pretty print in debug mode
         $flags = Config::get('log_level') === 'debug' ? JSON_PRETTY_PRINT : 0;

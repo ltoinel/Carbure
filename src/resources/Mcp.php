@@ -1,0 +1,433 @@
+<?php
+
+/**
+ * Mcp.php
+ *
+ * MCP server (Model Context Protocol, Streamable HTTP transport) to let Claude
+ * analyse the household data: JSON-RPC 2.0 messages on POST /api/mcp, one JSON
+ * response per request, no session. The tools are read-only.
+ *
+ * Authentication: "Authorization: Bearer <API token>" (created in the profile of
+ * the portal) or a JWT.
+ *
+ * @author     Ludovic Toinel
+ * @copyright  2026 Carbure App
+ */
+
+final class Mcp {
+
+    /**
+     * Protocol versions supported, most recent first
+     */
+    private const PROTOCOL_VERSIONS = ['2025-11-25', '2025-06-18', '2025-03-26', '2024-11-05'];
+
+    /**
+     * Version of the server
+     */
+    private const SERVER_VERSION = '1.0.0';
+
+    /**
+     * JSON-RPC error codes
+     */
+    private const INVALID_REQUEST = -32600;
+    private const METHOD_NOT_FOUND = -32601;
+    private const INVALID_PARAMS = -32602;
+
+    /**
+     * Handle a JSON-RPC message of an MCP client.
+     *
+     * @param string|null     $jsonrpc Always "2.0"
+     * @param string|null     $method  The method (initialize, tools/list, tools/call...)
+     * @param int|string|null $id      The request id (none for a notification)
+     * @param array|null      $params  The parameters of the method
+     * @param mixed           $result  Response of the client to a server request (unused)
+     * @param mixed           $error   Error of the client to a server request (unused)
+     * @return string The JSON-RPC response, or '' (HTTP 202) for a notification
+     * @throws Error If unauthenticated (401) or from another site (403)
+     */
+    #[ApiRoute('/mcp', method: 'POST', public: true, raw: true)]
+    public static function handle($jsonrpc = null, $method = null, $id = null, $params = null, $result = null, $error = null)
+    {
+        self::checkOrigin();
+        self::authenticate();
+
+        // Notifications and responses of the client: accepted, nothing to answer
+        if ($method === null || $id === null) {
+            if ($method === null && $result === null && $error === null) {
+                return self::error(null, self::INVALID_REQUEST, "Invalid JSON-RPC message");
+            }
+            http_response_code(202);
+            return '';
+        }
+
+        if ($jsonrpc !== '2.0' || !is_string($method) || !(is_int($id) || is_string($id))) {
+            return self::error($id, self::INVALID_REQUEST, "Invalid JSON-RPC request");
+        }
+        $params = is_array($params) ? $params : [];
+
+        switch ($method) {
+            case 'initialize':
+                return self::result($id, self::initialize($params));
+            case 'ping':
+                return self::result($id, new stdClass());
+            case 'tools/list':
+                return self::result($id, ['tools' => self::tools()]);
+            case 'tools/call':
+                return self::callTool($id, $params);
+            default:
+                return self::error($id, self::METHOD_NOT_FOUND, "Method not found: $method");
+        }
+    }
+
+    /**
+     * The server does not open SSE streams: GET is not allowed (MCP specification).
+     *
+     * @return void
+     * @throws Error Always (405)
+     */
+    #[ApiRoute('/mcp', method: 'GET', public: true)]
+    public static function stream()
+    {
+        if (!headers_sent()) {
+            header('Allow: POST');
+        }
+        throw new Error("Method not allowed: use POST", 405);
+    }
+
+    /**
+     * Refuse the requests of another web site (DNS rebinding): an Origin header,
+     * sent by browsers, must be the host of the server.
+     *
+     * @return void
+     * @throws Error If the origin is another site
+     */
+    private static function checkOrigin()
+    {
+        $origin = Webservice::getHeader('Origin');
+        if ($origin === null || $origin === '' || $origin === 'null') {
+            return;
+        }
+        $originHost = parse_url($origin, PHP_URL_HOST);
+        $host = parse_url('http://' . ($_SERVER['HTTP_HOST'] ?? ''), PHP_URL_HOST);
+        if (!$originHost || !$host || strcasecmp($originHost, $host) !== 0) {
+            throw new Error("Forbidden origin", 403);
+        }
+    }
+
+    /**
+     * Authenticate the client with an API token or a JWT; the tools then run as
+     * this user.
+     *
+     * @return int The user id
+     * @throws Error If the token is missing or invalid (401)
+     */
+    private static function authenticate()
+    {
+        $token = Jwt::getTokenFromHeader();
+        $userId = null;
+        if ($token) {
+            if (str_starts_with($token, ApiToken::PREFIX)) {
+                $userId = ApiToken::authenticate($token);
+            } else {
+                $payload = Jwt::parseJwt($token);
+                $userId = $payload === false ? null : (int)$payload->sub;
+            }
+        }
+
+        if ($userId === null) {
+            if (!headers_sent()) {
+                header('WWW-Authenticate: Bearer realm="Carbure"');
+            }
+            throw new Error("Unauthorized - Invalid or missing API token", 401);
+        }
+
+        Jwt::actAs($userId);
+        return $userId;
+    }
+
+    /**
+     * Answer to initialize: the protocol version and the capabilities of the server.
+     *
+     * @param array $params The parameters of the client
+     * @return array The result
+     */
+    private static function initialize($params)
+    {
+        $requested = $params['protocolVersion'] ?? null;
+        $version = in_array($requested, self::PROTOCOL_VERSIONS, true) ? $requested : self::PROTOCOL_VERSIONS[0];
+
+        return [
+            'protocolVersion' => $version,
+            'capabilities' => ['tools' => ['listChanged' => false]],
+            'serverInfo' => ['name' => 'carbure', 'title' => 'Carbure', 'version' => self::SERVER_VERSION],
+            'instructions' => "Carbure holds the bank transactions, budgets and categories of a household (amounts in euros; "
+                . "negative amounts are expenses). Use list_categories to know the categories, then the other tools to "
+                . "analyse spending, budgets and savings. All the tools are read-only.",
+        ];
+    }
+
+    /**
+     * Definition of the tools (JSON Schema of their arguments).
+     *
+     * @return array The tools
+     */
+    private static function tools()
+    {
+        $month = ['type' => 'integer', 'minimum' => 1, 'maximum' => 12, 'description' => 'Month (1-12), current month by default'];
+        $year = ['type' => 'integer', 'minimum' => 2000, 'maximum' => 2100, 'description' => 'Year, current year by default'];
+        $readOnly = ['readOnlyHint' => true, 'openWorldHint' => false];
+
+        return [
+            [
+                'name' => 'list_categories',
+                'title' => 'Categories',
+                'description' => 'List the categories (id, name, parent, type: DEBIT = expense, CREDIT = income, HORS-BUDGET = off-budget such as internal transfers or savings).',
+                'inputSchema' => ['type' => 'object', 'properties' => new stdClass()],
+                'annotations' => $readOnly,
+            ],
+            [
+                'name' => 'list_transactions',
+                'title' => 'Transactions of a month',
+                'description' => 'List the transactions of a month, optionally of one category and its sub-categories.',
+                'inputSchema' => ['type' => 'object', 'properties' => [
+                    'month' => $month, 'year' => $year,
+                    'category_id' => ['type' => 'integer', 'description' => 'Only this category and its sub-categories'],
+                ]],
+                'annotations' => $readOnly,
+            ],
+            [
+                'name' => 'search_transactions',
+                'title' => 'Search transactions',
+                'description' => 'Search the transactions whose label contains a text (e.g. a shop or a company), most recent first.',
+                'inputSchema' => ['type' => 'object', 'properties' => [
+                    'query' => ['type' => 'string', 'minLength' => 2, 'description' => 'Text to find in the label'],
+                    'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 500, 'description' => 'Maximum number of transactions (100 by default)'],
+                ], 'required' => ['query']],
+                'annotations' => $readOnly,
+            ],
+            [
+                'name' => 'spending_by_category',
+                'title' => 'Totals by category',
+                'description' => 'Total amount and number of transactions per category over a period of months (both included), e.g. to compare spending between categories.',
+                'inputSchema' => ['type' => 'object', 'properties' => [
+                    'from' => ['type' => 'string', 'pattern' => '^\\d{4}-\\d{2}$', 'description' => 'First month (YYYY-MM), 11 months ago by default'],
+                    'to' => ['type' => 'string', 'pattern' => '^\\d{4}-\\d{2}$', 'description' => 'Last month (YYYY-MM), current month by default'],
+                ]],
+                'annotations' => $readOnly,
+            ],
+            [
+                'name' => 'get_budget',
+                'title' => 'Budget of a month',
+                'description' => 'Budget of a month: for each top-level category (or the sub-categories of category_id), the amount spent and the budget planned.',
+                'inputSchema' => ['type' => 'object', 'properties' => [
+                    'month' => $month, 'year' => $year,
+                    'category_id' => ['type' => 'integer', 'description' => 'Parent category to detail (top-level categories by default)'],
+                ]],
+                'annotations' => $readOnly,
+            ],
+            [
+                'name' => 'get_trends',
+                'title' => 'Monthly trends',
+                'description' => 'Monthly totals (oldest first): debit (expenses), credit (income), offBudget, planned budget and savings (net amount moved to the savings category).',
+                'inputSchema' => ['type' => 'object', 'properties' => [
+                    'months' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 60, 'description' => 'Number of months (12 by default)'],
+                    'offset' => ['type' => 'integer', 'minimum' => 0, 'maximum' => 120, 'description' => 'Months between the current month and the last month of the period (0 by default)'],
+                ]],
+                'annotations' => $readOnly,
+            ],
+            [
+                'name' => 'list_rules',
+                'title' => 'Categorization rules',
+                'description' => 'Automatic categorization rules: a transaction whose label contains the keyword gets the category.',
+                'inputSchema' => ['type' => 'object', 'properties' => new stdClass()],
+                'annotations' => $readOnly,
+            ],
+        ];
+    }
+
+    /**
+     * Call a tool: its result is returned as JSON text; an invalid argument is
+     * reported as a tool error so that the model can correct it.
+     *
+     * @param int|string $id     The request id
+     * @param array      $params name and arguments
+     * @return string The JSON-RPC response
+     */
+    private static function callTool($id, $params)
+    {
+        $name = $params['name'] ?? null;
+        $arguments = is_array($params['arguments'] ?? null) ? $params['arguments'] : [];
+        $known = array_column(self::tools(), 'name');
+        if (!in_array($name, $known, true)) {
+            return self::error($id, self::INVALID_PARAMS, "Unknown tool: " . (is_string($name) ? $name : ''));
+        }
+
+        try {
+            $data = self::runTool($name, $arguments);
+            $text = json_encode(Webservice::normalizeNumbers($data), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
+            return self::result($id, ['content' => [['type' => 'text', 'text' => $text]], 'isError' => false]);
+        } catch (Error $e) {
+            if ($e->getCode() < 400 || $e->getCode() >= 500) {
+                throw $e;
+            }
+            return self::result($id, ['content' => [['type' => 'text', 'text' => $e->getMessage()]], 'isError' => true]);
+        }
+    }
+
+    /**
+     * Run a tool.
+     *
+     * @param string $name      The tool
+     * @param array  $arguments Its arguments
+     * @return mixed The data
+     * @throws Error If an argument is invalid
+     */
+    private static function runTool($name, $arguments)
+    {
+        $int = fn($key, $default = null) => isset($arguments[$key]) && $arguments[$key] !== '' ? (int)$arguments[$key] : $default;
+
+        switch ($name) {
+            case 'list_categories':
+                return self::categories();
+
+            case 'list_transactions':
+                return self::compact(Transaction::get($int('month'), $int('year'), $int('category_id')));
+
+            case 'search_transactions':
+                return self::compact(Transaction::search($arguments['query'] ?? '', $int('limit', 100)));
+
+            case 'spending_by_category':
+                return self::spendingByCategory($arguments['from'] ?? null, $arguments['to'] ?? null);
+
+            case 'get_budget':
+                return Budget::get($int('month'), $int('year'), $int('category_id', 0));
+
+            case 'get_trends':
+                return Budget::getTrends($int('months', 12), $int('offset', 0));
+
+            case 'list_rules':
+                return array_map(fn($rule) => ['keyword' => $rule['keyword'], 'category' => $rule['category_name'] ?? $rule['category'] ?? null],
+                    Category::getKeywords());
+        }
+        return null;
+    }
+
+    /**
+     * Categories with the name of their parent.
+     *
+     * @return array id, name, parent (name or null), type
+     */
+    private static function categories()
+    {
+        $categories = Category::get();
+        $names = array_column($categories, 'name', 'id');
+        return array_map(fn($c) => [
+            'id' => (int)$c['id'],
+            'name' => $c['name'],
+            'parent' => (int)$c['parent_category'] !== 0 && (int)$c['parent_category'] !== (int)$c['id'] ? ($names[$c['parent_category']] ?? null) : null,
+            'type' => $c['type'],
+        ], $categories);
+    }
+
+    /**
+     * Transactions reduced to what an analysis needs, with the category name.
+     *
+     * @param array $transactions Rows of bank_transaction
+     * @return array date, label, amount, category, checked
+     */
+    private static function compact($transactions)
+    {
+        $names = [];
+        foreach (self::categories() as $category) {
+            $names[$category['id']] = $category['parent'] ? $category['parent'] . ' › ' . $category['name'] : $category['name'];
+        }
+        return array_map(fn($t) => [
+            'date' => $t['date'],
+            'label' => $t['label'],
+            'amount' => (float)$t['amount'],
+            'category' => $names[(int)$t['category']] ?? null,
+            'checked' => (bool)$t['pointed'],
+        ], $transactions);
+    }
+
+    /**
+     * Total and number of transactions per category over a period.
+     *
+     * @param string|null $from First month (YYYY-MM)
+     * @param string|null $to   Last month (YYYY-MM)
+     * @return array The period and the categories, largest expenses first
+     * @throws Error If a month is invalid or the period is reversed
+     */
+    private static function spendingByCategory($from, $to)
+    {
+        $to = $to ?: date('Y-m');
+        $from = $from ?: date('Y-m', strtotime(date('Y-m-01') . ' -11 months'));
+        foreach ([$from, $to] as $month) {
+            if (!is_string($month) || !preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $month)) {
+                throw new Error("Months must be in the YYYY-MM format", 400);
+            }
+        }
+        if ($from > $to) {
+            throw new Error("'from' must not be after 'to'", 400);
+        }
+
+        $start = "$from-01";
+        $end = date('Y-m-d', strtotime("$to-01 +1 month"));
+        $sql = "SELECT t.category, SUM(t.amount) AS total, COUNT(*) AS transactions
+                FROM bank_transaction t
+                WHERE t.date >= ? AND t.date < ?
+                GROUP BY t.category
+                ORDER BY total";
+        $rows = Db::execute($sql, "ss", $start, $end)->get_result()->fetch_all(MYSQLI_ASSOC);
+
+        $categories = array_column(self::categories(), null, 'id');
+        $result = [];
+        foreach ($rows as $row) {
+            $category = $categories[(int)$row['category']] ?? null;
+            $result[] = [
+                'category' => $category ? ($category['parent'] ? $category['parent'] . ' › ' . $category['name'] : $category['name']) : null,
+                'type' => $category['type'] ?? null,
+                'total' => round((float)$row['total'], 2),
+                'transactions' => (int)$row['transactions'],
+            ];
+        }
+
+        return ['from' => $from, 'to' => $to, 'categories' => $result];
+    }
+
+    /**
+     * JSON-RPC success response.
+     *
+     * @param int|string $id     The request id
+     * @param mixed      $result The result
+     * @return string The response
+     */
+    private static function result($id, $result)
+    {
+        return self::encode(['jsonrpc' => '2.0', 'id' => $id, 'result' => $result]);
+    }
+
+    /**
+     * JSON-RPC error response.
+     *
+     * @param int|string|null $id      The request id
+     * @param int             $code    The error code
+     * @param string          $message The message
+     * @return string The response
+     */
+    private static function error($id, $code, $message)
+    {
+        return self::encode(['jsonrpc' => '2.0', 'id' => $id, 'error' => ['code' => $code, 'message' => $message]]);
+    }
+
+    /**
+     * Encode a message (ids and texts are kept as they are).
+     *
+     * @param array $message The message
+     * @return string The JSON
+     */
+    private static function encode($message)
+    {
+        return json_encode($message, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
+    }
+}
