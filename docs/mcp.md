@@ -19,14 +19,14 @@ restaurants cette année ? », « Quelles catégories dépassent leur budget ce 
 
 ## 1. Activer le serveur MCP
 
-Onglet **Agents IA** du portail : un administrateur active l'interrupteur **Serveur MCP
+Onglet **Agent** du portail : un administrateur active l'interrupteur **Serveur MCP
 activé** (le réglage `mcp_enabled` est enregistré en base). Tant qu'il est désactivé,
 `/api/mcp` répond `403`, même avec un jeton valide, et les utilisateurs ne peuvent pas créer
 de jeton.
 
 ## 2. Créer un jeton d'accès
 
-Toujours dans l'onglet **Agents IA**, bouton **+** : donnez un nom au jeton (par exemple
+Toujours dans l'onglet **Agent**, bouton **+** : donnez un nom au jeton (par exemple
 « Claude Code sur mon portable ») et choisissez sa **durée de validité** (30 jours, 90 jours,
 1 an ou sans expiration ; un jeton expiré est refusé et signalé « Expiré » dans la
 liste). Le jeton (`cbt_…`) n'est affiché **qu'une seule fois**, avec la configuration prête

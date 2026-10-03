@@ -84,7 +84,7 @@ administrateur peut les gérer, et chaque requête est encadrée :
 ## Jetons d'accès (MCP)
 
 Le serveur MCP (`/api/mcp`) est **désactivé par défaut** ; un administrateur l'active dans
-l'onglet **Agents IA**. Il accepte des jetons d'accès créés par chaque utilisateur dans cet
+l'onglet **Agent**. Il accepte des jetons d'accès créés par chaque utilisateur dans cet
 onglet : 192 bits aléatoires, préfixe `cbt_`, **seule l'empreinte SHA-256 est stockée**,
 durée de validité au choix (30, 90 ou 365 jours, ou sans expiration), révocables, avec la
 date de dernière utilisation. Ils ne donnent accès qu'aux outils en

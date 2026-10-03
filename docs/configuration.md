@@ -85,7 +85,7 @@ Les réglages modifiés depuis le portail sont enregistrés dans la table `setti
 
 | Réglage | Valeurs | Modifié dans |
 |---|---|---|
-| `mcp_enabled` | `1` / `0` (désactivé par défaut) | Onglet **Agents IA**, interrupteur **Serveur MCP activé** (administrateur) |
+| `mcp_enabled` | `1` / `0` (désactivé par défaut) | Onglet **Agent**, interrupteur **Serveur MCP activé** (administrateur) |
 
 ## Variables d'environnement
 

@@ -184,7 +184,7 @@ protégée.
 La synchronisation de tous les comptes est planifiée côté serveur (`SYNC_INTERVAL` avec
 Docker, ou une tâche cron).
 
-## Agents IA
+## Agent (agents IA)
 
 Connexion d'un agent IA (Claude, ChatGPT, Cursor, Copilot, Gemini…) au serveur MCP de
 Carbure, en lecture seule. Voir [Agents IA (MCP)](mcp.md).

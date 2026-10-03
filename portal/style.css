@@ -576,9 +576,8 @@ button .material-icons {
 
 .tab-button {
     flex: 0 0 auto;
-    min-width: 120px;
     white-space: nowrap;
-    padding: 16px 20px;
+    padding: 16px 12px;
     background: transparent;
     color: var(--text-secondary);
     border: none;
@@ -590,7 +589,7 @@ button .material-icons {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 10px;
+    gap: 8px;
     box-shadow: none;
     text-transform: none;
     letter-spacing: 0.3px;
