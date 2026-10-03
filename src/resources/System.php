@@ -79,6 +79,82 @@ final class System {
     }
 
     /**
+     * Log files of the instance (administrators), newest first.
+     *
+     * @return array The files: name, size (bytes), modified (Y-m-d H:i:s)
+     */
+    #[ApiRoute('/system/logs', method: 'GET')]
+    public static function logs()
+    {
+        User::requireAdmin();
+        $files = [];
+        foreach (glob(Config::get('data_dir') . '/logs/carbure_*.log') ?: [] as $file) {
+            $files[] = ['name' => basename($file), 'size' => filesize($file), 'modified' => date('Y-m-d H:i:s', filemtime($file))];
+        }
+        usort($files, fn($a, $b) => strcmp($b['modified'], $a['modified']) ?: strcmp($b['name'], $a['name']));
+        return $files;
+    }
+
+    /**
+     * Entries of a log file (administrators), newest first. Only the end of a large
+     * file is read.
+     *
+     * @param string      $file   The file name (carbure_*.log)
+     * @param string|null $level  Minimum level: DEBUG, INFO, WARN or ERROR
+     * @param string|null $search Text to find in the entries (or a request uid)
+     * @param int         $limit  Maximum number of entries (1 to 1000)
+     * @return array file, entries [{time, level, uid, caller, message}], truncated
+     * @throws Error If the file name is invalid or the file does not exist
+     */
+    #[ApiRoute('/system/logs/entries', method: 'GET')]
+    public static function logEntries($file, $level = null, $search = null, $limit = 200)
+    {
+        User::requireAdmin();
+        // A file of the logs directory only: no path
+        if (!preg_match('/^carbure_[a-z0-9_]*\d{8}\.log$/', (string)$file)) {
+            throw new Error("Invalid log file", 400);
+        }
+        $path = Config::get('data_dir') . '/logs/' . $file;
+        if (!is_file($path)) {
+            throw new Error("Log file not found", 404);
+        }
+        $limit = max(1, min(1000, (int)$limit));
+        $levels = ['DEBUG' => 0, 'INFO' => 1, 'WARN' => 2, 'ERROR' => 3];
+        $minimum = $levels[strtoupper((string)$level)] ?? 0;
+
+        // The last 2 MB at most
+        $size = filesize($path);
+        $read = min($size, 2 * 1024 * 1024);
+        $handle = fopen($path, 'rb');
+        fseek($handle, $size - $read);
+        $content = (string)fread($handle, $read);
+        fclose($handle);
+
+        // An entry starts with "yy:mm:dd HH:MM:SS : LEVEL : uid : caller : message"
+        $parts = preg_split('/^(?=\d{2}:\d{2}:\d{2} \d{2}:\d{2}:\d{2} : [A-Z]+ : )/m', $content);
+        $entries = [];
+        foreach (array_reverse($parts) as $part) {
+            if (!preg_match('/^(\d{2}):(\d{2}):(\d{2}) (\d{2}:\d{2}:\d{2}) : ([A-Z]+) : ([^ ]*) : ([^ ]*) : (.*)$/s', $part, $m)) {
+                continue;
+            }
+            if (($levels[$m[5]] ?? 0) < $minimum) {
+                continue;
+            }
+            // Session (JWT) and agent tokens are never shown, even in the debug entries
+            $message = preg_replace(['/eyJ[\w-]+\.[\w-]+\.[\w-]+/', '/cbt_\w+/'], ['eyJ***', 'cbt_***'], rtrim($m[8]));
+            if ($search !== null && $search !== '' && stripos($part, (string)$search) === false) {
+                continue;
+            }
+            $entries[] = ['time' => "20{$m[1]}-{$m[2]}-{$m[3]} {$m[4]}", 'level' => $m[5], 'uid' => $m[6], 'caller' => $m[7], 'message' => $message];
+            if (count($entries) >= $limit) {
+                break;
+            }
+        }
+
+        return ['file' => $file, 'entries' => $entries, 'truncated' => $read < $size];
+    }
+
+    /**
      * Version of the database schema and migrations to apply (administrators).
      *
      * @return array version, pending

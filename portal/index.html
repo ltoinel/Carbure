@@ -371,6 +371,15 @@
                 <span class="material-icons" aria-hidden="true">people</span>
                 {{ t('tabUsers') }}
             </button>
+            <button 
+                v-if="isAdmin"
+                class="tab-button" 
+                :class="{ active: activeTab === 'logs' }"
+                :aria-current="activeTab === 'logs' ? 'page' : null" 
+                @click="setActiveTab('logs')">
+                <span class="material-icons" aria-hidden="true">receipt_long</span>
+                {{ t('tabLogs') }}
+            </button>
         </div>
 
         <div v-if="schemaStatus && schemaStatus.pending && schemaStatus.pending.length" class="schema-banner" role="status">
@@ -1224,6 +1233,57 @@
                                     </div>
                                 </li>
                             </ul>
+                        </section>
+                    </div>
+                </div>
+
+                <!-- Logs Tab (administrators) -->
+                <div v-else-if="activeTab === 'logs'" key="logs" class="tab-panel">
+                    <div class="trends-view">
+                        <section class="trends-card">
+                            <div class="panel-header">
+                                <div>
+                                    <h2>{{ t('logsTitle') }}</h2>
+                                    <p class="rules-help">{{ t('logsHelp') }}</p>
+                                </div>
+                            </div>
+                            <form class="logs-toolbar" @submit.prevent="loadLogEntries">
+                                <label>{{ t('logsFile') }}
+                                    <select v-model="logFile" @change="loadLogEntries">
+                                        <option v-for="f in logFiles" :key="f.name" :value="f.name">{{ f.name }} ({{ formatLogSize(f.size) }})</option>
+                                    </select>
+                                </label>
+                                <label>{{ t('logsLevel') }}
+                                    <select v-model="logLevel" @change="loadLogEntries">
+                                        <option value="DEBUG">DEBUG</option>
+                                        <option value="INFO">INFO</option>
+                                        <option value="WARN">WARN</option>
+                                        <option value="ERROR">ERROR</option>
+                                    </select>
+                                </label>
+                                <label class="logs-search">{{ t('logsSearch') }}
+                                    <input type="search" v-model="logSearch" :placeholder="t('logsSearchPlaceholder')" />
+                                </label>
+                                <button type="submit" :disabled="loadingLogs" :title="t('refreshButton')" :aria-label="t('refreshButton')">
+                                    <span class="material-icons" :class="{ spin: loadingLogs }" aria-hidden="true">refresh</span>
+                                </button>
+                            </form>
+                        </section>
+
+                        <section class="trends-card">
+                            <p v-if="logTruncated" class="rules-help">{{ t('logsTruncated') }}</p>
+                            <div v-if="!logEntries.length && !loadingLogs" class="transactions-hint">{{ t('logsEmpty') }}</div>
+                            <ol v-else class="log-entries" aria-live="polite">
+                                <li v-for="(entry, i) in logEntries" :key="i" class="log-entry" :class="'log-' + entry.level.toLowerCase()">
+                                    <div class="log-entry-head">
+                                        <span class="log-level">{{ entry.level }}</span>
+                                        <time class="log-time">{{ entry.time }}</time>
+                                        <button type="button" class="log-uid" @click="filterLogUid(entry.uid)" :title="t('logsByUid')" :aria-label="t('logsByUid') + ' ' + entry.uid">{{ entry.uid }}</button>
+                                        <span class="log-caller">{{ entry.caller }}</span>
+                                    </div>
+                                    <pre class="log-message">{{ entry.message }}</pre>
+                                </li>
+                            </ol>
                         </section>
                     </div>
                 </div>

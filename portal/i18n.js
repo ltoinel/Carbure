@@ -386,6 +386,16 @@ const i18n = {
         
         // Users
         tabUsers: 'Utilisateurs',
+        tabLogs: 'Logs',
+        logsTitle: 'Journaux',
+        logsHelp: 'Entrées des fichiers de log du serveur (data/logs), les plus récentes d\'abord. Un clic sur l\'identifiant d\'une requête affiche toutes ses entrées.',
+        logsFile: 'Fichier',
+        logsLevel: 'Niveau minimal',
+        logsSearch: 'Recherche',
+        logsSearchPlaceholder: 'Texte ou identifiant de requête',
+        logsEmpty: 'Aucune entrée',
+        logsTruncated: 'Fichier volumineux : seule sa fin (2 Mo) est lue.',
+        logsByUid: 'Toutes les entrées de cette requête',
         usersTitle: 'Gestion des utilisateurs',
         addUser: 'Ajouter un utilisateur',
         editUser: 'Modifier l\'utilisateur',
@@ -863,6 +873,16 @@ const i18n = {
         
         // Users
         tabUsers: 'Users',
+        tabLogs: 'Logs',
+        logsTitle: 'Logs',
+        logsHelp: 'Entries of the log files of the server (data/logs), newest first. A click on the id of a request shows all its entries.',
+        logsFile: 'File',
+        logsLevel: 'Minimum level',
+        logsSearch: 'Search',
+        logsSearchPlaceholder: 'Text or request id',
+        logsEmpty: 'No entry',
+        logsTruncated: 'Large file: only its end (2 MB) is read.',
+        logsByUid: 'Every entry of this request',
         usersTitle: 'User Management',
         addUser: 'Add user',
         editUser: 'Edit user',

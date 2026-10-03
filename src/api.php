@@ -15,7 +15,8 @@ require_once 'autoload.php';
 try {
 
     // if the path doesn't contain a '.' we consider it as a request to the webservice
-    if (strpos($_SERVER["REQUEST_URI"], ".") === false) {
+    // (the query string may: a log file name, a search on "S.N.C.F"...)
+    if (strpos((string)parse_url($_SERVER["REQUEST_URI"], PHP_URL_PATH), ".") === false) {
 
         // Log the request
         // Tokens given in the URL (sync, MCP) are not written in the logs

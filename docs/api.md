@@ -439,6 +439,19 @@ authentification ni donnée : `{"status":"ok","version":"1.2.0","database":"ok",
 `500` si la base ne répond pas, `{"status":"setup","version":"…"}` tant que Carbure n'est
 pas installé. `version` est la version de Carbure (fichier `VERSION`, `dev` hors release).
 
+### `GET /system/logs` — administrateur
+
+Fichiers de log de l'instance, les plus récents d'abord : `[{name, size, modified}]`.
+
+### `GET /system/logs/entries` — administrateur
+
+Entrées d'un fichier, les plus récentes d'abord. Paramètres : `file` (nom renvoyé par
+`/system/logs`), `level` facultatif (niveau minimal : `DEBUG`, `INFO`, `WARN`, `ERROR`),
+`search` facultatif (texte ou identifiant de requête), `limit` (1 à 1000, 200 par défaut).
+Réponse : `{file, entries: [{time, level, uid, caller, message}], truncated}` ; seuls les
+2 derniers Mo sont lus (`truncated`) et les jetons sont masqués. 400 pour un nom de fichier
+invalide, 404 s'il n'existe pas.
+
 ### `GET /system/schema` — administrateur
 
 Version du schéma de la base et migrations à appliquer :

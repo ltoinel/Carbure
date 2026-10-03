@@ -194,6 +194,28 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
     }
 
     /**
+     * Log files of the instance (administrators)
+     * @returns {Promise<Array>} Array of {name, size, modified}
+     */
+    async function fetchLogFiles() {
+        const data = await request(`${baseUrl}/system/logs`, {}, 'Failed to list the log files');
+        return Array.isArray(data) ? data : [];
+    }
+
+    /**
+     * Entries of a log file, newest first (administrators)
+     * @param {string} file - File name
+     * @param {string} level - Minimum level
+     * @param {string} search - Text or request uid
+     * @param {number} limit - Maximum number of entries
+     * @returns {Promise<Object>} {file, entries, truncated}
+     */
+    async function fetchLogEntries(file, level, search, limit) {
+        const query = new URLSearchParams({ file, level, search, limit: String(limit) });
+        return request(`${baseUrl}/system/logs/entries?${query}`, {}, 'Failed to read the log file');
+    }
+
+    /**
      * Applies the pending migrations (administrators)
      * @returns {Promise<Object>} {version, applied}
      */
@@ -857,6 +879,8 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
         updateMcpSettings,
         fetchSchemaStatus,
         migrateSchema,
+        fetchLogFiles,
+        fetchLogEntries,
         rotateJwtSecret,
         fetchInsightDefinitions,
         saveInsight,

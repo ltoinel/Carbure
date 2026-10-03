@@ -48,10 +48,45 @@ class SystemTest extends DatabaseTestCase
         }
     }
 
+    public function testLogs()
+    {
+        $this->loginAs(self::ADMIN);
+        $dir = Config::get('data_dir') . '/logs';
+        @mkdir($dir, 0755, true);
+        $file = 'carbure_unittest_' . date('Ymd') . '.log';
+        file_put_contents("$dir/$file", "26:10:04 10:00:00 : INFO : aaa111 : Test.php->a : First\n"
+            . "26:10:04 10:00:01 : ERROR : bbb222 : Test.php->b : Failure : Array\n(\n    [x] => 1\n)\n\n"
+            . "26:10:04 10:00:02 : DEBUG : ccc333 : Test.php->c : Detail : eyJhbGc.eyJzdWIi.sig-1 cbt_abc123\n");
+        try {
+            $this->assertContains($file, array_column(System::logs(), 'name'));
+
+            $all = System::logEntries($file);
+            $this->assertSame(['DEBUG', 'ERROR', 'INFO'], array_column($all['entries'], 'level'));
+            $this->assertSame('2026-10-04 10:00:02', $all['entries'][0]['time']);
+            $this->assertStringContainsString('[x] => 1', $all['entries'][1]['message']);
+            $this->assertSame('Detail : eyJ*** cbt_***', $all['entries'][0]['message']);
+
+            $this->assertSame(['ERROR'], array_column(System::logEntries($file, 'ERROR')['entries'], 'level'));
+            $this->assertSame(['aaa111'], array_column(System::logEntries($file, null, 'aaa111')['entries'], 'uid'));
+            $this->assertCount(1, System::logEntries($file, null, null, 1)['entries']);
+
+            foreach (['../conf/prod.ini', 'prod.ini', 'carbure_x.log'] as $name) {
+                try {
+                    System::logEntries($name);
+                    $this->fail("Accepted $name");
+                } catch (Error $e) {
+                    $this->assertSame(400, $e->getCode());
+                }
+            }
+        } finally {
+            @unlink("$dir/$file");
+        }
+    }
+
     public function testAdministratorsOnly()
     {
         $this->loginAs(self::USER);
-        foreach ([fn() => System::schema(), fn() => System::migrate()] as $call) {
+        foreach ([fn() => System::schema(), fn() => System::migrate(), fn() => System::logs(), fn() => System::logEntries('carbure_20260101.log')] as $call) {
             try {
                 $call();
                 $this->fail('Accepted');

@@ -27,9 +27,10 @@ import { createAccountsModule } from './modules/accountsModule.js';
 import { createCategoriesModule } from './modules/categoriesModule.js';
 import { createSetupModule } from './modules/setupModule.js';
 import { createAgentsModule } from './modules/agentsModule.js';
+import { createLogsModule } from './modules/logsModule.js';
 
 /** Tabs reserved to administrators */
-const ADMIN_TABS = ['rules', 'categories', 'accounts', 'users'];
+const ADMIN_TABS = ['rules', 'categories', 'accounts', 'users', 'logs'];
 import * as formatters from './utils/formatters.js';
 
 const { createApp } = Vue;
@@ -68,7 +69,8 @@ createApp({
         createAccountsModule(() => apiService),
         createCategoriesModule(() => apiService),
         createSetupModule(),
-        createAgentsModule(() => apiService)
+        createAgentsModule(() => apiService),
+        createLogsModule(() => apiService)
     ],
 
     data() {
@@ -259,6 +261,9 @@ createApp({
                     break;
                 case 'rules':
                     this.loadRules();
+                    break;
+                case 'logs':
+                    this.loadLogs();
                     break;
                 case 'agents':
                     this.loadAgents();

@@ -4705,3 +4705,116 @@ textarea:focus-visible,
 .budget-card.budget-card-filled.status-over {
     --budget-fill-color: color-mix(in srgb, var(--error-color) 18%, var(--surface));
 }
+
+/* ===== Logs ===== */
+.logs-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.logs-toolbar label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.logs-toolbar .logs-search {
+    flex: 1;
+    min-width: 200px;
+}
+
+.logs-toolbar select,
+.logs-toolbar input {
+    padding: 10px 12px;
+    border: 1px solid var(--divider);
+    border-radius: var(--border-radius-md);
+    font-size: 14px;
+    background: var(--surface);
+    color: var(--text-primary);
+    max-width: 100%;
+}
+
+.log-entries {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.log-entry {
+    padding: 8px 0 8px 12px;
+    border-bottom: 1px solid var(--divider);
+    border-left: 3px solid var(--divider);
+}
+
+.log-entry.log-error {
+    border-left-color: var(--error-color);
+}
+
+.log-entry.log-warn {
+    border-left-color: var(--warning-color);
+}
+
+.log-entry.log-info {
+    border-left-color: var(--primary-color);
+}
+
+.log-entry-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.log-level {
+    min-width: 46px;
+    font-weight: 700;
+}
+
+.log-error .log-level {
+    color: var(--error-color);
+}
+
+.log-warn .log-level {
+    color: var(--warning-color);
+}
+
+.log-entry-head .log-uid,
+.log-entry-head .log-uid:hover {
+    padding: 0;
+    border: none;
+    background: none;
+    box-shadow: none;
+    transform: none;
+    color: var(--primary-color);
+    font-family: ui-monospace, monospace;
+    font-size: 12px;
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: normal;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.log-caller {
+    font-family: ui-monospace, monospace;
+}
+
+.log-message {
+    margin: 4px 0 0;
+    font-family: ui-monospace, monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: var(--text-primary);
+    max-height: 240px;
+    overflow: auto;
+}

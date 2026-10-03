@@ -206,6 +206,13 @@ modifie (dont son profil) ; la corbeille le supprime. Le dernier administrateur 
 pas perdre son rôle, et un utilisateur propriétaire de transactions ne peut pas être
 supprimé.
 
+## Logs (administrateurs)
+
+Les entrées des fichiers de log du serveur (`data/logs/carbure_AAAAMMJJ.log`), les plus
+récentes d'abord : choix du fichier, niveau minimal (DEBUG, INFO, WARN, ERROR) et recherche
+de texte. Un clic sur l'identifiant d'une requête affiche toutes ses entrées. Seule la fin
+d'un gros fichier (2 Mo) est lue ; les jetons de session et des agents IA sont masqués.
+
 ## Mon profil
 
 - Modification de l'e-mail, du prénom, du nom et du mot de passe (laisser vide pour le
