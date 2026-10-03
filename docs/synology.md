@@ -118,6 +118,14 @@ Dans le portail, onglet **Comptes** → **+** :
    ne les enregistre pas.
 3. Cliquez sur **Suivre** pour chaque compte à synchroniser, puis **Enregistrer**.
 
+!!! note "« Woob will not start as long as config file … is readable by group or other users »"
+    woob refuse un fichier d'identifiants lisible par d'autres utilisateurs, ce qui arrive
+    quand il est copié dans un dossier partagé du NAS. Carbure corrige ces droits au
+    démarrage du conteneur et avant chaque appel à woob. Si le message persiste (ACL du
+    dossier partagé), ouvrez **Container Manager** → **Conteneur** → `carbure` →
+    **Action** → **Ouvrir le terminal** → **Créer** → `sh`, puis :
+    `chmod 600 /data/woob/.config/woob/backends`
+
 La synchronisation se lance compte par compte avec le bouton de synchronisation, et
 automatiquement chaque jour grâce à `SYNC_INTERVAL`.
 

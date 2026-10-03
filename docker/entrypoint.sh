@@ -8,6 +8,10 @@ set -e
 APP=/var/www/carbure
 mkdir -p /data/conf/certs /data/logs /data/cache /data/woob
 chown -R www-data:www-data /data
+# woob refuses to start if the file of the banks (logins, passwords) is readable by
+# other users, as it is when copied into a NAS shared folder
+chmod 700 /data/woob 2>/dev/null || true
+[ ! -d /data/woob/.config/woob ] || chmod -R go-rwx /data/woob/.config/woob 2>/dev/null || true
 
 if [ -f /data/conf/prod.ini ]; then
     # Wait for the database, then apply the migrations of the new version (if any);

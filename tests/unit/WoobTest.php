@@ -65,4 +65,28 @@ class WoobTest extends TestCase
         $this->assertStringContainsString('--debug', $command);
         $this->assertStringContainsString('-f json', $command);
     }
+
+    public function testBackendsFileMadePrivate()
+    {
+        // A file of the banks readable by everyone (copied into a NAS shared folder)
+        $home = sys_get_temp_dir() . '/carbure-woob-' . uniqid();
+        mkdir("$home/.config/woob", 0777, true);
+        chmod("$home/.config/woob", 0777);
+        file_put_contents("$home/.config/woob/backends", "[bnp]\n");
+        chmod("$home/.config/woob/backends", 0644);
+        $previous = Config::get('woob_path');
+        Config::set('woob_path', "env HOME=$home woob");
+        try {
+            $this->assertSame("env HOME=$home woob", Woob::path());
+            clearstatcache();
+            $this->assertSame(0600, fileperms("$home/.config/woob/backends") & 0777);
+            $this->assertSame(0700, fileperms("$home/.config/woob") & 0777);
+        } finally {
+            Config::set('woob_path', $previous);
+            unlink("$home/.config/woob/backends");
+            rmdir("$home/.config/woob");
+            rmdir("$home/.config");
+            rmdir($home);
+        }
+    }
 }

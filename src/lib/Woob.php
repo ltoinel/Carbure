@@ -17,6 +17,37 @@ final class Woob {
     private const HEARTBEAT_INTERVAL = 15;
 
     /**
+     * Command that runs woob, after making sure that woob will accept to start: it
+     * refuses a configuration file of the banks (logins and passwords) readable by
+     * the group or the other users, as a file copied into a NAS shared folder often is.
+     *
+     * @return string The command (woob_path of the configuration)
+     * @throws Exception If the file stays readable by other users (ACL of the folder)
+     */
+    public static function path()
+    {
+        $woob_path = Config::get('woob_path');
+        // HOME given in the command (Docker: "env HOME=/data/woob woob"), or the one of PHP
+        $home = preg_match('/\bHOME=(\S+)/', (string)$woob_path, $m) ? trim($m[1], '"\'') : getenv('HOME');
+        $dir = rtrim((string)$home, '/') . '/.config/woob';
+        if ($home && is_dir($dir)) {
+            if ((fileperms($dir) & 0077) !== 0) {
+                @chmod($dir, 0700);
+            }
+            $backends = "$dir/backends";
+            if (is_file($backends) && (fileperms($backends) & 0077) !== 0) {
+                @chmod($backends, 0600);
+                clearstatcache(true, $backends);
+                if ((fileperms($backends) & 0077) !== 0) {
+                    throw new Exception("$backends is readable by other users and its permissions cannot be changed "
+                        . "(ACL of a NAS shared folder?): allow only its owner to read it (chmod 600)");
+                }
+            }
+        }
+        return $woob_path;
+    }
+
+    /**
      * Call Woob to get the list of transactions from a bank.
      * Uses proc_open to send SSE heartbeats while waiting for woob to finish,
      * preventing proxy/client timeouts on long-running commands.
@@ -53,7 +84,7 @@ final class Woob {
      */
     public static function listAccounts()
     {
-        $woob_path = Config::get('woob_path');
+        $woob_path = self::path();
         $woob_logging = Config::get('woob_logging');
         $command = "$woob_path bank list -f json --logging $woob_logging";
         Logger::debug("Calling woob : $command");
@@ -79,7 +110,7 @@ final class Woob {
      */
     public static function listBackends()
     {
-        $woob_path = Config::get('woob_path');
+        $woob_path = self::path();
         $stderr = '';
         $stdout = self::executeWithHeartbeat("$woob_path config list CapBank -f json", $stderr, false);
 
@@ -110,7 +141,7 @@ final class Woob {
             }
         }
 
-        $woob_path = Config::get('woob_path');
+        $woob_path = self::path();
         $stderr = '';
         $stdout = self::executeWithHeartbeat("$woob_path config modules CapBank -f json", $stderr, false);
 
@@ -184,7 +215,7 @@ final class Woob {
      */
     private static function moduleInfo($module)
     {
-        $woob_path = Config::get('woob_path');
+        $woob_path = self::path();
         $stderr = '';
         $stdout = self::executeWithHeartbeat("$woob_path config info " . escapeshellarg($module) . " -f json", $stderr, false);
         foreach (self::parseOutput('module', $stdout) ?? [] as $row) {
@@ -205,7 +236,7 @@ final class Woob {
      */
     private static function installModule($module)
     {
-        $woob_path = Config::get('woob_path');
+        $woob_path = self::path();
         $probe = 'carbure_install_probe';
         $process = proc_open("$woob_path config add " . escapeshellarg($module) . ' ' . escapeshellarg($probe) . ' < /dev/null',
             [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
@@ -240,7 +271,7 @@ final class Woob {
         foreach ($params as $key => $value) {
             $settings[] = "$key=$value";
         }
-        $woob_path = Config::get('woob_path');
+        $woob_path = self::path();
         $stderr = '';
         // The settings are not logged: they contain the bank credentials
         $process = proc_open("$woob_path config add " . escapeshellarg($module) . ' ' . escapeshellarg('"' . implode(' ', $settings) . '"') . " < /dev/null",
@@ -270,7 +301,7 @@ final class Woob {
      */
     public static function removeBackend($backend)
     {
-        $woob_path = Config::get('woob_path');
+        $woob_path = self::path();
         shell_exec("$woob_path config remove " . escapeshellarg($backend) . ' < /dev/null 2>&1');
     }
 
@@ -295,7 +326,7 @@ final class Woob {
      */
     private static function buildCommand($type, $bankId)
     {
-        $woob_path = Config::get('woob_path');
+        $woob_path = self::path();
         $woob_transactions = Config::get('woob_transactions');
         $woob_logging = Config::get('woob_logging');
         $woob_auto_update = Config::get('woob_auto_update');
