@@ -20,6 +20,9 @@ export function createProfileModule(getApiService) {
                 showUserMenu: false,
                 savingProfile: false,
                 devices: [],
+                // Database migrations to apply (administrators): {version, pending}
+                schemaStatus: null,
+                migrating: false,
                 apiTokens: [],
                 // Token just created: {name, token}, shown once
                 newApiToken: null,
@@ -67,8 +70,45 @@ export function createProfileModule(getApiService) {
                     if (language && language !== this.locale) {
                         this.changeLocale(language);
                     }
+
+                    if (Number(this.currentUser.is_admin)) {
+                        this.loadSchemaStatus();
+                    }
                 } catch (error) {
                     console.error('Error loading current user:', error);
+                }
+            },
+
+            /**
+             * Loads the version of the database schema and the migrations to apply
+             * @returns {Promise<void>}
+             */
+            async loadSchemaStatus() {
+                try {
+                    this.schemaStatus = await getApiService().fetchSchemaStatus();
+                } catch (error) {
+                    this.schemaStatus = null;
+                }
+            },
+
+            /**
+             * Applies the pending migrations of the database
+             * @returns {Promise<void>}
+             */
+            async applyMigrations() {
+                if (!confirm(this.t('confirmMigrate'))) {
+                    return;
+                }
+                this.migrating = true;
+                try {
+                    const result = await getApiService().migrateSchema();
+                    this.schemaStatus = { version: result.version, pending: [] };
+                    this.showToast(this.t('migrationDone', { version: result.version }));
+                    this.refreshCurrentTab();
+                } catch (error) {
+                    this.showToast(error.message);
+                } finally {
+                    this.migrating = false;
                 }
             },
 

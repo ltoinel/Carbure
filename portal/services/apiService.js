@@ -178,6 +178,22 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
     }
 
     /**
+     * Version of the database schema and migrations to apply (administrators)
+     * @returns {Promise<Object>} {version, pending}
+     */
+    async function fetchSchemaStatus() {
+        return request(`${baseUrl}/system/schema`, {}, 'Failed to read the schema version');
+    }
+
+    /**
+     * Applies the pending migrations (administrators)
+     * @returns {Promise<Object>} {version, applied}
+     */
+    async function migrateSchema() {
+        return request(`${baseUrl}/system/migrate`, { method: 'POST' }, 'Failed to update the database');
+    }
+
+    /**
      * Fetches the insights with their SQL (administrators)
      * @returns {Promise<Array>} Array of {id, name, color, sql}
      */
@@ -736,6 +752,8 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
         fetchMe,
         fetchDevices,
         fetchApiTokens,
+        fetchSchemaStatus,
+        migrateSchema,
         fetchInsightDefinitions,
         saveInsight,
         deleteInsight,

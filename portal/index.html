@@ -24,8 +24,149 @@
 </head>
 <body>
     <div id="app">
+        <!-- Installation wizard (Carbure not installed yet) -->
+        <main v-if="!isAuthenticated && setupMode" class="login-container">
+            <div class="login-card setup-card">
+                <div class="login-header">
+                    <img src="icon.png" alt="" class="login-logo">
+                    <h1>{{ t('setupTitle') }}</h1>
+                    <p class="login-subtitle">{{ t('setupSubtitle') }}</p>
+                </div>
+
+                <ol class="setup-steps" :aria-label="t('setupProgress')">
+                    <li v-for="(step, i) in ['database', 'review', 'done']" :key="step"
+                        :class="{ active: setupStep === step, completed: ['database', 'review', 'done'].indexOf(setupStep) > i }"
+                        :aria-current="setupStep === step ? 'step' : null">
+                        <span class="setup-step-number" aria-hidden="true">{{ i + 1 }}</span>
+                        {{ t('setupStep_' + step) }}
+                    </li>
+                </ol>
+
+                <div v-if="setupError" class="login-error" role="alert">
+                    <span class="material-icons" aria-hidden="true">error</span>
+                    {{ setupError }}
+                </div>
+
+                <!-- Step 1: database -->
+                <form v-if="setupStep === 'database'" @submit.prevent="setupCheckDatabase" class="login-form">
+                    <h2 tabindex="-1">{{ t('setupDatabaseTitle') }}</h2>
+                    <p class="setup-help">{{ t('setupDatabaseHelp') }}</p>
+                    <div v-if="setupCodeRequired" class="form-group">
+                        <label for="setupCode">{{ t('setupCode') }}</label>
+                        <input id="setupCode" v-model="setupForm.code" required autocomplete="off" aria-describedby="setupCodeHelp" />
+                        <small id="setupCodeHelp" class="setup-help">{{ t('setupCodeHelp') }}</small>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="setupDbHost">{{ t('setupDbHost') }}</label>
+                            <input id="setupDbHost" v-model="setupForm.db_host" required />
+                        </div>
+                        <div class="form-group">
+                            <label for="setupDbPort">{{ t('setupDbPort') }}</label>
+                            <input id="setupDbPort" type="number" v-model.number="setupForm.db_port" min="1" max="65535" required />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="setupDbName">{{ t('setupDbName') }}</label>
+                        <input id="setupDbName" v-model="setupForm.db_name" required />
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="setupDbUser">{{ t('setupDbUser') }}</label>
+                            <input id="setupDbUser" v-model="setupForm.db_user" required autocomplete="off" />
+                        </div>
+                        <div class="form-group">
+                            <label for="setupDbPassword">{{ t('setupDbPassword') }}</label>
+                            <input id="setupDbPassword" type="password" v-model="setupForm.db_password" autocomplete="off"
+                                   :placeholder="setupPasswordFromEnvironment ? t('setupDbPasswordDocker') : ''" aria-describedby="setupDbPasswordHelp" />
+                            <small v-if="setupPasswordFromEnvironment" id="setupDbPasswordHelp" class="setup-help">{{ t('setupDbPasswordDockerHelp') }}</small>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-login" :disabled="setupBusy">
+                        <span class="material-icons" :class="{ spin: setupBusy }" aria-hidden="true">{{ setupBusy ? 'refresh' : 'arrow_forward' }}</span>
+                        {{ t('setupCheckDatabase') }}
+                    </button>
+                </form>
+
+                <!-- Step 2: what will be done, first administrator -->
+                <form v-else-if="setupStep === 'review'" @submit.prevent="setupInstall" class="login-form">
+                    <h2 tabindex="-1">{{ t('setupReviewTitle') }}</h2>
+                    <div class="setup-state" :class="'setup-state-' + setupDatabase.state">
+                        <span class="material-icons" aria-hidden="true">{{ { none: 'add_circle', current: 'check_circle', outdated: 'upgrade' }[setupDatabase.state] }}</span>
+                        <div>
+                            <strong>{{ t('setupState_' + setupDatabase.state) }}</strong>
+                            <p v-if="setupDatabase.version">{{ t('setupSchemaVersion', { version: setupDatabase.version }) }}</p>
+                            <ul v-if="setupDatabase.pending && setupDatabase.pending.length">
+                                <li v-for="m in setupDatabase.pending" :key="m"><code>{{ m }}</code></li>
+                            </ul>
+                        </div>
+                    </div>
+                    <label v-if="setupDatabase.state === 'outdated'" class="setup-checkbox">
+                        <input type="checkbox" v-model="setupForm.backup_confirmed" />
+                        {{ t('setupBackupConfirm') }}
+                    </label>
+
+                    <template v-if="setupNeedsAdmin">
+                        <h3>{{ t('setupAdminTitle') }}</h3>
+                        <p class="setup-help">{{ t('setupAdminHelp') }}</p>
+                        <div class="form-group">
+                            <label for="setupAdminUser">{{ t('username') }}</label>
+                            <input id="setupAdminUser" v-model="setupForm.admin_user" required maxlength="20" autocomplete="username" />
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="setupAdminPassword">{{ t('password') }}</label>
+                                <input id="setupAdminPassword" type="password" v-model="setupForm.admin_password" required minlength="8"
+                                       autocomplete="new-password" aria-describedby="setupPasswordHelp" />
+                            </div>
+                            <div class="form-group">
+                                <label for="setupAdminPassword2">{{ t('setupPasswordConfirm') }}</label>
+                                <input id="setupAdminPassword2" type="password" v-model="setupForm.admin_password_confirm" required autocomplete="new-password" />
+                            </div>
+                        </div>
+                        <small id="setupPasswordHelp" class="setup-help">{{ t('setupPasswordHelp') }}</small>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="setupAdminEmail">{{ t('email') }}</label>
+                                <input id="setupAdminEmail" type="email" v-model="setupForm.admin_email" autocomplete="email" />
+                            </div>
+                            <div class="form-group">
+                                <label for="setupLanguage">{{ t('language') }}</label>
+                                <select id="setupLanguage" v-model="setupForm.language">
+                                    <option value="fr">Français</option>
+                                    <option value="en">English</option>
+                                </select>
+                            </div>
+                        </div>
+                    </template>
+
+                    <div class="setup-actions">
+                        <button type="button" class="btn-secondary" @click="setupStep = 'database'; setupError = null">
+                            <span class="material-icons" aria-hidden="true">arrow_back</span>
+                            {{ t('setupBack') }}
+                        </button>
+                        <button type="submit" class="btn-login" :disabled="setupBusy">
+                            <span class="material-icons" :class="{ spin: setupBusy }" aria-hidden="true">{{ setupBusy ? 'refresh' : 'rocket_launch' }}</span>
+                            {{ setupDatabase.state === 'current' ? t('setupFinish') : t('setupInstall') }}
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Step 3: done -->
+                <div v-else class="login-form setup-done">
+                    <span class="material-icons setup-done-icon" aria-hidden="true">celebration</span>
+                    <h2 tabindex="-1">{{ t('setupDoneTitle') }}</h2>
+                    <p>{{ t('setupDoneHelp') }}</p>
+                    <button type="button" class="btn-login" @click="finishSetup">
+                        <span class="material-icons" aria-hidden="true">login</span>
+                        {{ t('loginButton') }}
+                    </button>
+                </div>
+            </div>
+        </main>
+
         <!-- Login Screen -->
-        <div v-if="!isAuthenticated" class="login-container">
+        <div v-else-if="!isAuthenticated" class="login-container">
             <div class="login-card">
                 <div class="login-header">
                     <img src="icon.png" alt="Carbure" class="login-logo">
@@ -209,6 +350,15 @@
                 @click="setActiveTab('users')">
                 <span class="material-icons">people</span>
                 {{ t('tabUsers') }}
+            </button>
+        </div>
+
+        <div v-if="schemaStatus && schemaStatus.pending && schemaStatus.pending.length" class="schema-banner" role="status">
+            <span class="material-icons" aria-hidden="true">upgrade</span>
+            <span class="schema-banner-text">{{ t('schemaUpdateAvailable', { count: schemaStatus.pending.length }) }}</span>
+            <button @click="applyMigrations" :disabled="migrating">
+                <span class="material-icons" :class="{ spin: migrating }" aria-hidden="true">{{ migrating ? 'sync' : 'system_update_alt' }}</span>
+                {{ t('schemaUpdate') }}
             </button>
         </div>
 
@@ -1004,12 +1154,14 @@
                                             <td>{{ user.lastname || '-' }}</td>
                                             <td><span class="category-chip" :class="{ 'role-admin': Number(user.is_admin) }">{{ Number(user.is_admin) ? t('role_admin') : t('role_user') }}</span></td>
                                             <td class="actions-column">
-                                                <button class="btn-icon btn-icon-edit" @click="openEditUserModal(user)" title="Modifier">
-                                                    <span class="material-icons">edit</span>
-                                                </button>
-                                                <button class="btn-icon btn-icon-delete" @click="deleteUser(user)" title="Supprimer">
-                                                    <span class="material-icons">delete</span>
-                                                </button>
+                                                <div class="row-actions">
+                                                    <button class="btn-icon btn-icon-edit" @click="openEditUserModal(user)" :title="t('editUser')" :aria-label="t('editUser') + ' ' + user.username">
+                                                        <span class="material-icons" aria-hidden="true">edit</span>
+                                                    </button>
+                                                    <button class="btn-icon btn-icon-delete" @click="deleteUser(user)" :title="t('deleteUser')" :aria-label="t('deleteUser') + ' ' + user.username">
+                                                        <span class="material-icons" aria-hidden="true">delete</span>
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     </tbody>
@@ -1402,7 +1554,7 @@
                         <input v-if="newAccountBank === '__other'" v-model="accountForm.bank_name" :placeholder="t('accountBankPlaceholder')" :aria-label="t('accountBank')" maxlength="50" />
                     </div>
                     <p v-if="chosenBankNotConfigured()" class="sync-step-error bank-not-configured">
-                        {{ t('bankNotConfigured') }} <code>php tools/install.php --add-bank</code>
+                        {{ t('bankNotConfigured') }} <code>php tools/carbure.php add-bank</code>
                     </p>
                     <div class="form-group">
                         <label>{{ t('accountNumber') }} *</label>
@@ -1416,7 +1568,7 @@
                     </div>
                     <p class="rules-help">
                         <span class="material-icons inline-icon">lock</span>
-                        {{ t('newBankHint') }} <code>php tools/install.php --add-bank</code>
+                        {{ t('newBankHint') }} <code>php tools/carbure.php add-bank</code>
                     </p>
                 </div>
                 <div class="modal-footer">

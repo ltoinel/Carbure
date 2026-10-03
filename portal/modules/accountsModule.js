@@ -4,7 +4,7 @@
  * Bank accounts of the household (administrators): list with the result of the
  * last synchronization, add (from the accounts woob finds, or manually) and
  * modify in a modal, delete. Bank credentials never go through the
- * portal: they are configured in woob (php tools/install.php --add-bank).
+ * portal: they are configured in woob (php tools/carbure.php add-bank).
  *
  * @module accountsModule
  */

@@ -23,6 +23,7 @@ import { createRulesModule } from './modules/rulesModule.js';
 import { createSyncModule } from './modules/syncModule.js';
 import { createAccountsModule } from './modules/accountsModule.js';
 import { createCategoriesModule } from './modules/categoriesModule.js';
+import { createSetupModule } from './modules/setupModule.js';
 
 /** Tabs reserved to administrators */
 const ADMIN_TABS = ['rules', 'categories', 'accounts', 'users'];
@@ -60,7 +61,8 @@ createApp({
         createRulesModule(() => apiService),
         createSyncModule(() => apiService),
         createAccountsModule(() => apiService),
-        createCategoriesModule(() => apiService)
+        createCategoriesModule(() => apiService),
+        createSetupModule()
     ],
 
     data() {
@@ -455,6 +457,11 @@ createApp({
 
         // Check if already authenticated
         this.checkAuthentication();
+
+        // Not installed yet: the installation wizard replaces the login screen
+        if (!this.isAuthenticated) {
+            this.checkSetup();
+        }
 
         // Read API base URL from DOM attribute (legacy support)
         try {

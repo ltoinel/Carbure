@@ -171,7 +171,6 @@ jobs:
       - name: Start Carbure and MariaDB
         env:
           DB_PASSWORD: ci-db-password
-          ADMIN_PASSWORD: ci-admin-password
         run: docker compose up -d
 
       - name: Wait for the portal
@@ -182,10 +181,26 @@ jobs:
           done
           exit 1
 
+      - name: Installation wizard
+        run: |
+          set -e
+          # Not installed: only the wizard answers, with the database of docker compose
+          curl -fsS http://localhost:8080/api/setup | tee /dev/stderr | grep -q '"dbPasswordFromEnvironment":true'
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/api/transaction)" = 503
+          # Same steps as the portal (the password of the database comes from Docker)
+          fields='"db_host":"db","db_port":3306,"db_name":"carbure","db_user":"carbure","db_password":""'
+          curl -fsS -X POST http://localhost:8080/api/setup/database -H 'Content-Type: application/json' \
+            -d "{$fields}" | tee /dev/stderr | grep -q '"state":"none"'
+          curl -fsS -X POST http://localhost:8080/api/setup/install -H 'Content-Type: application/json' \
+            -d "{$fields,\"admin_user\":\"admin\",\"admin_password\":\"ci-admin-password\",\"language\":\"fr\"}" \
+            | tee /dev/stderr | grep -q '"done":true'
+          # Installed: the wizard is gone
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/api/setup)" = 404
+
       - name: Smoke test
         run: |
           set -e
-          # Login with the administrator created at first start
+          # Login with the administrator created by the wizard
           token=$(curl -fsS -X POST http://localhost:8080/api/user/login \
             -H 'Content-Type: application/json' \
             -d '{"username":"admin","password":"ci-admin-password"}' | python3 -c 'import sys,json; print(json.load(sys.stdin)["token"])')
@@ -194,11 +209,18 @@ jobs:
           # Without a token: 401
           test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/api/transaction)" = 401
           # Private files are never served
-          for path in /conf/prod.ini /logs/ /sql/carbure.sql /tools/install.php /src/lib/Config.php /README.md; do
+          for path in /conf/prod.ini /conf/setup.code /logs/ /sql/carbure.sql /tools/carbure.php /src/lib/Config.php /src/api.php /README.md; do
             code=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:8080$path")
             echo "$path -> $code"
             test "$code" = 403 || test "$code" = 404
           done
+          # Restart: the schema is checked and kept (no migration to apply)
+          docker compose restart carbure
+          for i in $(seq 1 30); do
+            curl -fsS http://localhost:8080/portal/ > /dev/null && break
+            sleep 2
+          done
+          docker compose logs carbure | grep -q 'schema version'
           # woob and curl_cffi are installed
           docker compose exec -T carbure woob --version
           docker compose exec -T carbure /opt/woob/bin/python -c 'import curl_cffi'

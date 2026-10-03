@@ -66,18 +66,17 @@ flowchart LR
 
 ## Démarrage rapide
 
-Avec Docker (PHP, Apache et woob inclus) :
+Avec Docker (nginx, PHP et woob inclus) :
 
 ```bash
 git clone https://github.com/ltoinel/Carbure.git && cd Carbure
-DB_PASSWORD=change-me ADMIN_PASSWORD=change-me-too docker compose up -d
+docker compose up -d
 ```
 
-L'image est aussi disponible directement : `docker pull ghcr.io/ltoinel/carbure:latest`.
-Ouvrez `http://localhost:8080/`, connectez-vous avec `admin`, ajoutez votre banque avec
-`docker compose exec -it -u www-data carbure php tools/install.php --add-bank`, puis lancez
-une synchronisation depuis l'onglet **Synchro**. Sans Docker : `php tools/install.php` crée la base, le compte
-administrateur et la configuration.
+Ouvrez `http://localhost:8080/` : **l'assistant d'installation** s'occupe de tout (base de
+données, compte administrateur) en trois clics, sans aucune commande. Les mises à jour de la
+base de données sont, elles aussi, automatiques. Sur un NAS Synology, suivez le
+[tutoriel](https://ltoinel.github.io/Carbure/synology/).
 
 👉 **Installation détaillée, configuration, référence de l'API, modèle de données et sécurité :
 [la documentation](https://ltoinel.github.io/Carbure/).**

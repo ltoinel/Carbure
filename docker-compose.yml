@@ -1,5 +1,6 @@
 # Carbure with MariaDB: docker compose up -d, then open http://localhost:8080/
-# Set the passwords below (or in a .env file) before the first start.
+# and follow the installation wizard (everything is already filled in).
+# Optional: choose the database password in a .env file (DB_PASSWORD=...).
 services:
   carbure:
     image: ghcr.io/ltoinel/carbure:latest
@@ -11,8 +12,7 @@ services:
       DB_NAME: carbure
       DB_USER: carbure
       DB_PASSWORD: ${DB_PASSWORD:-change-me}
-      ADMIN_USER: ${ADMIN_USER:-admin}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-change-me-too}
+      # Language suggested by the installation wizard (fr, en)
       LANGUAGE: fr
       # Daily bank synchronization (seconds); remove to disable
       SYNC_INTERVAL: 86400

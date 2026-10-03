@@ -1,42 +1,47 @@
 # Installation
 
-Trois façons d'installer Carbure, de la plus simple à la plus manuelle.
+Carbure s'installe **entièrement depuis le navigateur** : au premier lancement, le portail
+affiche un assistant qui vérifie la base de données, crée (ou met à jour) ses tables et le
+compte administrateur. Aucune commande n'est nécessaire.
 
-## Option 1 : image Docker (recommandée)
+- **Docker** (recommandé) : tout est inclus (nginx, PHP, woob) et la base de données est
+  préparée par `docker-compose.yml`.
+- **NAS Synology** : voir le [tutoriel pas à pas](synology.md).
+- **Serveur web existant** (PHP + MariaDB/MySQL), sans Docker.
 
-L'image contient tout : PHP 8.3, Apache, woob et `curl_cffi`. Avec MariaDB :
+## Avec Docker (recommandé)
 
 ```bash
 git clone https://github.com/ltoinel/Carbure.git && cd Carbure
-cat > .env <<'ENV'
-DB_PASSWORD=un-mot-de-passe-solide
-ADMIN_PASSWORD=le-mot-de-passe-de-l-admin
-ENV
 docker compose up -d
 ```
 
-Le portail est sur `http://<hôte>:8080/`. Au premier démarrage, le conteneur crée le schéma,
-le compte administrateur et `/data/conf/prod.ini` avec des secrets aléatoires.
+Ouvrez `http://<hôte>:8080/` : l'assistant d'installation s'affiche, déjà rempli avec la
+base de données de `docker-compose.yml`. Cliquez sur **Continuer**, choisissez le mot de
+passe administrateur, puis **Installer**. C'est tout.
+
+Pour choisir vous-même le mot de passe de la base, créez un fichier `.env` à côté de
+`docker-compose.yml` **avant** le premier démarrage :
+
+```bash
+DB_PASSWORD=un-mot-de-passe-solide
+```
 
 | Variable | Rôle | Défaut |
 |---|---|---|
-| `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` | Base de données | `db`, `3306`, `carbure`, `carbure` |
-| `ADMIN_USER`, `ADMIN_PASSWORD`, `ADMIN_EMAIL` | Premier administrateur (premier démarrage) | `admin` |
-| `LANGUAGE` | Langue du premier administrateur (`fr`, `en`) | `fr` |
+| `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` | Base de données proposée par l'assistant (le mot de passe n'a pas à être ressaisi) | `db`, `3306`, `carbure`, `carbure` |
+| `LANGUAGE` | Langue proposée pour l'administrateur (`fr`, `en`) | `fr` |
 | `SYNC_INTERVAL` | Synchronisation automatique toutes les N secondes (`86400` = une fois par jour) | désactivée |
 
-Le volume `/data` conserve la configuration (`/data/conf/prod.ini`, clé APNs dans
-`/data/conf/certs`), les logs et la configuration woob. Pour ajouter une banque :
+Le volume `/data` conserve la configuration écrite par l'assistant (`/data/conf/prod.ini`,
+avec des secrets aléatoires), la clé APNs (`/data/conf/certs`), les logs et la
+configuration woob (vos banques).
 
-```bash
-docker compose exec -it -u www-data carbure php tools/install.php --add-bank
-```
-
-L'assistant demande le module woob de votre banque (`list` pour les afficher), puis woob
-vous demande vos identifiants bancaires : ils sont conservés par woob, jamais par Carbure.
-Les comptes trouvés sont listés et vous choisissez ceux à suivre ; ils apparaissent ensuite
-dans le portail. Lancez une synchronisation depuis l'onglet **Synchro**. Sur un NAS Synology, le même `docker-compose.yml` s'utilise
-depuis **Container Manager → Projet**.
+!!! note "Accès depuis Internet"
+    Depuis votre réseau local, l'assistant est directement accessible. Si Carbure est
+    appelé depuis Internet avant d'être installé, l'assistant demande un **code
+    d'installation**, affiché dans les journaux du conteneur
+    (`docker compose logs carbure`) : personne d'autre que vous ne peut l'installer.
 
 ### Récupérer l'image
 
@@ -54,23 +59,13 @@ docker pull ghcr.io/ltoinel/carbure:latest
 | `1.2` | Dernière version corrective de la 1.2 |
 
 Sans `docker compose`, avec une base MariaDB/MySQL existante (la base et son utilisateur
-doivent déjà exister) :
+doivent déjà exister ; l'assistant les demande au premier lancement) :
 
 ```bash
 docker run -d --name carbure --restart unless-stopped -p 8080:80 \
-  -e DB_HOST=192.168.1.10 -e DB_NAME=carbure -e DB_USER=carbure -e DB_PASSWORD='…' \
-  -e ADMIN_PASSWORD='…' -e SYNC_INTERVAL=86400 \
-  -v carbure-data:/data \
+  -e SYNC_INTERVAL=86400 -v carbure-data:/data \
   ghcr.io/ltoinel/carbure:latest
 ```
-
-Sur un NAS Synology : **Container Manager → Registre → Paramètres → Ajouter**, URL
-`https://ghcr.io`, puis recherchez `ltoinel/carbure` et téléchargez le tag voulu. Le plus
-simple reste toutefois d'importer `docker-compose.yml` dans **Container Manager → Projet**.
-
-!!! note
-    L'image est publiée à partir de la première release (tag `v*`). Avant cela,
-    `docker compose up -d` la construit à partir des sources (`build: .`).
 
 ### Mettre à jour
 
@@ -78,10 +73,10 @@ simple reste toutefois d'importer `docker-compose.yml` dans **Container Manager 
 docker compose pull && docker compose up -d
 ```
 
-Le volume `/data` est conservé. À chaque démarrage, le conteneur met le schéma à jour
-(`tools/migrate.php`) : les migrations de la nouvelle version sont appliquées
-automatiquement, et le conteneur s'arrête avec un message explicite si l'une d'elles
-échoue. Pensez à sauvegarder la base avant une mise à jour.
+Le volume `/data` est conservé. À chaque démarrage, le conteneur met la base de données à
+jour automatiquement (les migrations de la nouvelle version sont appliquées) et s'arrête
+avec un message explicite si l'une d'elles échoue. Pensez à sauvegarder la base avant une
+mise à jour.
 
 ### Notifications iOS (APNs)
 
@@ -97,9 +92,10 @@ docker compose restart carbure
 ### Maintenance
 
 ```bash
-docker compose logs -f carbure                                    # logs Apache et démarrage
-docker compose exec carbure ls /data/logs                         # logs de Carbure
-docker compose exec carbure php tools/install.php --rotate-jwt-secret   # nouveau jwtsecret
+docker compose logs -f carbure                                         # journaux nginx, PHP et démarrage
+docker compose exec carbure ls /data/logs                              # logs de Carbure
+docker compose exec -it -u www-data carbure php tools/carbure.php add-bank           # ajouter une banque
+docker compose exec -u www-data carbure php tools/carbure.php rotate-jwt-secret      # nouveau jwtsecret
 ```
 
 !!! note "Modules woob"
@@ -108,115 +104,37 @@ docker compose exec carbure php tools/install.php --rotate-jwt-secret   # nouvea
     BNP) peut être copié dans `/data/woob/.local/share/woob/modules/3.7/woob_modules/` ;
     `curl_cffi`, nécessaire au module BNP récent, est déjà installé dans l'image.
 
-## Option 2 : script d'installation
-
-Sur un serveur avec PHP et MariaDB/MySQL :
-
-```bash
-git clone https://github.com/ltoinel/Carbure.git /var/www/carbure && cd /var/www/carbure
-php tools/install.php
-```
-
-Le script vérifie PHP et ses extensions, crée la base et son utilisateur (si vous lui donnez un
-compte administrateur MySQL), importe le schéma, crée le premier administrateur et génère
-`conf/prod.ini` avec des secrets aléatoires (`jwtsecret`, `password_salt`, `sync_token`). Il
-n'écrase jamais un fichier existant sans `--force`.
-
-Il propose enfin de **configurer une banque** : woob demande vos identifiants (conservés par
-woob, jamais par Carbure), puis les comptes trouvés sont ajoutés à Carbure. Lancez le script
-avec l'utilisateur du serveur web (par exemple `sudo -u www-data php tools/install.php`) :
-c'est lui qui exécute woob lors des synchronisations et doit donc retrouver sa configuration.
-
-| Commande | Rôle |
-|---|---|
-| `php tools/install.php --add-bank` | Ajouter une banque et ses comptes plus tard |
-| `php tools/install.php --rotate-jwt-secret` | Générer un nouveau `jwtsecret` (sessions à rouvrir) |
-| `php tools/install.php --help` | Toutes les options, dont l'installation non interactive |
-
-Il reste à configurer le serveur web (voir « Serveur web » plus bas) et woob.
-
-## Option 3 : installation manuelle
+## Sur un serveur web existant
 
 ### Prérequis
 
 - PHP **8.2** ou plus avec `mysqli`, `curl`, `openssl` et `json` ; APCu recommandé (cache
   des routes).
-- MariaDB ≥ 10.3 ou MySQL 8.
+- MariaDB ≥ 10.3 ou MySQL 8, avec une base et un utilisateur pour Carbure.
 - Un serveur web avec PHP-FPM (nginx, Apache…).
-- [woob](https://woob.tech/) installé localement ou via Docker, configuré avec les
-  backends de vos banques (`woob bank list` doit fonctionner pour l'utilisateur du
-  serveur web). Le module BNP récent nécessite `curl_cffi` (`pip install "curl_cffi>=0.7"`).
+- [woob](https://woob.tech/) installé pour l'utilisateur du serveur web. Le module BNP
+  récent nécessite `curl_cffi` (`pip install "curl_cffi>=0.7"`).
 - Facultatif : une clé APNs `.p8` (Apple Developer) pour les notifications iOS.
 
-### 1. Récupérer le code
+### 1. Copier Carbure
 
-```bash
-git clone https://github.com/ltoinel/Carbure.git /var/www/carbure
-```
+Copiez le contenu du dépôt (ou de l'archive d'une release) dans le dossier du site, par
+exemple `/var/www/carbure`. Le dossier `conf/` doit être **modifiable par le serveur web** :
+l'assistant y écrit la configuration.
 
-### 2. Configurer
+### 2. Configurer le serveur web
 
-```bash
-cd /var/www/carbure
-cp conf/prod.sample.ini conf/prod.ini
-openssl rand -hex 32   # → jwtsecret
-openssl rand -hex 32   # → sync_token
-```
-
-Renseigner au minimum la base de données, `jwtsecret` et `woob_path`. Toutes les clés
-sont décrites dans [Configuration](configuration.md).
-
-!!! danger "Ne jamais garder `jwtsecret=secret`"
-    La valeur d'exemple permet à n'importe qui de fabriquer un jeton valide.
-
-### 3. Créer la base
-
-```bash
-mysql -u root -p -e "CREATE DATABASE carbure CHARACTER SET utf8mb4"
-mysql -u root -p -e "CREATE USER 'carbure'@'localhost' IDENTIFIED BY '…'; GRANT ALL ON carbure.* TO 'carbure'@'localhost'"
-mysql -u root -p carbure < sql/carbure.sql
-```
-
-`sql/carbure.sql` contient le schéma à jour. Il faut ensuite créer les catégories
-(`bank_transaction_category`, dont la catégorie `0` « sans catégorie »), les mots-clés
-de catégorisation et les comptes bancaires (`bank_account`) à synchroniser.
-
-Après l'import manuel de `sql/carbure.sql`, enregistrer la version du schéma :
-
-```bash
-php tools/migrate.php --baseline
-```
-
-### Mettre à jour une base existante
-
-Le schéma est versionné (table `schema_migrations`). Après chaque mise à jour du code :
-
-```bash
-php tools/migrate.php --status    # version du schéma et migrations en attente
-php tools/migrate.php             # applique les migrations manquantes, dans l'ordre
-```
-
-Une migration déjà appliquée à la main (avant le versionnage, par phpMyAdmin) est
-reconnue et seulement enregistrée. À défaut de PHP en ligne de commande, appliquer les
-fichiers de `sql/migrations/` qui manquent, dans l'ordre de leur nom, puis lancer
-`php tools/migrate.php` dès que possible pour les enregistrer.
-
-!!! warning "Migrations avant le code"
-    Appliquer les migrations **avant** de déployer la nouvelle version du code : l'API
-    lit les nouvelles colonnes dès la première requête.
-
-### 4. Configurer le serveur web
-
-- Les URL `/api/…` **sans point** dans le chemin sont envoyées à `src/api.php` (le
-  préfixe `/api` est retiré par l'API).
+- Les URL `/api/…` sont envoyées à `src/api.php` (le préfixe `/api` est retiré par l'API).
 - `portal/` est servi en fichiers statiques (par exemple sous `/portal/`).
 - `swagger/` peut être servi pour consulter la spécification OpenAPI.
 - `conf/`, `logs/`, `sql/`, `tests/`, `tools/` et `woob/` ne doivent **pas** être exposés.
 - Utiliser HTTPS.
 
-Exemple nginx :
+Exemple nginx (celui de l'image Docker est dans `docker/nginx.conf`) :
 
 ```nginx
+location = / { return 302 /portal/; }
+location /portal/ { root /var/www/carbure; }
 location /api/ {
     include fastcgi_params;
     fastcgi_param SCRIPT_FILENAME /var/www/carbure/src/api.php;
@@ -224,31 +142,34 @@ location /api/ {
     fastcgi_read_timeout 3600;   # la synchronisation peut être longue
     fastcgi_buffering off;       # flux SSE
 }
-location /portal/ { root /var/www/carbure; }
 location ~ ^/(conf|logs|sql|tests|tools|woob)/ { deny all; }
 ```
 
-### 5. Créer le premier utilisateur
+### 3. Lancer l'assistant
 
-Les utilisateurs sont gérés par un administrateur via l'API ou le portail. Pour le
-premier compte, insérer un utilisateur administrateur directement en base avec un
-mot de passe haché par `password_hash()` :
+Ouvrez le portail (`https://<votre-serveur>/portal/`) : l'assistant demande la base de
+données, crée ses tables (ou met à jour une base Carbure existante, après confirmation
+d'une sauvegarde) et le compte administrateur, puis écrit `conf/prod.ini` avec des
+secrets aléatoires.
 
-```bash
-php -r 'echo password_hash("mon-mot-de-passe", PASSWORD_DEFAULT), PHP_EOL;'
-```
+### 4. Planifier la synchronisation
 
-```sql
-INSERT INTO users (username, password, email, is_admin, language)
-VALUES ('admin', '<hash>', 'admin@example.org', 1, 'fr');
-```
-
-### 6. Planifier la synchronisation
+La clé `sync_token` de `conf/prod.ini` permet d'appeler la synchronisation sans compte :
 
 ```bash
 # crontab : tous les jours à 7h
 0 7 * * * curl -sN -H "X-Sync-Token: <sync_token>" https://exemple.fr/api/bank/sync > /dev/null
 ```
+
+### Mettre à jour
+
+Remplacez les fichiers de Carbure (en gardant `conf/` et `logs/`). Si la nouvelle version
+modifie la base de données, un bandeau **Mise à jour de la base de données** s'affiche pour
+l'administrateur dans le portail : sauvegardez la base, puis cliquez sur **Mettre à jour**.
+Les migrations déjà appliquées à la main (phpMyAdmin) sont reconnues.
+
+En ligne de commande, `php tools/migrate.php --status` affiche la version du schéma et
+`php tools/migrate.php` applique les migrations.
 
 Après un déploiement qui modifie les routes, le cache APCu est invalidé automatiquement
 (signature des fichiers de `src/resources/`).

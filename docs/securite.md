@@ -20,6 +20,17 @@ Un administrateur ne peut pas supprimer son propre compte ; un utilisateur propr
 de transactions ne peut pas être supprimé ; le dernier administrateur ne peut pas perdre
 son rôle.
 
+## Assistant d'installation
+
+Tant que `conf/prod.ini` n'existe pas, l'API ne répond qu'à `/api/setup` (le reste renvoie
+`503`). Depuis le réseau local, l'assistant est accessible sans code, comme la plupart des
+applications auto-hébergées ; depuis Internet (adresse publique), ou dès que le fichier
+`conf/setup.code` existe, chaque étape exige le **code d'installation** de ce fichier, aussi
+écrit dans les journaux du serveur (`docker logs`). Une erreur de code est ralentie. Le mot
+de passe de la base fourni par Docker (`DB_PASSWORD`) n'est utilisé que pour la base de
+l'environnement, jamais pour un autre serveur saisi dans l'assistant. Une fois la
+configuration écrite, l'assistant disparaît et le code est supprimé.
+
 ## Insights (SQL stocké)
 
 Les insights sont des requêtes SQL stockées en base et exécutées par le serveur. Seul un

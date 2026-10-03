@@ -1,4 +1,9 @@
 conf/prod.ini
+# Configuration written by the installation wizard (any environment) and its setup code
+conf/*.ini
+!conf/prod.sample.ini
+!conf/testing.ini
+conf/setup.code
 conf/certs/*.p8
 logs/*.log
 cache/

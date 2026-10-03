@@ -159,7 +159,11 @@ body {
 
 .login-form input[type="text"],
 .login-form input[type="password"],
-.login-form input[type="url"] {
+.login-form input[type="url"],
+.login-form input[type="email"],
+.login-form input[type="number"],
+.login-form input:not([type]),
+.login-form select {
     width: 100%;
     padding: 14px 16px;
     border: 2px solid var(--divider);
@@ -171,7 +175,11 @@ body {
 
 .login-form input[type="text"]:focus,
 .login-form input[type="password"]:focus,
-.login-form input[type="url"]:focus {
+.login-form input[type="url"]:focus,
+.login-form input[type="email"]:focus,
+.login-form input[type="number"]:focus,
+.login-form input:not([type]):focus,
+.login-form select:focus {
     outline: none;
     border-color: var(--primary-color);
     box-shadow: 0 0 0 3px rgba(239, 72, 96, 0.1);
@@ -4039,4 +4047,193 @@ a.footer-brand:hover {
     outline: none;
     border-color: var(--primary-color);
     box-shadow: 0 0 0 3px rgba(239, 72, 96, 0.1);
+}
+
+/* ===== Installation wizard ===== */
+.setup-card {
+    max-width: 560px;
+}
+
+.setup-card h2 {
+    font-size: 20px;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.setup-card h3 {
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-top: 8px;
+}
+
+.setup-help {
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text-secondary);
+}
+
+.setup-steps {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    margin: 0 0 24px;
+    padding: 0;
+    list-style: none;
+    counter-reset: none;
+}
+
+.setup-steps li {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    text-align: center;
+}
+
+.setup-step-number {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 2px solid var(--divider);
+    font-weight: 500;
+}
+
+.setup-steps li.active {
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.setup-steps li.active .setup-step-number {
+    border-color: var(--primary-color);
+    background: var(--primary-color);
+    color: #fff;
+}
+
+.setup-steps li.completed .setup-step-number {
+    border-color: var(--success-color);
+    color: var(--success-color);
+}
+
+.setup-state {
+    display: flex;
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: var(--border-radius-md);
+    background: var(--background);
+    color: var(--text-primary);
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.setup-state .material-icons {
+    color: var(--success-color);
+}
+
+.setup-state-outdated .material-icons {
+    color: var(--primary-color);
+}
+
+.setup-state p,
+.setup-state ul {
+    margin: 4px 0 0;
+    color: var(--text-secondary);
+}
+
+.setup-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 15px;
+    color: var(--text-primary);
+    cursor: pointer;
+}
+
+.setup-checkbox input {
+    width: 20px;
+    height: 20px;
+}
+
+.setup-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.setup-actions .btn-login {
+    flex: 1;
+}
+
+.setup-done {
+    align-items: center;
+    text-align: center;
+}
+
+.setup-done-icon {
+    font-size: 56px;
+    color: var(--primary-color);
+}
+
+.setup-card .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+@media (max-width: 520px) {
+    .setup-card .form-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Headings focused by the wizard to announce the step: no box around them */
+.setup-card h2:focus {
+    outline: none;
+}
+
+/* ===== Database update banner (administrators) ===== */
+.schema-banner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding: 14px 20px;
+    border-radius: var(--border-radius-lg, 12px);
+    background: var(--surface);
+    box-shadow: var(--shadow-2);
+    border-left: 4px solid var(--primary-color);
+    color: var(--text-primary);
+}
+
+.schema-banner > .material-icons {
+    color: var(--primary-color);
+}
+
+.schema-banner-text {
+    flex: 1;
+}
+
+.schema-banner button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* Edit and delete buttons side by side in the tables */
+.row-actions {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.actions-column {
+    width: 120px;
+    white-space: nowrap;
 }

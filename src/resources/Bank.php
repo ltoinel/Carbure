@@ -199,7 +199,7 @@ final class Bank {
 
     /**
      * Banks supported by woob (module and description); a bank must be configured
-     * in woob (php tools/install.php --add-bank) before its accounts can be synchronized.
+     * in woob (php tools/carbure.php add-bank) before its accounts can be synchronized.
      *
      * @return array The modules: [{module, description}]
      */
