@@ -18,7 +18,9 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/* /tmp/pear
 
 # woob and curl_cffi (required by the BNP module) in a virtual environment
+# (pip and setuptools of the venv are upgraded: the Debian ones have known vulnerabilities)
 RUN python3 -m venv /opt/woob \
+    && /opt/woob/bin/pip install --no-cache-dir --upgrade "pip>=26.1.2" "setuptools>=78.1.1" \
     && /opt/woob/bin/pip install --no-cache-dir "woob==${WOOB_VERSION}" "curl_cffi>=0.7" \
     && ln -s /opt/woob/bin/woob /usr/local/bin/woob
 
@@ -40,7 +42,7 @@ VOLUME /data
 EXPOSE 80
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
-    CMD curl -fsS http://localhost/portal/ > /dev/null || exit 1
+    CMD ["curl", "-fsS", "-o", "/dev/null", "http://localhost/portal/"]
 
 ENTRYPOINT ["/var/www/carbure/docker/entrypoint.sh"]
 CMD ["apache2-foreground"]
