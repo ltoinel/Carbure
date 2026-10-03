@@ -5,6 +5,11 @@ Tâches restant à réaliser sur Carbure. Une tâche terminée est retirée de c
 
 ## Production (actions manuelles)
 
+- [ ] **Urgent** : le nginx du NAS sert tout le projet : `data/` (configuration,
+      identifiants woob) et `.git/` sont téléchargeables. Restreindre aux chemins publics
+      (`/portal`, `/api`, `/swagger`), puis renouveler les secrets exposés (code BNP, mot de
+      passe MySQL, `jwtsecret`, `sync_token`, `password_salt`).
+
 - [ ] **Urgent** : remplacer le `jwtsecret` de production (valeur par défaut `secret`) :
       bouton **Renouveler** du bandeau affiché aux administrateurs dans le portail (le serveur
       web doit pouvoir écrire `conf/prod.ini`), ou à la main avec `openssl rand -hex 32`.
@@ -25,9 +30,10 @@ Tâches restant à réaliser sur Carbure. Une tâche terminée est retirée de c
 
 ## Dette technique
 
-- [ ] Image Docker : passer de `php:8.3-apache-bookworm` à `-trixie` (Debian 13) pour
-      réduire les CVE Debian sans correctif remontées par Trivy (zlib, util-linux,
-      python3.11) ; vérifier woob et `curl_cffi` avec Python 3.13.
+- [x] Image Docker sur Alpine (`php:8.3-fpm-alpine`, woob construit à part) : plus de
+      chaîne de compilation dans l'image, plus aucune alerte Trivy ouverte.
+- [ ] Publier une release (1.0.1) pour que l'image Alpine arrive sur Docker Hub, puis
+      tester l'ajout d'une banque (BNP, `curl_cffi` sous musl) avec cette image.
 
 - [ ] Connexion MySQL en `utf8mb4` (`Db` n'appelle pas `set_charset`) : vérifier d'abord
       comment les accents sont stockés en production pour ne pas les corrompre.
