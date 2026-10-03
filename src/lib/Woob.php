@@ -95,6 +95,41 @@ final class Woob {
     }
 
     /**
+     * List the bank modules supported by woob (cached for a day: the list only
+     * changes with woob updates).
+     *
+     * @return array The modules: [{module, description}]
+     */
+    public static function listBankModules()
+    {
+        $cacheKey = 'carbure_woob_bank_modules';
+        if (function_exists('apcu_fetch') && ini_get('apc.enabled')) {
+            $cached = apcu_fetch($cacheKey, $found);
+            if ($found) {
+                return $cached;
+            }
+        }
+
+        $woob_path = Config::get('woob_path');
+        $stderr = '';
+        $stdout = self::executeWithHeartbeat("$woob_path config modules CapBank -f json", $stderr, false);
+
+        $modules = [];
+        foreach (self::parseOutput('modules', $stdout) ?? [] as $row) {
+            if (is_array($row) && !empty($row['Name'])) {
+                $modules[] = ['module' => $row['Name'], 'description' => $row['Description'] ?? ''];
+            }
+        }
+        usort($modules, fn($a, $b) => strcasecmp($a['description'] ?: $a['module'], $b['description'] ?: $b['module']));
+
+        if ($modules && function_exists('apcu_store') && ini_get('apc.enabled')) {
+            apcu_store($cacheKey, $modules, 86400);
+        }
+
+        return $modules;
+    }
+
+    /**
      * Last non empty line of an output, prefixed with ": " (empty string if none).
      *
      * @param string $output The command output

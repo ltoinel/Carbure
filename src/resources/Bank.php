@@ -151,6 +151,18 @@ final class Bank {
     }
 
     /**
+     * Banks supported by woob (module and description); a bank must be configured
+     * in woob (php tools/install.php --add-bank) before its accounts can be synchronized.
+     *
+     * @return array The modules: [{module, description}]
+     */
+    #[ApiRoute('/bank/modules', method: 'GET')]
+    public static function modules()
+    {
+        return Woob::listBankModules();
+    }
+
+    /**
      * Accounts available in the configured woob backends, to follow them in one click.
      *
      * @return array The accounts (bankId, account_number, bank_name, label, balance, currency, followed)

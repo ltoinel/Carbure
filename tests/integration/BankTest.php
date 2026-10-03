@@ -89,6 +89,16 @@ class BankTest extends DatabaseTestCase
         $this->assertSame([['name' => 'bnp', 'module' => 'bnp'], ['name' => 'cic_pro', 'module' => 'cic']], Bank::backends());
     }
 
+    public function testModules()
+    {
+        $this->loginAs(self::USER);
+        $this->assertSame([
+            ['module' => 'bnp', 'description' => 'BNP Paribas'],
+            ['module' => 'boursorama', 'description' => 'Boursorama'],
+            ['module' => 'cic', 'description' => 'CIC'],
+        ], Bank::modules());
+    }
+
     public function testDiscover()
     {
         $this->loginAs(self::USER);

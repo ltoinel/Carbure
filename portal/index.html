@@ -951,14 +951,24 @@
                                 <input v-model="newAccount.account_number" :placeholder="t('accountNumber')" :aria-label="t('accountNumber')" maxlength="100" />
                                 <select v-model="newAccountBank" :aria-label="t('accountBank')">
                                     <option value="" disabled>{{ t('accountBankChoose') }}</option>
-                                    <option v-for="b in bankBackends" :key="b.name" :value="b.name">
-                                        {{ b.name === b.module ? b.name : b.name + ' (' + b.module + ')' }}
-                                    </option>
+                                    <optgroup v-if="bankBackends.length" :label="t('banksConfigured')">
+                                        <option v-for="b in bankBackends" :key="b.name" :value="b.name">
+                                            {{ b.name === b.module ? b.name : b.name + ' (' + b.module + ')' }}
+                                        </option>
+                                    </optgroup>
+                                    <optgroup v-if="otherBankModules().length" :label="t('banksSupported')">
+                                        <option v-for="m in otherBankModules()" :key="m.module" :value="m.module">
+                                            {{ m.description ? m.description + ' (' + m.module + ')' : m.module }}
+                                        </option>
+                                    </optgroup>
                                     <option value="__other">{{ t('accountBankOther') }}</option>
                                 </select>
                                 <input v-if="newAccountBank === '__other'" v-model="newAccount.bank_name" :placeholder="t('accountBankPlaceholder')" :aria-label="t('accountBank')" maxlength="50" />
                                 <button type="submit"><span class="material-icons">add</span>{{ t('addRule') }}</button>
                             </form>
+                            <p v-if="chosenBankNotConfigured()" class="sync-step-error bank-not-configured">
+                                {{ t('bankNotConfigured') }} <code>php tools/install.php --add-bank</code>
+                            </p>
                             <p class="rules-help">
                                 <span class="material-icons inline-icon">lock</span>
                                 {{ t('newBankHint') }} <code>php tools/install.php --add-bank</code>

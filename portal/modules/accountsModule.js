@@ -23,6 +23,8 @@ export function createAccountsModule(getApiService) {
                 discoveredAccounts: [],
                 // Banks configured in woob: [{name, module}]
                 bankBackends: [],
+                // Banks supported by woob: [{module, description}]
+                bankModules: [],
                 // Bank of the manual form: a backend name, or '__other' to type it
                 newAccountBank: '',
                 discovering: false,
@@ -36,12 +38,29 @@ export function createAccountsModule(getApiService) {
              * @returns {Promise<void>}
              */
             async loadBankBackends() {
-                try {
-                    this.bankBackends = await getApiService().fetchBankBackends();
-                } catch (error) {
-                    // The selector still offers "Other" (typed name)
-                    this.bankBackends = [];
-                }
+                const api = getApiService();
+                // The selector still offers "Other" (typed name) if woob does not answer
+                const [backends, modules] = await Promise.allSettled([api.fetchBankBackends(), api.fetchBankModules()]);
+                this.bankBackends = backends.status === 'fulfilled' ? backends.value : [];
+                this.bankModules = modules.status === 'fulfilled' ? modules.value : [];
+            },
+
+            /**
+             * Supported banks not configured in woob yet
+             * @returns {Array}
+             */
+            otherBankModules() {
+                const configured = new Set(this.bankBackends.map(b => b.name));
+                return this.bankModules.filter(m => !configured.has(m.module));
+            },
+
+            /**
+             * Checks if the bank chosen in the form still has to be configured in woob
+             * @returns {boolean}
+             */
+            chosenBankNotConfigured() {
+                const bank = this.newAccountBank;
+                return bank !== '' && bank !== '__other' && !this.bankBackends.some(b => b.name === bank);
             },
 
             /**

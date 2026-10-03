@@ -3539,3 +3539,7 @@ a.footer-brand:hover {
         padding-left: 20px;
     }
 }
+
+.bank-not-configured {
+    margin: 10px 0 0;
+}

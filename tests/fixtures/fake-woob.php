@@ -18,6 +18,13 @@
 $type = $argv[2] ?? '';
 $account = $argv[3] ?? '';
 
+if (($argv[1] ?? '') === 'config' && $type === 'modules') {
+    echo json_encode(['Name' => 'bnp', 'Capabilities' => ['CapBank'], 'Description' => 'BNP Paribas', 'Installed' => true]) . "\n";
+    echo json_encode(['Name' => 'boursorama', 'Capabilities' => ['CapBank'], 'Description' => 'Boursorama', 'Installed' => false]) . "\n";
+    echo json_encode(['Name' => 'cic', 'Capabilities' => ['CapBank'], 'Description' => 'CIC', 'Installed' => true]) . "\n";
+    exit(0);
+}
+
 if (($argv[1] ?? '') === 'config' && $type === 'list') {
     // One JSON object per line, with the (secret) configuration that must not leak
     echo json_encode(['Name' => 'bnp', 'Module' => 'bnp', 'Configuration' => 'login=12345678, password=*****']) . "\n";
