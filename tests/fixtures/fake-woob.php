@@ -6,7 +6,8 @@
  * Test double of the woob CLI used by the tests (woob_path = "php tests/fixtures/fake-woob.php").
  * Usage: fake-woob.php bank <coming|history> <account@bank> [options...]
  *        fake-woob.php bank list -b <backend> -f json   (two accounts, "none": no account)
- *        fake-woob.php config add <module> <backend>     (always succeeds)
+ *        fake-woob.php config info <module> -f json       (settings once installed, like woob 3.7)
+ *        fake-woob.php config add <module> '"<backend> key=value ..."' (installs with the probe name)
  *
  * - account "fail@bank"  : writes on stderr and exits with code 1
  * - account "empty@bank" : no output
@@ -33,26 +34,58 @@ if (($argv[1] ?? '') === 'config' && $type === 'list') {
 }
 
 if (($argv[1] ?? '') === 'config' && $type === 'info') {
-    if (($argv[3] ?? '') === 'unknown') {
-        fwrite(STDERR, "Module \"{$argv[3]}\" does not exist.\n");
+    // Like woob 3.7: one JSON array; the settings only once the module is installed
+    $module = $argv[3] ?? '';
+    if ($module === 'unknown') {
+        fwrite(STDERR, "Module \"$module\" does not exist.\n");
         exit(1);
     }
     $names = ['bnp' => 'BNP Paribas', 'boursorama' => 'Boursorama', 'cic' => 'CIC'];
-    echo json_encode(['name' => $argv[3], 'description' => $names[$argv[3]] ?? $argv[3], 'config' => [
-        'login' => ['label' => 'Numéro client', 'default' => null, 'description' => null, 'regexp' => '^(\\d{8}|)$', 'choices' => null, 'masked' => false, 'required' => true],
-        'password' => ['label' => 'Code secret', 'default' => null, 'description' => null, 'regexp' => null, 'choices' => null, 'masked' => true, 'required' => true],
-        'website' => ['label' => 'Type de compte', 'default' => 'pp', 'description' => null, 'regexp' => null, 'choices' => ['pp' => 'Particuliers/Professionnels', 'ent' => 'Entreprises'], 'masked' => false, 'required' => true],
-    ]]) . "\n";
+    $installed = $module !== 'boursorama' || is_file(sys_get_temp_dir() . '/carbure-fake-woob-installed');
+    $info = ['name' => $module, 'description' => $names[$module] ?? $module, 'installed' => $installed ? 'yes' : 'no'];
+    if ($installed) {
+        $info['config'] = [
+            'login' => ['label' => 'Numéro client', 'default' => '', 'description' => 'Numéro client', 'regexp' => null, 'choices' => null, 'masked' => false, 'required' => true],
+            'password' => ['label' => 'Code secret', 'default' => '', 'description' => 'Code secret', 'regexp' => '^(\\d{6})$', 'choices' => null, 'masked' => true, 'required' => true],
+            'rotating_password' => ['label' => 'Automatically renew password every 100 connections', 'default' => false, 'description' => '', 'regexp' => null, 'choices' => ['y' => 'True', 'n' => 'False'], 'masked' => false, 'required' => false],
+            'website' => ['label' => 'Type de compte', 'default' => 'pp', 'description' => 'Type de compte', 'regexp' => null, 'choices' => ['pp' => 'Particuliers/Professionnels', 'hbank' => 'HelloBank'], 'masked' => false, 'required' => false],
+        ];
+    }
+    echo json_encode([$info]) . "\n";
+    exit(0);
+}
+
+if (($argv[1] ?? '') === 'config' && $type === 'remove') {
+    file_put_contents(sys_get_temp_dir() . '/carbure-fake-woob-removed', $argv[3] ?? '');
     exit(0);
 }
 
 if (($argv[1] ?? '') === 'config' && $type === 'add') {
-    // Records the arguments, to check what was sent
-    file_put_contents(sys_get_temp_dir() . '/carbure-fake-woob-add.json', json_encode(array_slice($argv, 3)));
-    if (($argv[4] ?? '') === 'taken') {
-        fwrite(STDERR, "Backend \"taken\" already exists.\n");
-        exit(1);
+    // Like woob 3.7: at most 2 arguments, the module then "backend key=value ..." quoted
+    if (count($argv) > 5) {
+        fwrite(STDERR, "Error: too many arguments. Command takes at most 2 arguments\n");
+        exit(64);
     }
+    $words = explode(' ', trim($argv[4] ?? '', '"'));
+    $backend = array_shift($words);
+    if ($backend === 'carbure_install_probe') {
+        // Installs the module, then stops at the first setting asked
+        touch(sys_get_temp_dir() . '/carbure-fake-woob-installed');
+        echo "Module {$argv[3]} has been installed!\nAborted.\n";
+        exit(130);
+    }
+    $params = [];
+    foreach ($words as $word) {
+        [$key, $value] = explode('=', $word, 2) + [1 => ''];
+        $params[$key] = $value;
+    }
+    // Records what woob received, to check it
+    file_put_contents(sys_get_temp_dir() . '/carbure-fake-woob-add.json', json_encode(['module' => $argv[3], 'backend' => $backend, 'params' => $params]));
+    if ($backend === 'taken') {
+        echo "Backend \"taken\" already exists.\n";
+        exit(0);
+    }
+    echo "Backend \"$backend\" successfully added.\n";
     exit(0);
 }
 
@@ -64,7 +97,12 @@ if (($argv[1] ?? '') === 'bank' && $type === 'list') {
     $index = array_search('-b', $argv);
     // Without -b: the backend added last by "config add" (or bnp)
     $added = @json_decode((string)@file_get_contents(sys_get_temp_dir() . '/carbure-fake-woob-add.json'), true);
-    $backend = $index === false ? ($added[1] ?? 'bnp') : $argv[$index + 1];
+    $backend = $index === false ? ($added['backend'] ?? 'bnp') : $argv[$index + 1];
+    // A bank added with the login "wrong": the bank refuses the connection
+    if ($index === false && ($added['params']['login'] ?? '') === 'wrong') {
+        fwrite(STDERR, "Error(" . $added['backend'] . "): BrowserIncorrectPassword: Identifiant ou mot de passe incorrect\n");
+        exit(1);
+    }
     if ($backend === 'none') {
         fwrite(STDERR, "Error(none): Unable to load module \"none\"\n");
         exit(0);

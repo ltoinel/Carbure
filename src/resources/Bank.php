@@ -229,21 +229,26 @@ final class Bank {
             throw new Error("A bank named $backend is already configured in woob", 409);
         }
 
-        // Only the settings of the module, required ones present, values on one line
+        // Every setting of the module is given (woob would ask for a missing one),
+        // required ones present, values on one line, checked against the module's rules
         $params = [];
         foreach (Woob::moduleFields($module)['fields'] as $field) {
             $value = is_array($settings) ? trim((string)($settings[$field['key']] ?? '')) : '';
             if ($value === '') {
-                if ($field['required'] && $field['default'] === '') {
-                    throw new Error("Missing setting: " . $field['label'], 400);
-                }
-                continue;
+                $value = $field['default'];
             }
-            if (preg_match('/[\x00-\x1f\x7f]/', $value) || preg_match('/\s/', $value) || mb_strlen($value) > 200) {
-                throw new Error("Invalid value for " . $field['label'] . " (no spaces)", 400);
+            if ($value === '' && $field['required']) {
+                throw new Error("Missing setting: " . $field['label'], 400);
             }
-            if ($field['choices'] && !in_array($value, array_column($field['choices'], 'value'), true)) {
+            if (preg_match('/[\x00-\x1f\x7f"\\\\]/', $value) || preg_match('/\s/', $value) || mb_strlen($value) > 200) {
+                throw new Error("Invalid value for " . $field['label'] . " (no spaces nor quotes)", 400);
+            }
+            if ($value !== '' && $field['choices'] && !in_array($value, array_column($field['choices'], 'value'), true)) {
                 throw new Error("Invalid choice for " . $field['label'], 400);
+            }
+            if ($value !== '' && $field['regexp'] && @preg_match('/' . str_replace('/', '\\/', $field['regexp']) . '/u', '') !== false
+                && !preg_match('/' . str_replace('/', '\\/', $field['regexp']) . '/u', $value)) {
+                throw new Error("Invalid format for " . $field['label'], 400);
             }
             $params[$field['key']] = $value;
         }
@@ -254,8 +259,15 @@ final class Bank {
             throw new Error($e->getMessage(), 400);
         }
 
-        // Accounts of the new bank, to follow them
-        $accounts = array_values(array_filter(self::discover(), fn($account) => $account['bank_name'] === $backend));
+        // Accounts of the new bank, to follow them: the first connection to the bank.
+        // If the bank refuses it (wrong credentials...), the backend is removed from
+        // woob so that the form can be sent again
+        try {
+            $accounts = array_values(array_filter(self::discover(), fn($account) => $account['bank_name'] === $backend));
+        } catch (Exception $e) {
+            Woob::removeBackend($backend);
+            throw new Error("The bank refused the connection, check the credentials: " . $e->getMessage(), 400);
+        }
         return ['backend' => $backend, 'accounts' => $accounts];
     }
 

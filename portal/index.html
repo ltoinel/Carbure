@@ -1772,7 +1772,9 @@
                                     <option v-for="c in f.choices" :key="c.value" :value="c.value">{{ c.label }}</option>
                                 </select>
                                 <input v-else :id="'bank-setting-' + f.key" v-model="bankSetup.values[f.key]"
-                                       :type="f.masked ? 'password' : 'text'" autocomplete="off" :aria-describedby="f.description ? 'bank-setting-help-' + f.key : null" />
+                                       :type="f.masked ? 'password' : 'text'" autocomplete="off" :aria-describedby="f.description ? 'bank-setting-help-' + f.key : null"
+                                       :pattern="f.regexp || null" :inputmode="f.regexp && /^\^?\(?\\d/.test(f.regexp) ? 'numeric' : null"
+                                       :aria-invalid="f.regexp && bankSetup.values[f.key] && !new RegExp(f.regexp).test(bankSetup.values[f.key]) ? 'true' : null" />
                                 <small v-if="f.description" :id="'bank-setting-help-' + f.key">{{ f.description }}</small>
                             </div>
                             <div class="form-group">

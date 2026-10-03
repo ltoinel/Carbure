@@ -139,19 +139,11 @@ final class Woob {
      */
     public static function moduleFields($module)
     {
-        $woob_path = Config::get('woob_path');
-        $stderr = '';
-        $stdout = self::executeWithHeartbeat("$woob_path config info " . escapeshellarg($module) . " -f json", $stderr, false);
-
-        $info = null;
-        foreach (self::parseOutput('module', $stdout) ?? [] as $row) {
-            if (is_array($row) && isset($row['name'])) {
-                $info = $row;
-                break;
-            }
-        }
-        if ($info === null) {
-            throw new Exception("woob does not know the module $module" . self::lastLine($stderr));
+        $info = self::moduleInfo($module);
+        // woob only describes the settings of an installed module: install it first
+        if (!isset($info['config'])) {
+            self::installModule($module);
+            $info = self::moduleInfo($module);
         }
 
         $fields = [];
@@ -163,18 +155,71 @@ final class Woob {
                     ? ['value' => (string)$label, 'label' => (string)$label]
                     : ['value' => (string)$value, 'label' => (string)$label];
             }
+            // Booleans are offered as y/n choices: false must stay "n", not the first choice
+            $default = $field['default'] ?? '';
+            if (is_bool($default)) {
+                $default = $default ? 'y' : 'n';
+            }
             $fields[] = [
                 'key' => (string)$key,
                 'label' => (string)($field['label'] ?? $key),
                 'description' => (string)($field['description'] ?? ''),
-                'default' => is_scalar($field['default'] ?? null) ? (string)$field['default'] : '',
+                'default' => is_scalar($default) ? (string)$default : '',
                 'required' => !empty($field['required']),
                 'masked' => !empty($field['masked']),
+                'regexp' => is_string($field['regexp'] ?? null) ? $field['regexp'] : null,
                 'choices' => $choices,
             ];
         }
 
         return ['module' => $info['name'], 'description' => (string)($info['description'] ?? ''), 'fields' => $fields];
+    }
+
+    /**
+     * Description of a woob module (with its settings once installed).
+     *
+     * @param string $module The woob module
+     * @return array The description given by "woob config info"
+     * @throws Exception If woob does not know the module
+     */
+    private static function moduleInfo($module)
+    {
+        $woob_path = Config::get('woob_path');
+        $stderr = '';
+        $stdout = self::executeWithHeartbeat("$woob_path config info " . escapeshellarg($module) . " -f json", $stderr, false);
+        foreach (self::parseOutput('module', $stdout) ?? [] as $row) {
+            if (is_array($row) && isset($row['name'])) {
+                return $row;
+            }
+        }
+        throw new Exception("woob does not know the module $module" . self::lastLine($stderr ?: $stdout));
+    }
+
+    /**
+     * Install a woob module: "config add" installs it, then stops at the first
+     * setting it asks for (no input). A backend created anyway (module without
+     * settings) is removed.
+     *
+     * @param string $module The woob module
+     * @return void
+     */
+    private static function installModule($module)
+    {
+        $woob_path = Config::get('woob_path');
+        $probe = 'carbure_install_probe';
+        $process = proc_open("$woob_path config add " . escapeshellarg($module) . ' ' . escapeshellarg($probe) . ' < /dev/null',
+            [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
+        if (!is_resource($process)) {
+            return;
+        }
+        $stdout = stream_get_contents($pipes[1]);
+        stream_get_contents($pipes[2]);
+        fclose($pipes[1]);
+        fclose($pipes[2]);
+        proc_close($process);
+        if (stripos($stdout, 'successfully added') !== false) {
+            shell_exec("$woob_path config remove " . escapeshellarg($probe) . ' < /dev/null 2>&1');
+        }
     }
 
     /**
@@ -189,14 +234,16 @@ final class Woob {
      */
     public static function addBackend($module, $backend, $params)
     {
-        $arguments = [escapeshellarg($module), escapeshellarg($backend)];
+        // woob reads at most 2 arguments: the module, then the backend name and the
+        // key=value settings together, quoted (it splits them on spaces)
+        $settings = [$backend];
         foreach ($params as $key => $value) {
-            $arguments[] = escapeshellarg("$key=$value");
+            $settings[] = "$key=$value";
         }
         $woob_path = Config::get('woob_path');
         $stderr = '';
         // The settings are not logged: they contain the bank credentials
-        $process = proc_open("$woob_path config add " . implode(' ', $arguments) . " < /dev/null",
+        $process = proc_open("$woob_path config add " . escapeshellarg($module) . ' ' . escapeshellarg('"' . implode(' ', $settings) . '"') . " < /dev/null",
             [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
         if (!is_resource($process)) {
             throw new Exception("Unable to run woob");
@@ -207,10 +254,24 @@ final class Woob {
         fclose($pipes[2]);
         $code = proc_close($process);
 
-        if ($code !== 0 || preg_match('/error|exception|traceback|already exists/i', $stderr . $stdout)) {
+        // Success is announced by woob; anything else (missing setting asked, module
+        // not loaded, name taken...) is a failure
+        if ($code !== 0 || stripos($stdout, 'successfully added') === false) {
             Logger::error("woob could not add the backend $backend ($module)");
             throw new Exception("woob could not add the bank" . self::lastLine($stderr ?: $stdout));
         }
+    }
+
+    /**
+     * Remove a backend from woob (and the credentials woob kept for it).
+     *
+     * @param string $backend The backend name
+     * @return void
+     */
+    public static function removeBackend($backend)
+    {
+        $woob_path = Config::get('woob_path');
+        shell_exec("$woob_path config remove " . escapeshellarg($backend) . ' < /dev/null 2>&1');
     }
 
     /**

@@ -81,6 +81,19 @@ export function createAccountsModule(getApiService) {
                     this.bankSetup = { ...setup, error: this.t('bankSettingRequired', { field: missing.label }) };
                     return;
                 }
+                // Format expected by the bank module (e.g. a 6-digit code)
+                const invalid = setup.fields.find(f => {
+                    const value = String(setup.values[f.key] || '');
+                    try {
+                        return f.regexp && value !== '' && !new RegExp(f.regexp).test(value);
+                    } catch (e) {
+                        return false;
+                    }
+                });
+                if (invalid) {
+                    this.bankSetup = { ...setup, error: this.t('bankSettingFormat', { field: invalid.label }) };
+                    return;
+                }
                 this.bankSetup = { ...setup, busy: true, error: null };
                 try {
                     const result = await getApiService().createBankBackend(setup.module, setup.backend, setup.values);

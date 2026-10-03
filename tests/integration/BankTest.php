@@ -125,9 +125,12 @@ class BankTest extends DatabaseTestCase
         $this->assertSame('BNP Paribas', $module['description']);
         $fields = array_column($module['fields'], null, 'key');
         $this->assertTrue($fields['password']['masked']);
+        $this->assertSame('^(\\d{6})$', $fields['password']['regexp']);
         $this->assertTrue($fields['login']['required']);
-        $this->assertSame([['value' => 'pp', 'label' => 'Particuliers/Professionnels'], ['value' => 'ent', 'label' => 'Entreprises']], $fields['website']['choices']);
+        $this->assertSame([['value' => 'pp', 'label' => 'Particuliers/Professionnels'], ['value' => 'hbank', 'label' => 'HelloBank']], $fields['website']['choices']);
         $this->assertSame('pp', $fields['website']['default']);
+        // A false boolean stays "n" (not the first choice, which would enable the option)
+        $this->assertSame('n', $fields['rotating_password']['default']);
 
         try {
             Bank::module('unknown');
@@ -140,21 +143,56 @@ class BankTest extends DatabaseTestCase
         Bank::module('../etc');
     }
 
+    public function testModuleNotInstalledYet()
+    {
+        $this->loginAs(self::ADMIN);
+        $installed = sys_get_temp_dir() . '/carbure-fake-woob-installed';
+        @unlink($installed);
+        try {
+            // woob describes the settings once the module is installed: Carbure installs it
+            $fields = array_column(Bank::module('boursorama')['fields'], 'key');
+            $this->assertContains('password', $fields);
+            $this->assertFileExists($installed);
+        } finally {
+            @unlink($installed);
+        }
+    }
+
     public function testCreateBackend()
     {
         $this->loginAs(self::ADMIN);
         $added = sys_get_temp_dir() . '/carbure-fake-woob-add.json';
         @unlink($added);
 
-        // The accounts woob finds for the new bank are returned
         try {
-            $result = Bank::createBackend('bnp', 'mybnp', ['login' => '12345678', 'password' => 'secret', 'website' => 'ent', 'unknown' => 'x']);
+            $result = Bank::createBackend('bnp', 'mybnp', ['login' => '12345678', 'password' => '123456', 'unknown' => 'x']);
             $this->assertSame('mybnp', $result['backend']);
             $this->assertSame(['00012345678@mybnp', '00087654321@mybnp'], array_column($result['accounts'], 'bankId'));
-            // Only the settings of the module, with their values
-            $this->assertSame(['bnp', 'mybnp', 'login=12345678', 'password=secret', 'website=ent'], json_decode(file_get_contents($added), true));
+            // Every setting of the module is given (defaults included), in the format woob reads
+            $this->assertSame(['module' => 'bnp', 'backend' => 'mybnp', 'params' => [
+                'login' => '12345678', 'password' => '123456', 'rotating_password' => 'n', 'website' => 'pp',
+            ]], json_decode(file_get_contents($added), true));
         } finally {
             @unlink($added);
+        }
+    }
+
+    public function testCreateBackendWrongCredentials()
+    {
+        $this->loginAs(self::ADMIN);
+        $removed = sys_get_temp_dir() . '/carbure-fake-woob-removed';
+        @unlink($removed);
+        try {
+            Bank::createBackend('bnp', 'mybnp', ['login' => 'wrong', 'password' => '123456']);
+            $this->fail('Wrong credentials accepted');
+        } catch (Error $e) {
+            $this->assertSame(400, $e->getCode());
+            $this->assertStringContainsString('Identifiant ou mot de passe incorrect', $e->getMessage());
+            // Removed from woob, to try again
+            $this->assertSame('mybnp', file_get_contents($removed));
+        } finally {
+            @unlink($removed);
+            @unlink(sys_get_temp_dir() . '/carbure-fake-woob-add.json');
         }
     }
 
@@ -162,11 +200,13 @@ class BankTest extends DatabaseTestCase
     {
         $this->loginAs(self::ADMIN);
         foreach ([
-            ['bnp', 'new', ['password' => 'secret']],                         // login missing
-            ['bnp', 'new', ['login' => '1 2', 'password' => 'secret']],       // space
-            ['bnp', 'new', ['login' => '1', 'password' => 'x', 'website' => 'nope']], // not a choice
-            ['bnp', 'New Bank', ['login' => '1', 'password' => 'x']],          // name
-            ['bnp', 'taken', ['login' => '1', 'password' => 'x']],             // woob refuses
+            ['bnp', 'new', ['password' => '123456']],                                 // login missing
+            ['bnp', 'new', ['login' => '1 2', 'password' => '123456']],               // space
+            ['bnp', 'new', ['login' => '1"2', 'password' => '123456']],               // quote
+            ['bnp', 'new', ['login' => '1', 'password' => 'abc']],                    // not 6 digits
+            ['bnp', 'new', ['login' => '1', 'password' => '123456', 'website' => 'nope']], // not a choice
+            ['bnp', 'New Bank', ['login' => '1', 'password' => '123456']],            // name
+            ['bnp', 'taken', ['login' => '1', 'password' => '123456']],               // woob refuses
         ] as [$module, $backend, $settings]) {
             try {
                 Bank::createBackend($module, $backend, $settings);
