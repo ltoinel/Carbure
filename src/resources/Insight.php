@@ -18,7 +18,7 @@ final class Insight {
     /**
      * Colors of the insight cards
      */
-    public const COLORS = ['red', 'green', 'blue', 'orange', 'gray'];
+    public const COLORS = ['red', 'orange', 'amber', 'lime', 'green', 'teal', 'cyan', 'blue', 'indigo', 'purple', 'pink', 'brown', 'gray'];
 
     /**
      * Words refused in an insight query: writes, administration, files, locks, delays

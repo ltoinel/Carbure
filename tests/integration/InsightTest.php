@@ -90,7 +90,7 @@ class InsightTest extends DatabaseTestCase
 
     public function testInvalidFields()
     {
-        foreach ([['', 'red'], [str_repeat('x', 21), 'red'], ['X', 'pink']] as [$name, $color]) {
+        foreach ([['', 'red'], [str_repeat('x', 21), 'red'], ['X', 'fuchsia']] as [$name, $color]) {
             try {
                 Insight::create($name, $color, self::SQL);
                 $this->fail("Accepted $name/$color");

@@ -4300,3 +4300,18 @@ a.footer-brand:hover {
     background: var(--error-color);
     color: #fff;
 }
+
+/* Any insight color: the card and its icon follow --insight-color */
+.insight-card[style*="--insight-color"] {
+    border-left-color: var(--insight-color);
+}
+
+.insight-card[style*="--insight-color"] .insight-icon {
+    background: var(--insight-color);
+}
+
+.btn-danger.btn-danger-icon {
+    justify-content: center;
+    width: 44px;
+    padding: 0;
+}

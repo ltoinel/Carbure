@@ -22,9 +22,9 @@ export function createInsightsModule(getApiService) {
                 insightForm: null,
                 savingInsight: false,
                 insightError: null,
-                insightColors: ['red', 'green', 'blue', 'orange', 'gray'],
-                // Same colors as the cards (style.css, .insight-card.insight-*)
-                insightColorValues: { red: '#ef4444', green: '#10b981', blue: '#3b82f6', orange: '#f59e0b', gray: '#6b7280' },
+                insightColors: ['red', 'orange', 'amber', 'lime', 'green', 'teal', 'cyan', 'blue', 'indigo', 'purple', 'pink', 'brown', 'gray'],
+                // Colors of the cards (--insight-color)
+                insightColorValues: { red: '#ef4444', orange: '#f59e0b', amber: '#eab308', lime: '#84cc16', green: '#10b981', teal: '#14b8a6', cyan: '#06b6d4', blue: '#3b82f6', indigo: '#6366f1', purple: '#a855f7', pink: '#ec4899', brown: '#a16207', gray: '#6b7280' },
                 insightIcons: ['trending_down', 'trending_up', 'savings', 'account_balance_wallet', 'payments', 'credit_card',
                     'shopping_cart', 'restaurant', 'local_gas_station', 'directions_car', 'home', 'bolt', 'local_hospital',
                     'school', 'flight', 'sports_esports', 'pets', 'receipt_long', 'percent', 'analytics', 'pie_chart',

@@ -656,7 +656,8 @@
                             </div>
                             <div v-if="insights.length === 0" class="transactions-hint">{{ t('noInsightsMessage') }}</div>
                             <div class="insights-grid">
-                            <div v-for="insight in insights" :key="insight.id" class="insight-card" :class="'insight-' + insight.color">
+                            <div v-for="insight in insights" :key="insight.id" class="insight-card" :class="'insight-' + insight.color"
+                                 :style="insightColorValues[insight.color] ? { '--insight-color': insightColorValues[insight.color] } : {}">
                                 <div class="insight-icon" aria-hidden="true">
                                     <span class="material-icons">{{ insight.icon || getInsightIcon(insight.name) }}</span>
                                 </div>
@@ -1350,9 +1351,9 @@
                     <div v-if="insightError" class="sync-step-error" role="alert">{{ insightError }}</div>
                 </form>
                 <div class="modal-footer">
-                    <button v-if="insightForm.id" type="button" class="btn-danger modal-footer-start" @click="removeInsight(insightForm)">
+                    <button v-if="insightForm.id" type="button" class="btn-danger btn-danger-icon modal-footer-start" @click="removeInsight(insightForm)"
+                            :title="t('deleteInsight')" :aria-label="t('deleteInsight')">
                         <span class="material-icons" aria-hidden="true">delete</span>
-                        {{ t('deleteInsight') }}
                     </button>
                     <button class="btn-secondary" @click="closeInsightModal">
                         <span class="material-icons">cancel</span>

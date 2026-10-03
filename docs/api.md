@@ -257,8 +257,8 @@ curl "https://exemple.fr/api/budget/trends?months=6&offset=12" -H "Authorization
 
 ### `GET /insight`, `POST /insight`, `PUT /insight`, `DELETE /insight?id=` — administrateur
 
-Gestion des insights : `name` (1 à 20 caractères), `color` (`red`, `green`, `blue`,
-`orange`, `gray`), `icon` (icône Material, facultative), `sql`. `POST /insight/check`
+Gestion des insights : `name` (1 à 20 caractères), `color` (`red`, `orange`, `amber`,
+`lime`, `green`, `teal`, `cyan`, `blue`, `indigo`, `purple`, `pink`, `brown`, `gray`), `icon` (icône Material, facultative), `sql`. `POST /insight/check`
 (`sql`, `month`, `year`) vérifie une requête sans l'enregistrer : `{valid, amount}` ou
 `{valid: false, error}`. La requête doit être un unique `SELECT` renvoyant une colonne
 `amount`, sans commentaire ni mot-clé d'écriture ou d'administration, et ne peut pas lire
