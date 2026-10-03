@@ -45,7 +45,8 @@ jobs:
 
       - name: Build the archive
         run: |
-          name="carbure-${TAG}"
+          # carbure-1.2.0 for the tag 1.2.0 or v1.2.0
+          name="carbure-${TAG#v}"
           mkdir -p dist build
           git archive --format=tar --prefix="$name/" HEAD \
             src portal swagger sql conf/prod.sample.ini tools/migrate.php README.md LICENSE \

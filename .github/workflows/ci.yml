@@ -104,6 +104,8 @@ jobs:
 
   secrets:
     name: Secret scan
+    # gitleaks does not support the release event; the released commit was scanned on main
+    if: github.event_name != 'release'
     runs-on: ubuntu-latest
     permissions:
       contents: read
