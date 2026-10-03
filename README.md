@@ -21,7 +21,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/assets/screenshot-trends.png" alt="Tendances sur 12 mois comparées à la période précédente" width="820">
+  <img src="docs/assets/screenshot-transactions.png" alt="Transactions du mois : recherche, pointage et catégories" width="820">
 </p>
 
 ## Pourquoi Carbure ?
@@ -39,17 +39,6 @@
 - 👨‍👩‍👧 **Pensé pour le foyer** : plusieurs utilisateurs, des données partagées, chacun sa langue
   et ses appareils.
 - 🔒 **Chez vous** : auto-hébergé (un NAS suffit), vos données bancaires ne quittent pas votre réseau.
-
-<table>
-  <tr>
-    <td><img src="docs/assets/screenshot-budget.png" alt="Budgets du mois par catégorie"></td>
-    <td><img src="docs/assets/screenshot-transactions.png" alt="Transactions du mois, recherche et pointage"></td>
-  </tr>
-  <tr>
-    <td align="center"><em>Budgets du mois</em></td>
-    <td align="center"><em>Transactions, recherche et pointage</em></td>
-  </tr>
-</table>
 
 ## Comment ça marche
 
