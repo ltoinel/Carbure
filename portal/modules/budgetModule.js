@@ -222,6 +222,8 @@ export function createBudgetModule(getBudgetStore, getApiService) {
                 this.loadingBudgetTransactions = true;
                 try {
                     this.budgetTransactions = await getApiService().fetchCategoryTransactions(month, year, category.id);
+                    // Icons of the rows: the categories of the transactions
+                    this.ensureCategories();
                 } catch (err) {
                     this.budgetTransactions = [];
                     this.showToast(err.message);

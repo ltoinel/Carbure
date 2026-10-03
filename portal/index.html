@@ -499,8 +499,8 @@
                                             :aria-pressed="Number(transaction.pointed) ? 'true' : 'false'" :aria-label="Number(transaction.pointed) ? t('uncheckTransaction') : t('checkTransaction')">
                                         <span class="material-icons" aria-hidden="true">{{ Number(transaction.pointed) ? 'check_circle' : 'radio_button_unchecked' }}</span>
                                     </button>
-                                    <div class="transaction-icon" :class="'type-' + transaction.type">
-                                        <span class="material-icons" aria-hidden="true">{{ getTransactionIcon(transaction.type) }}</span>
+                                    <div class="transaction-icon" :class="transactionCategory(transaction) ? '' : 'type-' + transaction.type" :style="transactionIconStyle(transaction)">
+                                        <span class="material-icons" aria-hidden="true">{{ transactionIcon(transaction) }}</span>
                                     </div>
                                     <div class="transaction-details transaction-open" role="button" tabindex="0"
                                          :aria-label="t('transactionDetail') + ' : ' + transaction.label"
@@ -680,8 +680,8 @@
                                                 :title="Number(transaction.pointed) ? t('uncheckTransaction') : t('checkTransaction')" :aria-label="Number(transaction.pointed) ? t('uncheckTransaction') : t('checkTransaction')">
                                             <span class="material-icons" aria-hidden="true">{{ Number(transaction.pointed) ? 'check_circle' : 'radio_button_unchecked' }}</span>
                                         </button>
-                                        <div class="transaction-icon" :class="'type-' + transaction.type">
-                                            <span class="material-icons" aria-hidden="true">{{ getTransactionIcon(transaction.type) }}</span>
+                                        <div class="transaction-icon" :class="transactionCategory(transaction) ? '' : 'type-' + transaction.type" :style="transactionIconStyle(transaction)">
+                                            <span class="material-icons" aria-hidden="true">{{ transactionIcon(transaction) }}</span>
                                         </div>
                                         <div class="transaction-details">
                                             <div class="transaction-label">{{ transaction.label }}</div>

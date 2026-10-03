@@ -169,6 +169,46 @@ export function createTransactionModule(getApiService) {
             },
 
             /**
+             * Category of a transaction (null when it has none)
+             * @param {Object} transaction - Transaction
+             * @returns {Object|null}
+             */
+            transactionCategory(transaction) {
+                const id = Number(transaction.category);
+                return id ? this.ruleCategories.find(c => Number(c.id) === id) || null : null;
+            },
+
+            /**
+             * Icon of a transaction: the one of its category (or of the parent category),
+             * the icon of the bank operation type when it has no category
+             * @param {Object} transaction - Transaction
+             * @returns {string}
+             */
+            transactionIcon(transaction) {
+                const category = this.transactionCategory(transaction);
+                if (!category) {
+                    return this.getTransactionIcon(transaction.type);
+                }
+                const parent = this.ruleCategories.find(c => Number(c.id) === Number(category.parent_category));
+                return this.categoryIcon(category.icon || !parent ? category : parent);
+            },
+
+            /**
+             * Colors of the icon of a categorized transaction (null: colors of the operation type)
+             * @param {Object} transaction - Transaction
+             * @returns {Object|null}
+             */
+            transactionIconStyle(transaction) {
+                const category = this.transactionCategory(transaction);
+                if (!category) {
+                    return null;
+                }
+                const parent = this.ruleCategories.find(c => Number(c.id) === Number(category.parent_category));
+                const color = this.categoryColor(category.color || !parent ? category : parent);
+                return { color, background: 'color-mix(in srgb, ' + color + ' 14%, transparent)' };
+            },
+
+            /**
              * Checks if a transaction has no category yet
              * @param {Object} transaction - Transaction
              * @returns {boolean}

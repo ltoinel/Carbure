@@ -2,8 +2,7 @@
 
 Ce tutoriel installe Carbure sur un NAS Synology (DSM 7.2 ou plus) avec **Container
 Manager**, en utilisant la base **MariaDB 10** du NAS. Tout se fait depuis l'interface de
-DSM et le navigateur ; seule la configuration de votre banque dans woob demande une
-commande, une fois (étape 6). Comptez une quinzaine de minutes.
+DSM et le navigateur, sans aucune commande. Comptez une quinzaine de minutes.
 
 !!! info "Ce qu'il vous faut"
     - Un NAS compatible avec Container Manager (la plupart des modèles « + » et récents,
@@ -44,9 +43,19 @@ mot de passe de MariaDB, puis :
 6. Cliquez sur **Exécuter** en bas de la page.
 
 Vous avez maintenant une base `carbure` et un utilisateur `carbure`. Carbure créera ses
-tables lui-même à l'étape 5.
+tables lui-même à l'étape 6.
 
-## 4. Créer le projet Carbure dans Container Manager
+## 4. Télécharger l'image Carbure
+
+L'image est publiée sur [Docker Hub](https://hub.docker.com/r/ltoinel/carbure) : elle se
+trouve directement depuis le DSM.
+
+1. Ouvrez **Container Manager** → **Registre**.
+2. Recherchez `carbure` et sélectionnez **ltoinel/carbure**.
+3. Cliquez sur **Télécharger**, choisissez l'étiquette `latest` (ou une version, par exemple
+   `1.0.0`) puis **Appliquer**. L'image apparaît dans **Image** une fois téléchargée.
+
+## 5. Créer le projet Carbure dans Container Manager
 
 1. Avec **File Station**, créez un dossier `carbure` dans le dossier partagé `docker`
    (créé par Container Manager).
@@ -76,13 +85,13 @@ services:
 ```
 
 5. Cliquez sur **Suivant** (pas besoin de Web Station pour ce projet), puis **Terminé** :
-   Container Manager télécharge l'image et démarre Carbure.
+   Container Manager démarre Carbure avec l'image de l'étape 4.
 
 !!! tip "Port déjà utilisé ?"
     Si le port `8080` est déjà pris sur votre NAS, remplacez `"8080:80"` par exemple par
     `"8095:80"` et utilisez ce port dans la suite.
 
-## 5. Installer Carbure depuis le navigateur
+## 6. Installer Carbure depuis le navigateur
 
 Ouvrez `http://192.168.1.10:8080/` (l'adresse de votre NAS) : l'**assistant
 d'installation** s'affiche.
@@ -98,7 +107,7 @@ l'option **Activer la connexion TCP/IP** de MariaDB 10 et l'hôte `%` de l'utili
 `carbure`. Corrigez au besoin le projet (**Projet → carbure → Action → Arrêter**, modifier,
 puis **Démarrer**).
 
-## 6. Ajouter vos comptes bancaires
+## 7. Ajouter vos comptes bancaires
 
 Dans le portail, onglet **Comptes** → **+** :
 
@@ -112,7 +121,7 @@ Dans le portail, onglet **Comptes** → **+** :
 La synchronisation se lance compte par compte avec le bouton de synchronisation, et
 automatiquement chaque jour grâce à `SYNC_INTERVAL`.
 
-## 7. (Facultatif) Un accès HTTPS avec un nom de domaine
+## 8. (Facultatif) Un accès HTTPS avec un nom de domaine
 
 Pour utiliser l'application iOS ou accéder à Carbure depuis l'extérieur, passez par le
 proxy inversé de DSM : **Panneau de configuration → Portail de connexion → Avancé → Proxy
@@ -127,15 +136,17 @@ derrière le proxy, augmentez les délais d'expiration dans les paramètres avan
 règle.
 
 !!! warning "Exposition sur Internet"
-    Installez Carbure (étape 5) **avant** de l'ouvrir sur Internet. Derrière le proxy
+    Installez Carbure (étape 6) **avant** de l'ouvrir sur Internet. Derrière le proxy
     inversé de DSM, les requêtes semblent venir du NAS lui-même : l'assistant
     d'installation ne demanderait alors pas de code d'installation. Une fois Carbure
     installé, l'assistant disparaît.
 
 ## Mettre à jour Carbure
 
-Dans **Container Manager** → **Projet** → `carbure` → **Action** → **Construire** (DSM
-télécharge la dernière image), ou **Image** → `ltoinel/carbure` → **Mettre à jour**.
+Dans **Container Manager** → **Image**, le badge **Mise à jour disponible** apparaît sur
+`ltoinel/carbure` quand une nouvelle version est publiée : cliquez sur **Mettre à jour**
+(ou téléchargez à nouveau l'étiquette `latest` depuis **Registre**). Le projet `carbure`
+redémarre avec la nouvelle image ; sinon **Projet** → `carbure` → **Action** → **Construire**.
 Au redémarrage, Carbure met sa base de données à jour automatiquement.
 
 Pensez à sauvegarder la base avant une mise à jour : phpMyAdmin → base `carbure` →
