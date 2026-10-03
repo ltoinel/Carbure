@@ -4397,3 +4397,20 @@ a.footer-brand:hover {
     color: var(--error-color);
     font-weight: 500;
 }
+
+.user-locked {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    margin-left: 6px;
+    background: color-mix(in srgb, var(--error-color) 10%, transparent);
+    color: var(--error-color);
+}
+
+/* Refresh: the icon alone (the label is in the tooltip) */
+.btn-refresh {
+    justify-content: center;
+    min-width: 48px;
+    padding-left: 12px;
+    padding-right: 12px;
+}

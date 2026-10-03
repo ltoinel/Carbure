@@ -36,9 +36,25 @@ final class User {
         // check if the $username and the $password are valid in database
         $sql = "SELECT * FROM users where username=?";
         $user = Db::queryOne($sql, "s", $username);
+        $lockout = $user && array_key_exists('locked_until', $user);
+
+        // Locked after too many failures (the password is not even checked);
+        // compared by the database, whose clock wrote the date
+        if ($lockout && $user['locked_until'] !== null
+            && Db::queryOne("SELECT ? > NOW() AS locked", "s", $user['locked_until'])['locked']) {
+            throw new Error("Account locked after too many failed logins, until " . $user['locked_until']
+                . ": ask an administrator to unlock it", 423);
+        }
 
         if (!$user || !self::verifyPassword($user, $password)) {
+            if ($lockout) {
+                self::recordFailedLogin($user);
+            }
             throw new Error("Invalid username or password", 401);
+        }
+
+        if ($lockout && ((int)$user['failed_logins'] > 0 || $user['locked_until'] !== null)) {
+            Db::execute("UPDATE users SET failed_logins = 0, locked_until = NULL WHERE id = ?", "i", $user['id']);
         }
 
         // Update or create the device (the web portal does not send one)
@@ -106,6 +122,51 @@ final class User {
     }
 
     /**
+     * Failed logins in a row before the account is locked
+     */
+    public const MAX_FAILED_LOGINS = 5;
+
+    /**
+     * Duration of the lock
+     */
+    public const LOCK_HOURS = 24;
+
+    /**
+     * Count a failed login and lock the account at the limit.
+     *
+     * @param array $user The user
+     * @return void
+     */
+    private static function recordFailedLogin($user)
+    {
+        $failures = (int)$user['failed_logins'] + 1;
+        if ($failures >= self::MAX_FAILED_LOGINS) {
+            Db::execute("UPDATE users SET failed_logins = 0, locked_until = NOW() + INTERVAL " . self::LOCK_HOURS . " HOUR WHERE id = ?", "i", $user['id']);
+            Logger::warn("Account {$user['username']} locked after " . self::MAX_FAILED_LOGINS . " failed logins");
+        } else {
+            Db::execute("UPDATE users SET failed_logins = ? WHERE id = ?", "ii", $failures, $user['id']);
+        }
+    }
+
+    /**
+     * Unlock an account locked after too many failed logins (administrators).
+     *
+     * @param int $id The user
+     * @return bool True if unlocked
+     * @throws Error If not an administrator or the user does not exist
+     */
+    #[ApiRoute('/user/unlock', method: 'POST')]
+    public static function unlock($id)
+    {
+        self::requireAdmin();
+        if (!Db::queryOne("SELECT id FROM users WHERE id = ?", "i", $id)) {
+            throw new Error("User not found", 404);
+        }
+        Db::execute("UPDATE users SET failed_logins = 0, locked_until = NULL WHERE id = ?", "i", $id);
+        return true;
+    }
+
+    /**
      * Check if the authenticated user is an administrator.
      *
      * @return bool True if the user is an administrator
@@ -137,10 +198,14 @@ final class User {
     #[ApiRoute('/user', method: 'GET')]
     public static function get()
     {
-        // last_login exists once the migration 2026-10-10_last_login.sql is applied
-        $lastLogin = Db::queryOne("SELECT COUNT(*) AS n FROM information_schema.COLUMNS
-            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'last_login'", "")['n'] > 0;
-        $sql = "SELECT " . self::COLUMNS . ($lastLogin ? ", last_login" : ", NULL AS last_login") . " FROM users";
+        // Columns of the migrations 2026-10-10_last_login and 2026-10-12_login_lockout
+        $columns = array_column(Db::execute("SELECT COLUMN_NAME FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users'", "")->get_result()->fetch_all(MYSQLI_ASSOC), 'COLUMN_NAME');
+        $extra = [];
+        foreach (['last_login', 'locked_until'] as $column) {
+            $extra[] = in_array($column, $columns, true) ? $column : "NULL AS $column";
+        }
+        $sql = "SELECT " . self::COLUMNS . ", " . implode(', ', $extra) . " FROM users";
         if (self::isAdmin()) {
             $stmt = Db::execute($sql . " ORDER BY username", "");
         } else {

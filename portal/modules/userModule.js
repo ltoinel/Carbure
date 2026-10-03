@@ -196,6 +196,30 @@ export function createUserModule(getApiService) {
             },
 
             /**
+             * Checks if a user is locked after too many failed logins
+             * @param {Object} user - User
+             * @returns {boolean}
+             */
+            isLocked(user) {
+                return !!user.locked_until && new Date(String(user.locked_until).replace(' ', 'T')) > new Date();
+            },
+
+            /**
+             * Unlocks a user locked after too many failed logins
+             * @param {Object} user - User
+             * @returns {Promise<void>}
+             */
+            async unlockUser(user) {
+                try {
+                    await getApiService().unlockUser(user.id);
+                    this.showToast(this.t('userUnlocked', { username: user.username }));
+                    await this.loadUsers();
+                } catch (error) {
+                    this.showToast(error.message);
+                }
+            },
+
+            /**
              * Deletes a user
              * @param {Object} user - User to delete
              * @returns {Promise<void>}

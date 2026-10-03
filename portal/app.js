@@ -351,7 +351,8 @@ createApp({
                 });
 
                 if (!response.ok) {
-                    throw new Error('Identifiants invalides');
+                    // Locked after too many failed logins (423), or wrong credentials
+                    throw new Error(response.status === 423 ? this.t('accountLocked') : this.t('invalidCredentials'));
                 }
 
                 const data = await response.json();

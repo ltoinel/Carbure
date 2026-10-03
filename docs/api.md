@@ -47,6 +47,13 @@ curl -X POST https://exemple.fr/api/user/login \
 
 Le jeton est valable 30 jours.
 
+`401` si les identifiants sont faux ; `423` si le compte est bloqué (24 h après 5 échecs
+d'affilée).
+
+### `POST /user/unlock` — administrateur
+
+`id` : débloque un compte bloqué après trop d'échecs de connexion.
+
 ### `GET /user/me`
 
 Profil de l'utilisateur connecté : `id`, `username`, `firstname`, `lastname`, `email`,

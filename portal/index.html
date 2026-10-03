@@ -287,9 +287,9 @@
                 </select>
             </div>
 
-            <button @click="refreshCurrentTab" :disabled="loadingTransactions || loadingBudget || loadingInsights">
-                <span class="material-icons">refresh</span>
-                {{ t('refreshButton') }}
+            <button class="btn-refresh" @click="refreshCurrentTab" :disabled="loadingTransactions || loadingBudget || loadingInsights"
+                    :title="t('refreshButton')" :aria-label="t('refreshButton')">
+                <span class="material-icons" aria-hidden="true">refresh</span>
             </button>
         </div>
 
@@ -1218,9 +1218,17 @@
                                             <td>{{ user.firstname || '-' }}</td>
                                             <td>{{ user.lastname || '-' }}</td>
                                             <td><span class="category-chip" :class="{ 'role-admin': Number(user.is_admin) }">{{ Number(user.is_admin) ? t('role_admin') : t('role_user') }}</span></td>
-                                            <td class="user-last-login">{{ user.last_login ? formatSyncDate(user.last_login) : t('neverLoggedIn') }}</td>
+                                            <td class="user-last-login">
+                                                {{ user.last_login ? formatSyncDate(user.last_login) : t('neverLoggedIn') }}
+                                                <span v-if="isLocked(user)" class="category-chip user-locked">
+                                                    <span class="material-icons inline-icon" aria-hidden="true">lock</span>{{ t('userLocked', { date: formatSyncDate(user.locked_until) }) }}
+                                                </span>
+                                            </td>
                                             <td class="actions-column">
                                                 <div class="row-actions">
+                                                    <button v-if="isLocked(user)" class="btn-icon" @click="unlockUser(user)" :title="t('unlockUser')" :aria-label="t('unlockUser') + ' ' + user.username">
+                                                        <span class="material-icons" aria-hidden="true">lock_open</span>
+                                                    </button>
                                                     <button class="btn-icon btn-icon-edit" @click="openEditUserModal(user)" :title="t('editUser')" :aria-label="t('editUser') + ' ' + user.username">
                                                         <span class="material-icons" aria-hidden="true">edit</span>
                                                     </button>

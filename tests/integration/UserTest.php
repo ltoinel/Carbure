@@ -17,6 +17,67 @@ class UserTest extends DatabaseTestCase
         $this->assertNotNull(array_column(User::get(), 'last_login', 'username')['user']);
     }
 
+    public function testLockedAfterFiveFailures()
+    {
+        for ($i = 1; $i <= 5; $i++) {
+            try {
+                User::login('user', 'wrong');
+                $this->fail('Accepted a wrong password');
+            } catch (Error $e) {
+                $this->assertSame(401, $e->getCode());
+            }
+        }
+
+        // Locked: even the right password is refused
+        try {
+            User::login('user', 'userpass');
+            $this->fail('Logged in while locked');
+        } catch (Error $e) {
+            $this->assertSame(423, $e->getCode());
+        }
+        $this->loginAs(self::ADMIN);
+        $this->assertNotNull(array_column(User::get(), 'locked_until', 'username')['user']);
+
+        // A user cannot unlock, an administrator can
+        $this->loginAs(self::USER);
+        try {
+            User::unlock(self::USER);
+            $this->fail('Unlocked by a user');
+        } catch (Error $e) {
+            $this->assertSame(403, $e->getCode());
+        }
+        $this->loginAs(self::ADMIN);
+        $this->assertTrue(User::unlock(self::USER));
+        $this->assertArrayHasKey('token', User::login('user', 'userpass'));
+    }
+
+    public function testSuccessResetsTheFailures()
+    {
+        foreach ([1, 2, 3, 4] as $i) {
+            try {
+                User::login('user', 'wrong');
+            } catch (Error $e) {
+                // Expected
+            }
+        }
+        User::login('user', 'userpass');
+        // 4 more failures do not lock: the counter was reset
+        foreach ([1, 2, 3, 4] as $i) {
+            try {
+                User::login('user', 'wrong');
+            } catch (Error $e) {
+                $this->assertSame(401, $e->getCode());
+            }
+        }
+        $this->assertArrayHasKey('token', User::login('user', 'userpass'));
+    }
+
+    public function testExpiredLock()
+    {
+        Db::query("UPDATE users SET locked_until = NOW() - INTERVAL 1 MINUTE WHERE id = 2");
+        $this->assertArrayHasKey('token', User::login('user', 'userpass'));
+    }
+
     public function testLoginRegistersTheDevice()
     {
         User::login('user', 'userpass', ['name' => 'iPad', 'token' => str_repeat('b', 64)]);

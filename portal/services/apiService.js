@@ -252,6 +252,15 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
     }
 
     /**
+     * Unlocks a user locked after too many failed logins (administrators)
+     * @param {number} id - User ID
+     * @returns {Promise<void>}
+     */
+    async function unlockUser(id) {
+        await request(`${baseUrl}/user/unlock`, { method: 'POST', body: JSON.stringify({ id }) }, 'Failed to unlock the user');
+    }
+
+    /**
      * Fetches the API tokens of the authenticated user (without the tokens themselves)
      * @returns {Promise<Array>} Array of {id, name, token_hint, created_at, last_used_at}
      */
@@ -779,6 +788,7 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
         fetchMe,
         fetchDevices,
         fetchApiTokens,
+        unlockUser,
         fetchMcpSettings,
         updateMcpSettings,
         fetchSchemaStatus,

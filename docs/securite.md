@@ -16,13 +16,17 @@
 | Utilisateur | Données du foyer (transactions, budgets, tendances, analyses), pointage et catégorie des transactions, synchronisation, son profil, ses appareils |
 | Administrateur (`users.is_admin = 1`) | En plus : règles de catégorisation, catégories, comptes bancaires suivis et utilisateurs (dont leur profil) |
 
+Après **5 tentatives de connexion échouées** d'affilée, le compte est **bloqué 24 heures**
+(`423`), même avec le bon mot de passe ; une connexion réussie remet le compteur à zéro. Un
+administrateur le débloque depuis l'onglet **Utilisateurs** (`POST /user/unlock`).
+
 Un administrateur ne peut pas supprimer son propre compte ; un utilisateur propriétaire
 de transactions ne peut pas être supprimé ; le dernier administrateur ne peut pas perdre
 son rôle.
 
 ## En-têtes HTTP
 
-| En-tête | API (PHP, toute installation) | Portail (nginx de l'image, `.htaccess` Apache) |
+| En-tête | API (PHP, toute installation) | Portail (nginx) |
 |---|---|---|
 | `Content-Security-Policy` | `default-src 'none'; frame-ancestors 'none'` | ressources du serveur uniquement ; `'unsafe-eval'` (Vue compile les modèles dans le navigateur) et styles en ligne |
 | `X-Content-Type-Options` | `nosniff` | `nosniff` |
