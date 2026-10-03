@@ -25,9 +25,11 @@ concurrency:
 jobs:
   ci:
     uses: ./.github/workflows/ci.yml
-    # The CI publishes the scan of the image in the Security tab
+    # A reused workflow gets at most the permissions of its caller: those of the CI
+    # (secret scan, publication of the image scan in the Security tab)
     permissions:
       contents: read
+      pull-requests: read
       security-events: write
 
   release:
