@@ -25,6 +25,11 @@ export function createTransactionModule(getApiService) {
 
                 // Rule proposed after a manual categorization: {keyword, category, categoryName}
                 ruleSuggestion: null,
+                // Transaction shown in the detail modal, its category and checked state being edited
+                transactionDetail: null,
+                transactionDetailCategory: '',
+                transactionDetailPointed: false,
+                savingTransaction: false,
 
                 // Search by label
                 searchQuery: '',
@@ -196,6 +201,61 @@ export function createTransactionModule(getApiService) {
                     };
                 } catch (err) {
                     this.showToast(err.message);
+                }
+            },
+
+            /**
+             * Opens the detail modal of a transaction
+             * @param {Object} transaction - Transaction
+             */
+            openTransactionModal(transaction) {
+                this.transactionDetail = transaction;
+                this.transactionDetailCategory = Number(transaction.category) || 0;
+                this.transactionDetailPointed = !!Number(transaction.pointed);
+                // The categories are needed by the picker
+                if (!this.ruleCategories.length && getApiService()) {
+                    getApiService().fetchCategories().then(c => { this.ruleCategories = c; }).catch(() => {});
+                }
+                this.$nextTick(() => document.querySelector('.modal-form .category-picker-button')?.focus());
+            },
+
+            /**
+             * Closes the detail modal of a transaction
+             */
+            closeTransactionModal() {
+                this.transactionDetail = null;
+            },
+
+            /**
+             * Saves the category and the checked state of the transaction of the modal
+             * @returns {Promise<void>}
+             */
+            async saveTransactionDetail() {
+                const transaction = this.transactionDetail;
+                const category = Number(this.transactionDetailCategory) || 0;
+                const pointed = this.transactionDetailPointed;
+                this.savingTransaction = true;
+                try {
+                    if (category !== (Number(transaction.category) || 0)) {
+                        const wasUncategorized = this.isUncategorized(transaction);
+                        // Changing the category also checks the transaction
+                        await getApiService().setTransactionCategory(transaction.id, category);
+                        transaction.category = category;
+                        transaction.pointed = 1;
+                        if (wasUncategorized && category !== 0 && this.isAdmin) {
+                            const option = this.ruleCategoryOptions.find(o => Number(o.id) === category);
+                            this.ruleSuggestion = { keyword: transaction.label.trim(), category, categoryName: option ? option.label : '' };
+                        }
+                    }
+                    if (pointed !== !!Number(transaction.pointed)) {
+                        await this.toggleTransactionPointed(transaction);
+                    }
+                    this.transactionDetail = null;
+                    this.showToast(this.t('transactionSaved'));
+                } catch (error) {
+                    this.showToast(error.message);
+                } finally {
+                    this.savingTransaction = false;
                 }
             },
 

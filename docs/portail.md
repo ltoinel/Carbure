@@ -72,6 +72,9 @@ ouvre le formulaire dans une fenêtre modale, qui sert aussi à la modification.
   propose ensuite de **créer une règle** pour classer automatiquement ce libellé : il ouvre
   l'onglet Règles avec le libellé et la catégorie pré-remplis, le mot-clé pouvant être
   raccourci (dates, numéros de carte…).
+- **Détail d'une transaction** : un clic (ou Entrée) sur le libellé ouvre une fenêtre avec
+  le montant, le libellé complet, les dates, le type, la carte et la date d'import ; la
+  catégorie s'y change avec le sélecteur visuel et la transaction s'y pointe.
 
 ## Budget
 

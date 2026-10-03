@@ -4550,3 +4550,56 @@ a.footer-brand:hover {
 .sub-tab .material-icons {
     font-size: 18px;
 }
+
+/* ===== Transaction detail ===== */
+.transaction-open {
+    cursor: pointer;
+    border-radius: var(--border-radius-sm);
+}
+
+.transaction-open:hover .transaction-label {
+    color: var(--primary-color);
+}
+
+.transaction-open:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+.transaction-detail-amount {
+    font-size: 28px;
+    font-weight: 600;
+}
+
+.transaction-detail-amount.positive {
+    color: var(--success-color);
+}
+
+.transaction-detail-amount.negative {
+    color: var(--error-color);
+}
+
+.transaction-detail-label {
+    margin: 4px 0 16px;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text-primary);
+    word-break: break-word;
+}
+
+.transaction-detail-list {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 6px 16px;
+    margin: 0 0 20px;
+    font-size: 14px;
+}
+
+.transaction-detail-list dt {
+    color: var(--text-secondary);
+}
+
+.transaction-detail-list dd {
+    margin: 0;
+    color: var(--text-primary);
+}

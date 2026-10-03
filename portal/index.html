@@ -481,7 +481,9 @@
                                     <div class="transaction-icon" :class="'type-' + transaction.type">
                                         <span class="material-icons">{{ getTransactionIcon(transaction.type) }}</span>
                                     </div>
-                                    <div class="transaction-details">
+                                    <div class="transaction-details transaction-open" role="button" tabindex="0"
+                                         :aria-label="t('transactionDetail') + ' : ' + transaction.label"
+                                         @click="openTransactionModal(transaction)" @keydown.enter.prevent="openTransactionModal(transaction)" @keydown.space.prevent="openTransactionModal(transaction)">
                                         <div class="transaction-label">{{ transaction.label }}</div>
                                         <div class="transaction-date">{{ formatDate(transaction.rdate || transaction.date) }}</div>
                                     </div>
@@ -1374,6 +1376,55 @@
                     </div>
                 </div>
             </transition>
+        </div>
+
+        <!-- Transaction Modal: detail and category -->
+        <div v-if="transactionDetail" class="modal-overlay" @click.self="closeTransactionModal" @keydown.esc="closeTransactionModal">
+            <div class="modal modal-form" role="dialog" aria-modal="true" aria-labelledby="transaction-modal-title">
+                <div class="modal-header">
+                    <span class="material-icons" aria-hidden="true">{{ getTransactionIcon(transactionDetail.type) }}</span>
+                    <h3 id="transaction-modal-title">{{ t('transactionDetail') }}</h3>
+                    <button class="modal-close" @click="closeTransactionModal" :aria-label="t('close')">
+                        <span class="material-icons" aria-hidden="true">close</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="transaction-detail-amount" :class="transactionDetail.amount >= 0 ? 'positive' : 'negative'">
+                        {{ formatAmount(transactionDetail.amount) }} {{ t('currencySymbol') }}
+                    </div>
+                    <p class="transaction-detail-label">{{ transactionDetail.label }}</p>
+                    <dl class="transaction-detail-list">
+                        <dt>{{ t('transactionDate') }}</dt><dd>{{ formatDate(transactionDetail.date) }}</dd>
+                        <template v-if="transactionDetail.rdate && transactionDetail.rdate !== transactionDetail.date">
+                            <dt>{{ t('transactionRealDate') }}</dt><dd>{{ formatDate(transactionDetail.rdate) }}</dd>
+                        </template>
+                        <dt>{{ t('transactionType') }}</dt><dd>{{ getTransactionType(transactionDetail.type) }}</dd>
+                        <template v-if="transactionDetail.card">
+                            <dt>{{ t('transactionCard') }}</dt><dd>{{ transactionDetail.card }}</dd>
+                        </template>
+                        <dt>{{ t('transactionImported') }}</dt><dd>{{ formatDate(transactionDetail.imported) }}</dd>
+                    </dl>
+                    <div class="form-group">
+                        <label>{{ t('categoryLabel') }}</label>
+                        <category-picker v-model="transactionDetailCategory" :categories="ruleCategories" :t="t" with-default
+                                         :icon-for="categoryIcon" :color-for="categoryColor"></category-picker>
+                    </div>
+                    <label class="setup-checkbox">
+                        <input type="checkbox" v-model="transactionDetailPointed" />
+                        {{ t('transactionChecked') }}
+                    </label>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" @click="closeTransactionModal">
+                        <span class="material-icons" aria-hidden="true">cancel</span>
+                        {{ t('cancel') }}
+                    </button>
+                    <button @click="saveTransactionDetail" :disabled="savingTransaction">
+                        <span class="material-icons" aria-hidden="true">check_circle</span>
+                        {{ t('save') }}
+                    </button>
+                </div>
+            </div>
         </div>
 
         <!-- Insight Modal -->
