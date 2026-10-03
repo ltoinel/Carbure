@@ -8,8 +8,9 @@
 }
 
 :root {
-    --primary-color: #EF4860;
-    --primary-dark: #D63752;
+    /* Brand red darkened for the contrast of the white text (WCAG AA: 5.0:1) */
+    --primary-color: #D12C48;
+    --primary-dark: #B3233C;
     --primary-light: #F47287;
     --success-color: #2e7d32;
     --success-light: #e8f5e9;
@@ -182,7 +183,7 @@ body {
 .login-form select:focus {
     outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(239, 72, 96, 0.1);
+    box-shadow: 0 0 0 3px rgba(209, 44, 72, 0.15);
 }
 
 .login-form input[type="text"]:disabled,
@@ -2037,7 +2038,7 @@ button .material-icons {
 .modal-body input[type="password"]:focus {
     outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(239, 72, 96, 0.1);
+    box-shadow: 0 0 0 3px rgba(209, 44, 72, 0.15);
 }
 
 .modal-body input[type="text"]:disabled {
@@ -2588,7 +2589,8 @@ button .material-icons {
     margin-bottom: 8px;
 }
 
-.trends-chart-head h3 {
+.trends-chart-head h3,
+.trends-chart-head h2.card-title {
     font-size: 16px;
     font-weight: 500;
     color: var(--text-primary);
@@ -3704,7 +3706,7 @@ a.footer-brand:hover {
 .modal-body select:focus {
     outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(239, 72, 96, 0.1);
+    box-shadow: 0 0 0 3px rgba(209, 44, 72, 0.15);
 }
 
 .form-row {
@@ -4047,7 +4049,7 @@ a.footer-brand:hover {
 .modal-body textarea:focus {
     outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(239, 72, 96, 0.1);
+    box-shadow: 0 0 0 3px rgba(209, 44, 72, 0.15);
 }
 
 /* ===== Installation wizard ===== */
@@ -4251,7 +4253,7 @@ a.footer-brand:hover {
 
 .sql-editor .CodeMirror-focused {
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(239, 72, 96, 0.1);
+    box-shadow: 0 0 0 3px rgba(209, 44, 72, 0.15);
 }
 
 .sql-check {
@@ -4641,4 +4643,50 @@ button.rule-chip:focus-visible {
 
 .sql-editor .CodeMirror-scroll {
     min-height: 280px;
+}
+
+/* ===== Accessibility ===== */
+.skip-link {
+    position: absolute;
+    top: -60px;
+    left: 16px;
+    z-index: 2000;
+    padding: 10px 16px;
+    border-radius: var(--border-radius-md);
+    background: var(--text-primary);
+    color: #fff;
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.skip-link:focus {
+    top: 16px;
+}
+
+/* A visible focus for keyboard users, everywhere */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[role="button"]:focus-visible,
+[tabindex]:focus-visible {
+    outline: 3px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+.tab-content:focus {
+    outline: none;
+}
+
+/* Users who ask for less motion */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
 }

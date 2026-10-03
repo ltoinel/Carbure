@@ -146,10 +146,11 @@ export default {
     template: `
         <div class="category-picker" :class="{ open }" @keydown.esc.stop="close">
             <button ref="button" type="button" class="category-picker-button" @click="toggle"
-                    aria-haspopup="listbox" :aria-expanded="open ? 'true' : 'false'">
+                    aria-haspopup="listbox" :aria-expanded="open ? 'true' : 'false'"
+                    :aria-label="t('categoryLabel') + ' : ' + (selected ? selected.name : t('ruleCategoryPlaceholder'))">
                 <template v-if="selected">
                     <span class="category-badge" :style="badgeStyle(selected)">
-                        <span class="material-icons">{{ iconFor(selected) }}</span>
+                        <span class="material-icons" aria-hidden="true">{{ iconFor(selected) }}</span>
                     </span>
                     <span class="category-picker-name">
                         <small v-if="selectedParent">{{ selectedParent.name }} ›</small>
@@ -158,11 +159,11 @@ export default {
                     <span class="category-type-chip" :class="'type-' + selected.type.toLowerCase()">{{ t('categoryType_' + selected.type) }}</span>
                 </template>
                 <span v-else class="category-picker-placeholder">{{ t('ruleCategoryPlaceholder') }}</span>
-                <span class="material-icons category-picker-arrow">expand_more</span>
+                <span class="material-icons category-picker-arrow" aria-hidden="true">expand_more</span>
             </button>
             <div v-if="open" class="category-picker-panel">
                 <div class="category-picker-search">
-                    <span class="material-icons">search</span>
+                    <span class="material-icons" aria-hidden="true">search</span>
                     <input ref="search" type="search" v-model="search" :placeholder="t('searchCategory')" :aria-label="t('searchCategory')" />
                 </div>
                 <div class="category-picker-list" role="listbox">
@@ -173,7 +174,7 @@ export default {
                                 :aria-selected="selected && Number(selected.id) === Number(item.category.id) ? 'true' : 'false'"
                                 @click="choose(item.category)">
                             <span class="category-badge" :style="badgeStyle(item.category)">
-                                <span class="material-icons">{{ iconFor(item.category) }}</span>
+                                <span class="material-icons" aria-hidden="true">{{ iconFor(item.category) }}</span>
                             </span>
                             <span class="category-picker-name">
                                 <small v-if="item.parent">{{ item.parent.name }} ›</small>

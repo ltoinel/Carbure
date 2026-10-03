@@ -222,6 +222,23 @@ supprimé.
 Lien vers le dépôt GitHub de Carbure et **version** de l'instance (`v1.2.0`, ou `dev` hors
 release), lue dans `GET /api/health`.
 
+## Accessibilité
+
+Le portail vise le niveau AA des WCAG (score Lighthouse « Accessibilité » de 100 sur les
+onglets et les fenêtres) :
+
+- contrastes suffisants (rouge de la marque assombri à 5:1 sur blanc) et focus clavier
+  toujours visible ;
+- lien « Aller au contenu », repères de page (bannière, navigation, contenu principal) et
+  onglet courant annoncé ;
+- icônes décoratives masquées aux lecteurs d'écran, boutons à icône seule nommés, champs
+  associés à leur libellé, fenêtres modales annoncées comme dialogues et fermées avec
+  **Échap** ;
+- messages (toasts, erreurs) annoncés par les lecteurs d'écran, langue de la page suivant
+  celle de l'utilisateur ;
+- graphiques doublés d'un tableau (Tendances, Flux du mois) et animations coupées quand le
+  système demande moins de mouvements.
+
 ## Mode debug
 
 Ajouter `?debug=true` à l'URL affiche un panneau avec la dernière requête API et active

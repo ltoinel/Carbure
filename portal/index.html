@@ -169,7 +169,7 @@
         </main>
 
         <!-- Login Screen -->
-        <div v-else-if="!isAuthenticated" class="login-container">
+        <main v-else-if="!isAuthenticated" class="login-container">
             <div class="login-card">
                 <div class="login-header">
                     <img src="icon.png" alt="Carbure" class="login-logo">
@@ -177,15 +177,15 @@
                     <p class="login-subtitle">{{ t('loginSubtitle') }}</p>
                 </div>
 
-                <div v-if="loginError" class="login-error">
-                    <span class="material-icons">error</span>
+                <div v-if="loginError" class="login-error" role="alert">
+                    <span class="material-icons" aria-hidden="true">error</span>
                     {{ loginError }}
                 </div>
 
                 <form @submit.prevent="login" class="login-form">
                     <div class="form-group">
                         <label for="apiUrl">
-                            <span class="material-icons">dns</span>
+                            <span class="material-icons" aria-hidden="true">dns</span>
                             {{ t('apiUrlLabel') }}
                         </label>
                         <input 
@@ -199,7 +199,7 @@
 
                     <div class="form-group">
                         <label for="loginUsername">
-                            <span class="material-icons">person</span>
+                            <span class="material-icons" aria-hidden="true">person</span>
                             {{ t('username') }}
                         </label>
                         <input 
@@ -214,7 +214,7 @@
 
                     <div class="form-group">
                         <label for="loginPassword">
-                            <span class="material-icons">lock</span>
+                            <span class="material-icons" aria-hidden="true">lock</span>
                             {{ t('password') }}
                         </label>
                         <input 
@@ -235,11 +235,12 @@
                 </form>
 
             </div>
-        </div>
+        </main>
 
         <!-- Main Application (only shown when authenticated) -->
         <template v-else>
-        <div class="header">
+        <a href="#main-content" class="skip-link" @click.prevent="focusMain">{{ t('skipToContent') }}</a>
+        <div class="header" role="banner">
             <h1>
                 <a href="./" class="app-home" :title="t('home')" @click.prevent="goHome">
                     <img src="icon.png" alt="Carbure" class="app-logo">
@@ -250,17 +251,17 @@
                 <div class="user-menu" @click.stop>
                     <button class="user-menu-toggle" @click="toggleUserMenu"
                             aria-haspopup="menu" :aria-expanded="showUserMenu ? 'true' : 'false'">
-                        <span class="material-icons">account_circle</span>
+                        <span class="material-icons" aria-hidden="true">account_circle</span>
                         <span class="user-menu-name">{{ currentUser ? currentUser.username : (username || '…') }}</span>
-                        <span class="material-icons user-menu-caret">expand_more</span>
+                        <span class="material-icons user-menu-caret" aria-hidden="true">expand_more</span>
                     </button>
                     <div v-if="showUserMenu" class="user-menu-dropdown" role="menu">
                         <button role="menuitem" @click="openProfile">
-                            <span class="material-icons">person</span>
+                            <span class="material-icons" aria-hidden="true">person</span>
                             {{ t('myProfile') }}
                         </button>
                         <button role="menuitem" class="user-menu-logout" @click="logout">
-                            <span class="material-icons">logout</span>
+                            <span class="material-icons" aria-hidden="true">logout</span>
                             {{ t('logout') }}
                         </button>
                     </div>
@@ -293,72 +294,81 @@
             </button>
         </div>
 
-        <div class="tabs">
+        <div class="tabs" role="navigation" :aria-label="t('mainNavigation')">
             <button 
                 class="tab-button" 
-                :class="{ active: activeTab === 'transactions' }" 
+                :class="{ active: activeTab === 'transactions' }"
+                :aria-current="activeTab === 'transactions' ? 'page' : null" 
                 @click="setActiveTab('transactions')">
-                <span class="material-icons">receipt</span>
+                <span class="material-icons" aria-hidden="true">receipt</span>
                 {{ t('tabTransactions') }}
             </button>
             <button 
                 class="tab-button" 
-                :class="{ active: activeTab === 'budget' }" 
+                :class="{ active: activeTab === 'budget' }"
+                :aria-current="activeTab === 'budget' ? 'page' : null" 
                 @click="setActiveTab('budget')">
-                <span class="material-icons">account_balance</span>
+                <span class="material-icons" aria-hidden="true">account_balance</span>
                 {{ t('tabBudget') }}
             </button>
             <button 
                 class="tab-button" 
-                :class="{ active: activeTab === 'insights' }" 
+                :class="{ active: activeTab === 'insights' }"
+                :aria-current="activeTab === 'insights' ? 'page' : null" 
                 @click="setActiveTab('insights')">
-                <span class="material-icons">analytics</span>
+                <span class="material-icons" aria-hidden="true">analytics</span>
                 {{ t('tabInsights') }}
             </button>
             <button 
                 class="tab-button" 
-                :class="{ active: activeTab === 'trends' }" 
+                :class="{ active: activeTab === 'trends' }"
+                :aria-current="activeTab === 'trends' ? 'page' : null" 
                 @click="setActiveTab('trends')">
-                <span class="material-icons">show_chart</span>
+                <span class="material-icons" aria-hidden="true">show_chart</span>
                 {{ t('tabTrends') }}
             </button>
             <button 
                 v-if="isAdmin"
                 class="tab-button" 
-                :class="{ active: activeTab === 'rules' }" 
+                :class="{ active: activeTab === 'rules' }"
+                :aria-current="activeTab === 'rules' ? 'page' : null" 
                 @click="setActiveTab('rules')">
-                <span class="material-icons">rule</span>
+                <span class="material-icons" aria-hidden="true">rule</span>
                 {{ t('tabRules') }}
             </button>
             <button 
                 v-if="isAdmin"
                 class="tab-button" 
-                :class="{ active: activeTab === 'categories' }" 
+                :class="{ active: activeTab === 'categories' }"
+                :aria-current="activeTab === 'categories' ? 'page' : null" 
                 @click="setActiveTab('categories')">
-                <span class="material-icons">category</span>
+                <span class="material-icons" aria-hidden="true">category</span>
                 {{ t('tabCategories') }}
             </button>
             <button 
                 v-if="isAdmin"
                 class="tab-button" 
-                :class="{ active: activeTab === 'accounts' }" 
+                :class="{ active: activeTab === 'accounts' }"
+                :aria-current="activeTab === 'accounts' ? 'page' : null" 
                 @click="setActiveTab('accounts')">
-                <span class="material-icons" :class="{ spin: syncStatus === 'running' }">{{ syncStatus === 'running' ? 'sync' : 'account_balance' }}</span>
+                <span class="material-icons" aria-hidden="true" :class="{ spin: syncStatus === 'running' }">{{ syncStatus === 'running' ? 'sync' : 'account_balance' }}</span>
                 {{ t('tabAccounts') }}
             </button>
             <button 
                 class="tab-button" 
-                :class="{ active: activeTab === 'agents' }" 
+                :class="{ active: activeTab === 'agents' }"
+                :aria-current="activeTab === 'agents' ? 'page' : null" 
                 @click="setActiveTab('agents')">
-                <span class="material-icons">smart_toy</span>
+                <span class="material-icons" aria-hidden="true">smart_toy</span>
                 {{ t('tabAgents') }}
             </button>
             <button 
                 v-if="isAdmin"
                 class="tab-button" 
-                :class="{ active: activeTab === 'users' }" 
+                :class="{ active: activeTab === 'users' }"
+                :aria-current="activeTab === 'users' ? 'page' : null" 
                 @click="setActiveTab('users')">
-                <span class="material-icons">people</span>
+                <span class="material-icons" aria-hidden="true">people</span>
                 {{ t('tabUsers') }}
             </button>
         </div>
@@ -382,19 +392,21 @@
         </div>
 
         <div v-if="error" class="error">
-            <span class="material-icons">error</span>
+            <span class="material-icons" aria-hidden="true">error</span>
             {{ error }}
         </div>
 
-        <div v-if="toastMessage" class="toast">{{ toastMessage }}</div>
+        <div class="toast-live" role="status" aria-live="polite" aria-atomic="true">
+            <div v-if="toastMessage" class="toast">{{ toastMessage }}</div>
+        </div>
 
         <!-- Tab Content Container -->
-        <div class="tab-content">
+        <div class="tab-content" id="main-content" role="main" tabindex="-1">
             <!-- Transactions Tab -->
             <transition name="fade" mode="out-in">
                 <div v-if="activeTab === 'transactions'" key="transactions" class="tab-panel">
                     <div v-if="loadingTransactions" class="loading">
-                        <div class="material-icons">refresh</div>
+                        <div class="material-icons" aria-hidden="true">refresh</div>
                         <p>{{ t('loadingMessage') }}</p>
                     </div>
 
@@ -402,7 +414,7 @@
                         <div class="stats" v-if="!isSearching">
                             <div class="stat-card">
                                 <div class="stat-icon income">
-                                    <span class="material-icons">arrow_downward</span>
+                                    <span class="material-icons" aria-hidden="true">arrow_downward</span>
                                 </div>
                                 <div class="stat-info">
                                     <div class="stat-label">{{ t('incomeLabel') }}</div>
@@ -412,7 +424,7 @@
 
                             <div class="stat-card">
                                 <div class="stat-icon expense">
-                                    <span class="material-icons">arrow_upward</span>
+                                    <span class="material-icons" aria-hidden="true">arrow_upward</span>
                                 </div>
                                 <div class="stat-info">
                                     <div class="stat-label">{{ t('expenseLabel') }}</div>
@@ -422,7 +434,7 @@
 
                             <div class="stat-card">
                                 <div class="stat-icon total">
-                                    <span class="material-icons">account_balance_wallet</span>
+                                    <span class="material-icons" aria-hidden="true">account_balance_wallet</span>
                                 </div>
                                 <div class="stat-info">
                                     <div class="stat-label">{{ t('balanceLabel') }}</div>
@@ -436,11 +448,11 @@
                                 <h2>{{ isSearching ? t('searchResultsTitle') : t('transactionsTitle') }}</h2>
                                 <div class="transactions-toolbar">
                                     <div class="transaction-search">
-                                        <span class="material-icons">search</span>
+                                        <span class="material-icons" aria-hidden="true">search</span>
                                         <input type="search" v-model="searchQuery" @input="onSearchInput"
                                                :placeholder="t('searchPlaceholder')" :aria-label="t('searchPlaceholder')" />
-                                        <button v-if="searchQuery" class="transaction-search-clear" @click="clearSearch" :title="t('clearSearch')">
-                                            <span class="material-icons">close</span>
+                                        <button v-if="searchQuery" class="transaction-search-clear" @click="clearSearch" :title="t('clearSearch')" :aria-label="t('clearSearch')">
+                                            <span class="material-icons" aria-hidden="true">close</span>
                                         </button>
                                     </div>
                                     <div class="transaction-count">{{ t('transactionCount', { count: isSearching ? searchResults.length : transactions.length }) }}</div>
@@ -460,7 +472,7 @@
                                 </strong>
                             </div>
                             <div v-if="ruleSuggestion" class="rule-suggestion" role="status">
-                                <span class="material-icons">lightbulb</span>
+                                <span class="material-icons" aria-hidden="true">lightbulb</span>
                                 <span class="rule-suggestion-text">{{ t('ruleSuggestion', { label: ruleSuggestion.keyword, category: ruleSuggestion.categoryName }) }}</span>
                                 <button @click="createSuggestedRule">{{ t('createRule') }}</button>
                                 <button class="btn-secondary" @click="ruleSuggestion = null">{{ t('ignore') }}</button>
@@ -475,11 +487,11 @@
                                     <button class="transaction-check" @click="toggleTransactionPointed(transaction)"
                                             :class="{ checked: Number(transaction.pointed) }"
                                             :title="Number(transaction.pointed) ? t('uncheckTransaction') : t('checkTransaction')"
-                                            :aria-pressed="Number(transaction.pointed) ? 'true' : 'false'">
-                                        <span class="material-icons">{{ Number(transaction.pointed) ? 'check_circle' : 'radio_button_unchecked' }}</span>
+                                            :aria-pressed="Number(transaction.pointed) ? 'true' : 'false'" :aria-label="Number(transaction.pointed) ? t('uncheckTransaction') : t('checkTransaction')">
+                                        <span class="material-icons" aria-hidden="true">{{ Number(transaction.pointed) ? 'check_circle' : 'radio_button_unchecked' }}</span>
                                     </button>
                                     <div class="transaction-icon" :class="'type-' + transaction.type">
-                                        <span class="material-icons">{{ getTransactionIcon(transaction.type) }}</span>
+                                        <span class="material-icons" aria-hidden="true">{{ getTransactionIcon(transaction.type) }}</span>
                                     </div>
                                     <div class="transaction-details transaction-open" role="button" tabindex="0"
                                          :aria-label="t('transactionDetail') + ' : ' + transaction.label"
@@ -505,7 +517,7 @@
 
                     <div v-else class="empty-state-container">
                         <div class="empty-state">
-                            <div class="material-icons">inbox</div>
+                            <div class="material-icons" aria-hidden="true">inbox</div>
                             <p>{{ t('emptyMessage') }}</p>
                         </div>
                     </div>
@@ -528,7 +540,7 @@
                         <section v-if="budgetFlow && (budgetFlow.totalIncome > 0 || budgetFlow.totalExpenses > 0)" class="trends-card flow-card">
                             <div class="trends-chart-head">
                                 <div>
-                                    <h3>{{ t('flowTitle') }}</h3>
+                                    <h2 class="card-title">{{ t('flowTitle') }}</h2>
                                     <p class="rules-help">{{ t('flowHelp') }}</p>
                                 </div>
                             </div>
@@ -544,7 +556,7 @@
 
                     <div v-else role="tabpanel">
                     <div v-if="loadingBudget" class="loading">
-                        <div class="material-icons">refresh</div>
+                        <div class="material-icons" aria-hidden="true">refresh</div>
                         <p>{{ t('loadingBudgetMessage') }}</p>
                     </div>
 
@@ -552,7 +564,7 @@
                         <!-- Breadcrumb (sub-categories) -->
                         <nav class="budget-breadcrumb" v-if="safeBudgetStack.length > 0">
                             <button class="breadcrumb-root" @click="goToBreadcrumb(-1)">
-                                <span class="material-icons">arrow_back</span>
+                                <span class="material-icons" aria-hidden="true">arrow_back</span>
                                 {{ t('allCategories') }}
                             </button>
                             <template v-for="(crumb, idx) in safeBudgetStack" :key="crumb.id">
@@ -600,11 +612,11 @@
                                              tabindex="0" @click="navigateToBudget(item)" @keydown.enter="navigateToBudget(item)">
                                         <div class="budget-card-head">
                                             <span class="budget-card-icon" :style="{ color: categoryColor(item), background: 'color-mix(in srgb, ' + categoryColor(item) + ' 14%, transparent)' }">
-                                                <span class="material-icons">{{ categoryIcon(item) }}</span>
+                                                <span class="material-icons" aria-hidden="true">{{ categoryIcon(item) }}</span>
                                             </span>
                                             <span class="budget-card-name">{{ item.name }}</span>
-                                            <button class="budget-card-edit" :title="t('budgetEditTitle')" @click.stop="openBudgetModal(item)">
-                                                <span class="material-icons">tune</span>
+                                            <button class="budget-card-edit" :title="t('budgetEditTitle')" @click.stop="openBudgetModal(item)" :aria-label="t('budgetEditTitle')">
+                                                <span class="material-icons" aria-hidden="true">tune</span>
                                             </button>
                                         </div>
 
@@ -640,8 +652,8 @@
                         <section v-if="budgetCategory" class="trends-card budget-transactions">
                             <div class="trends-chart-head">
                                 <h3>{{ t('categoryTransactions', { category: budgetCategory.name }) }}</h3>
-                                <button class="btn-secondary" @click="clearBudgetTransactions">
-                                    <span class="material-icons">close</span>
+                                <button class="btn-secondary" @click="clearBudgetTransactions" :aria-label="t('close')">
+                                    <span class="material-icons" aria-hidden="true">close</span>
                                 </button>
                             </div>
                             <div v-if="loadingBudgetTransactions" class="transactions-hint">{{ t('loadingMessage') }}</div>
@@ -658,11 +670,11 @@
                                          :class="{ unchecked: !Number(transaction.pointed) }">
                                         <button class="transaction-check" @click="toggleTransactionPointed(transaction)"
                                                 :class="{ checked: Number(transaction.pointed) }"
-                                                :title="Number(transaction.pointed) ? t('uncheckTransaction') : t('checkTransaction')">
-                                            <span class="material-icons">{{ Number(transaction.pointed) ? 'check_circle' : 'radio_button_unchecked' }}</span>
+                                                :title="Number(transaction.pointed) ? t('uncheckTransaction') : t('checkTransaction')" :aria-label="Number(transaction.pointed) ? t('uncheckTransaction') : t('checkTransaction')">
+                                            <span class="material-icons" aria-hidden="true">{{ Number(transaction.pointed) ? 'check_circle' : 'radio_button_unchecked' }}</span>
                                         </button>
                                         <div class="transaction-icon" :class="'type-' + transaction.type">
-                                            <span class="material-icons">{{ getTransactionIcon(transaction.type) }}</span>
+                                            <span class="material-icons" aria-hidden="true">{{ getTransactionIcon(transaction.type) }}</span>
                                         </div>
                                         <div class="transaction-details">
                                             <div class="transaction-label">{{ transaction.label }}</div>
@@ -679,7 +691,7 @@
 
                     <div v-else class="empty-state-container">
                         <div class="empty-state">
-                            <div class="material-icons">account_balance</div>
+                            <div class="material-icons" aria-hidden="true">account_balance</div>
                             <p>{{ t('noBudgetMessage') }}</p>
                         </div>
                     </div>
@@ -689,7 +701,7 @@
                 <!-- Insights Tab -->
                 <div v-else-if="activeTab === 'insights'" key="insights" class="tab-panel">
                     <div v-if="loadingInsights" class="loading">
-                        <div class="material-icons">refresh</div>
+                        <div class="material-icons" aria-hidden="true">refresh</div>
                         <p>{{ t('loadingInsightsMessage') }}</p>
                     </div>
 
@@ -699,7 +711,7 @@
                                 <h2>{{ t('insightsTitle') }}</h2>
                                 <div v-if="isAdmin" class="panel-actions">
                                     <button class="btn-add btn-add-icon" @click="openInsightModal()" :title="t('addInsight')" :aria-label="t('addInsight')">
-                                        <span class="material-icons">add</span>
+                                        <span class="material-icons" aria-hidden="true">add</span>
                                     </button>
                                 </div>
                             </div>
@@ -708,7 +720,7 @@
                             <div v-for="insight in insights" :key="insight.id" class="insight-card" :class="'insight-' + insight.color"
                                  :style="insightColorValues[insight.color] ? { '--insight-color': insightColorValues[insight.color] } : {}">
                                 <div class="insight-icon" aria-hidden="true">
-                                    <span class="material-icons">{{ insight.icon || getInsightIcon(insight.name) }}</span>
+                                    <span class="material-icons" aria-hidden="true">{{ insight.icon || getInsightIcon(insight.name) }}</span>
                                 </div>
                                 <div class="insight-content">
                                     <div class="insight-label">{{ getInsightName(insight.name) }}</div>
@@ -728,7 +740,7 @@
 
                     <div v-else class="empty-state-container">
                         <div class="empty-state">
-                            <div class="material-icons">analytics</div>
+                            <div class="material-icons" aria-hidden="true">analytics</div>
                             <p>{{ t('noInsightsMessage') }}</p>
                         </div>
                     </div>
@@ -737,7 +749,7 @@
                 <!-- Trends Tab -->
                 <div v-else-if="activeTab === 'trends'" key="trends" class="tab-panel">
                     <div v-if="loadingTrends && trends.length === 0" class="loading">
-                        <div class="material-icons">refresh</div>
+                        <div class="material-icons" aria-hidden="true">refresh</div>
                         <p>{{ t('loadingTrends') }}</p>
                     </div>
 
@@ -754,7 +766,7 @@
                                         </button>
                                     </div>
                                     <label class="trends-compare">
-                                        <span class="material-icons">compare_arrows</span>
+                                        <span class="material-icons" aria-hidden="true">compare_arrows</span>
                                         <select :value="trendsCompare" @change="setTrendsCompare($event.target.value)" :aria-label="t('compareWith')">
                                             <option value="none">{{ t('compareNone') }}</option>
                                             <option value="previous">{{ t('comparePrevious') }}</option>
@@ -772,21 +784,21 @@
                                     <div class="summary-label">{{ t('trendsTotalSavings') }}</div>
                                     <div class="summary-value">{{ formatAmount(trendsStats.savings) }} {{ t('currencySymbol') }}</div>
                                     <div v-if="trendsDelta('savings')" class="trends-delta" :class="trendsDelta('savings').good ? 'good' : 'bad'">
-                                        <span class="material-icons">{{ trendsDelta('savings').icon }}</span>{{ trendsDelta('savings').text }}
+                                        <span class="material-icons" aria-hidden="true">{{ trendsDelta('savings').icon }}</span>{{ trendsDelta('savings').text }}
                                     </div>
                                 </div>
                                 <div class="trends-stat">
                                     <div class="summary-label">{{ t('trendsAverageSavings') }}</div>
                                     <div class="summary-value">{{ formatAmount(trendsStats.averageSavings) }} {{ t('currencySymbol') }}</div>
                                     <div v-if="trendsDelta('averageSavings')" class="trends-delta" :class="trendsDelta('averageSavings').good ? 'good' : 'bad'">
-                                        <span class="material-icons">{{ trendsDelta('averageSavings').icon }}</span>{{ trendsDelta('averageSavings').text }}
+                                        <span class="material-icons" aria-hidden="true">{{ trendsDelta('averageSavings').icon }}</span>{{ trendsDelta('averageSavings').text }}
                                     </div>
                                 </div>
                                 <div class="trends-stat">
                                     <div class="summary-label">{{ t('trendsSavingsRate') }}</div>
                                     <div class="summary-value">{{ trendsStats.savingsRate }} %</div>
                                     <div v-if="compareStats" class="trends-delta" :class="trendsStats.savingsRate >= compareStats.savingsRate ? 'good' : 'bad'">
-                                        <span class="material-icons">{{ trendsStats.savingsRate >= compareStats.savingsRate ? 'arrow_upward' : 'arrow_downward' }}</span>
+                                        <span class="material-icons" aria-hidden="true">{{ trendsStats.savingsRate >= compareStats.savingsRate ? 'arrow_upward' : 'arrow_downward' }}</span>
                                         {{ t('pointsVs', { points: (trendsStats.savingsRate - compareStats.savingsRate > 0 ? '+' : '') + (trendsStats.savingsRate - compareStats.savingsRate), rate: compareStats.savingsRate }) }}
                                     </div>
                                 </div>
@@ -795,7 +807,7 @@
                                     <div class="summary-value">{{ formatAmount(trendsStats.averageDebit) }} {{ t('currencySymbol') }}</div>
                                     <div class="trends-stat-sub">{{ t('trendsVsPlanned', { amount: formatAmount(trendsStats.averagePlanned) + ' ' + t('currencySymbol') }) }}</div>
                                     <div v-if="trendsDelta('averageDebit', false)" class="trends-delta" :class="trendsDelta('averageDebit', false).good ? 'good' : 'bad'">
-                                        <span class="material-icons">{{ trendsDelta('averageDebit', false).icon }}</span>{{ trendsDelta('averageDebit', false).text }}
+                                        <span class="material-icons" aria-hidden="true">{{ trendsDelta('averageDebit', false).icon }}</span>{{ trendsDelta('averageDebit', false).text }}
                                     </div>
                                 </div>
                             </div>
@@ -830,7 +842,7 @@
                         <!-- Incomes, expenses, off-budget and planned budget -->
                         <section class="trends-card">
                             <div class="trends-chart-head">
-                                <h3>{{ t('trendsFlowsTitle') }}</h3>
+                                <h2 class="card-title">{{ t('trendsFlowsTitle') }}</h2>
                                 <ul class="trends-legend">
                                     <li v-for="s in trendsSeries" :key="s.key"><span class="swatch" :style="{ background: s.color }"></span>{{ s.label }}</li>
                                     <li><span class="swatch line"></span>{{ t('trendsPlanned') }}</li>
@@ -865,7 +877,7 @@
                         <section class="trends-card">
                             <div class="trends-chart-head">
                                 <div>
-                                    <h3>{{ t('trendsSavingsTitle') }}</h3>
+                                    <h2 class="card-title">{{ t('trendsSavingsTitle') }}</h2>
                                     <p class="rules-help">{{ t('trendsSavingsHelp') }}</p>
                                 </div>
                                 <ul class="trends-legend">
@@ -895,7 +907,7 @@
                         <!-- Monthly savings rate -->
                         <section class="trends-card">
                             <div class="trends-chart-head">
-                                <h3>{{ t('trendsSavingsRateTitle') }}</h3>
+                                <h2 class="card-title">{{ t('trendsSavingsRateTitle') }}</h2>
                                 <ul class="trends-legend">
                                     <li><span class="swatch" style="background: #2a78d6"></span>{{ t('trendsSavingsRate') }}</li>
                                     <li><span class="swatch line"></span>{{ t('trendsAverageRate', { rate: trendsStats.savingsRate }) }}</li>
@@ -930,7 +942,7 @@
                         <!-- Table view -->
                         <section class="trends-card">
                             <button class="btn-secondary trends-table-toggle" @click="showTrendsTable = !showTrendsTable" :aria-expanded="showTrendsTable ? 'true' : 'false'">
-                                <span class="material-icons">{{ showTrendsTable ? 'expand_less' : 'table_chart' }}</span>
+                                <span class="material-icons" aria-hidden="true">{{ showTrendsTable ? 'expand_less' : 'table_chart' }}</span>
                                 {{ showTrendsTable ? t('trendsHideTable') : t('trendsShowTable') }}
                             </button>
                             <div v-if="showTrendsTable" class="trends-table-wrapper">
@@ -969,12 +981,12 @@
                                     <p class="rules-help">{{ t('rulesHelp') }}</p>
                                 </div>
                                 <div class="panel-actions">
-                                    <button class="btn-secondary" @click="applyRules" :disabled="applyingRules" :title="t('applyRulesHelp')">
-                                        <span class="material-icons">auto_fix_high</span>
+                                    <button class="btn-secondary" @click="applyRules" :disabled="applyingRules" :title="t('applyRulesHelp')" :aria-label="t('applyRulesHelp')">
+                                        <span class="material-icons" aria-hidden="true">auto_fix_high</span>
                                         {{ t('applyRules') }}
                                     </button>
                                     <button class="btn-add btn-add-icon" @click="openRuleModal()" :title="t('addRuleTitle')" :aria-label="t('addRuleTitle')">
-                                        <span class="material-icons">add</span>
+                                        <span class="material-icons" aria-hidden="true">add</span>
                                     </button>
                                 </div>
                             </div>
@@ -984,7 +996,7 @@
                             <div class="trends-chart-head">
                                 <h3>{{ t('rulesCount', { count: rules.length }) }}</h3>
                                 <div class="transaction-search">
-                                    <span class="material-icons">search</span>
+                                    <span class="material-icons" aria-hidden="true">search</span>
                                     <input type="search" v-model="ruleFilter" :placeholder="t('ruleFilterPlaceholder')" :aria-label="t('ruleFilterPlaceholder')" />
                                 </div>
                             </div>
@@ -1017,7 +1029,7 @@
                                 </div>
                                 <div class="panel-actions">
                                     <button class="btn-add btn-add-icon" @click="openCategoryModal()" :title="t('addCategory')" :aria-label="t('addCategory')">
-                                        <span class="material-icons">add</span>
+                                        <span class="material-icons" aria-hidden="true">add</span>
                                     </button>
                                 </div>
                             </div>
@@ -1026,7 +1038,7 @@
                         <div v-if="loadingCategories" class="transactions-hint">{{ t('loadingMessage') }}</div>
                         <section v-else v-for="group in categoryGroups" :key="group.type" class="trends-card">
                             <h3 class="category-group-title" :class="'type-' + group.type.toLowerCase()">
-                                <span class="material-icons">{{ { DEBIT: 'trending_down', CREDIT: 'trending_up', 'HORS-BUDGET': 'sync_alt' }[group.type] }}</span>
+                                <span class="material-icons" aria-hidden="true">{{ { DEBIT: 'trending_down', CREDIT: 'trending_up', 'HORS-BUDGET': 'sync_alt' }[group.type] }}</span>
                                 {{ t('categoryTypes_' + group.type) }}
                                 <span class="category-chip">{{ group.count }}</span>
                             </h3>
@@ -1034,24 +1046,24 @@
                                 <li v-for="node in group.nodes" :key="node.category.id">
                                     <div class="category-row" :class="{ 'category-row-other-type': node.otherType }">
                                         <span class="budget-card-icon" :style="{ color: categoryColor(node.category), background: 'color-mix(in srgb, ' + categoryColor(node.category) + ' 14%, transparent)' }">
-                                            <span class="material-icons">{{ categoryIcon(node.category) }}</span>
+                                            <span class="material-icons" aria-hidden="true">{{ categoryIcon(node.category) }}</span>
                                         </span>
                                         <span class="category-row-name">{{ node.category.name }}</span>
                                         <span v-if="Number(node.category.id) === 0" class="category-chip">{{ t('categoryDefault') }}</span>
                                         <template v-else>
-                                            <button class="btn-icon" @click="openCategoryModal(node.category)" :title="t('editCategory')"><span class="material-icons">edit</span></button>
-                                            <button class="btn-icon btn-icon-delete" @click="removeCategory(node.category)" :title="t('deleteCategory')"><span class="material-icons">delete</span></button>
+                                            <button class="btn-icon" @click="openCategoryModal(node.category)" :title="t('editCategory')" :aria-label="t('editCategory')"><span class="material-icons" aria-hidden="true">edit</span></button>
+                                            <button class="btn-icon btn-icon-delete" @click="removeCategory(node.category)" :title="t('deleteCategory')" :aria-label="t('deleteCategory')"><span class="material-icons" aria-hidden="true">delete</span></button>
                                         </template>
                                     </div>
                                     <ul v-if="node.children.length">
                                         <li v-for="child in node.children" :key="child.id" class="category-row child">
                                             <span class="budget-card-icon" :style="{ color: categoryColor(child), background: 'color-mix(in srgb, ' + categoryColor(child) + ' 14%, transparent)' }">
-                                                <span class="material-icons">{{ categoryIcon(child) }}</span>
+                                                <span class="material-icons" aria-hidden="true">{{ categoryIcon(child) }}</span>
                                             </span>
                                             <span class="category-row-name">{{ child.name }}</span>
                                             <span v-if="child.type !== group.type" class="category-type-chip" :class="'type-' + child.type.toLowerCase()">{{ t('categoryType_' + child.type) }}</span>
-                                            <button class="btn-icon" @click="openCategoryModal(child)" :title="t('editCategory')"><span class="material-icons">edit</span></button>
-                                            <button class="btn-icon btn-icon-delete" @click="removeCategory(child)" :title="t('deleteCategory')"><span class="material-icons">delete</span></button>
+                                            <button class="btn-icon" @click="openCategoryModal(child)" :title="t('editCategory')" :aria-label="t('editCategory')"><span class="material-icons" aria-hidden="true">edit</span></button>
+                                            <button class="btn-icon btn-icon-delete" @click="removeCategory(child)" :title="t('deleteCategory')" :aria-label="t('deleteCategory')"><span class="material-icons" aria-hidden="true">delete</span></button>
                                         </li>
                                     </ul>
                                 </li>
@@ -1071,14 +1083,14 @@
                                 </div>
                                 <div class="panel-actions">
                                     <button class="btn-add btn-add-icon" @click="openAccountModal()" :title="t('addAccountTitle')" :aria-label="t('addAccountTitle')">
-                                        <span class="material-icons">add</span>
+                                        <span class="material-icons" aria-hidden="true">add</span>
                                     </button>
                                 </div>
                             </div>
                             <div v-if="bankAccounts.length === 0" class="transactions-hint">{{ t('noAccounts') }}</div>
                             <ul v-else class="accounts-list">
                                 <li v-for="a in bankAccounts" :key="a.id" class="account-item">
-                                    <span class="material-icons account-icon">account_balance</span>
+                                    <span class="material-icons account-icon" aria-hidden="true">account_balance</span>
                                     <div class="account-details">
                                         <div class="account-name">
                                             {{ accountName(a) }}
@@ -1088,18 +1100,18 @@
                                     </div>
                                     <div class="account-sync" :class="'last-sync-' + (a.last_sync_status || 'never').toLowerCase()"
                                          :title="a.last_sync_message || ''">
-                                        <span class="material-icons">{{ { OK: 'check_circle', ERROR: 'error' }[a.last_sync_status] || 'schedule' }}</span>
+                                        <span class="material-icons" aria-hidden="true">{{ { OK: 'check_circle', ERROR: 'error' }[a.last_sync_status] || 'schedule' }}</span>
                                         <span>
                                             <span class="account-sync-state">{{ a.last_sync_status ? t('lastSync_' + a.last_sync_status) : t('lastSyncNever') }}</span>
                                             <span v-if="a.last_sync_at" class="account-sync-date">{{ formatSyncDate(a.last_sync_at) }}</span>
                                         </span>
                                     </div>
                                     <div class="device-actions">
-                                        <button class="btn-icon" @click="startSync(a.bankId)" :disabled="syncStatus === 'running'" :title="t('syncAccount')">
-                                            <span class="material-icons" :class="{ spin: syncStatus === 'running' && syncTarget === a.bankId }">sync</span>
+                                        <button class="btn-icon" @click="startSync(a.bankId)" :disabled="syncStatus === 'running'" :title="t('syncAccount')" :aria-label="t('syncAccount')">
+                                            <span class="material-icons" aria-hidden="true" :class="{ spin: syncStatus === 'running' && syncTarget === a.bankId }">sync</span>
                                         </button>
-                                        <button class="btn-icon" @click="openAccountModal(a)" :title="t('editAccount')"><span class="material-icons">edit</span></button>
-                                        <button class="btn-icon btn-icon-delete" @click="removeAccount(a)" :title="t('deleteAccount')"><span class="material-icons">delete</span></button>
+                                        <button class="btn-icon" @click="openAccountModal(a)" :title="t('editAccount')" :aria-label="t('editAccount')"><span class="material-icons" aria-hidden="true">edit</span></button>
+                                        <button class="btn-icon btn-icon-delete" @click="removeAccount(a)" :title="t('deleteAccount')" :aria-label="t('deleteAccount')"><span class="material-icons" aria-hidden="true">delete</span></button>
                                     </div>
                                 </li>
                             </ul>
@@ -1107,7 +1119,7 @@
 
                         <section class="trends-card" v-if="syncStatus !== 'idle'">
                             <div class="sync-status" :class="'sync-' + syncStatus" role="status">
-                                <span class="material-icons" :class="{ spin: syncStatus === 'running' }">
+                                <span class="material-icons" aria-hidden="true" :class="{ spin: syncStatus === 'running' }">
                                     {{ { running: 'sync', success: 'check_circle', error: 'error', busy: 'hourglass_top' }[syncStatus] }}
                                 </span>
                                 <span>{{ t('syncStatus_' + syncStatus) }}</span>
@@ -1116,12 +1128,12 @@
                             <div class="sync-steps">
                                 <div v-for="acc in syncSteps.accounts" :key="acc.id" class="sync-account">
                                     <div class="sync-account-name">
-                                        <span class="material-icons">account_balance</span>
+                                        <span class="material-icons" aria-hidden="true">account_balance</span>
                                         {{ acc.id.split('@')[1].toUpperCase() }} ···{{ acc.id.split('@')[0].slice(-4) }}
                                     </div>
                                     <ul>
                                         <li v-for="(step, i) in acc.steps" :key="i" class="sync-step" :class="'step-' + step.status">
-                                            <span class="material-icons" :class="{ spin: step.status === 'running' }">
+                                            <span class="material-icons" aria-hidden="true" :class="{ spin: step.status === 'running' }">
                                                 {{ { running: 'sync', ok: 'check_circle', error: 'cancel' }[step.status] }}
                                             </span>
                                             <span class="sync-step-label">
@@ -1133,7 +1145,7 @@
                                             <div v-if="step.error" class="sync-step-error">
                                                 {{ step.error }}
                                                 <a v-if="/woob/i.test(step.error)" class="woob-issues-link" :href="woobIssuesUrl(acc.id)" target="_blank" rel="noopener">
-                                                    <span class="material-icons inline-icon">bug_report</span>
+                                                    <span class="material-icons inline-icon" aria-hidden="true">bug_report</span>
                                                     {{ t('woobIssues', { module: acc.id.split('@').pop() }) }}
                                                 </a>
                                             </div>
@@ -1142,7 +1154,7 @@
                                 </div>
                                 <ul v-if="syncSteps.global.length" class="sync-global">
                                     <li v-for="(step, i) in syncSteps.global" :key="i" class="sync-step" :class="'step-' + step.status">
-                                        <span class="material-icons" :class="{ spin: step.status === 'running' }">
+                                        <span class="material-icons" aria-hidden="true" :class="{ spin: step.status === 'running' }">
                                             {{ { running: 'sync', ok: 'check_circle', error: 'cancel' }[step.status] }}
                                         </span>
                                         <span class="sync-step-label">{{ t('syncStep_' + step.kind) }}</span>
@@ -1152,7 +1164,7 @@
                                 </ul>
                             </div>
                             <button class="btn-secondary sync-log-toggle" @click="showSyncLog = !showSyncLog" :aria-expanded="showSyncLog ? 'true' : 'false'">
-                                <span class="material-icons">{{ showSyncLog ? 'expand_less' : 'expand_more' }}</span>
+                                <span class="material-icons" aria-hidden="true">{{ showSyncLog ? 'expand_less' : 'expand_more' }}</span>
                                 {{ showSyncLog ? t('syncHideLog') : t('syncShowLog') }}
                             </button>
                             <ol v-if="showSyncLog" class="sync-log" aria-live="polite">
@@ -1221,7 +1233,7 @@
                 <!-- Users Tab -->
                 <div v-else-if="activeTab === 'users'" key="users" class="tab-panel">
                     <div v-if="loadingUsers" class="loading">
-                        <div class="material-icons">refresh</div>
+                        <div class="material-icons" aria-hidden="true">refresh</div>
                         <p>{{ t('loadingUsersMessage') }}</p>
                     </div>
 
@@ -1230,7 +1242,7 @@
                             <div class="users-header">
                                 <h2>{{ t('usersTitle') }}</h2>
                                 <button class="btn-add btn-add-icon" @click="openAddUserModal" :title="t('addUser')" :aria-label="t('addUser')">
-                                    <span class="material-icons">add</span>
+                                    <span class="material-icons" aria-hidden="true">add</span>
                                 </button>
                             </div>
                             
@@ -1251,7 +1263,7 @@
                                         <tr v-for="user in users" :key="user.id">
                                             <td>
                                                 <div class="user-username">
-                                                    <span class="material-icons">person</span>
+                                                    <span class="material-icons" aria-hidden="true">person</span>
                                                     {{ user.username }}
                                                 </div>
                                             </td>
@@ -1284,7 +1296,7 @@
                             </div>
 
                             <div v-else class="empty-state">
-                                <div class="material-icons">people</div>
+                                <div class="material-icons" aria-hidden="true">people</div>
                                 <p>{{ t('noUsersMessage') }}</p>
                             </div>
                         </div>
@@ -1300,8 +1312,8 @@
                             </div>
                             <div class="modal-body">
                                 <div class="form-group">
-                                    <label>{{ t('username') }}</label>
-                                    <input type="text" :value="currentUser ? currentUser.username : ''" disabled />
+                                    <label for="field-1">{{ t('username') }}</label>
+                                    <input id="field-1" type="text" :value="currentUser ? currentUser.username : ''" disabled />
                                 </div>
                                 <div class="form-group">
                                     <label for="profile-email">{{ t('email') }}</label>
@@ -1336,7 +1348,7 @@
                             </div>
                             <div class="modal-footer">
                                 <button type="submit" :disabled="savingProfile">
-                                    <span class="material-icons">check_circle</span>
+                                    <span class="material-icons" aria-hidden="true">check_circle</span>
                                     {{ t('save') }}
                                 </button>
                             </div>
@@ -1350,7 +1362,7 @@
                             <div v-else-if="devices.length === 0" class="transactions-hint">{{ t('noDevices') }}</div>
                             <ul v-else class="device-list">
                                 <li v-for="device in devices" :key="device.id" class="device-item">
-                                    <span class="material-icons device-icon">smartphone</span>
+                                    <span class="material-icons device-icon" aria-hidden="true">smartphone</span>
                                     <div class="device-details">
                                         <div class="device-name">{{ device.name || t('unnamedDevice') }}</div>
                                         <div class="device-meta">{{ t('lastLogin') }} : {{ formatDate(device.lastLogin) }}</div>
@@ -1358,14 +1370,14 @@
                                     </div>
                                     <div class="device-actions">
                                         <button class="btn-icon" @click="toggleToken(device)"
-                                                :title="revealedTokens[device.id] ? t('hideToken') : t('showToken')">
-                                            <span class="material-icons">{{ revealedTokens[device.id] ? 'visibility_off' : 'visibility' }}</span>
+                                                :title="revealedTokens[device.id] ? t('hideToken') : t('showToken')" :aria-label="revealedTokens[device.id] ? t('hideToken') : t('showToken')">
+                                            <span class="material-icons" aria-hidden="true">{{ revealedTokens[device.id] ? 'visibility_off' : 'visibility' }}</span>
                                         </button>
-                                        <button class="btn-icon" @click="copyToken(device)" :title="t('copyToken')">
-                                            <span class="material-icons">content_copy</span>
+                                        <button class="btn-icon" @click="copyToken(device)" :title="t('copyToken')" :aria-label="t('copyToken')">
+                                            <span class="material-icons" aria-hidden="true">content_copy</span>
                                         </button>
-                                        <button class="btn-icon btn-icon-delete" @click="removeDevice(device)" :title="t('deleteDevice')">
-                                            <span class="material-icons">delete</span>
+                                        <button class="btn-icon btn-icon-delete" @click="removeDevice(device)" :title="t('deleteDevice')" :aria-label="t('deleteDevice')">
+                                            <span class="material-icons" aria-hidden="true">delete</span>
                                         </button>
                                     </div>
                                 </li>
@@ -1428,12 +1440,12 @@
 
         <!-- Insight Modal -->
         <div v-if="insightForm" class="modal-overlay" @click.self="closeInsightModal">
-            <div class="modal modal-form modal-insight">
+            <div class="modal modal-form modal-insight" role="dialog" aria-modal="true" aria-labelledby="modal-title-1">
                 <div class="modal-header">
-                    <span class="material-icons">analytics</span>
-                    <h3>{{ insightForm.id ? t('editInsight') : t('addInsight') }}</h3>
+                    <span class="material-icons" aria-hidden="true">analytics</span>
+                    <h3 id="modal-title-1">{{ insightForm.id ? t('editInsight') : t('addInsight') }}</h3>
                     <button class="modal-close" @click="closeInsightModal" :aria-label="t('close')">
-                        <span class="material-icons">close</span>
+                        <span class="material-icons" aria-hidden="true">close</span>
                     </button>
                 </div>
                 <form class="modal-body" id="insight-form" @submit.prevent="submitInsight">
@@ -1489,11 +1501,11 @@
                         <span class="material-icons" aria-hidden="true">delete</span>
                     </button>
                     <button class="btn-secondary" @click="closeInsightModal">
-                        <span class="material-icons">cancel</span>
+                        <span class="material-icons" aria-hidden="true">cancel</span>
                         {{ t('cancel') }}
                     </button>
                     <button type="submit" form="insight-form" :disabled="savingInsight">
-                        <span class="material-icons">check_circle</span>
+                        <span class="material-icons" aria-hidden="true">check_circle</span>
                         {{ t('save') }}
                     </button>
                 </div>
@@ -1502,12 +1514,12 @@
 
         <!-- API Token Modal -->
         <div v-if="showApiTokenModal" class="modal-overlay" @click.self="closeApiTokenModal">
-            <div class="modal modal-form">
+            <div class="modal modal-form" role="dialog" aria-modal="true" aria-labelledby="modal-title-2">
                 <div class="modal-header">
-                    <span class="material-icons">key</span>
-                    <h3>{{ t('addApiToken') }}</h3>
+                    <span class="material-icons" aria-hidden="true">key</span>
+                    <h3 id="modal-title-2">{{ t('addApiToken') }}</h3>
                     <button class="modal-close" @click="closeApiTokenModal" :aria-label="t('close')">
-                        <span class="material-icons">close</span>
+                        <span class="material-icons" aria-hidden="true">close</span>
                     </button>
                 </div>
                 <form v-if="!newApiToken" class="modal-body" id="api-token-form" @submit.prevent="createApiToken">
@@ -1561,16 +1573,16 @@
                 <div class="modal-footer">
                     <template v-if="!newApiToken">
                         <button class="btn-secondary" @click="closeApiTokenModal">
-                            <span class="material-icons">cancel</span>
+                            <span class="material-icons" aria-hidden="true">cancel</span>
                             {{ t('cancel') }}
                         </button>
                         <button type="submit" form="api-token-form">
-                            <span class="material-icons">check_circle</span>
+                            <span class="material-icons" aria-hidden="true">check_circle</span>
                             {{ t('create') }}
                         </button>
                     </template>
                     <button v-else @click="closeApiTokenModal">
-                        <span class="material-icons">done</span>
+                        <span class="material-icons" aria-hidden="true">done</span>
                         {{ t('done') }}
                     </button>
                 </div>
@@ -1579,12 +1591,12 @@
 
         <!-- Rule Modal -->
         <div v-if="showRuleModal" class="modal-overlay" @click.self="showRuleModal = false">
-            <div class="modal modal-form">
+            <div class="modal modal-form" role="dialog" aria-modal="true" aria-labelledby="modal-title-3">
                 <div class="modal-header">
-                    <span class="material-icons">rule</span>
-                    <h3>{{ newRule.id ? t('editRule') : t('addRuleTitle') }}</h3>
-                    <button class="modal-close" @click="showRuleModal = false">
-                        <span class="material-icons">close</span>
+                    <span class="material-icons" aria-hidden="true">rule</span>
+                    <h3 id="modal-title-3">{{ newRule.id ? t('editRule') : t('addRuleTitle') }}</h3>
+                    <button class="modal-close" @click="showRuleModal = false" :aria-label="t('close')">
+                        <span class="material-icons" aria-hidden="true">close</span>
                     </button>
                 </div>
                 <form class="modal-body" id="rule-form" @submit.prevent="addRule">
@@ -1613,11 +1625,11 @@
                         <span class="material-icons" aria-hidden="true">delete</span>
                     </button>
                     <button class="btn-secondary" @click="showRuleModal = false">
-                        <span class="material-icons">cancel</span>
+                        <span class="material-icons" aria-hidden="true">cancel</span>
                         {{ t('cancel') }}
                     </button>
                     <button type="submit" form="rule-form" :disabled="savingRule">
-                        <span class="material-icons">check_circle</span>
+                        <span class="material-icons" aria-hidden="true">check_circle</span>
                         {{ t('save') }}
                     </button>
                 </div>
@@ -1626,14 +1638,14 @@
 
         <!-- Category Modal -->
         <div v-if="showCategoryModal" class="modal-overlay" @click.self="showCategoryModal = false">
-            <div class="modal modal-form modal-category">
+            <div class="modal modal-form modal-category" role="dialog" aria-modal="true" aria-labelledby="modal-title-4">
                 <div class="modal-header">
                     <span class="budget-card-icon" :style="{ color: categoryColor(categoryForm), background: 'color-mix(in srgb, ' + categoryColor(categoryForm) + ' 14%, transparent)' }">
-                        <span class="material-icons">{{ categoryIcon(categoryForm) }}</span>
+                        <span class="material-icons" aria-hidden="true">{{ categoryIcon(categoryForm) }}</span>
                     </span>
-                    <h3>{{ categoryForm.id === null ? t('addCategory') : t('editCategory') }}</h3>
-                    <button class="modal-close" @click="showCategoryModal = false">
-                        <span class="material-icons">close</span>
+                    <h3 id="modal-title-4">{{ categoryForm.id === null ? t('addCategory') : t('editCategory') }}</h3>
+                    <button class="modal-close" @click="showCategoryModal = false" :aria-label="t('close')">
+                        <span class="material-icons" aria-hidden="true">close</span>
                     </button>
                 </div>
                 <form class="modal-body" id="category-form" @submit.prevent="saveCategory">
@@ -1675,18 +1687,18 @@
                                     role="radio" :aria-checked="categoryForm.icon === i ? 'true' : 'false'"
                                     :style="categoryForm.icon === i ? { color: categoryColor({ color: categoryForm.color }) } : {}"
                                     @click="categoryForm.icon = i">
-                                <span class="material-icons">{{ categoryIcon({ icon: i }) }}</span>
+                                <span class="material-icons" aria-hidden="true">{{ categoryIcon({ icon: i }) }}</span>
                             </button>
                         </div>
                     </div>
                 </form>
                 <div class="modal-footer">
                     <button class="btn-secondary" @click="showCategoryModal = false">
-                        <span class="material-icons">cancel</span>
+                        <span class="material-icons" aria-hidden="true">cancel</span>
                         {{ t('cancel') }}
                     </button>
                     <button type="submit" form="category-form" :disabled="savingCategory">
-                        <span class="material-icons">check_circle</span>
+                        <span class="material-icons" aria-hidden="true">check_circle</span>
                         {{ t('save') }}
                     </button>
                 </div>
@@ -1695,12 +1707,12 @@
 
         <!-- Account Modal: add or modify a followed bank account -->
         <div v-if="showAccountModal" class="modal-overlay" @click.self="closeAccountModal">
-            <div class="modal modal-account">
+            <div class="modal modal-account" role="dialog" aria-modal="true" aria-labelledby="modal-title-5">
                 <div class="modal-header">
-                    <span class="material-icons">{{ accountForm.id ? 'edit' : 'add_card' }}</span>
-                    <h3>{{ accountForm.id ? t('editAccount') : t('addAccountTitle') }}</h3>
-                    <button class="modal-close" @click="closeAccountModal">
-                        <span class="material-icons">close</span>
+                    <span class="material-icons" aria-hidden="true">{{ accountForm.id ? 'edit' : 'add_card' }}</span>
+                    <h3 id="modal-title-5">{{ accountForm.id ? t('editAccount') : t('addAccountTitle') }}</h3>
+                    <button class="modal-close" @click="closeAccountModal" :aria-label="t('close')">
+                        <span class="material-icons" aria-hidden="true">close</span>
                     </button>
                 </div>
                 <div class="modal-body">
@@ -1708,14 +1720,14 @@
                         <div class="trends-toolbar">
                             <p class="rules-help">{{ t('addAccountHelp') }}</p>
                             <button class="btn-secondary" @click="discoverAccounts" :disabled="discovering">
-                                <span class="material-icons" :class="{ spin: discovering }">{{ discovering ? 'sync' : 'travel_explore' }}</span>
+                                <span class="material-icons" aria-hidden="true" :class="{ spin: discovering }">{{ discovering ? 'sync' : 'travel_explore' }}</span>
                                 {{ discovering ? t('discovering') : t('discoverAccounts') }}
                             </button>
                         </div>
                         <div v-if="discoverError" class="sync-step-error discover-error">{{ discoverError }}</div>
                         <ul v-if="discoveredAccounts.length" class="accounts-list discovered">
                             <li v-for="d in discoveredAccounts" :key="d.bankId" class="account-item">
-                                <span class="material-icons account-icon">savings</span>
+                                <span class="material-icons account-icon" aria-hidden="true">savings</span>
                                 <div class="account-details">
                                     <div class="account-name">{{ d.label || accountName(d) }}</div>
                                     <code class="device-token">{{ d.bankId }}</code>
@@ -1723,14 +1735,14 @@
                                 <span v-if="d.balance !== null && d.balance !== undefined" class="account-balance">{{ formatAmount(d.balance) }} {{ d.currency === 'EUR' || !d.currency ? t('currencySymbol') : d.currency }}</span>
                                 <span v-if="isFollowed(d)" class="category-chip">{{ t('accountFollowed') }}</span>
                                 <button v-else class="btn-secondary" @click="pickDiscovered(d)">
-                                    <span class="material-icons">add</span>{{ t('followAccount') }}
+                                    <span class="material-icons" aria-hidden="true">add</span>{{ t('followAccount') }}
                                 </button>
                             </li>
                         </ul>
                     </template>
                     <div class="form-group">
-                        <label>{{ t('accountBank') }} *</label>
-                        <select v-model="newAccountBank">
+                        <label for="field-2">{{ t('accountBank') }} *</label>
+                        <select id="field-2" v-model="newAccountBank">
                             <option value="" disabled>{{ t('accountBankChoose') }}</option>
                             <optgroup v-if="bankBackends.length" :label="t('banksConfigured')">
                                 <option v-for="b in bankBackends" :key="b.name" :value="b.name">
@@ -1776,17 +1788,17 @@
                         </template>
                     </fieldset>
                     <div class="form-group">
-                        <label>{{ t('accountNumber') }} *</label>
-                        <input v-model="accountForm.account_number" maxlength="100" />
+                        <label for="field-3">{{ t('accountNumber') }} *</label>
+                        <input id="field-3" v-model="accountForm.account_number" maxlength="100" />
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button class="btn-secondary" @click="closeAccountModal">
-                        <span class="material-icons">cancel</span>
+                        <span class="material-icons" aria-hidden="true">cancel</span>
                         {{ t('cancel') }}
                     </button>
                     <button @click="submitAccountForm" :disabled="savingAccount">
-                        <span class="material-icons">check_circle</span>
+                        <span class="material-icons" aria-hidden="true">check_circle</span>
                         {{ t('save') }}
                     </button>
                 </div>
@@ -1795,39 +1807,39 @@
 
         <!-- User Modal -->
         <div v-if="showUserModal" class="modal-overlay" @click.self="closeUserModal">
-            <div class="modal modal-user">
+            <div class="modal modal-user" role="dialog" aria-modal="true" aria-labelledby="modal-title-6">
                 <div class="modal-header">
-                    <span class="material-icons">{{ userToEdit ? 'edit' : 'person_add' }}</span>
-                    <h3>{{ userToEdit ? t('editUser') : t('addUser') }}</h3>
-                    <button class="modal-close" @click="closeUserModal">
-                        <span class="material-icons">close</span>
+                    <span class="material-icons" aria-hidden="true">{{ userToEdit ? 'edit' : 'person_add' }}</span>
+                    <h3 id="modal-title-6">{{ userToEdit ? t('editUser') : t('addUser') }}</h3>
+                    <button class="modal-close" @click="closeUserModal" :aria-label="t('close')">
+                        <span class="material-icons" aria-hidden="true">close</span>
                     </button>
                 </div>
                 <div class="modal-body">
                     <div class="form-group">
-                        <label>{{ t('username') }} *</label>
-                        <input type="text" v-model="userFormData.username" :disabled="!!userToEdit" required />
+                        <label for="field-4">{{ t('username') }} *</label>
+                        <input id="field-4" type="text" v-model="userFormData.username" :disabled="!!userToEdit" required />
                     </div>
                     <div class="form-group">
-                        <label>{{ t('email') }} *</label>
-                        <input type="email" v-model="userFormData.email" required />
+                        <label for="field-5">{{ t('email') }} *</label>
+                        <input id="field-5" type="email" v-model="userFormData.email" required />
                     </div>
                     <div class="form-group">
-                        <label>{{ t('password') }} {{ userToEdit ? '' : '*' }}</label>
-                        <input type="password" v-model="userFormData.password" :required="!userToEdit" />
+                        <label for="field-6">{{ t('password') }} {{ userToEdit ? '' : '*' }}</label>
+                        <input id="field-6" type="password" v-model="userFormData.password" :required="!userToEdit" />
                         <small v-if="userToEdit">{{ t('leaveBlankPassword') }}</small>
                     </div>
                     <div class="form-group">
-                        <label>{{ t('firstname') }}</label>
-                        <input type="text" v-model="userFormData.firstname" />
+                        <label for="field-7">{{ t('firstname') }}</label>
+                        <input id="field-7" type="text" v-model="userFormData.firstname" />
                     </div>
                     <div class="form-group">
-                        <label>{{ t('lastname') }}</label>
-                        <input type="text" v-model="userFormData.lastname" />
+                        <label for="field-8">{{ t('lastname') }}</label>
+                        <input id="field-8" type="text" v-model="userFormData.lastname" />
                     </div>
                     <div class="form-group">
-                        <label>{{ t('userRole') }}</label>
-                        <select v-model.number="userFormData.is_admin">
+                        <label for="field-9">{{ t('userRole') }}</label>
+                        <select id="field-9" v-model.number="userFormData.is_admin">
                             <option :value="0">{{ t('role_user') }}</option>
                             <option :value="1">{{ t('role_admin') }}</option>
                         </select>
@@ -1836,11 +1848,11 @@
                 </div>
                 <div class="modal-footer">
                     <button class="btn-secondary" @click="closeUserModal">
-                        <span class="material-icons">cancel</span>
+                        <span class="material-icons" aria-hidden="true">cancel</span>
                         {{ t('cancel') }}
                     </button>
                     <button @click="submitUserForm">
-                        <span class="material-icons">check_circle</span>
+                        <span class="material-icons" aria-hidden="true">check_circle</span>
                         {{ t('save') }}
                     </button>
                 </div>
@@ -1849,12 +1861,12 @@
 
         <!-- Budget Edit Modal -->
         <div v-if="showBudgetModal" class="modal-overlay" @click.self="closeBudgetModal">
-            <div class="modal">
+            <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title-7">
                 <div class="modal-header">
-                    <span class="material-icons">settings</span>
-                    <h3>{{ t('budgetEditTitle') }}</h3>
-                    <button class="modal-close" @click="closeBudgetModal">
-                        <span class="material-icons">close</span>
+                    <span class="material-icons" aria-hidden="true">settings</span>
+                    <h3 id="modal-title-7">{{ t('budgetEditTitle') }}</h3>
+                    <button class="modal-close" @click="closeBudgetModal" :aria-label="t('close')">
+                        <span class="material-icons" aria-hidden="true">close</span>
                     </button>
                 </div>
                 <div class="modal-body">
@@ -1863,11 +1875,11 @@
                 </div>
                 <div class="modal-footer">
                     <button class="btn-secondary" @click="closeBudgetModal">
-                        <span class="material-icons">cancel</span>
+                        <span class="material-icons" aria-hidden="true">cancel</span>
                         {{ t('cancel') }}
                     </button>
                     <button @click="submitBudgetEdit">
-                        <span class="material-icons">check_circle</span>
+                        <span class="material-icons" aria-hidden="true">check_circle</span>
                         {{ t('save') }}
                     </button>
                 </div>

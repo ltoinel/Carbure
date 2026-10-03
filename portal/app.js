@@ -177,6 +177,15 @@ createApp({
         changeLocale(newLocale) {
             setLocale(newLocale);
             this.locale = newLocale;
+            // Screen readers pronounce the page in its language
+            document.documentElement.lang = newLocale;
+        },
+
+        /**
+         * Skip link: moves the focus to the content of the tab
+         */
+        focusMain() {
+            document.getElementById('main-content')?.focus();
         },
 
         /**
@@ -483,6 +492,20 @@ createApp({
     mounted() {
         // Close the user menu when clicking anywhere else
         document.addEventListener('click', () => this.closeUserMenu());
+
+        // Escape closes the open modal (its close button), then the user menu
+        document.addEventListener('keydown', event => {
+            if (event.key !== 'Escape') {
+                return;
+            }
+            const close = [...document.querySelectorAll('.modal-overlay .modal-close')].pop();
+            if (close) {
+                close.click();
+            } else {
+                this.closeUserMenu();
+            }
+        });
+        document.documentElement.lang = this.locale;
 
         // Check if already authenticated
         this.checkAuthentication();
