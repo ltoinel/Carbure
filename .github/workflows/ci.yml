@@ -136,8 +136,9 @@ jobs:
       - name: Build the image
         run: docker compose -f docker/docker-compose.yml build carbure
 
-      # Security of the image: OS packages (Debian), PHP and Python (woob) dependencies,
-      # secrets left in the image. The build fails on a CRITICAL vulnerability that has a fix.
+      # Security of the image: OS packages (Debian), PHP dependencies, secrets left in the
+      # image. The build fails on a CRITICAL vulnerability that has a fix. woob and its
+      # Python dependencies (/opt/woob) are not scanned: they follow the woob releases.
       - name: Scan the image (blocking)
         uses: aquasecurity/trivy-action@v0.36.0
         with:
@@ -148,6 +149,7 @@ jobs:
           exit-code: '1'
           format: table
           trivyignores: .trivyignore
+          skip-dirs: /opt/woob
 
       - name: Scan the image (report)
         if: always()
@@ -159,6 +161,7 @@ jobs:
           format: sarif
           output: trivy-image.sarif
           trivyignores: .trivyignore
+          skip-dirs: /opt/woob
           skip-setup-trivy: true
 
       - name: Publish the scan in the Security tab

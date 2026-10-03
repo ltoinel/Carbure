@@ -134,8 +134,9 @@ Seules ces routes ne demandent pas de JWT (un test unitaire le vérifie) :
 Chaque build de la CI analyse l'image :
 
 - **hadolint** vérifie les bonnes pratiques du `docker/Dockerfile` ;
-- **Trivy** recherche les vulnérabilités connues des paquets Debian, des dépendances PHP
-  et Python (woob, `curl_cffi`) et les secrets restés dans l'image. Une vulnérabilité
+- **Trivy** recherche les vulnérabilités connues des paquets Debian et des dépendances PHP
+  et les secrets restés dans l'image. woob et ses dépendances Python (`/opt/woob`) ne sont
+  pas analysés : ils suivent les versions de woob (`WOOB_VERSION`). Une vulnérabilité
   **critique pour laquelle un correctif existe** fait échouer le build (et donc la
   release) ; le rapport complet (critique, haute, moyenne) est publié dans l'onglet
   **Security** du dépôt.
