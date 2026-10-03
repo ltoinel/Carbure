@@ -1,0 +1,477 @@
+// Localization file for Carbure Portal
+const i18n = {
+    fr: {
+        // Header
+        appTitle: 'Carbure',
+        
+        // Tabs
+        tabTransactions: 'Transactions',
+        tabBudget: 'Budget',
+        tabInsights: 'Insights',
+        tabRules: 'Règles',
+        chooseCategory: 'Catégoriser…',
+        ruleSuggestion: 'Toujours classer « {label} » dans {category} ?',
+        createRule: 'Créer une règle',
+        ignore: 'Ignorer',
+        rulesTitle: 'Catégorisation automatique',
+        rulesHelp: 'Une transaction dont le libellé contient le mot-clé reçoit la catégorie choisie.',
+        applyRules: 'Appliquer aux transactions non catégorisées',
+        rulesApplied: '{count} transaction(s) catégorisée(s)',
+        ruleKeyword: 'Mot-clé',
+        ruleKeywordPlaceholder: 'Mot-clé du libellé (ex. CARREFOUR)',
+        ruleCategoryPlaceholder: 'Catégorie…',
+        addRule: 'Ajouter',
+        ruleRequired: 'Mot-clé et catégorie requis',
+        ruleAdded: 'Règle ajoutée',
+        ruleDeleted: 'Règle supprimée',
+        deleteRule: 'Supprimer la règle',
+        confirmDeleteRule: 'Supprimer la règle « {keyword} » ?',
+        rulesCount: '{count} règle(s)',
+        ruleFilterPlaceholder: 'Filtrer…',
+        loadingRules: 'Chargement des règles…',
+        noRules: 'Aucune règle',
+        tabTrends: 'Tendances',
+        loadingTrends: 'Chargement des tendances…',
+        trendsTitle: 'Tendances sur {months} mois',
+        trendsPeriod: 'Période',
+        monthsShort: '{months} mois',
+        trendsTotalSavings: 'Épargne cumulée',
+        trendsAverageSavings: 'Épargne moyenne / mois',
+        trendsSavingsRate: 'Taux d\'épargne',
+        trendsAverageDebit: 'Dépenses moyennes / mois',
+        trendsVsPlanned: 'pour {amount} planifiés',
+        trendsFlowsTitle: 'Revenus, dépenses et budget planifié',
+        trendsCredit: 'Crédit',
+        trendsDebit: 'Débit',
+        trendsOffBudget: 'Hors budget',
+        trendsPlanned: 'Budget planifié',
+        trendsSavings: 'Épargne',
+        trendsSavingsTitle: 'Épargne mensuelle',
+        trendsSavingsRateTitle: 'Taux d\'épargne mensuel',
+        trendsAverageRate: 'Moyenne de la période ({rate} %)',
+        trendsSaved: 'Épargné',
+        trendsOverspent: 'Déficit',
+        trendsShowTable: 'Voir les données en tableau',
+        trendsHideTable: 'Masquer le tableau',
+        compareWith: 'Comparer à',
+        compareNone: 'Sans comparaison',
+        comparePrevious: 'Période précédente',
+        compareLastYear: 'Même période l\'an dernier',
+        comparedTo: 'comparé à {period}',
+        comparisonTitle: 'Comparaison des totaux',
+        pointsVs: '{points} pts (vs {rate} %)',
+        
+        // Controls
+        monthLabel: 'Mois',
+        yearLabel: 'Année',
+        refreshButton: 'Actualiser',
+        
+        // Months
+        months: {
+            1: 'Janvier',
+            2: 'Février',
+            3: 'Mars',
+            4: 'Avril',
+            5: 'Mai',
+            6: 'Juin',
+            7: 'Juillet',
+            8: 'Août',
+            9: 'Septembre',
+            10: 'Octobre',
+            11: 'Novembre',
+            12: 'Décembre'
+        },
+        
+        // Stats
+        incomeLabel: 'Revenus',
+        expenseLabel: 'Dépenses',
+        balanceLabel: 'Solde',
+        
+        // Transactions
+        transactionsTitle: 'Transactions',
+        transactionCount: '{count} transaction(s)',
+        uncheckedCount: '{count} non vérifiée(s)',
+        filterLabel: 'Filtrer les transactions',
+        checkTransaction: 'Marquer comme vérifiée',
+        uncheckTransaction: 'Marquer comme non vérifiée',
+        allChecked: 'Toutes les transactions sont vérifiées',
+        searchPlaceholder: 'Rechercher un libellé…',
+        searchResultsTitle: 'Résultats de recherche',
+        clearSearch: 'Effacer la recherche',
+        searching: 'Recherche…',
+        noSearchResults: 'Aucune transaction ne correspond',
+        searchTotal: 'Total des {count} transaction(s) trouvée(s)',
+        
+        // Budget
+        budgetTitle: 'Budget par Catégorie',
+        categoryLabel: 'Catégorie',
+        budgetedLabel: 'Budgété',
+        consumedLabel: 'Consommé',
+        progressLabel: 'Progression',
+        noBudgetMessage: 'Aucun budget défini pour cette période',
+        loadingBudgetMessage: 'Chargement du budget...',
+        overBudget: 'Dépassé',
+        nearLimit: 'Proche limite',
+        onTrack: 'En bonne voie',
+        budgetEditTitle: 'Modifier le budget',
+        allCategories: 'Toutes les catégories',
+        categoryTransactions: 'Transactions : {category}',
+        spentLabel: 'Dépensé',
+        remainingLabel: 'Reste',
+        overspentLabel: 'Dépassement',
+        budgetUsed: '{progress} % du budget du mois utilisé',
+        expensesSection: 'Dépenses budgétées',
+        incomesSection: 'Revenus',
+        othersSection: 'Hors budget et sans activité',
+        remainingAmount: 'Reste {amount}',
+        overspentAmount: 'Dépassé de {amount}',
+        budgetEditLabel: 'Nouveau montant',
+        budgetUpdatedToast: 'Budget mis à jour',
+        invalidBudgetValue: 'Valeur de budget invalide',
+        cancel: 'Annuler',
+        save: 'Enregistrer',
+        
+        // Users
+        tabUsers: 'Utilisateurs',
+        usersTitle: 'Gestion des utilisateurs',
+        addUser: 'Ajouter un utilisateur',
+        editUser: 'Modifier l\'utilisateur',
+        username: 'Nom d\'utilisateur',
+        email: 'Email',
+        password: 'Mot de passe',
+        firstname: 'Prénom',
+        lastname: 'Nom',
+        actions: 'Actions',
+        noUsersMessage: 'Aucun utilisateur',
+        loadingUsersMessage: 'Chargement des utilisateurs...',
+        userCreated: 'Utilisateur créé avec succès',
+        userDeleted: 'Utilisateur supprimé avec succès',
+        userUpdated: 'Utilisateur modifié avec succès',
+        confirmDeleteUser: 'Êtes-vous sûr de vouloir supprimer l\'utilisateur {username} ?',
+        usernameRequired: 'Le nom d\'utilisateur est requis',
+        emailRequired: 'L\'email est requis',
+        emailInvalid: 'L\'email est invalide',
+        passwordRequired: 'Le mot de passe est requis',
+        passwordTooShort: 'Le mot de passe doit contenir au moins 6 caractères',
+        leaveBlankPassword: 'Laisser vide pour ne pas modifier',
+        errorLoadingUsers: 'Erreur lors du chargement des utilisateurs',
+        errorSavingUser: 'Erreur lors de l\'enregistrement',
+        errorDeletingUser: 'Erreur lors de la suppression',
+        updateNotImplemented: 'La modification n\'est pas encore implémentée',
+        
+        // Login
+        loginSubtitle: 'Gestion Bancaire',
+        apiUrlLabel: 'URL de l\'API',
+        loginButton: 'Se connecter',
+        loggingIn: 'Connexion...',
+        loginRequired: 'Nom d\'utilisateur et mot de passe requis',
+        loginError: 'Erreur de connexion',
+        logout: 'Déconnexion',
+        myProfile: 'Mon profil',
+        language: 'Langue',
+        profileUpdated: 'Profil mis à jour',
+        myDevices: 'Mes appareils',
+        alertThreshold: 'Seuil d\'alerte (€)',
+        alertThresholdPlaceholder: 'Désactivé',
+        alertThresholdHelp: 'Notification push sur l\'iPhone pour toute nouvelle dépense supérieure à ce montant. Laisser vide pour désactiver.',
+        loadingDevices: 'Chargement des appareils…',
+        noDevices: 'Aucun appareil enregistré (connectez-vous depuis l\'app iOS)',
+        unnamedDevice: 'Appareil sans nom',
+        lastLogin: 'Dernière connexion',
+        showToken: 'Afficher le token',
+        hideToken: 'Masquer le token',
+        copyToken: 'Copier le token',
+        tokenCopied: 'Token copié',
+        copyUnavailable: 'Copie indisponible (HTTPS requis) : token affiché',
+        deleteDevice: 'Supprimer l\'appareil',
+        confirmDeleteDevice: 'Supprimer l\'appareil « {name} » ? Il ne recevra plus de notifications.',
+        deviceDeleted: 'Appareil supprimé',
+        
+        // Insights
+        insightsTitle: 'Analyses Financières',
+        noInsightsMessage: 'Aucune analyse disponible',
+        loadingInsightsMessage: 'Chargement des analyses...',
+        insightNames: {
+            'CREDIT': 'Crédits',
+            'DEBIT': 'Débits',
+            'BUDGET-PLANIFIE': 'Budget Planifié',
+            'HORS-BUDGET': 'Hors Budget',
+            'EPARGNE': 'Épargne'
+        },
+        
+        // Loading & Messages
+        loadingMessage: 'Chargement des transactions...',
+        emptyMessage: 'Aucune transaction pour cette période',
+        errorMessage: 'Erreur lors du chargement des transactions',
+        
+        // Transaction Types
+        transactionTypes: {
+            1: 'Virement',
+            2: 'Prélèvement',
+            3: 'Chèque',
+            4: 'Remise Chèque',
+            5: 'Remboursement',
+            6: 'Retrait DAB',
+            7: 'Facture Carte',
+            8: 'Dépense',
+            9: 'Commissions',
+            12: 'En cours Carte'
+        },
+        
+        // Currency
+        currencySymbol: '€'
+    },
+    
+    en: {
+        // Header
+        appTitle: 'Carbure',
+        
+        // Tabs
+        tabTransactions: 'Transactions',
+        tabBudget: 'Budget',
+        tabInsights: 'Insights',
+        tabRules: 'Rules',
+        chooseCategory: 'Categorize…',
+        ruleSuggestion: 'Always file "{label}" under {category}?',
+        createRule: 'Create a rule',
+        ignore: 'Ignore',
+        rulesTitle: 'Automatic categorization',
+        rulesHelp: 'A transaction whose label contains the keyword gets the chosen category.',
+        applyRules: 'Apply to uncategorized transactions',
+        rulesApplied: '{count} transaction(s) categorized',
+        ruleKeyword: 'Keyword',
+        ruleKeywordPlaceholder: 'Label keyword (e.g. CARREFOUR)',
+        ruleCategoryPlaceholder: 'Category…',
+        addRule: 'Add',
+        ruleRequired: 'Keyword and category required',
+        ruleAdded: 'Rule added',
+        ruleDeleted: 'Rule deleted',
+        deleteRule: 'Delete rule',
+        confirmDeleteRule: 'Delete the rule "{keyword}"?',
+        rulesCount: '{count} rule(s)',
+        ruleFilterPlaceholder: 'Filter…',
+        loadingRules: 'Loading rules…',
+        noRules: 'No rule',
+        tabTrends: 'Trends',
+        loadingTrends: 'Loading trends…',
+        trendsTitle: 'Trends over {months} months',
+        trendsPeriod: 'Period',
+        monthsShort: '{months} months',
+        trendsTotalSavings: 'Total savings',
+        trendsAverageSavings: 'Average savings / month',
+        trendsSavingsRate: 'Savings rate',
+        trendsAverageDebit: 'Average spending / month',
+        trendsVsPlanned: 'for {amount} planned',
+        trendsFlowsTitle: 'Income, spending and planned budget',
+        trendsCredit: 'Credit',
+        trendsDebit: 'Debit',
+        trendsOffBudget: 'Off-budget',
+        trendsPlanned: 'Planned budget',
+        trendsSavings: 'Savings',
+        trendsSavingsTitle: 'Monthly savings',
+        trendsSavingsRateTitle: 'Monthly savings rate',
+        trendsAverageRate: 'Period average ({rate}%)',
+        trendsSaved: 'Saved',
+        trendsOverspent: 'Deficit',
+        trendsShowTable: 'Show data as a table',
+        trendsHideTable: 'Hide table',
+        compareWith: 'Compare with',
+        compareNone: 'No comparison',
+        comparePrevious: 'Previous period',
+        compareLastYear: 'Same period last year',
+        comparedTo: 'compared to {period}',
+        comparisonTitle: 'Totals comparison',
+        pointsVs: '{points} pts (vs {rate}%)',
+        
+        // Controls
+        monthLabel: 'Month',
+        yearLabel: 'Year',
+        refreshButton: 'Refresh',
+        
+        // Months
+        months: {
+            1: 'January',
+            2: 'February',
+            3: 'March',
+            4: 'April',
+            5: 'May',
+            6: 'June',
+            7: 'July',
+            8: 'August',
+            9: 'September',
+            10: 'October',
+            11: 'November',
+            12: 'December'
+        },
+        
+        // Stats
+        incomeLabel: 'Income',
+        expenseLabel: 'Expenses',
+        balanceLabel: 'Balance',
+        
+        // Transactions
+        transactionsTitle: 'Transactions',
+        transactionCount: '{count} transaction(s)',
+        uncheckedCount: '{count} unchecked',
+        filterLabel: 'Filter transactions',
+        checkTransaction: 'Mark as checked',
+        uncheckTransaction: 'Mark as unchecked',
+        allChecked: 'All transactions are checked',
+        searchPlaceholder: 'Search a label…',
+        searchResultsTitle: 'Search results',
+        clearSearch: 'Clear search',
+        searching: 'Searching…',
+        noSearchResults: 'No matching transaction',
+        searchTotal: 'Total of the {count} transaction(s) found',
+        
+        // Budget
+        budgetTitle: 'Budget by Category',
+        categoryLabel: 'Category',
+        budgetedLabel: 'Budgeted',
+        consumedLabel: 'Consumed',
+        progressLabel: 'Progress',
+        noBudgetMessage: 'No budget defined for this period',
+        loadingBudgetMessage: 'Loading budget...',
+        overBudget: 'Over Budget',
+        nearLimit: 'Near Limit',
+        onTrack: 'On Track',
+        budgetEditTitle: 'Edit Budget',
+        allCategories: 'All categories',
+        categoryTransactions: 'Transactions: {category}',
+        spentLabel: 'Spent',
+        remainingLabel: 'Remaining',
+        overspentLabel: 'Overspent',
+        budgetUsed: '{progress}% of the monthly budget used',
+        expensesSection: 'Budgeted expenses',
+        incomesSection: 'Income',
+        othersSection: 'Off-budget and inactive',
+        remainingAmount: '{amount} left',
+        overspentAmount: 'Over by {amount}',
+        budgetEditLabel: 'New amount',
+        budgetUpdatedToast: 'Budget updated',
+        invalidBudgetValue: 'Invalid budget value',
+        cancel: 'Cancel',
+        save: 'Save',
+        
+        // Users
+        tabUsers: 'Users',
+        usersTitle: 'User Management',
+        addUser: 'Add user',
+        editUser: 'Edit user',
+        username: 'Username',
+        email: 'Email',
+        password: 'Password',
+        firstname: 'First name',
+        lastname: 'Last name',
+        actions: 'Actions',
+        noUsersMessage: 'No users',
+        loadingUsersMessage: 'Loading users...',
+        userCreated: 'User created successfully',
+        userDeleted: 'User deleted successfully',
+        userUpdated: 'User updated successfully',
+        confirmDeleteUser: 'Are you sure you want to delete user {username}?',
+        usernameRequired: 'Username is required',
+        emailRequired: 'Email is required',
+        emailInvalid: 'Email is invalid',
+        passwordRequired: 'Password is required',
+        passwordTooShort: 'Password must be at least 6 characters',
+        leaveBlankPassword: 'Leave blank to keep unchanged',
+        errorLoadingUsers: 'Error loading users',
+        errorSavingUser: 'Error saving user',
+        errorDeletingUser: 'Error deleting user',
+        updateNotImplemented: 'Update not yet implemented',
+        
+        // Login
+        loginSubtitle: 'Banking Management',
+        apiUrlLabel: 'API URL',
+        loginButton: 'Log in',
+        loggingIn: 'Logging in...',
+        loginRequired: 'Username and password required',
+        loginError: 'Login error',
+        logout: 'Log out',
+        myProfile: 'My profile',
+        language: 'Language',
+        profileUpdated: 'Profile updated',
+        myDevices: 'My devices',
+        alertThreshold: 'Alert threshold (€)',
+        alertThresholdPlaceholder: 'Disabled',
+        alertThresholdHelp: 'Push notification on the iPhone for any new expense above this amount. Leave empty to disable.',
+        loadingDevices: 'Loading devices…',
+        noDevices: 'No registered device (log in from the iOS app)',
+        unnamedDevice: 'Unnamed device',
+        lastLogin: 'Last login',
+        showToken: 'Show token',
+        hideToken: 'Hide token',
+        copyToken: 'Copy token',
+        tokenCopied: 'Token copied',
+        copyUnavailable: 'Copy unavailable (HTTPS required): token shown',
+        deleteDevice: 'Delete device',
+        confirmDeleteDevice: 'Delete the device "{name}"? It will no longer receive notifications.',
+        deviceDeleted: 'Device deleted',
+        
+        // Insights
+        insightsTitle: 'Financial Insights',
+        noInsightsMessage: 'No insights available',
+        loadingInsightsMessage: 'Loading insights...',
+        insightNames: {
+            'CREDIT': 'Credits',
+            'DEBIT': 'Debits',
+            'BUDGET-PLANIFIE': 'Planned Budget',
+            'HORS-BUDGET': 'Off Budget',
+            'EPARGNE': 'Savings'
+        },
+        
+        // Loading & Messages
+        loadingMessage: 'Loading transactions...',
+        emptyMessage: 'No transactions for this period',
+        errorMessage: 'Error loading transactions',
+        
+        // Transaction Types
+        transactionTypes: {
+            1: 'Transfer',
+            2: 'Direct Debit',
+            3: 'Check',
+            4: 'Check Deposit',
+            5: 'Refund',
+            6: 'ATM Withdrawal',
+            7: 'Card Payment',
+            8: 'Expense',
+            9: 'Commissions',
+            12: 'Pending Card'
+        },
+        
+        // Currency
+        currencySymbol: '$'
+    }
+};
+
+// Helper function to get translated text
+function t(key, params = {}) {
+    const locale = localStorage.getItem('locale') || 'fr';
+    const keys = key.split('.');
+    let value = i18n[locale];
+    
+    for (const k of keys) {
+        value = value?.[k];
+    }
+    
+    if (typeof value === 'string') {
+        // Replace parameters in the string
+        return value.replace(/\{(\w+)\}/g, (match, param) => (params[param] !== undefined && params[param] !== null) ? params[param] : match);
+    }
+    
+    return value || key;
+}
+
+// Function to change locale
+function setLocale(locale) {
+    if (i18n[locale]) {
+        localStorage.setItem('locale', locale);
+        location.reload();
+    }
+}
+
+// Export for use in other files
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { i18n, t, setLocale };
+}

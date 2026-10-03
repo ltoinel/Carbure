@@ -1,0 +1,118 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+
+      - name: PHP syntax
+        run: find src tests swagger tools -name '*.php' -print0 | xargs -0 -n1 php -l
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: JavaScript syntax (portal ES modules)
+        run: |
+          for file in $(find portal -name '*.js'); do
+            cp "$file" /tmp/check.mjs
+            node --check /tmp/check.mjs || { echo "::error file=$file::JavaScript syntax error"; exit 1; }
+          done
+
+      - name: CSS braces balanced
+        run: |
+          python3 - <<'PY'
+          import sys
+          css = open('portal/style.css', encoding='utf-8').read()
+          depth = css.count('{') - css.count('}')
+          if depth:
+              print(f"::error file=portal/style.css::unbalanced braces ({depth:+d})")
+              sys.exit(1)
+          PY
+
+  tests:
+    name: Tests (PHP ${{ matrix.php }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.2', '8.3', '8.4']
+    services:
+      mariadb:
+        image: mariadb:10.11
+        env:
+          MARIADB_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+    env:
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: root
+      REQUIRE_DB: 1
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: mysqli, curl, openssl, apcu
+          ini-values: apc.enable_cli=1
+          coverage: ${{ matrix.php == '8.3' && 'pcov' || 'none' }}
+
+      - name: Unit and integration tests
+        if: matrix.php != '8.3'
+        run: php tools/phpunit.phar
+
+      - name: Tests with coverage
+        if: matrix.php == '8.3'
+        run: php tools/phpunit.phar --coverage-clover coverage.xml --coverage-text
+
+      - name: Coverage >= 90 %
+        if: matrix.php == '8.3'
+        run: php tools/coverage-check.php coverage.xml 90
+
+      - uses: actions/upload-artifact@v7
+        if: matrix.php == '8.3' && always()
+        with:
+          name: coverage
+          path: coverage.xml
+          if-no-files-found: ignore
+
+  secrets:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: gitleaks/gitleaks-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

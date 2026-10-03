@@ -1,0 +1,194 @@
+<?php
+
+/**
+ * Jwt.php
+ *
+ * JWT Check & Sign
+ *
+ * @author     Ludovic Toinel
+ * @copyright  2026 Carbure App
+ */
+
+final class Jwt {
+
+    /**
+     * Create a JWT token for a user.
+     *
+     * @param int $userId The user id
+     * @return array The token data with 'token', 'exp', 'sub', 'iat'
+     */
+    public static function createJwt($userId)
+    {
+        // Create token header as a JSON string
+        $header = json_encode(['typ' => 'JWT', 'alg' => 'HS256']);
+
+        // Create token payload as a JSON string
+        $expire = new DateTime('NOW');
+        $expire->modify('+30 days');
+
+        $data = [
+            'exp' => $expire->getTimestamp(),
+            'sub' => $userId,
+            'iat' => time(),
+        ];
+
+        $payload = json_encode($data);
+
+        // Encode Header to Base64Url String
+        $base64UrlHeader = self::encode($header);
+
+        // Encode Payload to Base64Url String
+        $base64UrlPayload = self::encode($payload);
+
+        // Create Signature Hash
+        $signature = self::sign($base64UrlHeader, $base64UrlPayload);
+
+        // Encode Signature to Base64Url String
+        $base64UrlSignature = self::encode($signature);
+
+        // Create JWT
+        $jwt = $base64UrlHeader . "." . $base64UrlPayload . "." . $base64UrlSignature;
+
+        // Add the JWT to the payload
+        $data['token'] = $jwt;
+
+        return $data;
+    }
+
+    /**
+     * Sign the JWT token.
+     *
+     * @param string $base64UrlHeader  The base64Url encoded header
+     * @param string $base64UrlPayload The base64Url encoded payload
+     * @return string The HMAC signature
+     */
+    private static function sign($base64UrlHeader, $base64UrlPayload)
+    {   
+        $jwtsecret = Config::get('jwtsecret');
+        $signature = hash_hmac('sha256', $base64UrlHeader . "." . $base64UrlPayload, $jwtsecret, true);
+
+        return  $signature;
+    }
+
+    /**
+     * Encode a string to base64Url.
+     *
+     * @param string $data The data to encode
+     * @return string The base64Url encoded string
+     */
+    private static function encode($data)
+    {
+        return str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($data));
+    }
+
+    /**
+     * Parse a JWT token.
+     *
+     * @param string $jwt The JWT token
+     * @return object|false The decoded payload or false if invalid
+     */
+    public static function parseJwt($jwt)
+    {
+
+        // We check the signature
+        if (self::isTokenSigned($jwt)) {
+            $jwt = explode('.', $jwt);
+            $jwt = base64_decode(strtr($jwt[1], '-_', '+/'));
+            $data = json_decode($jwt);
+
+            // Check expiration date
+            if (is_object($data) && isset($data->exp, $data->sub) && $data->exp > time()) {
+                return $data;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Check the JWT signature.
+     *
+     * @param string $jwt The JWT token
+     * @return bool True if the signature is valid
+     */
+    private static function isTokenSigned($jwt)
+    {
+        $jwt = explode('.', $jwt);
+        if (count($jwt) !== 3) {
+            return false;
+        }
+
+        $signature = self::sign($jwt[0], $jwt[1]);
+        $signature = self::encode($signature);
+
+        return hash_equals($signature, $jwt[2]);
+    }
+
+    /**
+     * Extract JWT token from Authorization header
+     * @return string|null The token or null if not found
+     */
+    private static function getTokenFromHeader()
+    {
+        $authHeader = Webservice::getHeader('Authorization');
+
+        if ($authHeader === null) {
+            return null;
+        }
+        
+        // Extract token from "Bearer <token>"
+        if (preg_match('/Bearer\s+(.+)/', $authHeader, $matches)) {
+            return $matches[1];
+        }
+        
+        // Try without Bearer prefix
+        return $authHeader;
+    }
+
+    /**
+     * Get the user ID from the Authorization header.
+     * @return int the user ID
+     */
+    public static function getUserIdFromToken()
+    {
+        $token = self::getTokenFromHeader();
+        
+        if (!$token) {
+            throw new Error("Missing Authorization header");
+        }
+
+        // Parse JWT token
+        $payload = self::parseJwt($token);
+        
+        if ($payload === false) {
+            throw new Error("Invalid JWT token");
+        }
+
+        return $payload->sub;
+    }
+
+    /**
+     * Check the JWT token from Authorization header
+     * @return bool true if valid JWT token, false otherwise
+     */
+    public static function checkAuthorization()
+    {
+        $token = self::getTokenFromHeader();
+        
+        if (!$token) {
+            Logger::warn("Missing Authorization header");
+            return false;
+        }
+
+        // Validate JWT token
+        $payload = self::parseJwt($token);
+        
+        if ($payload === false) {
+            Logger::warn("Invalid JWT token");
+            return false;
+        }
+
+        Logger::debug("Valid JWT token for user: " . $payload->sub);
+        return true;
+    }
+}

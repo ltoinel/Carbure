@@ -1,0 +1,232 @@
+/**
+ * Profile Module
+ * 
+ * Manages the authenticated user: header user menu and profile page
+ * (email, names, password and interface language).
+ * 
+ * @module profileModule
+ */
+
+/**
+ * Creates a profile module mixin for Vue components
+ * @param {Function} getApiService - Function that returns the API service instance
+ * @returns {Object} Vue mixin with profile methods and data
+ */
+export function createProfileModule(getApiService) {
+    return {
+        data() {
+            return {
+                currentUser: null,
+                showUserMenu: false,
+                savingProfile: false,
+                devices: [],
+                loadingDevices: false,
+                revealedTokens: {},
+                profileForm: {
+                    email: '',
+                    firstname: '',
+                    lastname: '',
+                    password: '',
+                    language: 'fr',
+                    alertThreshold: ''
+                }
+            };
+        },
+
+        computed: {
+            /**
+             * Checks if the authenticated user is an administrator
+             * @returns {boolean}
+             */
+            isAdmin() {
+                return !!(this.currentUser && Number(this.currentUser.is_admin));
+            }
+        },
+
+        methods: {
+            /**
+             * Loads the authenticated user and applies his language
+             * @returns {Promise<void>}
+             */
+            async loadCurrentUser() {
+                const apiService = getApiService();
+                if (!apiService) {
+                    return;
+                }
+
+                try {
+                    this.currentUser = await apiService.fetchMe();
+
+                    // The language of the profile wins over the browser one
+                    const language = this.currentUser.language;
+                    if (language && language !== this.locale) {
+                        this.changeLocale(language);
+                    }
+                } catch (error) {
+                    console.error('Error loading current user:', error);
+                }
+            },
+
+            /**
+             * Toggles the header user menu
+             */
+            toggleUserMenu() {
+                this.showUserMenu = !this.showUserMenu;
+            },
+
+            /**
+             * Closes the header user menu
+             */
+            closeUserMenu() {
+                this.showUserMenu = false;
+            },
+
+            /**
+             * Opens the profile page with the current user data
+             * @returns {Promise<void>}
+             */
+            async openProfile() {
+                this.closeUserMenu();
+
+                // The profile may still be loading (slow network): wait for it
+                if (!this.currentUser) {
+                    await this.loadCurrentUser();
+                }
+
+                const user = this.currentUser || {};
+                this.profileForm = {
+                    email: user.email || '',
+                    firstname: user.firstname || '',
+                    lastname: user.lastname || '',
+                    password: '',
+                    language: user.language || this.locale,
+                    alertThreshold: user.alert_threshold ? Number(user.alert_threshold) : ''
+                };
+                this.setActiveTab('profile');
+                this.loadDevices();
+            },
+
+            /**
+             * Loads the devices (iOS app installations) of the authenticated user
+             * @returns {Promise<void>}
+             */
+            async loadDevices() {
+                const apiService = getApiService();
+                if (!apiService) {
+                    return;
+                }
+
+                this.loadingDevices = true;
+                this.revealedTokens = {};
+                try {
+                    this.devices = await apiService.fetchDevices();
+                } catch (error) {
+                    console.error('Error loading devices:', error);
+                    this.devices = [];
+                    this.showToast(error.message);
+                } finally {
+                    this.loadingDevices = false;
+                }
+            },
+
+            /**
+             * Returns the token to display: full if revealed, shortened otherwise
+             * @param {Object} device - Device
+             * @returns {string}
+             */
+            displayToken(device) {
+                const token = device.token || '';
+                if (this.revealedTokens[device.id] || token.length <= 12) {
+                    return token;
+                }
+                return `${token.slice(0, 6)}…${token.slice(-6)}`;
+            },
+
+            /**
+             * Shows or hides the full token of a device
+             * @param {Object} device - Device
+             */
+            toggleToken(device) {
+                this.revealedTokens = { ...this.revealedTokens, [device.id]: !this.revealedTokens[device.id] };
+            },
+
+            /**
+             * Deletes a device after confirmation
+             * @param {Object} device - Device
+             * @returns {Promise<void>}
+             */
+            async removeDevice(device) {
+                if (!confirm(this.t('confirmDeleteDevice', { name: device.name || this.t('unnamedDevice') }))) {
+                    return;
+                }
+
+                try {
+                    await getApiService().deleteDevice(device.id);
+                    this.devices = this.devices.filter(d => d.id !== device.id);
+                    this.showToast(this.t('deviceDeleted'));
+                } catch (error) {
+                    this.showToast(error.message);
+                }
+            },
+
+            /**
+             * Copies the token of a device to the clipboard
+             * @param {Object} device - Device
+             * @returns {Promise<void>}
+             */
+            async copyToken(device) {
+                try {
+                    await navigator.clipboard.writeText(device.token);
+                    this.showToast(this.t('tokenCopied'));
+                } catch (error) {
+                    // Clipboard API needs HTTPS (or localhost): reveal the token instead
+                    this.revealedTokens = { ...this.revealedTokens, [device.id]: true };
+                    this.showToast(this.t('copyUnavailable'));
+                }
+            },
+
+            /**
+             * Saves the profile of the authenticated user
+             * @returns {Promise<void>}
+             */
+            async saveProfile() {
+                const apiService = getApiService();
+                if (!apiService || !this.currentUser) {
+                    return;
+                }
+
+                if (this.profileForm.password && this.profileForm.password.length < 6) {
+                    this.showToast(this.t('passwordTooShort'));
+                    return;
+                }
+
+                this.savingProfile = true;
+                try {
+                    this.currentUser = await apiService.updateUser(
+                        this.currentUser.id,
+                        this.profileForm.email,
+                        this.profileForm.firstname,
+                        this.profileForm.lastname,
+                        this.profileForm.password,
+                        this.profileForm.language,
+                        this.profileForm.alertThreshold
+                    );
+                    this.profileForm.password = '';
+
+                    if (this.currentUser.language !== this.locale) {
+                        // Reloads the page in the new language
+                        this.changeLocale(this.currentUser.language);
+                        return;
+                    }
+
+                    this.showToast(this.t('profileUpdated'));
+                } catch (error) {
+                    console.error('Error saving profile:', error);
+                    this.showToast(error.message || this.t('errorSavingUser'));
+                } finally {
+                    this.savingProfile = false;
+                }
+            }
+        }
+    };
+}

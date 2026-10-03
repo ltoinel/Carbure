@@ -1,0 +1,70 @@
+site_name: Carbure
+site_description: Portail web de suivi du budget et des transactions bancaires du foyer
+site_url: https://ltoinel.github.io/Carbure/
+repo_url: https://github.com/ltoinel/Carbure
+repo_name: ltoinel/Carbure
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  language: fr
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-night
+        name: Passer en mode sombre
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-sunny
+        name: Passer en mode clair
+  features:
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+    - search.highlight
+    - search.suggest
+  icon:
+    repo: fontawesome/brands/github
+
+plugins:
+  - search:
+      lang: fr
+
+extra_css:
+  - stylesheets/extra.css
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+nav:
+  - Accueil: index.md
+  - Architecture: architecture.md
+  - Mise en route:
+      - Installation: installation.md
+      - Configuration: configuration.md
+  - Utilisation:
+      - API: api.md
+      - Portail web: portail.md
+  - Technique:
+      - Modèle de données: modele-donnees.md
+      - Développement: developpement.md
+      - Sécurité: securite.md

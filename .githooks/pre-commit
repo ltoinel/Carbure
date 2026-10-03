@@ -1,0 +1,33 @@
+#!/bin/sh
+# Lint the staged PHP and JavaScript files.
+# Enable with: git config core.hooksPath .githooks
+
+PHP=${PHP:-php}
+status=0
+
+files=$(git diff --cached --name-only --diff-filter=ACMR)
+
+for file in $(echo "$files" | grep -E '\.php$'); do
+    if ! command -v "$PHP" >/dev/null 2>&1; then
+        echo "pre-commit: php not found, PHP lint skipped (set PHP=/path/to/php)" >&2
+        break
+    fi
+    "$PHP" -l "$file" >/dev/null || status=1
+done
+
+for file in $(echo "$files" | grep -E '^portal/.*\.js$'); do
+    if ! command -v node >/dev/null 2>&1; then
+        echo "pre-commit: node not found, JavaScript lint skipped" >&2
+        break
+    fi
+    # Portal files are ES modules: check them as .mjs
+    tmp=$(mktemp --suffix=.mjs)
+    cp "$file" "$tmp"
+    node --check "$tmp" || { echo "  in $file" >&2; status=1; }
+    rm -f "$tmp"
+done
+
+if [ $status -ne 0 ]; then
+    echo "pre-commit: lint failed, commit aborted" >&2
+fi
+exit $status

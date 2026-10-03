@@ -1,0 +1,8 @@
+conf/prod.ini
+conf/certs/*.p8
+logs/*.log
+cache/
+woob
+.phpunit.result.cache
+.phpunit.cache/
+CLAUDE.md

@@ -1,0 +1,125 @@
+# Portail web
+
+Le portail (`portal/`) est une application Vue 3 servie en fichiers statiques, par
+exemple sous `https://<serveur>/portal/`. Il utilise la même API que l'app iOS.
+
+## Connexion
+
+L'écran de connexion demande l'URL de l'API, l'identifiant et le mot de passe. Le JWT et
+l'URL sont conservés dans le navigateur (`localStorage`) jusqu'à la déconnexion.
+
+Le sélecteur de mois et d'année en haut de page s'applique aux onglets Transactions,
+Budget et Analyses. Les onglets Tendances et Règles ont leurs propres réglages.
+
+## En-tête et menu utilisateur
+
+En haut à droite, le bouton affiche le **login** de l'utilisateur connecté. Son menu
+déroulant donne accès à :
+
+- **Mon profil** ;
+- **Déconnexion**.
+
+## Transactions
+
+![Transactions](assets/screenshot-transactions.png)
+
+- Statistiques du mois : revenus, dépenses, solde.
+- Liste compacte des transactions avec icône du type, libellé, date et montant.
+- **Pointage** : le bouton rond à gauche de chaque transaction la marque comme vérifiée
+  (coche verte) ou non vérifiée. Les transactions non vérifiées sont en gras.
+- **Filtre** : à côté du nombre de transactions, un interrupteur on/off limite la liste
+  aux transactions non vérifiées (avec leur nombre).
+- **Recherche** : le champ de recherche (2 caractères minimum) interroge
+  `GET /transaction/search` sur tous les mois et affiche le **total** des transactions
+  trouvées ; le filtre s'applique aussi aux résultats. La croix efface la recherche.
+- **Catégorisation manuelle** : une transaction sans catégorie propose un sélecteur
+  « Catégoriser… ». Après le choix (la transaction est aussi pointée), un bandeau
+  propose de **créer une règle** pour classer automatiquement ce libellé : il ouvre
+  l'onglet Règles avec le libellé et la catégorie pré-remplis, le mot-clé pouvant être
+  raccourci (dates, numéros de carte…).
+
+## Budget
+
+![Budget](assets/screenshot-budget.png)
+
+- **Synthèse du mois** : dépensé, budgété, reste (ou dépassement) et jauge globale des
+  dépenses budgétées.
+- **Cartes par catégorie** avec l'icône et la couleur de la catégorie, le montant
+  dépensé sur le budget, le reste ou le dépassement et une jauge colorée (en bonne voie,
+  à partir de 80 %, au-delà de 100 %).
+- Sections séparées : **dépenses budgétées**, **revenus**, **hors budget et sans
+  activité**.
+- **Clic sur une catégorie** : liste de ses transactions du mois (sous-catégories
+  comprises) avec leur total et le pointage ; si elle a des sous-catégories, leurs
+  cartes s'affichent, avec un fil d'Ariane pour remonter.
+- Bouton de réglage d'une carte : modification du montant budgété pour le mois.
+
+## Tendances
+
+![Tendances](assets/screenshot-trends.png)
+
+- Période de **3, 6 ou 12 mois** se terminant au mois courant.
+- **Comparer à** : sans comparaison, la période précédente ou la même période l'an
+  dernier.
+- **Chiffres clés** : épargne cumulée, épargne moyenne par mois, taux d'épargne,
+  dépenses moyennes par mois face au budget planifié ; en comparaison, l'écart (flèche,
+  couleur et pourcentage) avec la période de référence.
+- **Comparaison des totaux** (en mode comparaison) : crédit, débit, hors budget, budget
+  planifié et épargne des deux périodes.
+- **Revenus, dépenses et budget planifié** : barres mensuelles crédit / débit / hors
+  budget et ligne du budget planifié, avec infobulle détaillée au survol.
+- **Épargne mensuelle** : `crédit - débit`, hors budget exclu (barres bleues, rouges en
+  cas de déficit).
+- Vue **tableau** des données mois par mois.
+
+## Règles
+
+Gestion de la catégorisation automatique : une transaction dont le libellé contient le
+mot-clé reçoit la catégorie choisie.
+
+- Ajout d'une règle (mot-clé + catégorie ou sous-catégorie).
+- Liste des règles regroupées par catégorie, filtrable, avec suppression.
+- **Appliquer aux transactions non catégorisées** : catégorise immédiatement
+  l'historique et affiche le nombre de transactions mises à jour. Les règles sont
+  aussi appliquées automatiquement après chaque synchronisation (dernier mois).
+
+## Analyses
+
+Indicateurs du mois sélectionné (table `budget_insight`).
+
+## Utilisateurs (administrateurs)
+
+L'onglet n'est visible que pour un administrateur (`is_admin`) : liste, création,
+modification et suppression des utilisateurs.
+
+## Mon profil
+
+- Modification de l'e-mail, du prénom, du nom et du mot de passe (laisser vide pour le
+  conserver). L'identifiant n'est pas modifiable.
+- **Langue** (français / anglais) : enregistrée sur le compte et appliquée à chaque
+  connexion, sur tous les navigateurs.
+- **Seuil d'alerte (€)** : notification push sur l'iPhone pour toute nouvelle dépense
+  supérieure à ce montant, détectée lors d'une synchronisation. Vide = désactivé.
+- **Mes appareils** : appareils iOS enregistrés à la connexion depuis l'app, avec la
+  date de dernière connexion et le token APNs, masqué par défaut. Les boutons permettent
+  de l'afficher en entier, de le copier (HTTPS requis ; sinon le token est affiché) ou
+  de **supprimer** un ancien appareil.
+
+## Mode debug
+
+Ajouter `?debug=true` à l'URL affiche un panneau avec la dernière requête API et active
+des logs dans la console du navigateur.
+
+## Organisation du code
+
+| Fichier | Rôle |
+|---|---|
+| `index.html` | Gabarit Vue (tous les écrans) |
+| `app.js` | Application racine : authentification, onglets, initialisation |
+| `modules/*.js` | Mixins par domaine : transactions, budget, analyses, tendances, règles, utilisateurs, profil |
+| `services/apiService.js` | Appels HTTP vers l'API |
+| `stores/budgetStore.js` | Navigation dans l'arborescence des budgets |
+| `components/*.js` | Composants (fil d'Ariane, élément de budget, modale) |
+| `i18n.js` | Traductions `fr` et `en` |
+| `utils/formatters.js` | Formatage des montants, dates, icônes |
+| `style.css` | Styles (variables CSS dans `:root`) |

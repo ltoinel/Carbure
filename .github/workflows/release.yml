@@ -1,0 +1,36 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  release:
+    name: GitHub release
+    needs: ci
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build the archive
+        run: |
+          name="carbure-${GITHUB_REF_NAME}"
+          mkdir -p dist
+          git archive --format=tar.gz --prefix="$name/" -o "dist/$name.tar.gz" HEAD \
+            src portal swagger sql conf/prod.sample.ini README.md LICENSE
+          git archive --format=zip --prefix="$name/" -o "dist/$name.zip" HEAD \
+            src portal swagger sql conf/prod.sample.ini README.md LICENSE
+          (cd dist && sha256sum * > SHA256SUMS)
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/* --title "Carbure $GITHUB_REF_NAME" --generate-notes --verify-tag

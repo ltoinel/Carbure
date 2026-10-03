@@ -1,0 +1,320 @@
+<?php
+
+/**
+ * Apns.php
+ *
+ * Apple Push Notification Service (APNs) client.
+ * Sends push notifications to iOS devices via HTTP/2.
+ *
+ * @author     Ludovic Toinel
+ * @copyright  2026 Carbure App
+ */
+
+final class Apns {
+
+    /**
+     * APNs endpoint URLs
+     */
+    private const APNS_PRODUCTION = 'https://api.push.apple.com';
+    private const APNS_SANDBOX = 'https://api.sandbox.push.apple.com';
+
+    /**
+     * Send a push notification to an iOS device.
+     *
+     * @param string $deviceToken The device token (64 hex characters)
+     * @param string $title       Notification title
+     * @param string $body        Notification body/message
+     * @param int    $badge       Badge number to display on the app icon
+     * @param array  $data        Optional custom data payload
+     * @return array Response with success status and details
+     * @throws Error If notification fails
+     */
+    public static function send($deviceToken, $title, $body, $badge = 0, $data = [])
+    {
+        // Validate device token
+        if (!preg_match('/^[a-f0-9]{64}$/i', $deviceToken)) {
+            throw new Error("Invalid device token format", 400);
+        }
+
+        // Build the notification payload
+        $payload = self::buildPayload($title, $body, $badge, $data);
+        
+        // Choose endpoint based on environment (apns_endpoint overrides it, e.g. for tests)
+        $environment = Config::has('apns_environment') ? Config::get('apns_environment') : 'production';
+        $endpoint = ($environment === 'sandbox') ? self::APNS_SANDBOX : self::APNS_PRODUCTION;
+        if (Config::has('apns_endpoint')) {
+            $endpoint = Config::get('apns_endpoint');
+        }
+        $bundleId = Config::has('apns_bundle_id') ? Config::get('apns_bundle_id') : null;
+        
+        if (empty($bundleId)) {
+            throw new Error("APNs bundle ID not configured (apns_bundle_id)", 500);
+        }
+        
+        $url = $endpoint . '/3/device/' . $deviceToken;
+        
+        Logger::info("Sending APNs notification to $deviceToken", [
+            'title' => $title,
+            'environment' => $environment
+        ]);
+        
+        // Get authentication method
+        $authMethod = Config::has('apns_auth_method') ? Config::get('apns_auth_method') : 'certificate';
+        
+        if ($authMethod === 'token') {
+            return self::sendWithToken($url, $payload, $bundleId);
+        } else {
+            return self::sendWithCertificate($url, $payload, $bundleId);
+        }
+    }
+
+    /**
+     * Build the APNs JSON payload.
+     *
+     * @param string $title Notification title
+     * @param string $body  Notification body
+     * @param int    $badge Badge number
+     * @param array  $data  Custom data
+     * @return string JSON payload
+     */
+    private static function buildPayload($title, $body, $badge = 0, $data = [])
+    {
+        $payload = [
+            'aps' => [
+                'alert' => [
+                    'title' => $title,
+                    'body' => $body
+                ],
+                'sound' => 'default',
+                'badge' => $badge
+            ]
+        ];
+        
+        // Add custom data if provided
+        if (!empty($data)) {
+            $payload = array_merge($payload, $data);
+        }
+        
+        return json_encode($payload);
+    }
+
+    /**
+     * Send notification using token-based authentication (recommended)
+     * Requires .p8 key file from Apple Developer Portal
+     * 
+     * @param string $url APNs URL
+     * @param string $payload JSON payload
+     * @param string $bundleId App bundle ID
+     * @return array Response
+     */
+    private static function sendWithToken($url, $payload, $bundleId)
+    {
+        // Get token configuration
+        $keyPath = Config::has('apns_key_path') ? Config::get('apns_key_path') : null;
+        $keyId = Config::has('apns_key_id') ? Config::get('apns_key_id') : null;
+        $teamId = Config::has('apns_team_id') ? Config::get('apns_team_id') : null;
+        
+        if (empty($keyPath) || empty($keyId) || empty($teamId)) {
+            throw new Error("APNs token configuration incomplete (apns_key_path, apns_key_id, apns_team_id)", 500);
+        }
+        
+        // Convert relative path to absolute
+        $keyPath = Config::getAbsolutePath($keyPath);
+        
+        // Generate JWT token
+        $jwt = self::generateJwt($keyPath, $keyId, $teamId);
+        
+        // Prepare headers
+        $headers = [
+            'Authorization: Bearer ' . $jwt,
+            'apns-topic: ' . $bundleId,
+            'apns-push-type: alert',
+            'apns-priority: 10',
+            'apns-expiration: 0'
+        ];
+        
+        return self::sendRequest($url, $payload, $headers);
+    }
+
+    /**
+     * Send notification using certificate-based authentication
+     * Requires .pem certificate file
+     * 
+     * @param string $url APNs URL
+     * @param string $payload JSON payload
+     * @param string $bundleId App bundle ID
+     * @return array Response
+     */
+    private static function sendWithCertificate($url, $payload, $bundleId)
+    {
+        $certPath = Config::has('apns_certificate_path') ? Config::get('apns_certificate_path') : null;
+        $certPassword = Config::has('apns_certificate_password') ? Config::get('apns_certificate_password') : '';
+        
+        if (empty($certPath)) {
+            throw new Error("APNs certificate path not configured (apns_certificate_path)", 500);
+        }
+        
+        // Convert relative path to absolute
+        $certPath = Config::getAbsolutePath($certPath);
+        
+        if (!file_exists($certPath)) {
+            throw new Error("APNs certificate file not found: $certPath", 500);
+        }
+        
+        // Prepare headers
+        $headers = [
+            'apns-topic: ' . $bundleId,
+            'apns-push-type: alert',
+            'apns-priority: 10',
+            'apns-expiration: 0'
+        ];
+        
+        return self::sendRequest($url, $payload, $headers, $certPath, $certPassword);
+    }
+
+    /**
+     * Send HTTP/2 request to APNs
+     * 
+     * @param string $url APNs URL
+     * @param string $payload JSON payload
+     * @param array $headers Request headers
+     * @param string|null $certPath Certificate path (for cert-based auth)
+     * @param string|null $certPassword Certificate password
+     * @return array Response
+     */
+    private static function sendRequest($url, $payload, $headers, $certPath = null, $certPassword = null)
+    {
+        $ch = curl_init();
+        
+        curl_setopt_array($ch, [
+            CURLOPT_URL => $url,
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => $payload,
+            CURLOPT_HTTPHEADER => $headers,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_2_0,
+            CURLOPT_TIMEOUT => 30
+        ]);
+        
+        // Certificate-based authentication
+        if ($certPath !== null) {
+            curl_setopt($ch, CURLOPT_SSLCERT, $certPath);
+            if (!empty($certPassword)) {
+                curl_setopt($ch, CURLOPT_SSLCERTPASSWD, $certPassword);
+            }
+        }
+        
+        $response = curl_exec($ch);
+
+        if ($response === false) {
+            $error = curl_error($ch);
+            curl_close($ch);
+            Logger::error("APNs cURL error: $error");
+            throw new Error("Failed to send APNs notification: $error", 500);
+        }
+
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $body = $response;
+        curl_close($ch);
+        
+        // Parse response
+        $result = [
+            'success' => $httpCode === 200,
+            'http_code' => $httpCode,
+            'response' => $body
+        ];
+        
+        if ($httpCode === 200) {
+            Logger::info("APNs notification sent successfully");
+        } else {
+            $errorData = json_decode($body, true);
+            $reason = $errorData['reason'] ?? 'Unknown error';
+            Logger::warn("APNs notification failed: HTTP $httpCode - $reason", $errorData);
+            $result['error'] = $reason;
+        }
+        
+        return $result;
+    }
+
+    /**
+     * Generate JWT token for token-based authentication
+     * 
+     * @param string $keyPath Path to .p8 key file
+     * @param string $keyId Key ID from Apple Developer Portal
+     * @param string $teamId Team ID from Apple Developer Portal
+     * @return string JWT token
+     */
+    private static function generateJwt($keyPath, $keyId, $teamId)
+    {
+        if (!file_exists($keyPath)) {
+            throw new Error("APNs key file not found: $keyPath", 500);
+        }
+        
+        // Read the private key
+        $privateKey = file_get_contents($keyPath);
+        if ($privateKey === false) {
+            throw new Error("Failed to read APNs key file", 500);
+        }
+        
+        // JWT header
+        $header = [
+            'alg' => 'ES256',
+            'kid' => $keyId
+        ];
+        
+        // JWT payload
+        $payload = [
+            'iss' => $teamId,
+            'iat' => time()
+        ];
+        
+        $headerEncoded = rtrim(strtr(base64_encode(json_encode($header)), '+/', '-_'), '=');
+        $payloadEncoded = rtrim(strtr(base64_encode(json_encode($payload)), '+/', '-_'), '=');
+        
+        // Sign with ES256 (ECDSA with SHA-256)
+        $dataToSign = $headerEncoded . '.' . $payloadEncoded;
+        $signature = '';
+        
+        $key = openssl_pkey_get_private($privateKey);
+        if ($key === false) {
+            throw new Error("Invalid APNs private key", 500);
+        }
+        
+        openssl_sign($dataToSign, $signature, $key, OPENSSL_ALGO_SHA256);
+        
+        $signatureEncoded = rtrim(strtr(base64_encode($signature), '+/', '-_'), '=');
+        
+        return $dataToSign . '.' . $signatureEncoded;
+    }
+
+    /**
+     * Send notification to multiple devices.
+     *
+     * @param array  $deviceTokens Array of device tokens
+     * @param string $title        Notification title
+     * @param string $body         Notification body
+     * @param int    $badge        Badge number to display on the app icon
+     * @param array  $data         Optional custom data
+     * @return array Results for each device token
+     */
+    public static function sendToMultiple($deviceTokens, $title, $body, $badge = 0, $data = [])
+    {
+        $results = [];
+        
+        foreach ($deviceTokens as $token) {
+            try {
+                $result = self::send($token, $title, $body, $badge, $data);
+                $results[$token] = $result;
+            } catch (Error $e) {
+                Logger::warn("Failed to send to $token: " . $e->getMessage());
+                $results[$token] = [
+                    'success' => false,
+                    'error' => $e->getMessage()
+                ];
+            }
+        }
+        
+        return $results;
+    }
+
+}

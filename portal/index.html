@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carbure - Gestion Bancaire</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="icon.png">
+    
+    <!-- Material Design Icons & Fonts -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- External CSS -->
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- Vue.js 3 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    
+    <!-- Localization -->
+    <script src="i18n.js"></script>
+    <!-- App script -->
+    <script type="module" src="app.js"></script>
+</head>
+<body>
+    <div id="app">
+        <!-- Login Screen -->
+        <div v-if="!isAuthenticated" class="login-container">
+            <div class="login-card">
+                <div class="login-header">
+                    <img src="icon.png" alt="Carbure" class="login-logo">
+                    <h1>{{ t('appTitle') }}</h1>
+                    <p class="login-subtitle">{{ t('loginSubtitle') }}</p>
+                </div>
+
+                <div v-if="loginError" class="login-error">
+                    <span class="material-icons">error</span>
+                    {{ loginError }}
+                </div>
+
+                <form @submit.prevent="login" class="login-form">
+                    <div class="form-group">
+                        <label for="apiUrl">
+                            <span class="material-icons">dns</span>
+                            {{ t('apiUrlLabel') }}
+                        </label>
+                        <input 
+                            type="url" 
+                            id="apiUrl" 
+                            v-model="loginForm.apiUrl" 
+                            required 
+                            placeholder="https://carbure.example.com"
+                        />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="loginUsername">
+                            <span class="material-icons">person</span>
+                            {{ t('username') }}
+                        </label>
+                        <input 
+                            type="text" 
+                            id="loginUsername" 
+                            v-model="loginForm.username" 
+                            required 
+                            :disabled="loggingIn"
+                            autocomplete="username"
+                        />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="loginPassword">
+                            <span class="material-icons">lock</span>
+                            {{ t('password') }}
+                        </label>
+                        <input 
+                            type="password" 
+                            id="loginPassword" 
+                            v-model="loginForm.password" 
+                            required 
+                            :disabled="loggingIn"
+                            autocomplete="current-password"
+                        />
+                    </div>
+
+                    <button type="submit" class="btn-login" :disabled="loggingIn">
+                        <span v-if="loggingIn" class="material-icons spin">refresh</span>
+                        <span v-else class="material-icons">login</span>
+                        {{ loggingIn ? t('loggingIn') : t('loginButton') }}
+                    </button>
+                </form>
+
+                <div class="language-switcher login-lang-switcher">
+                    <button @click="changeLocale('fr')" :class="{ active: locale === 'fr' }">FR</button>
+                    <button @click="changeLocale('en')" :class="{ active: locale === 'en' }">EN</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Application (only shown when authenticated) -->
+        <template v-else>
+        <div class="header">
+            <h1>
+                <img src="icon.png" alt="Carbure" class="app-logo">
+                {{ t('appTitle') }}
+            </h1>
+            <div class="header-actions">
+                <div class="user-menu" @click.stop>
+                    <button class="user-menu-toggle" @click="toggleUserMenu"
+                            aria-haspopup="menu" :aria-expanded="showUserMenu ? 'true' : 'false'">
+                        <span class="material-icons">account_circle</span>
+                        <span class="user-menu-name">{{ currentUser ? currentUser.username : (username || '…') }}</span>
+                        <span class="material-icons user-menu-caret">expand_more</span>
+                    </button>
+                    <div v-if="showUserMenu" class="user-menu-dropdown" role="menu">
+                        <button role="menuitem" @click="openProfile">
+                            <span class="material-icons">person</span>
+                            {{ t('myProfile') }}
+                        </button>
+                        <button role="menuitem" class="user-menu-logout" @click="logout">
+                            <span class="material-icons">logout</span>
+                            {{ t('logout') }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <label for="month">{{ t('monthLabel') }}</label>
+                <select id="month" v-model="selectedMonth" @change="refreshCurrentTab">
+                    <option v-for="month in months" :key="month.value" :value="month.value">
+                        {{ month.label }}
+                    </option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="year">{{ t('yearLabel') }}</label>
+                <select id="year" v-model="selectedYear" @change="refreshCurrentTab">
+                    <option v-for="year in years" :key="year" :value="year">
+                        {{ year }}
+                    </option>
+                </select>
+            </div>
+
+            <button @click="refreshCurrentTab" :disabled="loadingTransactions || loadingBudget || loadingInsights">
+                <span class="material-icons">refresh</span>
+                {{ t('refreshButton') }}
+            </button>
+        </div>
+
+        <div class="tabs">
+            <button 
+                class="tab-button" 
+                :class="{ active: activeTab === 'transactions' }" 
+                @click="setActiveTab('transactions')">
+                <span class="material-icons">receipt</span>
+                {{ t('tabTransactions') }}
+            </button>
+            <button 
+                class="tab-button" 
+                :class="{ active: activeTab === 'budget' }" 
+                @click="setActiveTab('budget')">
+                <span class="material-icons">account_balance</span>
+                {{ t('tabBudget') }}
+            </button>
+            <button 
+                class="tab-button" 
+                :class="{ active: activeTab === 'insights' }" 
+                @click="setActiveTab('insights')">
+                <span class="material-icons">analytics</span>
+                {{ t('tabInsights') }}
+            </button>
+            <button 
+                class="tab-button" 
+                :class="{ active: activeTab === 'trends' }" 
+                @click="setActiveTab('trends')">
+                <span class="material-icons">show_chart</span>
+                {{ t('tabTrends') }}
+            </button>
+            <button 
+                class="tab-button" 
+                :class="{ active: activeTab === 'rules' }" 
+                @click="setActiveTab('rules')">
+                <span class="material-icons">rule</span>
+                {{ t('tabRules') }}
+            </button>
+            <button 
+                v-if="isAdmin"
+                class="tab-button" 
+                :class="{ active: activeTab === 'users' }" 
+                @click="setActiveTab('users')">
+                <span class="material-icons">people</span>
+                {{ t('tabUsers') }}
+            </button>
+        </div>
+
+        <div v-if="error" class="error">
+            <span class="material-icons">error</span>
+            {{ error }}
+        </div>
+
+        <div v-if="toastMessage" class="toast">{{ toastMessage }}</div>
+
+        <!-- Tab Content Container -->
+        <div class="tab-content">
+            <!-- Transactions Tab -->
+            <transition name="fade" mode="out-in">
+                <div v-if="activeTab === 'transactions'" key="transactions" class="tab-panel">
+                    <div v-if="loadingTransactions" class="loading">
+                        <div class="material-icons">refresh</div>
+                        <p>{{ t('loadingMessage') }}</p>
+                    </div>
+
+                    <template v-else-if="transactions.length > 0 || isSearching">
+                        <div class="stats" v-if="!isSearching">
+                            <div class="stat-card">
+                                <div class="stat-icon income">
+                                    <span class="material-icons">arrow_downward</span>
+                                </div>
+                                <div class="stat-info">
+                                    <div class="stat-label">{{ t('incomeLabel') }}</div>
+                                    <div class="stat-value">{{ formatAmount(stats.income) }} {{ t('currencySymbol') }}</div>
+                                </div>
+                            </div>
+
+                            <div class="stat-card">
+                                <div class="stat-icon expense">
+                                    <span class="material-icons">arrow_upward</span>
+                                </div>
+                                <div class="stat-info">
+                                    <div class="stat-label">{{ t('expenseLabel') }}</div>
+                                    <div class="stat-value">{{ formatAmount(Math.abs(stats.expense)) }} {{ t('currencySymbol') }}</div>
+                                </div>
+                            </div>
+
+                            <div class="stat-card">
+                                <div class="stat-icon total">
+                                    <span class="material-icons">account_balance_wallet</span>
+                                </div>
+                                <div class="stat-info">
+                                    <div class="stat-label">{{ t('balanceLabel') }}</div>
+                                    <div class="stat-value">{{ formatAmount(stats.balance) }} {{ t('currencySymbol') }}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="transactions-container">
+                            <div class="transactions-header">
+                                <h2>{{ isSearching ? t('searchResultsTitle') : t('transactionsTitle') }}</h2>
+                                <div class="transactions-toolbar">
+                                    <div class="transaction-search">
+                                        <span class="material-icons">search</span>
+                                        <input type="search" v-model="searchQuery" @input="onSearchInput"
+                                               :placeholder="t('searchPlaceholder')" :aria-label="t('searchPlaceholder')" />
+                                        <button v-if="searchQuery" class="transaction-search-clear" @click="clearSearch" :title="t('clearSearch')">
+                                            <span class="material-icons">close</span>
+                                        </button>
+                                    </div>
+                                    <div class="transaction-count">{{ t('transactionCount', { count: isSearching ? searchResults.length : transactions.length }) }}</div>
+                                    <label class="toggle-switch" :class="{ on: transactionFilter === 'unchecked' }">
+                                        <input type="checkbox" role="switch"
+                                               :checked="transactionFilter === 'unchecked'"
+                                               @change="transactionFilter = $event.target.checked ? 'unchecked' : 'all'" />
+                                        <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
+                                        <span class="toggle-label">{{ t('uncheckedCount', { count: (isSearching ? searchResults : transactions).filter(t => !Number(t.pointed)).length }) }}</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div v-if="isSearching && !searching && displayedTransactions.length > 0" class="search-total">
+                                <span>{{ t('searchTotal', { count: displayedTransactions.length }) }}</span>
+                                <strong :class="displayedTotal >= 0 ? 'positive' : 'negative'">
+                                    {{ formatAmount(displayedTotal) }} {{ t('currencySymbol') }}
+                                </strong>
+                            </div>
+                            <div v-if="ruleSuggestion" class="rule-suggestion" role="status">
+                                <span class="material-icons">lightbulb</span>
+                                <span class="rule-suggestion-text">{{ t('ruleSuggestion', { label: ruleSuggestion.keyword, category: ruleSuggestion.categoryName }) }}</span>
+                                <button @click="createSuggestedRule">{{ t('createRule') }}</button>
+                                <button class="btn-secondary" @click="ruleSuggestion = null">{{ t('ignore') }}</button>
+                            </div>
+                            <div v-if="searching" class="transactions-hint">{{ t('searching') }}</div>
+                            <div v-else-if="displayedTransactions.length === 0" class="transactions-hint">
+                                {{ isSearching ? t('noSearchResults') : t('allChecked') }}
+                            </div>
+                            <div class="transactions-list">
+                                <div v-for="transaction in displayedTransactions" :key="transaction.id" class="transaction-item"
+                                     :class="{ unchecked: !Number(transaction.pointed) }">
+                                    <button class="transaction-check" @click="toggleTransactionPointed(transaction)"
+                                            :class="{ checked: Number(transaction.pointed) }"
+                                            :title="Number(transaction.pointed) ? t('uncheckTransaction') : t('checkTransaction')"
+                                            :aria-pressed="Number(transaction.pointed) ? 'true' : 'false'">
+                                        <span class="material-icons">{{ Number(transaction.pointed) ? 'check_circle' : 'radio_button_unchecked' }}</span>
+                                    </button>
+                                    <div class="transaction-icon" :class="'type-' + transaction.type">
+                                        <span class="material-icons">{{ getTransactionIcon(transaction.type) }}</span>
+                                    </div>
+                                    <div class="transaction-details">
+                                        <div class="transaction-label">{{ transaction.label }}</div>
+                                        <div class="transaction-date">{{ formatDate(transaction.rdate || transaction.date) }}</div>
+                                    </div>
+                                    <div class="transaction-category">
+                                        <select v-if="isUncategorized(transaction) && ruleCategoryOptions.length > 0" class="transaction-category-picker"
+                                                :aria-label="t('chooseCategory')" @change="categorizeTransaction(transaction, $event.target.value)">
+                                            <option value="" selected>{{ t('chooseCategory') }}</option>
+                                            <option v-for="c in ruleCategoryOptions" :key="c.id" :value="c.id">{{ c.label }}</option>
+                                        </select>
+                                        <span v-else-if="categoryName(transaction)" class="category-chip" :title="categoryName(transaction)">{{ categoryName(transaction) }}</span>
+                                    </div>
+                                    <div class="transaction-amount" :class="transaction.amount >= 0 ? 'positive' : 'negative'">
+                                        {{ formatAmount(transaction.amount) }} {{ t('currencySymbol') }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+
+                    <div v-else class="empty-state-container">
+                        <div class="empty-state">
+                            <div class="material-icons">inbox</div>
+                            <p>{{ t('emptyMessage') }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Budget Tab -->
+                <div v-else-if="activeTab === 'budget'" key="budget" class="tab-panel">
+                    <div v-if="loadingBudget" class="loading">
+                        <div class="material-icons">refresh</div>
+                        <p>{{ t('loadingBudgetMessage') }}</p>
+                    </div>
+
+                    <div v-else-if="safeCurrentBudgetList.length > 0" class="budget-view">
+                        <!-- Breadcrumb (sub-categories) -->
+                        <nav class="budget-breadcrumb" v-if="safeBudgetStack.length > 0">
+                            <button class="breadcrumb-root" @click="goToBreadcrumb(-1)">
+                                <span class="material-icons">arrow_back</span>
+                                {{ t('allCategories') }}
+                            </button>
+                            <template v-for="(crumb, idx) in safeBudgetStack" :key="crumb.id">
+                                <span class="breadcrumb-sep material-icons">chevron_right</span>
+                                <button class="breadcrumb-item" @click="goToBreadcrumb(idx)">{{ crumb.name }}</button>
+                            </template>
+                        </nav>
+
+                        <!-- Month summary -->
+                        <section class="budget-summary" v-if="budgetGroups.expenses.length > 0">
+                            <div class="budget-summary-figures">
+                                <div>
+                                    <div class="summary-label">{{ t('spentLabel') }}</div>
+                                    <div class="summary-value">{{ formatAmount(budgetSummary.consumed) }} {{ t('currencySymbol') }}</div>
+                                </div>
+                                <div>
+                                    <div class="summary-label">{{ t('budgetedLabel') }}</div>
+                                    <div class="summary-value muted">{{ formatAmount(budgetSummary.budget) }} {{ t('currencySymbol') }}</div>
+                                </div>
+                                <div>
+                                    <div class="summary-label">{{ budgetSummary.remaining >= 0 ? t('remainingLabel') : t('overspentLabel') }}</div>
+                                    <div class="summary-value" :class="budgetSummary.remaining >= 0 ? 'positive' : 'negative'">
+                                        {{ formatAmount(Math.abs(budgetSummary.remaining)) }} {{ t('currencySymbol') }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="budget-meter large" :class="budgetStatus({ progress: budgetSummary.progress })"
+                                 role="progressbar" :aria-valuenow="budgetSummary.progress" aria-valuemin="0" aria-valuemax="100">
+                                <div class="budget-meter-fill" :style="{ width: Math.min(budgetSummary.progress, 100) + '%' }"></div>
+                            </div>
+                            <div class="budget-summary-caption">{{ t('budgetUsed', { progress: budgetSummary.progress }) }}</div>
+                        </section>
+
+                        <!-- Budgeted expenses, incomes, others -->
+                        <template v-for="group in [
+                                { key: 'expenses', title: t('expensesSection'), items: budgetGroups.expenses },
+                                { key: 'incomes', title: t('incomesSection'), items: budgetGroups.incomes },
+                                { key: 'others', title: t('othersSection'), items: budgetGroups.others }
+                            ]" :key="group.key">
+                            <section v-if="group.items.length > 0" class="budget-section" :class="'budget-section-' + group.key">
+                                <h3 class="budget-section-title">{{ group.title }}</h3>
+                                <div class="budget-grid">
+                                    <article v-for="item in group.items" :key="item.id" class="budget-card"
+                                             :class="[group.key === 'expenses' ? 'status-' + budgetStatus(item) : '', { selected: budgetCategory && budgetCategory.id === item.id }]"
+                                             tabindex="0" @click="navigateToBudget(item)" @keydown.enter="navigateToBudget(item)">
+                                        <div class="budget-card-head">
+                                            <span class="budget-card-icon" :style="{ color: categoryColor(item), background: 'color-mix(in srgb, ' + categoryColor(item) + ' 14%, transparent)' }">
+                                                <span class="material-icons">{{ categoryIcon(item) }}</span>
+                                            </span>
+                                            <span class="budget-card-name">{{ item.name }}</span>
+                                            <button class="budget-card-edit" :title="t('budgetEditTitle')" @click.stop="openBudgetModal(item)">
+                                                <span class="material-icons">tune</span>
+                                            </button>
+                                        </div>
+
+                                        <template v-if="group.key === 'expenses'">
+                                            <div class="budget-card-amounts">
+                                                <span class="spent">{{ formatAmount(item.consummed) }} {{ t('currencySymbol') }}</span>
+                                                <span class="of">/ {{ formatAmount(item.budget) }} {{ t('currencySymbol') }}</span>
+                                            </div>
+                                            <div class="budget-meter" :class="budgetStatus(item)">
+                                                <div class="budget-meter-fill" :style="{ width: Math.min(Number(item.progress) || 0, 100) + '%' }"></div>
+                                            </div>
+                                            <div class="budget-card-foot">
+                                                <span v-if="Number(item.budget) - Number(item.consummed) >= 0">
+                                                    {{ t('remainingAmount', { amount: formatAmount(Number(item.budget) - Number(item.consummed)) + ' ' + t('currencySymbol') }) }}
+                                                </span>
+                                                <span v-else class="negative">
+                                                    {{ t('overspentAmount', { amount: formatAmount(Number(item.consummed) - Number(item.budget)) + ' ' + t('currencySymbol') }) }}
+                                                </span>
+                                                <span class="budget-card-percent">{{ item.progress }} %</span>
+                                            </div>
+                                        </template>
+
+                                        <div v-else class="budget-card-amounts">
+                                            <span class="spent" :class="{ positive: group.key === 'incomes' }">{{ formatAmount(item.consummed) }} {{ t('currencySymbol') }}</span>
+                                            <span class="of" v-if="Number(item.budget) > 0">/ {{ formatAmount(item.budget) }} {{ t('currencySymbol') }}</span>
+                                        </div>
+                                    </article>
+                                </div>
+                            </section>
+                        </template>
+
+                        <!-- Transactions of the selected category -->
+                        <section v-if="budgetCategory" class="trends-card budget-transactions">
+                            <div class="trends-chart-head">
+                                <h3>{{ t('categoryTransactions', { category: budgetCategory.name }) }}</h3>
+                                <button class="btn-secondary" @click="clearBudgetTransactions">
+                                    <span class="material-icons">close</span>
+                                </button>
+                            </div>
+                            <div v-if="loadingBudgetTransactions" class="transactions-hint">{{ t('loadingMessage') }}</div>
+                            <div v-else-if="budgetTransactions.length === 0" class="transactions-hint">{{ t('emptyMessage') }}</div>
+                            <template v-else>
+                                <div class="search-total">
+                                    <span>{{ t('searchTotal', { count: budgetTransactions.length }) }}</span>
+                                    <strong :class="budgetTransactions.reduce((s, t) => s + Number(t.amount), 0) >= 0 ? 'positive' : 'negative'">
+                                        {{ formatAmount(budgetTransactions.reduce((s, t) => s + Number(t.amount), 0)) }} {{ t('currencySymbol') }}
+                                    </strong>
+                                </div>
+                                <div class="transactions-list">
+                                    <div v-for="transaction in budgetTransactions" :key="transaction.id" class="transaction-item"
+                                         :class="{ unchecked: !Number(transaction.pointed) }">
+                                        <button class="transaction-check" @click="toggleTransactionPointed(transaction)"
+                                                :class="{ checked: Number(transaction.pointed) }"
+                                                :title="Number(transaction.pointed) ? t('uncheckTransaction') : t('checkTransaction')">
+                                            <span class="material-icons">{{ Number(transaction.pointed) ? 'check_circle' : 'radio_button_unchecked' }}</span>
+                                        </button>
+                                        <div class="transaction-icon" :class="'type-' + transaction.type">
+                                            <span class="material-icons">{{ getTransactionIcon(transaction.type) }}</span>
+                                        </div>
+                                        <div class="transaction-details">
+                                            <div class="transaction-label">{{ transaction.label }}</div>
+                                            <div class="transaction-date">{{ formatDate(transaction.rdate || transaction.date) }}</div>
+                                        </div>
+                                        <div class="transaction-amount" :class="transaction.amount >= 0 ? 'positive' : 'negative'">
+                                            {{ formatAmount(transaction.amount) }} {{ t('currencySymbol') }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                        </section>
+                    </div>
+
+                    <div v-else class="empty-state-container">
+                        <div class="empty-state">
+                            <div class="material-icons">account_balance</div>
+                            <p>{{ t('noBudgetMessage') }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Insights Tab -->
+                <div v-else-if="activeTab === 'insights'" key="insights" class="tab-panel">
+                    <div v-if="loadingInsights" class="loading">
+                        <div class="material-icons">refresh</div>
+                        <p>{{ t('loadingInsightsMessage') }}</p>
+                    </div>
+
+                    <div v-else-if="insights.length > 0" class="content-wrapper">
+                        <div class="insights-container">
+                            <div class="insights-header">
+                                <h2>{{ t('insightsTitle') }}</h2>
+                            </div>
+                            <div class="insights-grid">
+                            <div v-for="insight in insights" :key="insight.id" class="insight-card" :class="'insight-' + insight.color">
+                                <div class="insight-icon">
+                                    <span class="material-icons">{{ getInsightIcon(insight.name) }}</span>
+                                </div>
+                                <div class="insight-content">
+                                    <div class="insight-label">{{ getInsightName(insight.name) }}</div>
+                                    <div class="insight-value" :class="{ 'negative': insight.amount < 0 }">
+                                        {{ formatAmount(Math.abs(insight.amount)) }} {{ t('currencySymbol') }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        </div>
+                    </div>
+
+                    <div v-else class="empty-state-container">
+                        <div class="empty-state">
+                            <div class="material-icons">analytics</div>
+                            <p>{{ t('noInsightsMessage') }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Trends Tab -->
+                <div v-else-if="activeTab === 'trends'" key="trends" class="tab-panel">
+                    <div v-if="loadingTrends && trends.length === 0" class="loading">
+                        <div class="material-icons">refresh</div>
+                        <p>{{ t('loadingTrends') }}</p>
+                    </div>
+
+                    <div v-else class="trends-view">
+                        <!-- Period and key figures -->
+                        <section class="trends-card">
+                            <div class="trends-toolbar">
+                                <h2>{{ t('trendsTitle', { months: trendsMonths }) }}</h2>
+                                <div class="trends-controls">
+                                    <div class="trends-period" role="group" :aria-label="t('trendsPeriod')">
+                                        <button v-for="m in [3, 6, 12]" :key="m" :class="{ active: trendsMonths === m }"
+                                                :aria-pressed="trendsMonths === m ? 'true' : 'false'" @click="setTrendsMonths(m)">
+                                            {{ t('monthsShort', { months: m }) }}
+                                        </button>
+                                    </div>
+                                    <label class="trends-compare">
+                                        <span class="material-icons">compare_arrows</span>
+                                        <select :value="trendsCompare" @change="setTrendsCompare($event.target.value)" :aria-label="t('compareWith')">
+                                            <option value="none">{{ t('compareNone') }}</option>
+                                            <option value="previous">{{ t('comparePrevious') }}</option>
+                                            <option value="lastYear">{{ t('compareLastYear') }}</option>
+                                        </select>
+                                    </label>
+                                </div>
+                            </div>
+                            <p class="trends-periods-caption" v-if="trends.length">
+                                {{ trendsPeriodLabels.current }}
+                                <template v-if="compareStats"> · {{ t('comparedTo', { period: trendsPeriodLabels.compare }) }}</template>
+                            </p>
+                            <div class="trends-stats">
+                                <div class="trends-stat">
+                                    <div class="summary-label">{{ t('trendsTotalSavings') }}</div>
+                                    <div class="summary-value">{{ formatAmount(trendsStats.savings) }} {{ t('currencySymbol') }}</div>
+                                    <div v-if="trendsDelta('savings')" class="trends-delta" :class="trendsDelta('savings').good ? 'good' : 'bad'">
+                                        <span class="material-icons">{{ trendsDelta('savings').icon }}</span>{{ trendsDelta('savings').text }}
+                                    </div>
+                                </div>
+                                <div class="trends-stat">
+                                    <div class="summary-label">{{ t('trendsAverageSavings') }}</div>
+                                    <div class="summary-value">{{ formatAmount(trendsStats.averageSavings) }} {{ t('currencySymbol') }}</div>
+                                    <div v-if="trendsDelta('averageSavings')" class="trends-delta" :class="trendsDelta('averageSavings').good ? 'good' : 'bad'">
+                                        <span class="material-icons">{{ trendsDelta('averageSavings').icon }}</span>{{ trendsDelta('averageSavings').text }}
+                                    </div>
+                                </div>
+                                <div class="trends-stat">
+                                    <div class="summary-label">{{ t('trendsSavingsRate') }}</div>
+                                    <div class="summary-value">{{ trendsStats.savingsRate }} %</div>
+                                    <div v-if="compareStats" class="trends-delta" :class="trendsStats.savingsRate >= compareStats.savingsRate ? 'good' : 'bad'">
+                                        <span class="material-icons">{{ trendsStats.savingsRate >= compareStats.savingsRate ? 'arrow_upward' : 'arrow_downward' }}</span>
+                                        {{ t('pointsVs', { points: (trendsStats.savingsRate - compareStats.savingsRate > 0 ? '+' : '') + (trendsStats.savingsRate - compareStats.savingsRate), rate: compareStats.savingsRate }) }}
+                                    </div>
+                                </div>
+                                <div class="trends-stat">
+                                    <div class="summary-label">{{ t('trendsAverageDebit') }}</div>
+                                    <div class="summary-value">{{ formatAmount(trendsStats.averageDebit) }} {{ t('currencySymbol') }}</div>
+                                    <div class="trends-stat-sub">{{ t('trendsVsPlanned', { amount: formatAmount(trendsStats.averagePlanned) + ' ' + t('currencySymbol') }) }}</div>
+                                    <div v-if="trendsDelta('averageDebit', false)" class="trends-delta" :class="trendsDelta('averageDebit', false).good ? 'good' : 'bad'">
+                                        <span class="material-icons">{{ trendsDelta('averageDebit', false).icon }}</span>{{ trendsDelta('averageDebit', false).text }}
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- Comparison of the period totals -->
+                        <section class="trends-card" v-if="trendsComparison.length">
+                            <div class="trends-chart-head">
+                                <h3>{{ t('comparisonTitle') }}</h3>
+                                <ul class="trends-legend">
+                                    <li><span class="swatch" style="background: #2a78d6"></span>{{ trendsPeriodLabels.current }}</li>
+                                    <li><span class="swatch" style="background: #a8a7a1"></span>{{ trendsPeriodLabels.compare }}</li>
+                                </ul>
+                            </div>
+                            <div class="comparison-rows">
+                                <div v-for="row in trendsComparison" :key="row.key" class="comparison-row">
+                                    <div class="comparison-label">{{ row.label }}</div>
+                                    <div class="comparison-bars">
+                                        <div class="comparison-bar">
+                                            <span class="bar current" :style="{ width: row.currentWidth + '%' }"></span>
+                                            <span class="value">{{ formatAmount(row.current) }} {{ t('currencySymbol') }}</span>
+                                        </div>
+                                        <div class="comparison-bar">
+                                            <span class="bar compare" :style="{ width: row.compareWidth + '%' }"></span>
+                                            <span class="value muted">{{ formatAmount(row.compare) }} {{ t('currencySymbol') }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- Incomes, expenses, off-budget and planned budget -->
+                        <section class="trends-card">
+                            <div class="trends-chart-head">
+                                <h3>{{ t('trendsFlowsTitle') }}</h3>
+                                <ul class="trends-legend">
+                                    <li v-for="s in trendsSeries" :key="s.key"><span class="swatch" :style="{ background: s.color }"></span>{{ s.label }}</li>
+                                    <li><span class="swatch line"></span>{{ t('trendsPlanned') }}</li>
+                                </ul>
+                            </div>
+                            <div class="trends-chart" @mouseleave="trendsHover = null">
+                                <svg viewBox="0 0 960 300" preserveAspectRatio="xMidYMid meet" role="img" :aria-label="t('trendsFlowsTitle')">
+                                    <g class="grid">
+                                        <template v-for="tick in flowsChart.ticks" :key="tick.value">
+                                            <line :x1="68" :x2="flowsChart.width - 12" :y1="tick.y" :y2="tick.y" />
+                                            <text x="60" :y="tick.y + 4" text-anchor="end">{{ tick.label }}</text>
+                                        </template>
+                                    </g>
+                                    <rect v-if="trendsHover !== null" class="hover-band" :x="flowsChart.columns[trendsHover].x" :y="flowsChart.columns[trendsHover].y"
+                                          :width="flowsChart.columns[trendsHover].width" :height="flowsChart.columns[trendsHover].height" />
+                                    <path v-for="bar in flowsChart.bars" :key="bar.key" :d="bar.d" :fill="bar.color" />
+                                    <polyline class="planned-line" :points="flowsChart.planned" />
+                                    <text v-for="label in flowsChart.labels" :key="label.key" class="axis-label" :x="label.x" :y="label.y" text-anchor="middle">{{ label.text }}</text>
+                                    <rect v-for="col in flowsChart.columns" :key="col.key" class="hit" :x="col.x" :y="col.y" :width="col.width" :height="col.height"
+                                          @mouseenter="trendsHover = col.index; trendsHoverChart = 'flows'" />
+                                </svg>
+                                <div v-if="trendsHoverMonth && trendsHoverChart === 'flows'" class="trends-tooltip" :style="{ left: trendsHoverLeft + '%' }">
+                                    <strong>{{ formatMonth(trendsHoverMonth.month) }}</strong>
+                                    <div v-for="s in trendsSeries" :key="s.key"><span class="swatch" :style="{ background: s.color }"></span>{{ s.label }}<span>{{ formatAmount(trendsHoverMonth[s.key]) }} {{ t('currencySymbol') }}</span></div>
+                                    <div><span class="swatch line"></span>{{ t('trendsPlanned') }}<span>{{ formatAmount(trendsHoverMonth.planned) }} {{ t('currencySymbol') }}</span></div>
+                                    <div class="total">{{ t('trendsSavings') }}<span>{{ formatAmount(trendsHoverMonth.savings) }} {{ t('currencySymbol') }}</span></div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- Savings -->
+                        <section class="trends-card">
+                            <div class="trends-chart-head">
+                                <h3>{{ t('trendsSavingsTitle') }}</h3>
+                                <ul class="trends-legend">
+                                    <li><span class="swatch" style="background: #2a78d6"></span>{{ t('trendsSaved') }}</li>
+                                    <li><span class="swatch" style="background: #e34948"></span>{{ t('trendsOverspent') }}</li>
+                                </ul>
+                            </div>
+                            <div class="trends-chart" @mouseleave="trendsHover = null">
+                                <svg viewBox="0 0 960 200" preserveAspectRatio="xMidYMid meet" role="img" :aria-label="t('trendsSavingsTitle')">
+                                    <g class="grid">
+                                        <template v-for="tick in savingsChart.ticks" :key="tick.value">
+                                            <line :x1="68" :x2="savingsChart.width - 12" :y1="tick.y" :y2="tick.y" />
+                                            <text x="60" :y="tick.y + 4" text-anchor="end">{{ tick.label }}</text>
+                                        </template>
+                                    </g>
+                                    <rect v-if="trendsHover !== null" class="hover-band" :x="savingsChart.columns[trendsHover].x" :y="savingsChart.columns[trendsHover].y"
+                                          :width="savingsChart.columns[trendsHover].width" :height="savingsChart.columns[trendsHover].height" />
+                                    <line class="zero-line" x1="68" :x2="savingsChart.width - 12" :y1="savingsChart.zero" :y2="savingsChart.zero" />
+                                    <path v-for="bar in savingsChart.bars" :key="bar.key" :d="bar.d" :fill="bar.positive ? '#2a78d6' : '#e34948'" />
+                                    <text v-for="label in savingsChart.labels" :key="label.key" class="axis-label" :x="label.x" :y="label.y" text-anchor="middle">{{ label.text }}</text>
+                                    <rect v-for="col in savingsChart.columns" :key="col.key" class="hit" :x="col.x" :y="col.y" :width="col.width" :height="col.height"
+                                          @mouseenter="trendsHover = col.index" />
+                                </svg>
+                            </div>
+                        </section>
+
+                        <!-- Monthly savings rate -->
+                        <section class="trends-card">
+                            <div class="trends-chart-head">
+                                <h3>{{ t('trendsSavingsRateTitle') }}</h3>
+                                <ul class="trends-legend">
+                                    <li><span class="swatch" style="background: #2a78d6"></span>{{ t('trendsSavingsRate') }}</li>
+                                    <li><span class="swatch line"></span>{{ t('trendsAverageRate', { rate: trendsStats.savingsRate }) }}</li>
+                                </ul>
+                            </div>
+                            <div class="trends-chart" @mouseleave="trendsHover = null">
+                                <svg viewBox="0 0 960 200" preserveAspectRatio="xMidYMid meet" role="img" :aria-label="t('trendsSavingsRateTitle')">
+                                    <g class="grid">
+                                        <template v-for="tick in savingsRateChart.ticks" :key="tick.value">
+                                            <line :x1="68" x2="948" :y1="tick.y" :y2="tick.y" />
+                                            <text x="60" :y="tick.y + 4" text-anchor="end">{{ tick.label }}</text>
+                                        </template>
+                                    </g>
+                                    <rect v-if="trendsHover !== null" class="hover-band" :x="savingsRateChart.columns[trendsHover].x" :y="savingsRateChart.columns[trendsHover].y"
+                                          :width="savingsRateChart.columns[trendsHover].width" :height="savingsRateChart.columns[trendsHover].height" />
+                                    <line class="planned-line" x1="68" x2="948" :y1="savingsRateChart.average" :y2="savingsRateChart.average" />
+                                    <polyline class="rate-line" :points="savingsRateChart.line" />
+                                    <circle v-for="p in savingsRateChart.points" :key="p.key" class="rate-point" :cx="p.x" :cy="p.y" r="4.5" />
+                                    <text v-for="label in savingsRateChart.labels" :key="label.key" class="axis-label" :x="label.x" :y="label.y" text-anchor="middle">{{ label.text }}</text>
+                                    <rect v-for="col in savingsRateChart.columns" :key="col.key" class="hit" :x="col.x" :y="col.y" :width="col.width" :height="col.height"
+                                          @mouseenter="trendsHover = col.index; trendsHoverChart = 'rate'" />
+                                </svg>
+                                <div v-if="trendsHoverMonth && trendsHoverChart === 'rate'" class="trends-tooltip" :style="{ left: trendsHoverLeft + '%' }">
+                                    <strong>{{ formatMonth(trendsHoverMonth.month) }}</strong>
+                                    <div>{{ t('trendsSavingsRate') }}<span>{{ monthSavingsRate(trendsHoverMonth) === null ? '–' : monthSavingsRate(trendsHoverMonth) + ' %' }}</span></div>
+                                    <div>{{ t('trendsSavings') }}<span>{{ formatAmount(trendsHoverMonth.savings) }} {{ t('currencySymbol') }}</span></div>
+                                    <div>{{ t('trendsCredit') }}<span>{{ formatAmount(trendsHoverMonth.credit) }} {{ t('currencySymbol') }}</span></div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- Table view -->
+                        <section class="trends-card">
+                            <button class="btn-secondary trends-table-toggle" @click="showTrendsTable = !showTrendsTable" :aria-expanded="showTrendsTable ? 'true' : 'false'">
+                                <span class="material-icons">{{ showTrendsTable ? 'expand_less' : 'table_chart' }}</span>
+                                {{ showTrendsTable ? t('trendsHideTable') : t('trendsShowTable') }}
+                            </button>
+                            <div v-if="showTrendsTable" class="trends-table-wrapper">
+                                <table class="trends-table">
+                                    <thead>
+                                        <tr>
+                                            <th>{{ t('monthLabel') }}</th>
+                                            <th v-for="s in trendsSeries" :key="s.key">{{ s.label }}</th>
+                                            <th>{{ t('trendsPlanned') }}</th>
+                                            <th>{{ t('trendsSavings') }}</th>
+                                            <th>{{ t('trendsSavingsRate') }}</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr v-for="m in [...trends].reverse()" :key="m.month">
+                                            <td>{{ formatMonth(m.month) }}</td>
+                                            <td v-for="s in trendsSeries" :key="s.key">{{ formatAmount(m[s.key]) }}</td>
+                                            <td>{{ formatAmount(m.planned) }}</td>
+                                            <td :class="m.savings >= 0 ? 'positive' : 'negative'">{{ formatAmount(m.savings) }}</td>
+                                            <td>{{ monthSavingsRate(m) === null ? '–' : monthSavingsRate(m) + ' %' }}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+                    </div>
+                </div>
+
+                <!-- Categorization rules Tab -->
+                <div v-else-if="activeTab === 'rules'" key="rules" class="tab-panel">
+                    <div class="trends-view">
+                        <section class="trends-card">
+                            <div class="trends-toolbar">
+                                <div>
+                                    <h2>{{ t('rulesTitle') }}</h2>
+                                    <p class="rules-help">{{ t('rulesHelp') }}</p>
+                                </div>
+                                <button class="btn-secondary rules-apply" @click="applyRules" :disabled="applyingRules">
+                                    <span class="material-icons">auto_fix_high</span>
+                                    {{ t('applyRules') }}
+                                </button>
+                            </div>
+
+                            <form class="rules-form" @submit.prevent="addRule">
+                                <input type="text" v-model="newRule.keyword" maxlength="60" :placeholder="t('ruleKeywordPlaceholder')" :aria-label="t('ruleKeyword')" />
+                                <select v-model="newRule.category" :aria-label="t('categoryLabel')">
+                                    <option value="" disabled>{{ t('ruleCategoryPlaceholder') }}</option>
+                                    <option v-for="c in ruleCategoryOptions" :key="c.id" :value="c.id">{{ c.label }}</option>
+                                </select>
+                                <button type="submit" :disabled="savingRule">
+                                    <span class="material-icons">add</span>
+                                    {{ t('addRule') }}
+                                </button>
+                            </form>
+                        </section>
+
+                        <section class="trends-card">
+                            <div class="trends-chart-head">
+                                <h3>{{ t('rulesCount', { count: rules.length }) }}</h3>
+                                <div class="transaction-search">
+                                    <span class="material-icons">search</span>
+                                    <input type="search" v-model="ruleFilter" :placeholder="t('ruleFilterPlaceholder')" :aria-label="t('ruleFilterPlaceholder')" />
+                                </div>
+                            </div>
+                            <div v-if="loadingRules" class="transactions-hint">{{ t('loadingRules') }}</div>
+                            <div v-else-if="groupedRules.length === 0" class="transactions-hint">{{ t('noRules') }}</div>
+                            <div v-else class="rules-groups">
+                                <div v-for="group in groupedRules" :key="group.category" class="rules-group">
+                                    <div class="rules-group-name">{{ group.category }}</div>
+                                    <div class="rules-chips">
+                                        <span v-for="rule in group.rules" :key="rule.id" class="rule-chip">
+                                            {{ rule.keyword }}
+                                            <button @click="removeRule(rule)" :title="t('deleteRule')" :aria-label="t('deleteRule') + ' ' + rule.keyword">
+                                                <span class="material-icons">close</span>
+                                            </button>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+                </div>
+
+                <!-- Users Tab -->
+                <div v-else-if="activeTab === 'users'" key="users" class="tab-panel">
+                    <div v-if="loadingUsers" class="loading">
+                        <div class="material-icons">refresh</div>
+                        <p>{{ t('loadingUsersMessage') }}</p>
+                    </div>
+
+                    <div v-else class="content-wrapper">
+                        <div class="users-container">
+                            <div class="users-header">
+                                <h2>{{ t('usersTitle') }}</h2>
+                                <button class="btn-add-user" @click="openAddUserModal">
+                                    <span class="material-icons">person_add</span>
+                                    {{ t('addUser') }}
+                                </button>
+                            </div>
+                            
+                            <div v-if="users.length > 0" class="users-table">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>{{ t('username') }}</th>
+                                            <th>{{ t('email') }}</th>
+                                            <th>{{ t('firstname') }}</th>
+                                            <th>{{ t('lastname') }}</th>
+                                            <th class="actions-column">{{ t('actions') }}</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr v-for="user in users" :key="user.id">
+                                            <td>
+                                                <div class="user-username">
+                                                    <span class="material-icons">person</span>
+                                                    {{ user.username }}
+                                                </div>
+                                            </td>
+                                            <td>{{ user.email }}</td>
+                                            <td>{{ user.firstname || '-' }}</td>
+                                            <td>{{ user.lastname || '-' }}</td>
+                                            <td class="actions-column">
+                                                <button class="btn-icon btn-icon-edit" @click="openEditUserModal(user)" title="Modifier">
+                                                    <span class="material-icons">edit</span>
+                                                </button>
+                                                <button class="btn-icon btn-icon-delete" @click="deleteUser(user)" title="Supprimer">
+                                                    <span class="material-icons">delete</span>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div v-else class="empty-state">
+                                <div class="material-icons">people</div>
+                                <p>{{ t('noUsersMessage') }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Profile Page -->
+                <div v-else-if="activeTab === 'profile'" key="profile" class="tab-panel">
+                    <div class="content-wrapper">
+                        <form class="profile-container" @submit.prevent="saveProfile">
+                            <div class="users-header">
+                                <h2>{{ t('myProfile') }}</h2>
+                            </div>
+                            <div class="modal-body">
+                                <div class="form-group">
+                                    <label>{{ t('username') }}</label>
+                                    <input type="text" :value="currentUser ? currentUser.username : ''" disabled />
+                                </div>
+                                <div class="form-group">
+                                    <label for="profile-email">{{ t('email') }}</label>
+                                    <input id="profile-email" type="email" v-model="profileForm.email" />
+                                </div>
+                                <div class="form-group">
+                                    <label for="profile-firstname">{{ t('firstname') }}</label>
+                                    <input id="profile-firstname" type="text" v-model="profileForm.firstname" />
+                                </div>
+                                <div class="form-group">
+                                    <label for="profile-lastname">{{ t('lastname') }}</label>
+                                    <input id="profile-lastname" type="text" v-model="profileForm.lastname" />
+                                </div>
+                                <div class="form-group">
+                                    <label for="profile-language">{{ t('language') }}</label>
+                                    <select id="profile-language" v-model="profileForm.language">
+                                        <option value="fr">Français</option>
+                                        <option value="en">English</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="profile-alert">{{ t('alertThreshold') }}</label>
+                                    <input id="profile-alert" type="number" min="0" step="1" inputmode="decimal"
+                                           v-model="profileForm.alertThreshold" :placeholder="t('alertThresholdPlaceholder')" />
+                                    <small>{{ t('alertThresholdHelp') }}</small>
+                                </div>
+                                <div class="form-group">
+                                    <label for="profile-password">{{ t('password') }}</label>
+                                    <input id="profile-password" type="password" v-model="profileForm.password" autocomplete="new-password" />
+                                    <small>{{ t('leaveBlankPassword') }}</small>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="submit" :disabled="savingProfile">
+                                    <span class="material-icons">check_circle</span>
+                                    {{ t('save') }}
+                                </button>
+                            </div>
+                        </form>
+
+                        <div class="profile-container profile-devices">
+                            <div class="users-header">
+                                <h2>{{ t('myDevices') }}</h2>
+                            </div>
+                            <div v-if="loadingDevices" class="transactions-hint">{{ t('loadingDevices') }}</div>
+                            <div v-else-if="devices.length === 0" class="transactions-hint">{{ t('noDevices') }}</div>
+                            <ul v-else class="device-list">
+                                <li v-for="device in devices" :key="device.id" class="device-item">
+                                    <span class="material-icons device-icon">smartphone</span>
+                                    <div class="device-details">
+                                        <div class="device-name">{{ device.name || t('unnamedDevice') }}</div>
+                                        <div class="device-meta">{{ t('lastLogin') }} : {{ formatDate(device.lastLogin) }}</div>
+                                        <code class="device-token" :class="{ revealed: revealedTokens[device.id] }">{{ displayToken(device) }}</code>
+                                    </div>
+                                    <div class="device-actions">
+                                        <button class="btn-icon" @click="toggleToken(device)"
+                                                :title="revealedTokens[device.id] ? t('hideToken') : t('showToken')">
+                                            <span class="material-icons">{{ revealedTokens[device.id] ? 'visibility_off' : 'visibility' }}</span>
+                                        </button>
+                                        <button class="btn-icon" @click="copyToken(device)" :title="t('copyToken')">
+                                            <span class="material-icons">content_copy</span>
+                                        </button>
+                                        <button class="btn-icon btn-icon-delete" @click="removeDevice(device)" :title="t('deleteDevice')">
+                                            <span class="material-icons">delete</span>
+                                        </button>
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </transition>
+        </div>
+
+        <!-- User Modal -->
+        <div v-if="showUserModal" class="modal-overlay" @click.self="closeUserModal">
+            <div class="modal modal-user">
+                <div class="modal-header">
+                    <span class="material-icons">{{ userToEdit ? 'edit' : 'person_add' }}</span>
+                    <h3>{{ userToEdit ? t('editUser') : t('addUser') }}</h3>
+                    <button class="modal-close" @click="closeUserModal">
+                        <span class="material-icons">close</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>{{ t('username') }} *</label>
+                        <input type="text" v-model="userFormData.username" :disabled="!!userToEdit" required />
+                    </div>
+                    <div class="form-group">
+                        <label>{{ t('email') }} *</label>
+                        <input type="email" v-model="userFormData.email" required />
+                    </div>
+                    <div class="form-group">
+                        <label>{{ t('password') }} {{ userToEdit ? '' : '*' }}</label>
+                        <input type="password" v-model="userFormData.password" :required="!userToEdit" />
+                        <small v-if="userToEdit">{{ t('leaveBlankPassword') }}</small>
+                    </div>
+                    <div class="form-group">
+                        <label>{{ t('firstname') }}</label>
+                        <input type="text" v-model="userFormData.firstname" />
+                    </div>
+                    <div class="form-group">
+                        <label>{{ t('lastname') }}</label>
+                        <input type="text" v-model="userFormData.lastname" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" @click="closeUserModal">
+                        <span class="material-icons">cancel</span>
+                        {{ t('cancel') }}
+                    </button>
+                    <button @click="submitUserForm">
+                        <span class="material-icons">check_circle</span>
+                        {{ t('save') }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Budget Edit Modal -->
+        <div v-if="showBudgetModal" class="modal-overlay" @click.self="closeBudgetModal">
+            <div class="modal">
+                <div class="modal-header">
+                    <span class="material-icons">settings</span>
+                    <h3>{{ t('budgetEditTitle') }}</h3>
+                    <button class="modal-close" @click="closeBudgetModal">
+                        <span class="material-icons">close</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <label>{{ t('budgetEditLabel') }}</label>
+                    <input type="number" step="0.01" min="0" v-model="budgetNewValue" />
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" @click="closeBudgetModal">
+                        <span class="material-icons">cancel</span>
+                        {{ t('cancel') }}
+                    </button>
+                    <button @click="submitBudgetEdit">
+                        <span class="material-icons">check_circle</span>
+                        {{ t('save') }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Debug panel (DEV only) -->
+        <div v-if="isDebugMode" class="debug-panel">
+            <h3>Debug</h3>
+            <div><strong>URL:</strong> {{ debugInfo.url }}</div>
+            <div><strong>Status:</strong> {{ debugInfo.status }} / OK: {{ debugInfo.ok }}</div>
+            <div><strong>Preview:</strong> <pre style="max-height:120px;overflow:auto">{{ debugInfo.bodyPreview }}</pre></div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="footer-content">
+                <span class="footer-brand">{{ t('appTitle') }}</span>
+                <span class="footer-sep" aria-hidden="true"></span>
+                <small class="footer-copy">&copy; {{ new Date().getFullYear() }} Tous droits réservés</small>
+                <span class="footer-sep" aria-hidden="true"></span>
+                <small class="footer-version">v1.0.0</small>
+            </div>
+        </footer>
+        </template>
+    </div>
+
+</body>
+</html>
