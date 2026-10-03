@@ -12,6 +12,7 @@ import BudgetItem from './components/BudgetItem.js';
 import BudgetEditModal from './components/BudgetEditModal.js';
 import CategoryPicker from './components/CategoryPicker.js';
 import SqlEditor from './components/SqlEditor.js';
+import FlowChart from './components/FlowChart.js';
 import { createApiService } from './services/apiService.js';
 import { createBudgetStore } from './stores/budgetStore.js';
 import { createTransactionModule } from './modules/transactionModule.js';
@@ -50,7 +51,8 @@ createApp({
         BudgetItem,
         BudgetEditModal,
         CategoryPicker,
-        SqlEditor
+        SqlEditor,
+        FlowChart
     },
 
     // Apply mixins from modules
@@ -79,6 +81,8 @@ createApp({
             apiBaseUrl: null,
             // Version of Carbure (GET /api/health), shown in the footer
             appVersion: null,
+            // Money flow of the selected month (Budget tab)
+            budgetFlow: null,
             
             // Authentication state
             isAuthenticated: false,
@@ -173,6 +177,18 @@ createApp({
             this.locale = newLocale;
         },
 
+        /**
+         * Loads the money flow of the selected month (Budget tab)
+         * @returns {Promise<void>}
+         */
+        async loadBudgetFlow() {
+            try {
+                this.budgetFlow = await apiService.fetchBudgetFlow(this.selectedMonth, this.selectedYear);
+            } catch (error) {
+                this.budgetFlow = null;
+            }
+        },
+
         // === Tab Navigation Methods ===
 
         /**
@@ -222,6 +238,7 @@ createApp({
                     break;
                 case 'budget':
                     this.loadBudget(this.selectedMonth, this.selectedYear);
+                    this.loadBudgetFlow();
                     break;
                 case 'insights':
                     this.loadInsights(this.selectedMonth, this.selectedYear);

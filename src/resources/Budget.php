@@ -170,6 +170,93 @@ final class Budget {
     }
 
     /**
+     * Money flow of a month, for the flow diagram of the Budget tab: where the
+     * income comes from and where it goes. Amounts are grouped by top-level
+     * category; the off-budget categories (internal transfers) are left out,
+     * except the savings category.
+     *
+     * @param int|null $month The month (current month by default)
+     * @param int|null $year  The year (current year by default)
+     * @return array month, income [{id, name, color, icon, amount}], expenses [...],
+     *               savings (net amount put aside), totalIncome, totalExpenses, balance
+     */
+    #[ApiRoute('/budget/flow', method: 'GET')]
+    public static function flow($month = null, $year = null)
+    {
+        $month = (int)($month ?: date('m'));
+        $year = (int)($year ?: date('Y'));
+        $from = sprintf('%04d-%02d-01', $year, $month);
+        $to = date('Y-m-d', strtotime("$from +1 month"));
+
+        $savings = self::savingsCategories();
+
+        // Top-level category of each transaction (the category itself, or its parent)
+        $sql = "SELECT IF(c.parent_category IS NULL OR c.parent_category = 0 OR c.parent_category = c.id, IFNULL(c.id, 0), c.parent_category) AS top,
+                       t.category, t.amount
+                FROM bank_transaction t
+                LEFT JOIN bank_transaction_category c ON c.id = t.category
+                WHERE t.date >= ? AND t.date < ?";
+        $rows = Db::execute($sql, "ss", $from, $to)->get_result()->fetch_all(MYSQLI_ASSOC);
+
+        $categories = [];
+        foreach (Db::execute("SELECT id, name, type, icon, color FROM bank_transaction_category", "")->get_result()->fetch_all(MYSQLI_ASSOC) as $c) {
+            $categories[(int)$c['id']] = $c;
+        }
+
+        $income = [];
+        $expenses = [];
+        $saved = 0.0;
+        foreach ($rows as $row) {
+            $amount = (float)$row['amount'];
+            $top = (int)$row['top'];
+            if (in_array((int)$row['category'], $savings, true) || in_array($top, $savings, true)) {
+                $saved -= $amount;
+                continue;
+            }
+            $type = $categories[$top]['type'] ?? 'HORS-BUDGET';
+            // Internal transfers are neither income nor expenses; uncategorized ones are shown
+            if ($type === 'HORS-BUDGET' && $top !== 0) {
+                continue;
+            }
+            if ($amount > 0) {
+                $income[$top] = ($income[$top] ?? 0) + $amount;
+            } else {
+                $expenses[$top] = ($expenses[$top] ?? 0) - $amount;
+            }
+        }
+
+        $nodes = function ($amounts) use ($categories) {
+            $list = [];
+            foreach ($amounts as $id => $amount) {
+                if (round($amount, 2) <= 0) {
+                    continue;
+                }
+                $c = $categories[$id] ?? ['name' => null, 'color' => '', 'icon' => ''];
+                $list[] = ['id' => $id, 'name' => $c['name'], 'color' => $c['color'], 'icon' => $c['icon'], 'amount' => round($amount, 2)];
+            }
+            usort($list, fn($a, $b) => $b['amount'] <=> $a['amount']);
+            return $list;
+        };
+
+        $income = $nodes($income);
+        $expenses = $nodes($expenses);
+        $totalIncome = round(array_sum(array_column($income, 'amount')), 2);
+        $totalExpenses = round(array_sum(array_column($expenses, 'amount')), 2);
+        $saved = round($saved, 2);
+
+        return [
+            'month' => sprintf('%04d-%02d', $year, $month),
+            'income' => $income,
+            'expenses' => $expenses,
+            'savings' => $saved,
+            'totalIncome' => $totalIncome,
+            'totalExpenses' => $totalExpenses,
+            // What is left once the expenses are paid and the savings put aside
+            'balance' => round($totalIncome - $totalExpenses - max($saved, 0), 2),
+        ];
+    }
+
+    /**
      * Ids of the savings category ("Epargne" by default, setting savings_category)
      * and of its sub-categories. Names are compared without case nor accents, in
      * PHP so that it does not depend on how the database stores the accents.

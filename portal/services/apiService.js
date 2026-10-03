@@ -289,6 +289,16 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
     }
 
     /**
+     * Money flow of a month (income sources, expenses, savings)
+     * @param {number} month - Month (1-12)
+     * @param {number} year - Year
+     * @returns {Promise<Object>} {income, expenses, savings, totalIncome, totalExpenses, balance}
+     */
+    async function fetchBudgetFlow(month, year) {
+        return request(`${baseUrl}/budget/flow?month=${encodeURIComponent(month)}&year=${encodeURIComponent(year)}`, {}, 'Failed to fetch the money flow');
+    }
+
+    /**
      * Fetches the monthly trends of the household
      * @param {number} months - Number of months
      * @param {number} offset - Months between the current month and the end of the period
@@ -788,6 +798,7 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
         fetchMe,
         fetchDevices,
         fetchApiTokens,
+        fetchBudgetFlow,
         unlockUser,
         fetchMcpSettings,
         updateMcpSettings,

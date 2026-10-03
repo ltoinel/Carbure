@@ -4414,3 +4414,77 @@ a.footer-brand:hover {
     padding-left: 12px;
     padding-right: 12px;
 }
+
+/* ===== Money flow (Budget tab) ===== */
+.flow-card {
+    margin-bottom: 24px;
+}
+
+.flow-chart svg {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.flow-link {
+    opacity: 0.35;
+    transition: opacity var(--transition-fast);
+    cursor: default;
+}
+
+.flow-link.active {
+    opacity: 0.6;
+}
+
+.flow-link.dim {
+    opacity: 0.12;
+}
+
+.flow-name {
+    font-size: 14px;
+    font-weight: 500;
+    fill: var(--text-primary);
+}
+
+.flow-amount {
+    font-size: 13px;
+    fill: var(--text-secondary);
+}
+
+.flow-table-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 12px;
+}
+
+.flow-table {
+    width: 100%;
+    margin-top: 12px;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.flow-table th,
+.flow-table td {
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--divider);
+    text-align: left;
+}
+
+.flow-table .num {
+    text-align: right;
+    white-space: nowrap;
+}
+
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+}

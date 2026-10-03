@@ -74,6 +74,28 @@ class BudgetTest extends DatabaseTestCase
         $this->assertEquals(450, Budget::getTrends()[23]['savings']);
     }
 
+    public function testFlow()
+    {
+        // Current month of the data set: +2000 income (Salaire), -80 Supermarché (child of
+        // Alimentation), -50 Énergie, -10 uncategorized
+        $flow = Budget::flow();
+        $this->assertSame(date('Y-m'), $flow['month']);
+        $this->assertEquals(2000, $flow['totalIncome']);
+        $this->assertSame('Salaire', $flow['income'][0]['name']);
+        $expenses = array_column($flow['expenses'], 'amount', 'name');
+        // The child is grouped with its parent
+        $this->assertEquals(80, $expenses['Alimentation']);
+        $this->assertEquals(50, $expenses['Énergie']);
+        $this->assertEquals(140, $flow['totalExpenses']);
+        $this->assertEquals(0, $flow['savings']);
+        $this->assertEquals(1860, $flow['balance']);
+
+        // A month without transactions
+        $empty = Budget::flow(1, 2001);
+        $this->assertSame([], $empty['income']);
+        $this->assertEquals(0, $empty['balance']);
+    }
+
     public function testTrendsWithOffset()
     {
         // The 3 months before the last 3 months

@@ -520,6 +520,17 @@
                             </template>
                         </nav>
 
+                        <!-- Money flow of the month (top level only) -->
+                        <section v-if="safeBudgetStack.length === 0 && budgetFlow && (budgetFlow.totalIncome > 0 || budgetFlow.totalExpenses > 0)" class="trends-card flow-card">
+                            <div class="trends-chart-head">
+                                <div>
+                                    <h3>{{ t('flowTitle') }}</h3>
+                                    <p class="rules-help">{{ t('flowHelp') }}</p>
+                                </div>
+                            </div>
+                            <flow-chart :flow="budgetFlow" :t="t" :color-for="categoryColor" :format-amount="formatAmount"></flow-chart>
+                        </section>
+
                         <!-- Month summary -->
                         <section class="budget-summary" v-if="budgetGroups.expenses.length > 0">
                             <div class="budget-summary-figures">
