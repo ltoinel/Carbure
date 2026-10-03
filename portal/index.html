@@ -799,7 +799,10 @@
                                     <template v-if="accountEdit && accountEdit.id === a.id">
                                         <form class="account-edit" @submit.prevent="saveAccount">
                                             <input v-model="accountEdit.account_number" :aria-label="t('accountNumber')" :placeholder="t('accountNumber')" maxlength="100" />
-                                            <input v-model="accountEdit.bank_name" :aria-label="t('accountBank')" :placeholder="t('accountBank')" maxlength="50" />
+                                            <input v-model="accountEdit.bank_name" :aria-label="t('accountBank')" :placeholder="t('accountBank')" maxlength="50" list="woob-backends" />
+                                            <datalist id="woob-backends">
+                                                <option v-for="b in bankBackends" :key="b.name" :value="b.name"></option>
+                                            </datalist>
                                             <button type="submit">{{ t('save') }}</button>
                                             <button type="button" class="btn-secondary" @click="accountEdit = null">{{ t('cancel') }}</button>
                                         </form>
@@ -846,7 +849,14 @@
                             </ul>
                             <form class="rules-form account-form" @submit.prevent="addAccount">
                                 <input v-model="newAccount.account_number" :placeholder="t('accountNumber')" :aria-label="t('accountNumber')" maxlength="100" />
-                                <input v-model="newAccount.bank_name" :placeholder="t('accountBankPlaceholder')" :aria-label="t('accountBank')" maxlength="50" />
+                                <select v-model="newAccountBank" :aria-label="t('accountBank')">
+                                    <option value="" disabled>{{ t('accountBankChoose') }}</option>
+                                    <option v-for="b in bankBackends" :key="b.name" :value="b.name">
+                                        {{ b.name === b.module ? b.name : b.name + ' (' + b.module + ')' }}
+                                    </option>
+                                    <option value="__other">{{ t('accountBankOther') }}</option>
+                                </select>
+                                <input v-if="newAccountBank === '__other'" v-model="newAccount.bank_name" :placeholder="t('accountBankPlaceholder')" :aria-label="t('accountBank')" maxlength="50" />
                                 <button type="submit"><span class="material-icons">add</span>{{ t('addRule') }}</button>
                             </form>
                             <p class="rules-help">
@@ -1154,7 +1164,7 @@
         <!-- Footer -->
         <footer class="footer">
             <div class="footer-content">
-                <span class="footer-brand">{{ t('appTitle') }}</span>
+                <a class="footer-brand" href="https://github.com/ltoinel/Carbure/" target="_blank" rel="noopener">{{ t('appTitle') }}</a>
                 <span class="footer-sep" aria-hidden="true"></span>
                 <small class="footer-copy">&copy; {{ new Date().getFullYear() }} Tous droits réservés</small>
                 <span class="footer-sep" aria-hidden="true"></span>

@@ -242,6 +242,15 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
     }
 
     /**
+     * Bank backends configured in woob
+     * @returns {Promise<Array>} Array of {name, module}
+     */
+    async function fetchBankBackends() {
+        const data = await request(`${baseUrl}/bank/backends`, {}, 'Failed to list the woob banks');
+        return Array.isArray(data) ? data : [];
+    }
+
+    /**
      * Accounts available in the banks configured in woob (can take a while)
      * @returns {Promise<Array>} Array of {bankId, account_number, bank_name, label, balance, currency, followed}
      */
@@ -629,6 +638,7 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
         updateBankAccount,
         deleteBankAccount,
         discoverBankAccounts,
+        fetchBankBackends,
         syncBanks,
         fetchCategories,
         setTransactionCategory,

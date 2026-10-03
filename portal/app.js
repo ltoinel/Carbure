@@ -205,6 +205,7 @@ createApp({
                     break;
                 case 'accounts':
                     this.loadBankAccounts();
+                    this.loadBankBackends();
                     break;
                 case 'users':
                     this.loadUsers();

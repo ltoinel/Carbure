@@ -81,6 +81,14 @@ class BankTest extends DatabaseTestCase
         Bank::update($accounts[1]['id'], $accounts[0]['account_number'], $accounts[0]['bank_name']);
     }
 
+    public function testBackends()
+    {
+        $this->loginAs(self::USER);
+
+        // Name and module only: the woob configuration (bank login) never leaves the server
+        $this->assertSame([['name' => 'bnp', 'module' => 'bnp'], ['name' => 'cic_pro', 'module' => 'cic']], Bank::backends());
+    }
+
     public function testDiscover()
     {
         $this->loginAs(self::USER);

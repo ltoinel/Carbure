@@ -21,12 +21,29 @@ export function createAccountsModule(getApiService) {
                 accountEdit: null,
                 newAccount: { account_number: '', bank_name: '' },
                 discoveredAccounts: [],
+                // Banks configured in woob: [{name, module}]
+                bankBackends: [],
+                // Bank of the manual form: a backend name, or '__other' to type it
+                newAccountBank: '',
                 discovering: false,
                 discoverError: null
             };
         },
 
         methods: {
+            /**
+             * Loads the banks configured in woob (for the bank selector)
+             * @returns {Promise<void>}
+             */
+            async loadBankBackends() {
+                try {
+                    this.bankBackends = await getApiService().fetchBankBackends();
+                } catch (error) {
+                    // The selector still offers "Other" (typed name)
+                    this.bankBackends = [];
+                }
+            },
+
             /**
              * Checks if an account found by woob is followed (from the current list)
              * @param {Object} discovered - Account found by woob
@@ -84,12 +101,16 @@ export function createAccountsModule(getApiService) {
              * @returns {Promise<void>}
              */
             async addAccount() {
+                if (this.newAccountBank !== '__other') {
+                    this.newAccount.bank_name = this.newAccountBank;
+                }
                 if (!this.newAccount.account_number.trim() || !this.newAccount.bank_name.trim()) {
                     this.showToast(this.t('accountRequired'));
                     return;
                 }
                 if (await this.followAccount(this.newAccount.account_number, this.newAccount.bank_name)) {
                     this.newAccount = { account_number: '', bank_name: '' };
+                    this.newAccountBank = '';
                 }
             },
 

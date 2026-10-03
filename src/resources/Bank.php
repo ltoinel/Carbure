@@ -140,6 +140,17 @@ final class Bank {
     }
 
     /**
+     * Bank backends configured in woob (name and module), to choose the bank of an account.
+     *
+     * @return array The backends: [{name, module}]
+     */
+    #[ApiRoute('/bank/backends', method: 'GET')]
+    public static function backends()
+    {
+        return Woob::listBackends();
+    }
+
+    /**
      * Accounts available in the configured woob backends, to follow them in one click.
      *
      * @return array The accounts (bankId, account_number, bank_name, label, balance, currency, followed)

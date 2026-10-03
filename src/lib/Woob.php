@@ -72,6 +72,29 @@ final class Woob {
     }
 
     /**
+     * List the bank backends configured in woob (only their name and module:
+     * the configuration, which contains the bank login, is never returned).
+     *
+     * @return array The backends: [{name, module}]
+     */
+    public static function listBackends()
+    {
+        $woob_path = Config::get('woob_path');
+        $stderr = '';
+        $stdout = self::executeWithHeartbeat("$woob_path config list CapBank -f json", $stderr, false);
+
+        $backends = [];
+        foreach (self::parseOutput('backends', $stdout) ?? [] as $row) {
+            if (is_array($row) && !empty($row['Name'])) {
+                $backends[] = ['name' => $row['Name'], 'module' => $row['Module'] ?? $row['Name']];
+            }
+        }
+        usort($backends, fn($a, $b) => strcmp($a['name'], $b['name']));
+
+        return $backends;
+    }
+
+    /**
      * Last non empty line of an output, prefixed with ": " (empty string if none).
      *
      * @param string $output The command output

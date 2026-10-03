@@ -18,6 +18,13 @@
 $type = $argv[2] ?? '';
 $account = $argv[3] ?? '';
 
+if (($argv[1] ?? '') === 'config' && $type === 'list') {
+    // One JSON object per line, with the (secret) configuration that must not leak
+    echo json_encode(['Name' => 'bnp', 'Module' => 'bnp', 'Configuration' => 'login=12345678, password=*****']) . "\n";
+    echo json_encode(['Name' => 'cic_pro', 'Module' => 'cic', 'Configuration' => 'login=jdoe, password=*****']) . "\n";
+    exit(0);
+}
+
 if (($argv[1] ?? '') === 'config') {
     exit(0);
 }
