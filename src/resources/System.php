@@ -28,7 +28,7 @@ final class System {
     public static function rotateJwtSecret()
     {
         User::requireAdmin();
-        $file = self::$configFile ?? dirname(__DIR__, 2) . '/conf/' . preg_replace('/[^a-z0-9_-]/i', '', getenv('APP_ENV') ?: 'prod') . '.ini';
+        $file = self::$configFile ?? Config::get('config_file');
         if (!is_file($file) || !is_writable($file)) {
             throw new Exception("The configuration file cannot be written by the web server");
         }

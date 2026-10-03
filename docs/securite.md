@@ -49,10 +49,10 @@ Docker, reprendre les en-têtes de `docker/nginx.conf`.
 
 ## Assistant d'installation
 
-Tant que `conf/prod.ini` n'existe pas, l'API ne répond qu'à `/api/setup` (le reste renvoie
+Tant que `data/conf/prod.ini` n'existe pas, l'API ne répond qu'à `/api/setup` (le reste renvoie
 `503`). Depuis le réseau local, l'assistant est accessible sans code, comme la plupart des
 applications auto-hébergées ; depuis Internet (adresse publique), ou dès que le fichier
-`conf/setup.code` existe, chaque étape exige le **code d'installation** de ce fichier, aussi
+`data/conf/setup.code` existe, chaque étape exige le **code d'installation** de ce fichier, aussi
 écrit dans les journaux du serveur (`docker logs`). Une erreur de code est ralentie. Le mot
 de passe de la base fourni par Docker (`DB_PASSWORD`) n'est utilisé que pour la base de
 l'environnement, jamais pour un autre serveur saisi dans l'assistant. Une fois la
@@ -62,7 +62,7 @@ configuration écrite, l'assistant disparaît et le code est supprimé.
     L'adresse prise en compte est celle qui se connecte au serveur PHP (`REMOTE_ADDR`).
     Derrière un proxy inversé, c'est l'adresse du proxy, donc une adresse locale : le code
     n'est alors pas demandé. Installez Carbure avant de l'exposer sur Internet, ou créez
-    `conf/setup.code` (Docker : `/data/conf/setup.code`) avec un code de votre choix pour
+    `data/conf/setup.code` (Docker : `/data/conf/setup.code`) avec un code de votre choix pour
     l'imposer.
 
 Les mises à jour de schéma ultérieures se font sans l'assistant : migrations appliquées
@@ -108,7 +108,7 @@ Seules ces routes ne demandent pas de JWT (un test unitaire le vérifie) :
   `token=` des URL (synchronisation, MCP).
 - Les messages d'erreur ne renvoient ni hachage ni secret ; l'`uid` permet de retrouver
   le détail dans les logs serveur.
-- `conf/prod.ini`, `conf/certs/*.p8`, `logs/` et `woob/` (identifiants bancaires woob)
+- `data/` : `conf/prod.ini`, `conf/certs/*.p8`, `logs/`, `woob/` (identifiants bancaires woob)
   sont exclus du dépôt Git.
 
 ## Recommandations de déploiement
@@ -122,18 +122,18 @@ Seules ces routes ne demandent pas de JWT (un test unitaire le vérifie) :
 
 - Servir l'API et le portail **uniquement en HTTPS** (JWT et mots de passe transitent
   dans les requêtes ; la copie du token dans le portail exige HTTPS).
-- Ne pas exposer `conf/`, `logs/`, `sql/`, `tests/`, `tools/` ni `woob/` par le serveur
+- Ne pas exposer `data/`, `conf/`, `sql/`, `tests/` ni `tools/` par le serveur
   web.
 - Générer un `sync_token` long et le passer en en-tête plutôt qu'en query string (les
   URL peuvent être journalisées).
 - Restreindre l'utilisateur MySQL à la base `carbure`.
-- Surveiller `logs/carbure_AAAAMMJJ.log` (erreurs de synchronisation, accès refusés).
+- Surveiller `data/logs/carbure_AAAAMMJJ.log` (erreurs de synchronisation, accès refusés).
 
 ## Sécurité de l'image Docker
 
 Chaque build de la CI analyse l'image :
 
-- **hadolint** vérifie les bonnes pratiques du `Dockerfile` ;
+- **hadolint** vérifie les bonnes pratiques du `docker/Dockerfile` ;
 - **Trivy** recherche les vulnérabilités connues des paquets Debian, des dépendances PHP
   et Python (woob, `curl_cffi`) et les secrets restés dans l'image. Une vulnérabilité
   **critique pour laquelle un correctif existe** fait échouer le build (et donc la

@@ -21,7 +21,7 @@ class SetupTest extends TestCase
             $this->markTestSkipped('mysqli extension not available');
         }
         $this->root = dirname(__DIR__, 2);
-        $this->configFile = "$this->root/conf/" . self::ENV . ".ini";
+        $this->configFile = sys_get_temp_dir() . '/carbure-setup-test-' . uniqid() . '/conf/' . self::ENV . '.ini';
         $this->codeFile = sys_get_temp_dir() . '/carbure-setup-' . uniqid() . '.code';
         try {
             $this->server()->query("DROP DATABASE IF EXISTS " . self::DB);

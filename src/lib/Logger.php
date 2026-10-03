@@ -200,7 +200,7 @@ final class Logger {
             if (isset($GLOBALS['SCOPE'])) {
                 $postfix = $GLOBALS['SCOPE'] . "_" . $postfix;
             }
-            $log_dir = Config::get('install_dir') . "/logs";
+            $log_dir = Config::get('data_dir') . "/logs";
             self::$logFilePath = $log_dir . "/carbure_$postfix.log";
         }
 

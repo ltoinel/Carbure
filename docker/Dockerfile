@@ -37,13 +37,10 @@ COPY docker/php-fpm.conf /usr/local/etc/php-fpm.d/zz-carbure.conf
 WORKDIR /var/www/carbure
 COPY --chown=www-data:www-data . .
 
-# Persistent data in /data: configuration, logs and woob settings (bank backends).
-# conf/ is writable by PHP: the installation wizard writes conf/prod.ini (-> /data)
+# Data of the instance in the volume /data, seen by Carbure as data/:
+# conf/ (prod.ini written by the installation wizard, certs/), logs/, cache/, woob/
 RUN echo "${CARBURE_VERSION#v}" > VERSION \
-    && ln -sf /data/conf/prod.ini conf/prod.ini \
-    && ln -sf /data/conf/setup.code conf/setup.code \
-    && rm -rf logs && ln -s /data/logs logs \
-    && rm -rf conf/certs && ln -s /data/conf/certs conf/certs \
+    && ln -s /data /var/www/carbure/data \
     && chmod +x docker/entrypoint.sh
 
 # Command run by the synchronization to call woob (its settings live in /data)

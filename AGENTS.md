@@ -26,7 +26,8 @@ notifications APNs sont envoyées à l'application iOS. Un serveur MCP en lectur
 | `sql/carbure.sql` | Schéma complet (installation neuve) |
 | `sql/migrations/` | Migrations datées pour les bases existantes (appliquées par `Migrator`, table `schema_migrations`) |
 | `tools/migrate.php` | Migrations du schéma en ligne de commande (lancé par l'image Docker à chaque démarrage) ; tout le reste se fait dans le portail |
-| `Dockerfile`, `docker/`, `docker-compose.yml` | Image nginx + PHP-FPM + woob (`HEALTHCHECK` sur `/api/health`) |
+| `docker/` | `Dockerfile` (nginx + PHP-FPM + woob, `HEALTHCHECK` sur `/api/health`), `docker-compose.yml` |
+| `data/` | Données de l'instance, non versionnées : `conf/prod.ini`, `conf/certs/`, `logs/`, `cache/`, `woob/` |
 | `conf/*.sample.ini`, `conf/testing.ini` | Configuration d'exemple et de test (`prod.ini` n'est jamais versionné) |
 | `tests/unit/`, `tests/integration/` | Tests PHPUnit (unitaires sans dépendance ; intégration avec MariaDB) |
 | `tools/phpunit.phar` | PHPUnit 11 |
@@ -78,7 +79,7 @@ en pre-push).
   (bandeau administrateur) ; `tools/migrate.php` en ligne de commande. Le code ne doit pas
   dépendre d'une migration non appliquée.
 - **Secrets** : jamais de secret, d'identifiant bancaire, d'e-mail personnel ou de log
-  dans le dépôt (`conf/prod.ini`, `conf/certs/`, `logs/`, `woob/` sont ignorés). Les
+  dans le dépôt (`data/` est ignoré : configuration, clés, logs, identifiants woob). Les
   fichiers d'exemple ne contiennent que des valeurs factices.
 - **UUID des transactions** : le libellé nettoyé entre dans l'UUID ; modifier
   `Transaction::cleanLabel()` ou les `regex_label` crée des doublons sans migration.

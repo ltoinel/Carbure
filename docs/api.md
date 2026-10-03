@@ -32,7 +32,7 @@
 { "error": "Unauthorized - Invalid or missing JWT token", "code": 401, "uid": "6ac106d3912d9" }
 ```
 
-`uid` identifie la requête dans `logs/carbure_AAAAMMJJ.log`.
+`uid` identifie la requête dans `data/logs/carbure_AAAAMMJJ.log`.
 
 ## Utilisateurs
 
@@ -459,7 +459,7 @@ renouveler.
 
 ## Assistant d'installation
 
-Tant que `conf/prod.ini` n'existe pas, l'API ne répond qu'à ces routes (toutes les autres
+Tant que `data/conf/prod.ini` n'existe pas, l'API ne répond qu'à ces routes (toutes les autres
 renvoient `503` avec `"setup": true`) :
 
 | Route | Rôle |
@@ -469,7 +469,7 @@ renvoient `503` avec `"setup": true`) :
 | `POST /setup/install` | Crée ou migre le schéma, crée le premier administrateur s'il n'y en a pas (`admin_user`, `admin_password` de 8 caractères minimum, `admin_email`, `language`) et écrit la configuration ; `409` sans `backup_confirmed` quand des migrations sont à appliquer |
 | `GET /health` | `{"status":"setup"}` |
 
-Depuis Internet, ou si `conf/setup.code` existe, les requêtes `POST` exigent le paramètre
+Depuis Internet, ou si `data/conf/setup.code` existe, les requêtes `POST` exigent le paramètre
 `code` (code d'installation), sinon `403`. Voir [Sécurité](securite.md#assistant-dinstallation).
 
 ## Spécification OpenAPI

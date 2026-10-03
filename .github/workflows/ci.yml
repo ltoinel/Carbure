@@ -130,11 +130,11 @@ jobs:
       - name: Lint the Dockerfile
         uses: hadolint/hadolint-action@v3.5.0
         with:
-          dockerfile: Dockerfile
+          dockerfile: docker/Dockerfile
           failure-threshold: error
 
       - name: Build the image
-        run: docker compose build carbure
+        run: docker compose -f docker/docker-compose.yml build carbure
 
       # Security of the image: OS packages (Debian), PHP and Python (woob) dependencies,
       # secrets left in the image. The build fails on a CRITICAL vulnerability that has a fix.
@@ -171,7 +171,7 @@ jobs:
       - name: Start Carbure and MariaDB
         env:
           DB_PASSWORD: ci-db-password
-        run: docker compose up -d
+        run: docker compose -f docker/docker-compose.yml up -d
 
       - name: Wait for the portal
         run: |
@@ -212,28 +212,28 @@ jobs:
           # Without a token: 401
           test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/api/transaction)" = 401
           # Private files are never served
-          for path in /conf/prod.ini /conf/setup.code /logs/ /sql/carbure.sql /tools/migrate.php /src/lib/Config.php /src/api.php /README.md; do
+          for path in /data/conf/prod.ini /data/conf/setup.code /data/logs/ /data/woob/ /conf/prod.sample.ini /sql/carbure.sql /tools/migrate.php /src/lib/Config.php /src/api.php /README.md; do
             code=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:8080$path")
             echo "$path -> $code"
             test "$code" = 403 || test "$code" = 404
           done
           # Restart: the schema is checked and kept (no migration to apply)
-          docker compose restart carbure
+          docker compose -f docker/docker-compose.yml restart carbure
           for i in $(seq 1 30); do
             curl -fsS http://localhost:8080/portal/ > /dev/null && break
             sleep 2
           done
-          docker compose logs carbure | grep -q 'schema version'
+          docker compose -f docker/docker-compose.yml logs carbure | grep -q 'schema version'
           # Security headers of the portal and the API
           curl -fsSI http://localhost:8080/portal/ | grep -qi "content-security-policy: default-src 'self'"
           curl -fsSI http://localhost:8080/portal/ | grep -qi 'x-frame-options: DENY'
           curl -sI http://localhost:8080/api/health | grep -qi 'cache-control: no-store'
           ! curl -sI http://localhost:8080/api/health | grep -qi 'x-powered-by'
           # woob and curl_cffi are installed
-          docker compose exec -T carbure woob --version
-          docker compose exec -T carbure /opt/woob/bin/python -c 'import curl_cffi'
+          docker compose -f docker/docker-compose.yml exec -T carbure woob --version
+          docker compose -f docker/docker-compose.yml exec -T carbure /opt/woob/bin/python -c 'import curl_cffi'
 
       - name: Logs
         if: failure()
-        run: docker compose logs
+        run: docker compose -f docker/docker-compose.yml logs
 

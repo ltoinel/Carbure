@@ -4,7 +4,7 @@
  * Setup.php
  *
  * Installation wizard of the portal: as long as the configuration file
- * (conf/<env>.ini) does not exist, the API only answers /api/setup:
+ * (data/conf/<env>.ini) does not exist, the API only answers /api/setup:
  *
  *   GET  /api/setup           State of the installation and default values
  *   POST /api/setup/database  Test the database and tell what the installation will do
@@ -12,7 +12,7 @@
  *                             administrator and write the configuration
  *
  * From the local network (a NAS at home), anyone reaching the portal can install
- * it, like most self-hosted applications. From Internet, or when conf/setup.code
+ * it, like most self-hosted applications. From Internet, or when data/conf/setup.code
  * exists, the POST requests require the setup code of this file (created on the
  * first request, and printed in the logs of the Docker container).
  *
@@ -72,7 +72,7 @@ final class Setup {
      */
     public static function serve($root, $env)
     {
-        $setup = new self($root, "$root/conf/$env.ini", "$root/conf/setup.code", self::requestAddresses());
+        $setup = new self($root, "$root/data/conf/$env.ini", "$root/data/conf/setup.code", self::requestAddresses());
         $path = preg_replace('#^/api#', '', strtok($_SERVER['REQUEST_URI'] ?? '/', '?'));
         $data = json_decode(file_get_contents('php://input') ?: '[]', true);
 
@@ -143,7 +143,7 @@ final class Setup {
             'codeRequired' => $codeRequired,
             // Docker: the database password is given by the environment
             'dbPasswordFromEnvironment' => getenv('DB_PASSWORD') !== false && getenv('DB_PASSWORD') !== '',
-            'codeFile' => 'conf/setup.code',
+            'codeFile' => 'data/conf/setup.code',
             'defaults' => [
                 'db_host' => getenv('DB_HOST') ?: 'localhost',
                 'db_port' => (int)(getenv('DB_PORT') ?: 3306),
@@ -188,8 +188,9 @@ final class Setup {
         if ($needsAdmin && strlen((string)($data['admin_password'] ?? '')) < 8) {
             throw new SetupError("The administrator password must contain at least 8 characters", 400);
         }
+        @mkdir(dirname($this->configFile), 0750, true);
         if (!is_writable(dirname($this->configFile)) && !is_writable($this->configFile)) {
-            throw new SetupError("The web server cannot write in conf/: give it the write permission", 500);
+            throw new SetupError("The web server cannot write in data/conf/: give it the write permission on data/", 500);
         }
 
         if ($state['state'] === 'none') {
@@ -212,10 +213,11 @@ final class Setup {
             'db_username' => $data['db_user'],
             'db_password' => $this->password($data),
             'db_name' => $data['db_name'],
-            'woob_path' => getenv('CARBURE_WOOB_PATH') ?: 'woob',
+            // woob keeps the banks (and their credentials) in data/woob
+            'woob_path' => getenv('CARBURE_WOOB_PATH') ?: 'env HOME=' . $this->root . '/data/woob woob',
         ]);
         if (@file_put_contents($this->configFile, $ini) === false) {
-            throw new SetupError("Cannot write the configuration file: check the permissions of conf/", 500);
+            throw new SetupError("Cannot write the configuration file: check the permissions of data/conf/", 500);
         }
         @chmod($this->configFile, 0640);
         @unlink($this->codeFile);
@@ -267,6 +269,7 @@ final class Setup {
      */
     public function code()
     {
+        @mkdir(dirname($this->codeFile), 0750, true);
         // A file created by hand may be empty: a new code is written then
         if (is_file($this->codeFile) && trim((string)file_get_contents($this->codeFile)) !== '') {
             return trim(file_get_contents($this->codeFile));
@@ -278,11 +281,11 @@ final class Setup {
             $code .= $alphabet[random_int(0, strlen($alphabet) - 1)];
         }
         if (@file_put_contents($this->codeFile, $code . "\n") === false) {
-            throw new SetupError("Cannot write conf/setup.code: the web server must be able to write in conf/", 500);
+            throw new SetupError("Cannot write data/conf/setup.code: the web server must be able to write in data/conf/", 500);
         }
         @chmod($this->codeFile, 0600);
         // Shown in the logs of the server (docker logs)
-        error_log("Carbure: installation code $code (also in conf/setup.code)");
+        error_log("Carbure: installation code $code (also in data/conf/setup.code)");
         return $code;
     }
 
@@ -323,7 +326,7 @@ final class Setup {
         $given = strtoupper(preg_replace('/\s+/', '', (string)($data['code'] ?? '')));
         if ($given === '' || !hash_equals($this->code(), $given)) {
             usleep(500000);
-            throw new SetupError("Wrong setup code: see conf/setup.code on the server, or the logs of the Docker container", 403);
+            throw new SetupError("Wrong setup code: see data/conf/setup.code on the server, or the logs of the Docker container", 403);
         }
     }
 }

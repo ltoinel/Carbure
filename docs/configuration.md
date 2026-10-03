@@ -4,7 +4,7 @@ La configuration est lue dans `conf/<env>.ini`, où `<env>` vaut la variable
 d'environnement `APP_ENV` (`prod` par défaut, `testing` pour les tests). Les
 commentaires commencent par `;` (le `#` n'est pas accepté par PHP).
 
-`conf/prod.ini` est écrit par l'**assistant d'installation** à partir de
+`data/conf/prod.ini` est écrit par l'**assistant d'installation** à partir de
 `conf/prod.sample.ini`, avec les paramètres de la base et des secrets aléatoires
 (`jwtsecret`, `password_salt`, `sync_token`) ; avec Docker, il se trouve dans
 `/data/conf/prod.ini`. Il contient des secrets : il est ignoré par Git et ne doit jamais
@@ -18,7 +18,7 @@ Les réglages modifiés depuis le portail sont, eux, enregistrés en base (voir
 
 | Clé | Valeurs | Description |
 |---|---|---|
-| `log_level` | `debug`, `info`, `warning`, `error` | Niveau minimal des logs (`logs/carbure_AAAAMMJJ.log`). En `debug`, les erreurs PHP sont affichées et les réponses JSON indentées. |
+| `log_level` | `debug`, `info`, `warning`, `error` | Niveau minimal des logs (`data/logs/carbure_AAAAMMJJ.log`). En `debug`, les erreurs PHP sont affichées et les réponses JSON indentées. |
 | `development` | `true` / `false` | Indicateur de mode développement, écrit à `false` par l'assistant (sans effet actuellement) |
 | `savings_category` | nom | Catégorie dont les transactions (avec ses sous-catégories) constituent l'épargne de l'onglet Tendances ; `Epargne` par défaut, casse et accents ignorés |
 
@@ -70,13 +70,13 @@ transaction importée.
 |---|---|
 | `apns_bundle_id` | Bundle ID de l'app iOS (sujet APNs) |
 | `apns_auth_method` | `token` (clé `.p8`, recommandé) ou `certificate` |
-| `apns_key_path` | Chemin de la clé `.p8` (absolu ou relatif à la racine du projet, ex. `conf/certs/AuthKey_XXXX.p8`) |
+| `apns_key_path` | Chemin de la clé `.p8`, absolu ou relatif au dossier `data/` (ex. `conf/certs/AuthKey_XXXX.p8`, soit `data/conf/certs/AuthKey_XXXX.p8`) |
 | `apns_key_id`, `apns_team_id` | Identifiants Apple Developer |
 | `apns_certificate_path`, `apns_certificate_password` | Pour l'authentification par certificat |
 | `apns_environment` | `production` ou `sandbox` |
 | `apns_endpoint` | Facultatif : URL APNs imposée (tests), à la place de celle déduite de `apns_environment` |
 
-Les clés `.p8` placées dans `conf/certs/` sont ignorées par Git.
+Les clés `.p8` placées dans `data/conf/certs/` sont ignorées par Git.
 
 ## Réglages en base
 

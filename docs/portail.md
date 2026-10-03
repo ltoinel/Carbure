@@ -10,9 +10,9 @@ Tant que Carbure n'est pas installé, le portail affiche l'**assistant d'install
 en trois étapes :
 
 1. **Base de données** : serveur, port, nom de la base, utilisateur et mot de passe, déjà
-   remplis avec Docker (laisser le mot de passe vide : celui de `docker-compose.yml` est
+   remplis avec Docker (laisser le mot de passe vide : celui de `docker/docker-compose.yml` est
    utilisé). Depuis Internet, un **code d'installation** est aussi demandé (journaux du
-   conteneur ou fichier `conf/setup.code`).
+   conteneur ou fichier `data/conf/setup.code`).
 2. **Installation** : l'assistant indique ce qu'il va faire — créer les tables d'une base
    vide, conserver une base Carbure à jour, ou mettre à jour une base Carbure existante
    (après avoir coché « J'ai une sauvegarde de ma base de données »). Il demande

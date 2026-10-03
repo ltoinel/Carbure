@@ -5,19 +5,19 @@ affiche un assistant qui vérifie la base de données, crée (ou met à jour) se
 compte administrateur. Aucune commande n'est nécessaire.
 
 - **Docker** (recommandé) : tout est inclus (nginx, PHP, woob) et la base de données est
-  préparée par `docker-compose.yml`.
+  préparée par `docker/docker-compose.yml`.
 - **NAS Synology** : voir le [tutoriel pas à pas](synology.md).
 - **Serveur web existant** (PHP + MariaDB/MySQL), sans Docker.
 
 ## Avec Docker (recommandé)
 
 ```bash
-git clone https://github.com/ltoinel/Carbure.git && cd Carbure
+git clone https://github.com/ltoinel/Carbure.git && cd Carbure/docker
 docker compose up -d
 ```
 
 Ouvrez `http://<hôte>:8080/` : l'assistant d'installation s'affiche, déjà rempli avec la
-base de données de `docker-compose.yml`. Cliquez sur **Continuer**, choisissez le mot de
+base de données de `docker/docker-compose.yml`. Cliquez sur **Continuer**, choisissez le mot de
 passe administrateur, puis **Installer**. C'est tout.
 
 Ajoutez ensuite vos banques depuis l'onglet **Comptes** du portail (bouton **+**) :
@@ -25,8 +25,8 @@ choisissez la banque, saisissez les identifiants demandés, puis les comptes à 
 identifiants sont confiés à woob, qui les conserve sur votre serveur ; Carbure ne les
 enregistre pas.
 
-Pour choisir vous-même le mot de passe de la base, créez un fichier `.env` à côté de
-`docker-compose.yml` **avant** le premier démarrage :
+Pour choisir vous-même le mot de passe de la base, créez un fichier `docker/.env` à côté de
+`docker/docker-compose.yml` **avant** le premier démarrage :
 
 ```bash
 DB_PASSWORD=un-mot-de-passe-solide
@@ -39,9 +39,11 @@ DB_PASSWORD=un-mot-de-passe-solide
 | `SYNC_INTERVAL` | Synchronisation automatique de tous les comptes toutes les N secondes (`86400` = une fois par jour) | désactivée |
 | `CARBURE_WOOB_PATH` | Commande woob écrite dans la configuration par l'assistant ; l'image la définit déjà (`env HOME=/data/woob woob`) | `woob` |
 
-Le volume `/data` conserve la configuration écrite par l'assistant (`/data/conf/prod.ini`,
-avec des secrets aléatoires), la clé APNs (`/data/conf/certs`), les logs et la
-configuration woob (vos banques). Aucun mot de passe administrateur n'est passé par
+Le dossier `data/` du projet, monté sur `/data` dans le conteneur, conserve tout ce qui est
+propre à votre instance : la configuration écrite par l'assistant (`data/conf/prod.ini`, avec
+des secrets aléatoires), la clé APNs (`data/conf/certs`), les logs (`data/logs`) et la
+configuration woob avec vos banques (`data/woob`). C'est le seul dossier à sauvegarder, avec
+la base de données. Aucun mot de passe administrateur n'est passé par
 l'environnement : il est choisi dans l'assistant.
 
 L'image contient nginx (portail, Swagger et API sur le port 80), PHP-FPM et woob. Son
@@ -146,7 +148,7 @@ l'assistant y écrit la configuration.
 - Les URL `/api/…` sont envoyées à `src/api.php` (le préfixe `/api` est retiré par l'API).
 - `portal/` est servi en fichiers statiques (par exemple sous `/portal/`).
 - `swagger/` peut être servi pour consulter la spécification OpenAPI.
-- `conf/`, `logs/`, `sql/`, `tests/`, `tools/` et `woob/` ne doivent **pas** être exposés.
+- `data/`, `conf/`, `sql/`, `tests/` et `tools/` ne doivent **pas** être exposés.
 - Utiliser HTTPS.
 
 Exemple nginx (celui de l'image Docker est dans `docker/nginx.conf`) :
@@ -161,19 +163,19 @@ location /api/ {
     fastcgi_read_timeout 3600;   # la synchronisation peut être longue
     fastcgi_buffering off;       # flux SSE
 }
-location ~ ^/(conf|logs|sql|tests|tools|woob)/ { deny all; }
+location ~ ^/(data|conf|sql|tests|tools|docker)/ { deny all; }
 ```
 
 ### 3. Lancer l'assistant
 
 Ouvrez le portail (`https://<votre-serveur>/portal/`) : l'assistant demande la base de
 données, crée ses tables (ou met à jour une base Carbure existante, après confirmation
-d'une sauvegarde) et le compte administrateur, puis écrit `conf/prod.ini` avec des
+d'une sauvegarde) et le compte administrateur, puis écrit `data/conf/prod.ini` avec des
 secrets aléatoires (`jwtsecret`, `sync_token`…). La commande woob y est `woob` : adaptez
 `woob_path` si woob est installé ailleurs (voir [Configuration](configuration.md#woob)).
 
 Depuis une adresse publique, l'assistant demande le code d'installation écrit dans
-`conf/setup.code` (et dans le journal d'erreurs PHP). Voir
+`data/conf/setup.code` (et dans le journal d'erreurs PHP). Voir
 [Sécurité](securite.md#assistant-dinstallation).
 
 ### 4. Ajouter une banque
@@ -185,7 +187,7 @@ l'utilisateur du serveur web.
 
 ### 5. Planifier la synchronisation
 
-La clé `sync_token` de `conf/prod.ini` permet d'appeler la synchronisation sans compte :
+La clé `sync_token` de `data/conf/prod.ini` permet d'appeler la synchronisation sans compte :
 
 ```bash
 # crontab : tous les jours à 7h
@@ -194,7 +196,7 @@ La clé `sync_token` de `conf/prod.ini` permet d'appeler la synchronisation sans
 
 ### Mettre à jour
 
-Remplacez les fichiers de Carbure (en gardant `conf/` et `logs/`). Si la nouvelle version
+Remplacez les fichiers de Carbure en gardant le dossier `data/` (configuration, logs, banques). Si la nouvelle version
 modifie la base de données, un bandeau **Mise à jour de la base de données** s'affiche pour
 l'administrateur dans le portail : sauvegardez la base, puis cliquez sur **Mettre à jour**.
 Les migrations déjà appliquées à la main (phpMyAdmin) sont reconnues.

@@ -74,7 +74,7 @@ flowchart LR
 Avec Docker (nginx, PHP et woob inclus) :
 
 ```bash
-git clone https://github.com/ltoinel/Carbure.git && cd Carbure
+git clone https://github.com/ltoinel/Carbure.git && cd Carbure/docker
 docker compose up -d
 ```
 

@@ -28,13 +28,13 @@ flowchart LR
 | `Webservice` | Lit le corps JSON et la query string, positionne les en-têtes (sécurité, JSON ou SSE), contrôle l'accès (JWT), appelle la ressource |
 | `ApiResolver` | Découvre les routes par réflexion sur l'attribut `#[ApiRoute(path, method, public, stream, raw)]`, avec cache APCu invalidé quand un fichier de ressource change |
 | `src/resources/` | Logique métier : `User`, `Bank`, `Transaction`, `Budget`, `Category`, `Insight`, `Device`, `ApiToken`, `Mcp`, `System` |
-| `Setup`, `Installer` | Assistant d'installation (`/api/setup`) : base, schéma, premier administrateur, `conf/prod.ini` |
+| `Setup`, `Installer` | Assistant d'installation (`/api/setup`) : base, schéma, premier administrateur, `data/conf/prod.ini` |
 | `Migrator` | Versionnement du schéma (table `schema_migrations`) et application des migrations |
 | `Setting` | Réglages modifiés depuis le portail (table `settings`) |
 | `Db` | Connexion `mysqli` unique, requêtes préparées |
 | `Woob` | Exécution de woob (`proc_open`) avec envoi de *heartbeats* SSE pendant l'attente |
 | `Apns` | Envoi des notifications (authentification par clé `.p8` ou certificat) |
-| `Logger` | Logs bufferisés dans `logs/carbure_AAAAMMJJ.log`, avec un identifiant (`uid`) par requête |
+| `Logger` | Logs bufferisés dans `data/logs/carbure_AAAAMMJJ.log`, avec un identifiant (`uid`) par requête |
 
 ## Traitement d'une requête
 
@@ -120,7 +120,7 @@ sequenceDiagram
     participant N as Navigateur
     participant S as api.php / Setup
     participant D as MariaDB
-    N->>S: GET /api/setup (pas de conf/prod.ini)
+    N->>S: GET /api/setup (pas de data/conf/prod.ini)
     S-->>N: valeurs par défaut (environnement Docker), code requis ?
     N->>S: POST /api/setup/database
     S->>D: connexion, table users ? migrations en attente ?
@@ -128,7 +128,7 @@ sequenceDiagram
     N->>S: POST /api/setup/install
     S->>D: sql/carbure.sql + baseline, ou migrations (sauvegarde confirmée)
     S->>D: premier administrateur (s'il n'y en a pas)
-    S-->>N: conf/prod.ini écrit avec des secrets aléatoires
+    S-->>N: data/conf/prod.ini écrit avec des secrets aléatoires
 ```
 
 - Le schéma est **versionné** : `Migrator` liste les fichiers `sql/migrations/*.sql`, la
@@ -155,8 +155,8 @@ l'identité de l'utilisateur du jeton. Voir [Agents IA (MCP)](mcp.md).
 
 | Élément | Rôle |
 |---|---|
-| `Dockerfile` | `php:8.3-fpm` (Debian) + nginx, extensions `mysqli` et APCu, woob et `curl_cffi` dans `/opt/woob`, `HEALTHCHECK` sur `/api/health` |
+| `docker/Dockerfile` | `php:8.3-fpm` (Debian) + nginx, extensions `mysqli` et APCu, woob et `curl_cffi` dans `/opt/woob`, `HEALTHCHECK` sur `/api/health` |
 | `docker/nginx.conf` | Site nginx (portail, Swagger, API, en-têtes de sécurité) |
 | `docker/php.ini`, `docker/php-fpm.conf` | Réglages PHP et PHP-FPM |
 | `docker/entrypoint.sh` | Prépare `/data`, attend la base et applique les migrations si Carbure est installé, lance la synchronisation périodique (`SYNC_INTERVAL`), puis PHP-FPM et nginx |
-| Volume `/data` | `conf/prod.ini`, `conf/setup.code`, `conf/certs/`, `logs/`, configuration woob (`/data/woob`) |
+| Volume `/data` (le dossier `data/` du projet) | `conf/prod.ini`, `conf/setup.code`, `conf/certs/`, `logs/`, `cache/`, configuration woob (`woob/`) |

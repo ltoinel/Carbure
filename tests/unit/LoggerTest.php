@@ -10,7 +10,7 @@ class LoggerTest extends TestCase
         Logger::warn($message, ['key' => 'value']);
         Logger::flush();
 
-        $file = Config::get('install_dir') . '/logs/carbure_test_' . date('Ymd') . '.log';
+        $file = Config::get('data_dir') . '/logs/carbure_test_' . date('Ymd') . '.log';
         $content = file_get_contents($file);
 
         $this->assertStringContainsString($message, $content);
@@ -20,7 +20,7 @@ class LoggerTest extends TestCase
 
     public function testBufferIsFlushedWhenFull()
     {
-        $file = Config::get('install_dir') . '/logs/carbure_test_' . date('Ymd') . '.log';
+        $file = Config::get('data_dir') . '/logs/carbure_test_' . date('Ymd') . '.log';
         $message = 'Buffered message ' . uniqid();
 
         Logger::setBufferSize(1);
@@ -36,7 +36,7 @@ class LoggerTest extends TestCase
     public function testMessagesBelowTheLevelAreIgnored()
     {
         $minLevel = new ReflectionProperty(Logger::class, 'minLevel');
-        $file = Config::get('install_dir') . '/logs/carbure_test_' . date('Ymd') . '.log';
+        $file = Config::get('data_dir') . '/logs/carbure_test_' . date('Ymd') . '.log';
         $message = 'Ignored message ' . uniqid();
 
         Config::set('log_level', 'error');

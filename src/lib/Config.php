@@ -24,12 +24,14 @@ final class Config {
      */
     private static function getConfigFile($path,$env){
 
-        // load the settings from the ini file
-        $CONFIG_FILE = $path . "/conf/". $env.".ini";
-        if (!file_exists($CONFIG_FILE)) {
-            throw new Exception("Config file not found: $CONFIG_FILE");
+        // The configuration of the instance is in data/conf; conf/ only holds the
+        // versioned templates (prod.sample.ini) and the configuration of the tests
+        foreach (["$path/data/conf/$env.ini", "$path/conf/$env.ini"] as $file) {
+            if (file_exists($file)) {
+                return $file;
+            }
         }
-        return $CONFIG_FILE;
+        throw new Exception("Config file not found: $path/data/conf/$env.ini");
     }
 
     /**
@@ -56,6 +58,9 @@ final class Config {
         }
 
         self::set('install_dir', $INSTALL_DIR);
+        // Data of the instance: configuration, logs, cache, woob (banks)
+        self::set('data_dir', $INSTALL_DIR . '/data');
+        self::set('config_file', $configFile);
     }
 
     /**
@@ -106,7 +111,7 @@ final class Config {
             return $path;
         }
         
-        // Convert relative path to absolute using install directory
-        return self::get('install_dir') . '/' . ltrim($path, '/');
+        // Relative paths (e.g. conf/certs/AuthKey.p8) are in the data directory
+        return self::get('data_dir') . '/' . ltrim($path, '/');
     }
 }

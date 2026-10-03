@@ -1,13 +1,8 @@
-conf/prod.ini
-# Configuration written by the installation wizard (any environment) and its setup code
-conf/*.ini
-!conf/prod.sample.ini
-!conf/testing.ini
-conf/setup.code
-conf/certs/*.p8
-logs/*.log
-cache/
-woob
+# Data of the instance: configuration, logs, cache, woob (bank credentials)
+data/
+
+# conf/ only holds versioned templates
 .phpunit.result.cache
 .phpunit.cache/
 CLAUDE.md
+

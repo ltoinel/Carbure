@@ -6,7 +6,7 @@
 set -e
 
 APP=/var/www/carbure
-mkdir -p /data/conf/certs /data/logs /data/woob
+mkdir -p /data/conf/certs /data/logs /data/cache /data/woob
 chown -R www-data:www-data /data
 
 if [ -f /data/conf/prod.ini ]; then

@@ -1,10 +1,14 @@
-# Carbure with MariaDB: docker compose up -d, then open http://localhost:8080/
-# and follow the installation wizard (everything is already filled in).
-# Optional: choose the database password in a .env file (DB_PASSWORD=...).
+# Carbure with MariaDB, from the docker/ directory: docker compose up -d, then open
+# http://localhost:8080/ and follow the installation wizard (everything is filled in).
+# Optional: choose the database password in docker/.env (DB_PASSWORD=...).
+# The data of Carbure (configuration, logs, banks) is in the data/ directory of the project.
 services:
   carbure:
     image: ghcr.io/ltoinel/carbure:latest
-    build: .
+    build:
+      # The build context is the root of the project
+      context: ..
+      dockerfile: docker/Dockerfile
     ports:
       - "8080:80"
     environment:
@@ -17,7 +21,7 @@ services:
       # Daily bank synchronization (seconds); remove to disable
       SYNC_INTERVAL: 86400
     volumes:
-      - carbure-data:/data
+      - ../data:/data
     depends_on:
       db:
         condition: service_healthy
@@ -40,5 +44,4 @@ services:
     restart: unless-stopped
 
 volumes:
-  carbure-data:
   carbure-db:

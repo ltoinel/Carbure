@@ -1,15 +1,14 @@
+# Files left out of the image (the build context is the root of the project)
+data
 .git
 .github
 .githooks
 .phpunit.cache
 .phpunit.result.cache
-cache
-conf/prod.ini
-conf/certs
+conf/*.ini
+!conf/prod.sample.ini
 docs
-logs
 tests
-woob
 CLAUDE.md
 TODO.md
 tools/phpunit.phar

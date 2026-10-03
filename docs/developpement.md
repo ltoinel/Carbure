@@ -12,7 +12,8 @@
 | `tests/unit/`, `tests/integration/` | Tests PHPUnit |
 | `tools/migrate.php` | Migrations du schéma (`--status`, `--dry-run`, `--baseline`) |
 | `tools/phpunit.phar`, `tools/coverage-check.php` | PHPUnit 11 et contrôle du seuil de couverture |
-| `Dockerfile`, `docker/`, `docker-compose.yml` | Image nginx + PHP-FPM + woob, et déploiement avec MariaDB |
+| `docker/` | `Dockerfile`, `docker-compose.yml` (avec MariaDB), configuration nginx et PHP-FPM, `entrypoint.sh` |
+| `data/` (non versionné) | Données de l'instance : `conf/` (`prod.ini`, `certs/`), `logs/`, `cache/`, `woob/` (banques et identifiants) |
 | `VERSION` | Version de Carbure (`dev` dans le dépôt, écrite par le build de release) |
 | `docs/`, `mkdocs.yml` | Cette documentation |
 
