@@ -26,11 +26,31 @@ class InsightTest extends DatabaseTestCase
         $this->assertCount(1, Insight::get());
     }
 
+    public function testIconAndCheck()
+    {
+        $created = Insight::create('Revenus', 'green', self::SQL, 'savings');
+        $this->assertSame('savings', $created['icon']);
+        $this->assertSame('savings', array_column(Insight::get(), 'icon', 'name')['Revenus']);
+        $this->assertSame('savings', array_column(Budget::getInsights(), 'icon', 'name')['Revenus']);
+        $this->assertNull(Insight::update($created['id'], 'Revenus', 'green', self::SQL, '')['icon']);
+
+        $this->assertSame(['valid' => true, 'amount' => 2000.0], Insight::check(self::SQL));
+        $this->assertSame(['valid' => true, 'amount' => null], Insight::check(self::SQL, 1, 2001));
+        $invalid = Insight::check('SELECT SUM(amount) AS amount FROM bank_transaction WHERE');
+        $this->assertFalse($invalid['valid']);
+        $this->assertStringContainsString('SQL syntax', $invalid['error']);
+        $this->assertFalse(Insight::check('SELECT 1 AS amount FROM users')['valid']);
+
+        $this->expectException(Error::class);
+        $this->expectExceptionCode(400);
+        Insight::create('X', 'red', self::SQL, 'Bad Icon');
+    }
+
     public function testUserCannotManageInsights()
     {
         $this->loginAs(self::USER);
         $this->assertCount(1, Budget::getInsights());
-        foreach ([fn() => Insight::get(), fn() => Insight::create('X', 'red', self::SQL),
+        foreach ([fn() => Insight::get(), fn() => Insight::create('X', 'red', self::SQL), fn() => Insight::check(self::SQL),
                   fn() => Insight::update(1, 'X', 'red', self::SQL), fn() => Insight::delete(1)] as $i => $call) {
             try {
                 $call();

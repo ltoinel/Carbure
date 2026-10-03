@@ -1737,8 +1737,8 @@ button .material-icons {
 }
 
 .insight-icon {
-    width: 64px;
-    height: 64px;
+    width: 48px;
+    height: 48px;
     border-radius: var(--border-radius-lg);
     background: var(--primary-color);
     color: white;
@@ -1750,7 +1750,7 @@ button .material-icons {
 }
 
 .insight-icon .material-icons {
-    font-size: 32px;
+    font-size: 24px;
 }
 
 .insight-content {
@@ -1758,16 +1758,16 @@ button .material-icons {
 }
 
 .insight-label {
-    font-size: 14px;
+    font-size: 12px;
     color: var(--text-secondary);
-    margin-bottom: 8px;
+    margin-bottom: 4px;
     text-transform: uppercase;
     letter-spacing: 0.8px;
     font-weight: 600;
 }
 
 .insight-value {
-    font-size: 28px;
+    font-size: 20px;
     font-weight: 600;
     color: var(--text-primary);
     letter-spacing: -0.5px;
@@ -4236,4 +4236,67 @@ a.footer-brand:hover {
 .actions-column {
     width: 120px;
     white-space: nowrap;
+}
+
+/* ===== SQL editor (insights) ===== */
+.sql-editor .CodeMirror {
+    height: auto;
+    min-height: 120px;
+    border: 1px solid var(--divider);
+    border-radius: var(--border-radius-md);
+    font-family: 'Roboto Mono', ui-monospace, monospace;
+    font-size: 13px;
+}
+
+.sql-editor .CodeMirror-focused {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(239, 72, 96, 0.1);
+}
+
+.sql-check {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    min-height: 22px;
+    margin-top: 6px;
+    font-size: 13px;
+    line-height: 1.4;
+    word-break: break-word;
+}
+
+.sql-check .material-icons {
+    font-size: 18px;
+}
+
+.sql-check-valid {
+    color: var(--success-color);
+}
+
+.sql-check-invalid {
+    color: var(--error-color);
+}
+
+.sql-check-checking {
+    color: var(--text-secondary);
+}
+
+/* Delete in the edit modal, apart from the other buttons */
+.modal-footer .modal-footer-start {
+    margin-right: auto;
+}
+
+.btn-danger {
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    color: var(--error-color);
+    border: 1px solid var(--error-color);
+    box-shadow: none;
+}
+
+.btn-danger:hover {
+    background: var(--error-color);
+    color: #fff;
 }

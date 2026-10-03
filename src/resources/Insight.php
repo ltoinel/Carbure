@@ -41,7 +41,7 @@ final class Insight {
     public static function get()
     {
         User::requireAdmin();
-        return Db::execute("SELECT id, name, color, `sql` FROM budget_insight ORDER BY id", "")->get_result()->fetch_all(MYSQLI_ASSOC);
+        return Db::execute("SELECT id, name, color, icon, `sql` FROM budget_insight ORDER BY id", "")->get_result()->fetch_all(MYSQLI_ASSOC);
     }
 
     /**
@@ -49,20 +49,22 @@ final class Insight {
      *
      * @param string $name  The name (1 to 20 characters)
      * @param string $color red, green, blue, orange or gray
-     * @param string $sql   SELECT … AS amount, with {month} and {year}
+     * @param string      $sql   SELECT … AS amount, with {month} and {year}
+     * @param string|null $icon  Material icon (optional: chosen from the name)
      * @return array The insight with the amount of the current month
      * @throws Error If a field or the query is invalid
      */
     #[ApiRoute('/insight', method: 'POST')]
-    public static function create($name, $color, $sql)
+    public static function create($name, $color, $sql, $icon = null)
     {
         User::requireAdmin();
         [$name, $color, $sql] = self::validate($name, $color, $sql);
+        $icon = self::icon($icon);
         $amount = self::test($sql);
 
-        $stmt = Db::execute("INSERT INTO budget_insight (name, color, `sql`) VALUES (?, ?, ?)", "sss", $name, $color, $sql);
+        $stmt = Db::execute("INSERT INTO budget_insight (name, color, icon, `sql`) VALUES (?, ?, ?, ?)", "ssss", $name, $color, $icon, $sql);
 
-        return ['id' => $stmt->insert_id, 'name' => $name, 'color' => $color, 'sql' => $sql, 'amount' => $amount];
+        return ['id' => $stmt->insert_id, 'name' => $name, 'color' => $color, 'icon' => $icon, 'sql' => $sql, 'amount' => $amount];
     }
 
     /**
@@ -71,23 +73,66 @@ final class Insight {
      * @param int    $id    The insight
      * @param string $name  The name (1 to 20 characters)
      * @param string $color red, green, blue, orange or gray
-     * @param string $sql   SELECT … AS amount, with {month} and {year}
+     * @param string      $sql   SELECT … AS amount, with {month} and {year}
+     * @param string|null $icon  Material icon (optional: chosen from the name)
      * @return array The insight with the amount of the current month
      * @throws Error If not found, or a field or the query is invalid
      */
     #[ApiRoute('/insight', method: 'PUT')]
-    public static function update($id, $name, $color, $sql)
+    public static function update($id, $name, $color, $sql, $icon = null)
     {
         User::requireAdmin();
         if (!Db::queryOne("SELECT id FROM budget_insight WHERE id = ?", "i", $id)) {
             throw new Error("Insight not found", 404);
         }
         [$name, $color, $sql] = self::validate($name, $color, $sql);
+        $icon = self::icon($icon);
         $amount = self::test($sql);
 
-        Db::execute("UPDATE budget_insight SET name = ?, color = ?, `sql` = ? WHERE id = ?", "sssi", $name, $color, $sql, $id);
+        Db::execute("UPDATE budget_insight SET name = ?, color = ?, icon = ?, `sql` = ? WHERE id = ?", "ssssi", $name, $color, $icon, $sql, $id);
 
-        return ['id' => (int)$id, 'name' => $name, 'color' => $color, 'sql' => $sql, 'amount' => $amount];
+        return ['id' => (int)$id, 'name' => $name, 'color' => $color, 'icon' => $icon, 'sql' => $sql, 'amount' => $amount];
+    }
+
+    /**
+     * Check a query while it is typed (administrators): the same checks as when
+     * saving, and its result on a month.
+     *
+     * @param string   $sql   The query
+     * @param int|null $month The month (current month by default)
+     * @param int|null $year  The year (current year by default)
+     * @return array valid, amount (if valid), error (if not)
+     */
+    #[ApiRoute('/insight/check', method: 'POST')]
+    public static function check($sql, $month = null, $year = null)
+    {
+        User::requireAdmin();
+        try {
+            [, , $sql] = self::validate('check', 'red', $sql);
+            $amount = self::run($sql, (int)($month ?: date('m')), (int)($year ?: date('Y')));
+            return ['valid' => true, 'amount' => $amount];
+        } catch (Throwable $e) {
+            // MariaDB messages end with the place of the error: keep them readable
+            return ['valid' => false, 'error' => preg_replace('/^Database query failed: /', '', $e->getMessage())];
+        }
+    }
+
+    /**
+     * Check an icon name (Material icon).
+     *
+     * @param string|null $icon The icon
+     * @return string|null The icon, or null for the default one
+     * @throws Error If invalid
+     */
+    private static function icon($icon)
+    {
+        if ($icon === null || $icon === '') {
+            return null;
+        }
+        if (!preg_match('/^[a-z0-9_]{1,50}$/', (string)$icon)) {
+            throw new Error("Invalid icon", 400);
+        }
+        return $icon;
     }
 
     /**

@@ -11,6 +11,7 @@ import BudgetBreadcrumb from './components/BudgetBreadcrumb.js';
 import BudgetItem from './components/BudgetItem.js';
 import BudgetEditModal from './components/BudgetEditModal.js';
 import CategoryPicker from './components/CategoryPicker.js';
+import SqlEditor from './components/SqlEditor.js';
 import { createApiService } from './services/apiService.js';
 import { createBudgetStore } from './stores/budgetStore.js';
 import { createTransactionModule } from './modules/transactionModule.js';
@@ -47,7 +48,8 @@ createApp({
         BudgetBreadcrumb,
         BudgetItem,
         BudgetEditModal,
-        CategoryPicker
+        CategoryPicker,
+        SqlEditor
     },
 
     // Apply mixins from modules

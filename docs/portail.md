@@ -92,7 +92,7 @@ mot-clé reçoit la catégorie choisie.
   de catégorie affiche l'icône, la couleur et le parent de chaque catégorie, regroupées par
   type (dépenses, revenus, hors budget), avec une recherche.
 - Liste des règles regroupées par catégorie, filtrable, avec suppression.
-- **Appliquer aux transactions non catégorisées** : catégorise immédiatement
+- **Resynchroniser** : applique les règles aux transactions non catégorisées, immédiatement
   l'historique et affiche le nombre de transactions mises à jour. Les règles sont
   aussi appliquées automatiquement après chaque synchronisation (dernier mois).
 
@@ -123,11 +123,12 @@ protégée.
 
 ## Analyses
 
-Indicateurs du mois sélectionné (table `budget_insight`). Un administrateur les ajoute,
-modifie et supprime (bouton **+**, crayon et corbeille de chaque carte) : un nom, une couleur
-et une requête SQL `SELECT … AS amount` où `{month}` et `{year}` sont remplacés par le mois
-affiché. La requête est testée à l'enregistrement ; l'erreur éventuelle s'affiche dans la
-modale.
+Indicateurs du mois sélectionné (table `budget_insight`). Un administrateur les ajoute
+(bouton **+**) et les modifie (crayon de chaque carte ; la suppression se fait dans la
+modale) : un nom, une couleur, une icône et une requête SQL `SELECT … AS amount` où
+`{month}` et `{year}` sont remplacés par le mois affiché. L'éditeur colore la syntaxe SQL et
+fait vérifier la requête par le serveur pendant la saisie : erreur de syntaxe de MariaDB, ou
+résultat pour le mois affiché.
 
 ## Utilisateurs (administrateurs)
 

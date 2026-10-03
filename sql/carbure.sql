@@ -108,6 +108,7 @@ CREATE TABLE `budget_insight` (
   `id` int(10) UNSIGNED NOT NULL,
   `name` varchar(20) NOT NULL,
   `color` varchar(20) NOT NULL,
+  `icon` varchar(50) DEFAULT NULL COMMENT 'Material icon (default: chosen from the name)',
   `sql` varchar(500) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

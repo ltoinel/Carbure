@@ -16,6 +16,9 @@
     
     <!-- Vue.js 3 -->
     <script src="vendor/vue.global.prod.js"></script>
+    <link rel="stylesheet" href="vendor/codemirror/codemirror.min.css">
+    <script src="vendor/codemirror/codemirror.min.js"></script>
+    <script src="vendor/codemirror/sql.min.js"></script>
     
     <!-- Localization -->
     <script src="i18n.js"></script>
@@ -654,8 +657,8 @@
                             <div v-if="insights.length === 0" class="transactions-hint">{{ t('noInsightsMessage') }}</div>
                             <div class="insights-grid">
                             <div v-for="insight in insights" :key="insight.id" class="insight-card" :class="'insight-' + insight.color">
-                                <div class="insight-icon">
-                                    <span class="material-icons">{{ getInsightIcon(insight.name) }}</span>
+                                <div class="insight-icon" aria-hidden="true">
+                                    <span class="material-icons">{{ insight.icon || getInsightIcon(insight.name) }}</span>
                                 </div>
                                 <div class="insight-content">
                                     <div class="insight-label">{{ getInsightName(insight.name) }}</div>
@@ -665,10 +668,7 @@
                                 </div>
                                 <div v-if="isAdmin" class="insight-actions">
                                     <button class="btn-icon" @click="openInsightModal(insight)" :title="t('editInsight')" :aria-label="t('editInsight') + ' ' + getInsightName(insight.name)">
-                                        <span class="material-icons">edit</span>
-                                    </button>
-                                    <button class="btn-icon btn-icon-delete" @click="removeInsight(insight)" :title="t('deleteInsight')" :aria-label="t('deleteInsight') + ' ' + getInsightName(insight.name)">
-                                        <span class="material-icons">delete</span>
+                                        <span class="material-icons" aria-hidden="true">edit</span>
                                     </button>
                                 </div>
                             </div>
@@ -919,7 +919,7 @@
                                     <p class="rules-help">{{ t('rulesHelp') }}</p>
                                 </div>
                                 <div class="panel-actions">
-                                    <button class="btn-secondary" @click="applyRules" :disabled="applyingRules">
+                                    <button class="btn-secondary" @click="applyRules" :disabled="applyingRules" :title="t('applyRulesHelp')">
                                         <span class="material-icons">auto_fix_high</span>
                                         {{ t('applyRules') }}
                                     </button>
@@ -1316,14 +1316,40 @@
                         </div>
                     </div>
                     <div class="form-group">
-                        <label for="insight-sql">{{ t('insightSql') }} *</label>
-                        <textarea id="insight-sql" v-model="insightForm.sql" rows="6" maxlength="500" spellcheck="false"
-                                  aria-describedby="insight-sql-help" :aria-invalid="insightError ? 'true' : 'false'"></textarea>
+                        <label id="insight-icon-label">{{ t('categoryIcon') }}</label>
+                        <div class="icon-picker" role="radiogroup" aria-labelledby="insight-icon-label">
+                            <button v-for="i in insightIcons" :key="i" type="button" class="icon-choice"
+                                    :class="{ selected: (insightForm.icon || getInsightIcon(insightForm.name)) === i }" :title="i" :aria-label="i"
+                                    role="radio" :aria-checked="(insightForm.icon || getInsightIcon(insightForm.name)) === i ? 'true' : 'false'"
+                                    @click="insightForm.icon = i">
+                                <span class="material-icons" aria-hidden="true">{{ i }}</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label id="insight-sql-label">{{ t('insightSql') }} *</label>
+                        <sql-editor v-model="insightForm.sql" label-id="insight-sql-label" described-by="insight-sql-help insight-sql-check"></sql-editor>
+                        <div id="insight-sql-check" class="sql-check" :class="'sql-check-' + insightCheck.state" aria-live="polite">
+                            <template v-if="insightCheck.state === 'checking'">
+                                <span class="material-icons spin" aria-hidden="true">sync</span>{{ t('insightChecking') }}
+                            </template>
+                            <template v-else-if="insightCheck.state === 'valid'">
+                                <span class="material-icons" aria-hidden="true">check_circle</span>
+                                {{ t('insightValid', { amount: insightCheck.amount === null ? '—' : formatAmount(insightCheck.amount) + ' ' + t('currencySymbol') }) }}
+                            </template>
+                            <template v-else-if="insightCheck.state === 'invalid'">
+                                <span class="material-icons" aria-hidden="true">error</span>{{ insightCheck.error }}
+                            </template>
+                        </div>
                         <small id="insight-sql-help">{{ t('insightSqlHelp') }}</small>
                     </div>
                     <div v-if="insightError" class="sync-step-error" role="alert">{{ insightError }}</div>
                 </form>
                 <div class="modal-footer">
+                    <button v-if="insightForm.id" type="button" class="btn-danger modal-footer-start" @click="removeInsight(insightForm)">
+                        <span class="material-icons" aria-hidden="true">delete</span>
+                        {{ t('deleteInsight') }}
+                    </button>
                     <button class="btn-secondary" @click="closeInsightModal">
                         <span class="material-icons">cancel</span>
                         {{ t('cancel') }}

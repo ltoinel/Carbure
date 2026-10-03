@@ -215,6 +215,17 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
     }
 
     /**
+     * Checks an insight query (syntax, rules) and computes it for a month
+     * @param {string} sql - The query
+     * @param {number} month - Month
+     * @param {number} year - Year
+     * @returns {Promise<Object>} {valid, amount} or {valid: false, error}
+     */
+    async function checkInsight(sql, month, year) {
+        return request(`${baseUrl}/insight/check`, { method: 'POST', body: JSON.stringify({ sql, month, year }) }, 'Failed to check the query');
+    }
+
+    /**
      * Deletes an insight
      * @param {number} id - Insight ID
      * @returns {Promise<void>}
@@ -757,6 +768,7 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
         fetchInsightDefinitions,
         saveInsight,
         deleteInsight,
+        checkInsight,
         createApiToken,
         deleteApiToken,
         fetchBankAccounts,
