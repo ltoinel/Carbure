@@ -28,6 +28,8 @@ export function createProfileModule(getApiService) {
                 newApiToken: null,
                 showApiTokenModal: false,
                 apiTokenName: '',
+                // Lifetime of a new token in days (0: never expires)
+                apiTokenDays: 90,
                 loadingDevices: false,
                 revealedTokens: {},
                 profileForm: {
@@ -192,6 +194,7 @@ export function createProfileModule(getApiService) {
              */
             openApiTokenModal() {
                 this.apiTokenName = '';
+                this.apiTokenDays = 90;
                 this.selectedAgent = 'claude-code';
                 this.newApiToken = null;
                 this.showApiTokenModal = true;
@@ -217,7 +220,7 @@ export function createProfileModule(getApiService) {
                     return;
                 }
                 try {
-                    this.newApiToken = await getApiService().createApiToken(name);
+                    this.newApiToken = await getApiService().createApiToken(name, this.apiTokenDays);
                     await this.loadApiTokens();
                 } catch (error) {
                     this.showToast(error.message);

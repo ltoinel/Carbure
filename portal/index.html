@@ -1161,7 +1161,8 @@
                                         <div class="device-name">{{ apiToken.name }}</div>
                                         <div class="device-meta">
                                             {{ t('apiTokenCreated') }} : {{ formatDate(apiToken.created_at) }} ·
-                                            {{ apiToken.last_used_at ? t('apiTokenLastUsed') + ' : ' + formatDate(apiToken.last_used_at) : t('apiTokenNeverUsed') }}
+                                            {{ apiToken.last_used_at ? t('apiTokenLastUsed') + ' : ' + formatDate(apiToken.last_used_at) : t('apiTokenNeverUsed') }} ·
+                                            <span :class="{ 'token-expired': Number(apiToken.expired) }">{{ Number(apiToken.expired) ? t('apiTokenExpired') : (apiToken.expires_at ? t('apiTokenExpires', { date: formatDate(apiToken.expires_at) }) : t('apiTokenNoExpiry')) }}</span>
                                         </div>
                                         <code class="device-token">{{ apiToken.token_hint }}…</code>
                                     </div>
@@ -1416,6 +1417,15 @@
                         <label for="api-token-name">{{ t('apiTokenName') }} *</label>
                         <input id="api-token-name" v-model="apiTokenName" maxlength="50" />
                         <small>{{ t('apiTokenNameHelp') }}</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="api-token-days">{{ t('apiTokenLifetime') }}</label>
+                        <select id="api-token-days" v-model.number="apiTokenDays">
+                            <option :value="30">{{ t('apiTokenDays', { days: 30 }) }}</option>
+                            <option :value="90">{{ t('apiTokenDays', { days: 90 }) }}</option>
+                            <option :value="365">{{ t('apiTokenOneYear') }}</option>
+                            <option :value="0">{{ t('apiTokenNoExpiry') }}</option>
+                        </select>
                     </div>
                 </form>
                 <div v-else class="modal-body">

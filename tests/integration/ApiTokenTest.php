@@ -36,6 +36,26 @@ class ApiTokenTest extends DatabaseTestCase
         $this->assertNull(ApiToken::authenticate($created['token']));
     }
 
+    public function testLifetime()
+    {
+        $this->loginAs(self::USER);
+        $never = ApiToken::create('Never');
+        $this->assertNull($never['expires_at']);
+        $month = ApiToken::create('Month', 30);
+        $this->assertSame(date('Y-m-d', strtotime('+30 days')), substr($month['expires_at'], 0, 10));
+        $this->assertSame(self::USER, ApiToken::authenticate($month['token']));
+
+        // Expired: refused, listed as expired
+        Db::execute("UPDATE api_tokens SET expires_at = NOW() - INTERVAL 1 DAY WHERE id = ?", "i", $month['id']);
+        $this->assertNull(ApiToken::authenticate($month['token']));
+        $this->assertEquals(1, array_column(ApiToken::getMine(), 'expired', 'name')['Month']);
+        $this->assertEquals(0, array_column(ApiToken::getMine(), 'expired', 'name')['Never']);
+
+        $this->expectException(Error::class);
+        $this->expectExceptionCode(400);
+        ApiToken::create('Odd', 7);
+    }
+
     public function testInvalidName()
     {
         $this->loginAs(self::USER);

@@ -263,10 +263,11 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
     /**
      * Creates an API token (its value is returned only this time)
      * @param {string} name - Name to recognize it
-     * @returns {Promise<Object>} {id, name, token, token_hint}
+     * @param {number} days - Lifetime in days (0: never expires)
+     * @returns {Promise<Object>} {id, name, token, token_hint, expires_at}
      */
-    async function createApiToken(name) {
-        return request(`${baseUrl}/token`, { method: 'POST', body: JSON.stringify({ name }) }, 'Failed to create the API token');
+    async function createApiToken(name, days = 0) {
+        return request(`${baseUrl}/token`, { method: 'POST', body: JSON.stringify({ name, days }) }, 'Failed to create the API token');
     }
 
     /**

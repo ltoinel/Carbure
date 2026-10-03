@@ -136,7 +136,8 @@ CREATE TABLE `api_tokens` (
   `token_hash` char(64) NOT NULL COMMENT 'SHA-256 of the token, the token itself is never stored',
   `token_hint` varchar(16) NOT NULL COMMENT 'Start of the token, to recognize it',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `last_used_at` datetime DEFAULT NULL
+  `last_used_at` datetime DEFAULT NULL,
+  `expires_at` datetime DEFAULT NULL COMMENT 'NULL: never expires'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------

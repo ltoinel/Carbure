@@ -24,27 +24,40 @@ final class ApiToken {
     private const MAX_TOKENS = 20;
 
     /**
+     * Lifetimes offered, in days (null: never expires)
+     */
+    public const LIFETIMES = [30, 90, 365, null];
+
+    /**
      * Get the API tokens of the authenticated user (without the tokens themselves).
      *
-     * @return array The tokens: id, name, token_hint, created_at, last_used_at
+     * @return array The tokens: id, name, token_hint, created_at, last_used_at,
+     *               expires_at (null: never), expired
      */
     #[ApiRoute('/token', method: 'GET')]
     public static function getMine()
     {
-        $sql = "SELECT id, name, token_hint, created_at, last_used_at FROM api_tokens WHERE user_id = ? ORDER BY created_at DESC, id DESC";
+        $sql = "SELECT id, name, token_hint, created_at, last_used_at, expires_at,
+                       (expires_at IS NOT NULL AND expires_at <= NOW()) AS expired
+                FROM api_tokens WHERE user_id = ? ORDER BY created_at DESC, id DESC";
         return Db::execute($sql, "i", Jwt::getUserIdFromToken())->get_result()->fetch_all(MYSQLI_ASSOC);
     }
 
     /**
      * Create an API token for the authenticated user.
      *
-     * @param string $name A name to recognize it (e.g. "Claude Code on my laptop")
-     * @return array The token: id, name, token (shown only this time), token_hint
-     * @throws Error If the name is invalid or the user has too many tokens
+     * @param string   $name A name to recognize it (e.g. "Claude Code on my laptop")
+     * @param int|null $days Lifetime in days: 30, 90 or 365 (null or 0: never expires)
+     * @return array The token: id, name, token (shown only this time), token_hint, expires_at
+     * @throws Error If the name or the lifetime is invalid or the user has too many tokens
      */
     #[ApiRoute('/token', method: 'POST')]
-    public static function create($name)
+    public static function create($name, $days = null)
     {
+        $days = $days === null || $days === '' || (int)$days === 0 ? null : (int)$days;
+        if (!in_array($days, self::LIFETIMES, true)) {
+            throw new Error("The lifetime must be 30, 90 or 365 days, or none", 400);
+        }
         $name = trim((string)$name);
         if ($name === '' || mb_strlen($name) > 50) {
             throw new Error("The name must contain 1 to 50 characters", 400);
@@ -58,10 +71,11 @@ final class ApiToken {
 
         $token = self::PREFIX . bin2hex(random_bytes(24));
         $hint = substr($token, 0, 10);
-        $stmt = Db::execute("INSERT INTO api_tokens (user_id, name, token_hash, token_hint) VALUES (?, ?, ?, ?)",
-            "isss", $userId, $name, hash('sha256', $token), $hint);
+        $expiresAt = $days === null ? null : date('Y-m-d H:i:s', strtotime("+$days days"));
+        $stmt = Db::execute("INSERT INTO api_tokens (user_id, name, token_hash, token_hint, expires_at) VALUES (?, ?, ?, ?, ?)",
+            "issss", $userId, $name, hash('sha256', $token), $hint, $expiresAt);
 
-        return ['id' => $stmt->insert_id, 'name' => $name, 'token' => $token, 'token_hint' => $hint];
+        return ['id' => $stmt->insert_id, 'name' => $name, 'token' => $token, 'token_hint' => $hint, 'expires_at' => $expiresAt];
     }
 
     /**
@@ -85,7 +99,7 @@ final class ApiToken {
      * Find the user of an API token and record its use.
      *
      * @param string $token The token
-     * @return int|null The user id, or null if the token is unknown
+     * @return int|null The user id, or null if the token is unknown or expired
      */
     public static function authenticate($token)
     {
@@ -93,7 +107,7 @@ final class ApiToken {
             return null;
         }
         $hash = hash('sha256', $token);
-        $row = Db::queryOne("SELECT id, user_id FROM api_tokens WHERE token_hash = ?", "s", $hash);
+        $row = Db::queryOne("SELECT id, user_id FROM api_tokens WHERE token_hash = ? AND (expires_at IS NULL OR expires_at > NOW())", "s", $hash);
         if (!$row) {
             return null;
         }

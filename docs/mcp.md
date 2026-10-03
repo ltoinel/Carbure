@@ -25,7 +25,8 @@ qu'il est désactivé, `/api/mcp` répond `403`, même avec un jeton valide.
 ## 2. Créer un jeton d'accès
 
 Toujours dans l'onglet **Agents IA**, bouton **+** : donnez un nom au jeton (par exemple
-« Claude Code sur mon portable »). Le jeton (`cbt_…`) n'est affiché **qu'une seule fois**,
+« Claude Code sur mon portable ») et choisissez sa **durée de validité** (30 jours, 90 jours,
+1 an ou sans expiration ; un jeton expiré est refusé et signalé dans la liste). Le jeton (`cbt_…`) n'est affiché **qu'une seule fois**,
 avec la configuration prête à copier pour chaque agent. La liste des jetons montre leur
 date de dernière utilisation ; la corbeille révoque un jeton immédiatement.
 

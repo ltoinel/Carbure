@@ -4392,3 +4392,8 @@ a.footer-brand:hover {
     white-space: nowrap;
     color: var(--text-secondary);
 }
+
+.token-expired {
+    color: var(--error-color);
+    font-weight: 500;
+}

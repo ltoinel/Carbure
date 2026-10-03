@@ -328,9 +328,10 @@ Envoie une notification de test à tous les appareils de l'utilisateur connecté
 
 ### `GET /token`, `POST /token`, `DELETE /token?id=`
 
-Jetons d'accès de l'utilisateur connecté, pour le serveur MCP. `POST` (`name`) renvoie le
-jeton (`token`, préfixe `cbt_`) **une seule fois** ; la liste ne donne que `id`, `name`,
-`token_hint`, `created_at` et `last_used_at`.
+Jetons d'accès de l'utilisateur connecté, pour le serveur MCP. `POST` (`name`, `days` : 30,
+90, 365 ou 0 pour sans expiration) renvoie le jeton (`token`, préfixe `cbt_`) **une seule
+fois** ; la liste ne donne que `id`, `name`, `token_hint`, `created_at`, `last_used_at`,
+`expires_at` et `expired`.
 
 ### `POST /api/mcp` — jeton d'accès
 
