@@ -27,6 +27,10 @@ Tâches restant à réaliser sur Carbure. Une tâche terminée est retirée de c
 
 ## Dette technique
 
+- [ ] Image Docker : passer de `php:8.3-apache-bookworm` à `-trixie` (Debian 13) pour
+      réduire les CVE Debian sans correctif remontées par Trivy (zlib, util-linux,
+      python3.11) ; vérifier woob et `curl_cffi` avec Python 3.13.
+
 - [ ] Connexion MySQL en `utf8mb4` (`Db` n'appelle pas `set_charset`) : vérifier d'abord
       comment les accents sont stockés en production pour ne pas les corrompre.
 - [ ] Regex `PRLV SEPA` gourmande (`ECH/…` n'est pas retiré du libellé) et `addslashes()`
