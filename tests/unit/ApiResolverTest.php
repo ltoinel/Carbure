@@ -51,6 +51,6 @@ class ApiResolverTest extends TestCase
 
         // Any new public route must be a deliberate decision
         // The MCP routes authenticate with an API token themselves
-        $this->assertSame(['GET /bank/sync', 'GET /mcp', 'POST /mcp', 'POST /user/login'], $public);
+        $this->assertSame(['GET /bank/sync', 'GET /health', 'GET /mcp', 'POST /mcp', 'POST /user/login'], $public);
     }
 }

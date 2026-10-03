@@ -59,7 +59,8 @@ Seules ces routes ne demandent pas de JWT (un test unitaire le vérifie) :
 - `GET /bank/sync`, qui exige **soit** un JWT, **soit** le `sync_token` de la
   configuration (en-tête `X-Sync-Token` de préférence, ou `?token=`). Sans `sync_token`
   configuré, seul un utilisateur connecté peut lancer la synchronisation ;
-- `POST /mcp` et `GET /mcp` (serveur MCP), qui exigent un jeton d'accès ou un JWT.
+- `POST /mcp` et `GET /mcp` (serveur MCP), qui exigent un jeton d'accès ou un JWT ;
+- `GET /health` (supervision), qui ne renvoie que l'état de la base et la version du schéma.
 
 ## Données sensibles
 

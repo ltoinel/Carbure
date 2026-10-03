@@ -13,6 +13,20 @@
 final class System {
 
     /**
+     * Health of the instance, for the Docker HEALTHCHECK and supervision tools
+     * (no authentication, no data): the database answers.
+     *
+     * @return array status (ok), database (ok), schema (version)
+     * @throws Exception If the database does not answer (HTTP 500)
+     */
+    #[ApiRoute('/health', method: 'GET', public: true)]
+    public static function health()
+    {
+        Db::query("SELECT 1");
+        return ['status' => 'ok', 'database' => 'ok', 'schema' => (new Migrator(Db::getConnection()))->version()];
+    }
+
+    /**
      * Version of the database schema and migrations to apply (administrators).
      *
      * @return array version, pending

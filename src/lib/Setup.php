@@ -76,6 +76,10 @@ final class Setup {
             if ($path === '/setup' && $method === 'GET') {
                 return [200, $this->status()];
             }
+            // Healthy while waiting for the installation (Docker HEALTHCHECK)
+            if ($path === '/health' && $method === 'GET') {
+                return [200, ['status' => 'setup']];
+            }
             if ($path === '/setup/database' && $method === 'POST') {
                 $this->checkCode($data);
                 return [200, $this->database($data)];

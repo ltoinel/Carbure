@@ -14,6 +14,14 @@ class SystemTest extends DatabaseTestCase
         $this->assertSame(['version' => $result['version'], 'pending' => []], System::schema());
     }
 
+    public function testHealth()
+    {
+        $health = System::health();
+        $this->assertSame('ok', $health['status']);
+        $this->assertSame('ok', $health['database']);
+        $this->assertArrayHasKey('schema', $health);
+    }
+
     public function testAdministratorsOnly()
     {
         $this->loginAs(self::USER);

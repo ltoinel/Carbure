@@ -186,6 +186,7 @@ jobs:
           set -e
           # Not installed: only the wizard answers, with the database of docker compose
           curl -fsS http://localhost:8080/api/setup | tee /dev/stderr | grep -q '"dbPasswordFromEnvironment":true'
+          curl -fsS http://localhost:8080/api/health | grep -q '"status":"setup"'
           test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/api/transaction)" = 503
           # Same steps as the portal (the password of the database comes from Docker)
           fields='"db_host":"db","db_port":3306,"db_name":"carbure","db_user":"carbure","db_password":""'
@@ -194,6 +195,8 @@ jobs:
           curl -fsS -X POST http://localhost:8080/api/setup/install -H 'Content-Type: application/json' \
             -d "{$fields,\"admin_user\":\"admin\",\"admin_password\":\"ci-admin-password\",\"language\":\"fr\"}" \
             | tee /dev/stderr | grep -q '"done":true'
+          # Healthy before and after the installation
+          curl -fsS http://localhost:8080/api/health | grep -q '"status":"ok"'
           # Installed: the wizard is gone
           test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/api/setup)" = 404
 

@@ -337,6 +337,14 @@ jeton (`token`, préfixe `cbt_`) **une seule fois** ; la liste ne donne que `id`
 Serveur MCP (JSON-RPC 2.0, transport Streamable HTTP) en lecture seule, authentifié par
 `Authorization: Bearer <jeton>`. Voir [Agents IA (MCP)](mcp.md).
 
+## Supervision
+
+### `GET /health` — publique
+
+État de l'instance pour le `HEALTHCHECK` Docker et les outils de supervision, sans
+authentification ni donnée : `{"status":"ok","database":"ok","schema":"<version>"}`, `500`
+si la base ne répond pas, `{"status":"setup"}` tant que Carbure n'est pas installé.
+
 ## Spécification OpenAPI
 
 `swagger/swagger.php` génère une spécification OpenAPI 3 par réflexion sur les

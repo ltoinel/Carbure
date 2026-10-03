@@ -121,6 +121,9 @@ class SetupTest extends TestCase
         [$status] = $this->setup->handle('POST', '/setup/database', $this->fields(['code' => 'WRONG']));
         $this->assertSame(403, $status);
 
+        // Healthy while waiting for the installation
+        $this->assertSame([200, ['status' => 'setup']], $this->setup->handle('GET', '/health', []));
+
         // Any other route: not installed
         [$status, $body] = $this->setup->handle('GET', '/transaction', []);
         $this->assertSame(503, $status);

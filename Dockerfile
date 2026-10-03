@@ -49,7 +49,7 @@ VOLUME /data
 EXPOSE 80
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
-    CMD ["curl", "-fsS", "-o", "/dev/null", "http://localhost/portal/"]
+    CMD ["curl", "-fsS", "-o", "/dev/null", "http://localhost/api/health"]
 
 ENTRYPOINT ["/var/www/carbure/docker/entrypoint.sh"]
 CMD ["nginx", "-g", "daemon off;"]
