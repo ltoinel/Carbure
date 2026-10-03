@@ -19,6 +19,7 @@ import { createUserModule } from './modules/userModule.js';
 import { createProfileModule } from './modules/profileModule.js';
 import { createTrendsModule } from './modules/trendsModule.js';
 import { createRulesModule } from './modules/rulesModule.js';
+import { createSyncModule } from './modules/syncModule.js';
 import * as formatters from './utils/formatters.js';
 
 const { createApp } = Vue;
@@ -49,7 +50,8 @@ createApp({
         createUserModule(() => apiService),
         createProfileModule(() => apiService),
         createTrendsModule(() => apiService),
-        createRulesModule(() => apiService)
+        createRulesModule(() => apiService),
+        createSyncModule(() => apiService)
     ],
 
     data() {
@@ -198,6 +200,9 @@ createApp({
                     break;
                 case 'rules':
                     this.loadRules();
+                    break;
+                case 'sync':
+                    this.loadBankAccounts();
                     break;
                 case 'users':
                     this.loadUsers();

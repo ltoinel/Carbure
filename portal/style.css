@@ -3126,3 +3126,62 @@ button .material-icons {
         min-width: 80px;
     }
 }
+
+/* ===== Synchronization ===== */
+.sync-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.sync-accounts {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.sync-status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 500;
+    margin-bottom: 12px;
+}
+
+.sync-status.sync-running { color: var(--info-color); }
+.sync-status.sync-success { color: var(--success-color); }
+.sync-status.sync-error { color: var(--error-color); }
+.sync-status.sync-busy { color: var(--warning-color); }
+
+.sync-duration {
+    margin-left: auto;
+    font-weight: 400;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.sync-errors {
+    margin: 0 0 12px;
+    padding: 10px 14px 10px 30px;
+    background: var(--error-light);
+    border-radius: var(--border-radius-md);
+    color: var(--error-color);
+    font-size: 13px;
+}
+
+.sync-log {
+    max-height: 360px;
+    overflow-y: auto;
+    margin: 0;
+    padding: 12px 12px 12px 44px;
+    background: var(--background);
+    border-radius: var(--border-radius-md);
+    font-family: 'Roboto Mono', ui-monospace, monospace;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.sync-log li {
+    padding: 1px 0;
+}

@@ -188,6 +188,13 @@
                 {{ t('tabRules') }}
             </button>
             <button 
+                class="tab-button" 
+                :class="{ active: activeTab === 'sync' }" 
+                @click="setActiveTab('sync')">
+                <span class="material-icons" :class="{ spin: syncStatus === 'running' }">sync</span>
+                {{ t('tabSync') }}
+            </button>
+            <button 
                 v-if="isAdmin"
                 class="tab-button" 
                 :class="{ active: activeTab === 'users' }" 
@@ -778,6 +785,46 @@
                                     </div>
                                 </div>
                             </div>
+                        </section>
+                    </div>
+                </div>
+
+                <!-- Synchronization Tab -->
+                <div v-else-if="activeTab === 'sync'" key="sync" class="tab-panel">
+                    <div class="trends-view">
+                        <section class="trends-card">
+                            <div class="trends-toolbar">
+                                <div>
+                                    <h2>{{ t('syncTitle') }}</h2>
+                                    <p class="rules-help">{{ t('syncHelp') }}</p>
+                                </div>
+                                <button class="sync-button" @click="startSync" :disabled="syncStatus === 'running'">
+                                    <span class="material-icons" :class="{ spin: syncStatus === 'running' }">sync</span>
+                                    {{ syncStatus === 'running' ? t('syncRunning') : t('syncStart') }}
+                                </button>
+                            </div>
+                            <div class="sync-accounts" v-if="bankAccounts.length">
+                                <span class="summary-label">{{ t('syncAccounts') }}</span>
+                                <span v-for="a in bankAccounts" :key="a.bankId" class="category-chip">
+                                    {{ a.bank_name.toUpperCase() }} ···{{ String(a.account_number).slice(-4) }}
+                                </span>
+                            </div>
+                        </section>
+
+                        <section class="trends-card" v-if="syncStatus !== 'idle'">
+                            <div class="sync-status" :class="'sync-' + syncStatus" role="status">
+                                <span class="material-icons" :class="{ spin: syncStatus === 'running' }">
+                                    {{ { running: 'sync', success: 'check_circle', error: 'error', busy: 'hourglass_top' }[syncStatus] }}
+                                </span>
+                                <span>{{ t('syncStatus_' + syncStatus) }}</span>
+                                <span v-if="syncDuration !== null" class="sync-duration">{{ t('syncDuration', { seconds: syncDuration }) }}</span>
+                            </div>
+                            <ul v-if="syncErrors.length" class="sync-errors">
+                                <li v-for="(e, i) in syncErrors" :key="i">{{ e }}</li>
+                            </ul>
+                            <ol class="sync-log" aria-live="polite">
+                                <li v-for="(line, i) in syncLog" :key="i">{{ line }}</li>
+                            </ol>
                         </section>
                     </div>
                 </div>

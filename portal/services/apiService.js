@@ -203,6 +203,64 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
     }
 
     /**
+     * Fetches the bank accounts of the authenticated user
+     * @returns {Promise<Array>} Array of {bankId, account_number, bank_name}
+     */
+    async function fetchBankAccounts() {
+        const data = await request(`${baseUrl}/bank`, {}, 'Failed to fetch bank accounts');
+        return Array.isArray(data) ? data : [];
+    }
+
+    /**
+     * Starts a bank synchronization and reports each progress message.
+     * The API answers with Server-Sent Events: "data: <message>" blocks, and
+     * ": heartbeat" comments while woob is working.
+     * @param {Function} onMessage - Called with each progress message
+     * @returns {Promise<void>} Resolved when the synchronization ends
+     * @throws {Error} If the request fails
+     */
+    async function syncBanks(onMessage) {
+        const response = await authFetch(`${baseUrl}/bank/sync`, { headers: getHeaders() });
+
+        if (!response.ok || !response.body) {
+            let message = `Failed to start the synchronization (${response.status})`;
+            try {
+                message = JSON.parse(await response.text()).error || message;
+            } catch (e) {
+                // Keep default error message
+            }
+            throw new Error(message);
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        for (;;) {
+            const { value, done } = await reader.read();
+            buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
+
+            // Events are separated by a blank line
+            let end;
+            while ((end = buffer.indexOf('\n\n')) >= 0) {
+                const event = buffer.slice(0, end);
+                buffer = buffer.slice(end + 2);
+                const data = event.split('\n')
+                    .filter(line => line.startsWith('data: '))
+                    .map(line => line.slice(6))
+                    .join('\n');
+                if (data) {
+                    onMessage(data);
+                }
+            }
+
+            if (done) {
+                return;
+            }
+        }
+    }
+
+    /**
      * Fetches all the categories
      * @returns {Promise<Array>} Array of categories
      */
@@ -527,6 +585,8 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
         fetchUsers,
         fetchMe,
         fetchDevices,
+        fetchBankAccounts,
+        syncBanks,
         fetchCategories,
         setTransactionCategory,
         fetchRules,
