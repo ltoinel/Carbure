@@ -247,6 +247,9 @@ final class Transaction {
         $result = Db::query($sql);
         $updated = 0;
 
+        // The rules are loaded once for all the transactions
+        $keywords = Category::loadKeywords();
+
         // For each transaction found without category
         while ($row = $result->fetch_assoc()) {
 
@@ -254,7 +257,7 @@ final class Transaction {
             $label = $row["label"];
 
             // Get the category
-            $category = Category::find($label);
+            $category = Category::find($label, $keywords);
 
             // A category has been found we update the transaction
             if ($category !== null) {

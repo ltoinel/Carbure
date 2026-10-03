@@ -101,11 +101,11 @@ final class Device {
         $existingDevice = self::getByToken($token);
 
         if ($existingDevice) {
-            // Update existing device
+            // Update existing device (it may now belong to another user of the household)
             $sql = "UPDATE devices 
-                    SET name=?, lastLogin=NOW() 
+                    SET name=?, user_id=?, lastLogin=NOW() 
                     WHERE token=?";
-            Db::execute($sql, "ss", $name, $token);
+            Db::execute($sql, "sis", $name, $userId, $token);
             
             $deviceId = $existingDevice['id'];
         } else {

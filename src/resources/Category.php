@@ -112,24 +112,32 @@ final class Category {
     /**
      * Get the category of a transaction based on its label.
      *
-     * @param string $label The label of the transaction
+     * @param string     $label    The label of the transaction
+     * @param array|null $keywords The keywords already loaded (loaded when null)
      * @return int|null The category id or null if not found
      */
-    public static function find($label)
+    public static function find($label, $keywords = null)
     {
-        // Get the category
-        $sql = "SELECT * FROM bank_transaction_category_keyword";
-        $result = Db::query($sql);
+        $keywords ??= self::loadKeywords();
 
-        // If we found a category
-        while ($row = $result->fetch_assoc()) {
-
-            // We find a keyword in the label
+        // The first keyword found in the label gives the category
+        foreach ($keywords as $row) {
             if (strpos($label, $row["keyword"]) !== false) {
                 return $row["category"];
             }
         }
 
         return null;
+    }
+
+    /**
+     * Load all the categorization keywords, in rule creation order.
+     *
+     * @return array The rows (keyword, category)
+     */
+    public static function loadKeywords()
+    {
+        $sql = "SELECT keyword, category FROM bank_transaction_category_keyword ORDER BY id";
+        return Db::execute($sql, "")->get_result()->fetch_all(MYSQLI_ASSOC);
     }
 }

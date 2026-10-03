@@ -34,6 +34,17 @@ class DeviceTest extends DatabaseTestCase
         Device::delete($id);
     }
 
+    public function testDeviceMovesToTheLastUser()
+    {
+        // The admin phone is now used by the other user
+        User::login('user', 'userpass', ['name' => 'iPhone', 'token' => self::DEVICE_TOKEN]);
+
+        $this->loginAs(self::ADMIN);
+        $this->assertSame([], Device::getMine());
+        $this->loginAs(self::USER);
+        $this->assertSame(self::DEVICE_TOKEN, Device::getMine()[0]['token']);
+    }
+
     public function testCreate()
     {
         $device = Device::createOrUpdate(self::USER, 'iPad', str_repeat('c', 64));
