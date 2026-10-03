@@ -15,11 +15,17 @@
  *   --db-user=carbure          --db-password=
  *   --db-root-user=            --db-root-password=  Account used to create the database and
  *                                                   the user (skip if they already exist)
+ *   --db-user-host=%           Host the database user may connect from (% = any host;
+ *                              localhost is added when the database is local)
  *   --admin-user=admin         --admin-password=    --admin-email=
  *   --language=fr              Language of the first user (fr|en)
  *   --woob-path=woob           Command used to run woob
  *   --force                    Overwrite an existing configuration file
  *   --no-interaction           Never ask, use the options and defaults
+ *
+ * Maintenance of an existing instance:
+ *   --rotate-jwt-secret        Replace only the jwtsecret of conf/<env>.ini with a new random
+ *                              value (every session, portal and iOS app, must log in again)
  *
  * @author     Ludovic Toinel
  * @copyright  2026 Carbure App
@@ -31,8 +37,8 @@ const EXTENSIONS = ['mysqli', 'curl', 'openssl', 'json'];
 $root = dirname(__DIR__);
 $options = getopt('', [
     'env:', 'db-host:', 'db-port:', 'db-name:', 'db-user:', 'db-password:',
-    'db-root-user:', 'db-root-password:', 'admin-user:', 'admin-password:', 'admin-email:',
-    'language:', 'woob-path:', 'force', 'no-interaction', 'help',
+    'db-root-user:', 'db-root-password:', 'db-user-host:', 'admin-user:', 'admin-password:', 'admin-email:',
+    'language:', 'woob-path:', 'force', 'no-interaction', 'rotate-jwt-secret', 'help',
 ]);
 
 if (isset($options['help'])) {
@@ -41,6 +47,21 @@ if (isset($options['help'])) {
 }
 
 $interactive = !isset($options['no-interaction']) && stream_isatty(STDIN);
+
+// Maintenance: new jwtsecret for an existing instance, nothing else is changed
+if (isset($options['rotate-jwt-secret'])) {
+    $env = preg_replace('/[^a-z0-9_-]/i', '', $options['env'] ?? 'prod');
+    $configFile = "$root/conf/$env.ini";
+    if (!is_file($configFile)) {
+        fail("conf/$env.ini not found");
+    }
+    $ini = setIni(file_get_contents($configFile), 'jwtsecret', bin2hex(random_bytes(32)));
+    if (file_put_contents($configFile, $ini) === false) {
+        fail("Cannot write conf/$env.ini");
+    }
+    step("new jwtsecret in conf/$env.ini: every user (portal and iOS app) must log in again");
+    exit(0);
+}
 
 /**
  * Print a step result.
@@ -152,13 +173,21 @@ try {
         $admin = new mysqli($dbHost, $rootUser, $rootPassword, '', $dbPort);
         $admin->query("CREATE DATABASE IF NOT EXISTS `$dbName` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
         step("database $dbName");
-        $host = in_array($dbHost, ['localhost', '127.0.0.1'], true) ? 'localhost' : '%';
+        // A server in a container sees TCP clients with their network address, not
+        // localhost: '%' by default, plus localhost (socket) for a local server
+        $hosts = [$options['db-user-host'] ?? '%'];
+        if (in_array($dbHost, ['localhost', '127.0.0.1'], true)) {
+            $hosts[] = 'localhost';
+        }
         $password = $admin->real_escape_string($dbPassword);
-        $admin->query("CREATE USER IF NOT EXISTS '$dbUser'@'$host' IDENTIFIED BY '$password'");
-        $admin->query("ALTER USER '$dbUser'@'$host' IDENTIFIED BY '$password'");
-        $admin->query("GRANT ALL PRIVILEGES ON `$dbName`.* TO '$dbUser'@'$host'");
+        foreach (array_unique($hosts) as $host) {
+            $host = $admin->real_escape_string($host);
+            $admin->query("CREATE USER IF NOT EXISTS '$dbUser'@'$host' IDENTIFIED BY '$password'");
+            $admin->query("ALTER USER '$dbUser'@'$host' IDENTIFIED BY '$password'");
+            $admin->query("GRANT ALL PRIVILEGES ON `$dbName`.* TO '$dbUser'@'$host'");
+            step("user $dbUser@$host");
+        }
         $admin->query("FLUSH PRIVILEGES");
-        step("user $dbUser@$host");
         $admin->close();
     }
 

@@ -94,6 +94,15 @@ class InstallTest extends TestCase
         $this->assertEquals(1, $admin['is_admin']);
         $this->assertSame('fr', $admin['language']);
 
+        // The JWT secret can be renewed alone
+        [$code, $output] = $this->install(['--rotate-jwt-secret']);
+        $this->assertSame(0, $code, $output);
+        $rotated = parse_ini_file("$this->root/conf/" . self::ENV . ".ini");
+        $this->assertMatchesRegularExpression('/^[0-9a-f]{64}$/', $rotated['jwtsecret']);
+        $this->assertNotSame($ini['jwtsecret'], $rotated['jwtsecret']);
+        $this->assertSame($ini['db_password'], $rotated['db_password']);
+        $this->assertSame($ini['sync_token'], $rotated['sync_token']);
+
         // A second run never overwrites the configuration without --force
         [$code, $output] = $this->install();
         $this->assertSame(1, $code);
