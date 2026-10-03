@@ -4508,3 +4508,45 @@ a.footer-brand:hover {
     align-items: center;
     gap: 6px;
 }
+
+/* ===== Sub-tabs (Budget: flow / budgets) ===== */
+.sub-tabs {
+    display: inline-flex;
+    gap: 4px;
+    margin-bottom: 20px;
+    padding: 4px;
+    border-radius: 24px;
+    background: var(--surface);
+    box-shadow: var(--shadow-1);
+}
+
+.sub-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 18px;
+    border: none;
+    border-radius: 20px;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 500;
+    text-transform: none;
+    letter-spacing: normal;
+    box-shadow: none;
+}
+
+.sub-tab:hover {
+    background: var(--background);
+    transform: none;
+    box-shadow: none;
+}
+
+.sub-tab.active {
+    background: var(--primary-color);
+    color: #fff;
+}
+
+.sub-tab .material-icons {
+    font-size: 18px;
+}

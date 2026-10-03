@@ -511,6 +511,36 @@
 
                 <!-- Budget Tab -->
                 <div v-else-if="activeTab === 'budget'" key="budget" class="tab-panel">
+                    <div class="sub-tabs" role="tablist" :aria-label="t('tabBudget')">
+                        <button type="button" role="tab" class="sub-tab" :class="{ active: budgetView === 'flow' }"
+                                :aria-selected="budgetView === 'flow' ? 'true' : 'false'" @click="budgetView = 'flow'">
+                            <span class="material-icons" aria-hidden="true">account_tree</span>{{ t('budgetFlowTab') }}
+                        </button>
+                        <button type="button" role="tab" class="sub-tab" :class="{ active: budgetView === 'budgets' }"
+                                :aria-selected="budgetView === 'budgets' ? 'true' : 'false'" @click="budgetView = 'budgets'">
+                            <span class="material-icons" aria-hidden="true">tune</span>{{ t('budgetConfigTab') }}
+                        </button>
+                    </div>
+
+                    <div v-if="budgetView === 'flow'" role="tabpanel">
+                        <section v-if="budgetFlow && (budgetFlow.totalIncome > 0 || budgetFlow.totalExpenses > 0)" class="trends-card flow-card">
+                            <div class="trends-chart-head">
+                                <div>
+                                    <h3>{{ t('flowTitle') }}</h3>
+                                    <p class="rules-help">{{ t('flowHelp') }}</p>
+                                </div>
+                            </div>
+                            <flow-chart :flow="budgetFlow" :t="t" :color-for="categoryColor" :format-amount="formatAmount"></flow-chart>
+                        </section>
+                        <div v-else class="empty-state-container">
+                            <div class="empty-state">
+                                <div class="material-icons" aria-hidden="true">account_tree</div>
+                                <p>{{ t('flowEmpty') }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div v-else role="tabpanel">
                     <div v-if="loadingBudget" class="loading">
                         <div class="material-icons">refresh</div>
                         <p>{{ t('loadingBudgetMessage') }}</p>
@@ -528,17 +558,6 @@
                                 <button class="breadcrumb-item" @click="goToBreadcrumb(idx)">{{ crumb.name }}</button>
                             </template>
                         </nav>
-
-                        <!-- Money flow of the month (top level only) -->
-                        <section v-if="safeBudgetStack.length === 0 && budgetFlow && (budgetFlow.totalIncome > 0 || budgetFlow.totalExpenses > 0)" class="trends-card flow-card">
-                            <div class="trends-chart-head">
-                                <div>
-                                    <h3>{{ t('flowTitle') }}</h3>
-                                    <p class="rules-help">{{ t('flowHelp') }}</p>
-                                </div>
-                            </div>
-                            <flow-chart :flow="budgetFlow" :t="t" :color-for="categoryColor" :format-amount="formatAmount"></flow-chart>
-                        </section>
 
                         <!-- Month summary -->
                         <section class="budget-summary" v-if="budgetGroups.expenses.length > 0">
@@ -661,6 +680,7 @@
                             <div class="material-icons">account_balance</div>
                             <p>{{ t('noBudgetMessage') }}</p>
                         </div>
+                    </div>
                     </div>
                 </div>
 

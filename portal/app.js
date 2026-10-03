@@ -83,6 +83,8 @@ createApp({
             appVersion: null,
             // Money flow of the selected month (Budget tab)
             budgetFlow: null,
+            // Budget tab: 'flow' (money flow) or 'budgets' (budget of each category)
+            budgetView: 'flow',
             
             // Authentication state
             isAuthenticated: false,

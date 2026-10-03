@@ -77,12 +77,14 @@ ouvre le formulaire dans une fenêtre modale, qui sert aussi à la modification.
 
 ![Budget](assets/screenshot-budget.png)
 
-- **Flux du mois** (en haut de l'onglet, au premier niveau) : diagramme de Sankey qui
+Deux sous-onglets : **Flux** (affiché par défaut) et **Budgets**.
+
+- **Flux du mois** (sous-onglet Flux) : diagramme de Sankey qui
   montre d'où vient l'argent du mois et où il va — revenus par catégorie → revenus du mois
   → dépenses par catégorie principale (les 8 plus importantes, le reste regroupé dans
   « Autres »), épargne et **Reste** (ou **Déficit**). Les virements internes (hors budget)
   sont exclus. « Voir le tableau » affiche les mêmes flux en tableau (`GET /budget/flow`).
-- **Synthèse du mois** : dépensé, budgété, reste (ou dépassement) et jauge globale des
+- **Synthèse du mois** (sous-onglet Budgets) : dépensé, budgété, reste (ou dépassement) et jauge globale des
   dépenses budgétées.
 - **Cartes par catégorie** avec l'icône et la couleur de la catégorie, le montant
   dépensé sur le budget, le reste ou le dépassement et une jauge colorée (en bonne voie,
