@@ -20,8 +20,8 @@ export function createAccountsModule(getApiService) {
             return {
                 showAccountModal: false,
                 savingAccount: false,
-                // Account of the modal: {id (null for a new one), account_number, bank_name, user_id}
-                accountForm: { id: null, account_number: '', bank_name: '', user_id: null },
+                // Account of the modal: {id (null for a new one), account_number, bank_name}
+                accountForm: { id: null, account_number: '', bank_name: '' },
                 discoveredAccounts: [],
                 // Banks configured in woob: [{name, module}]
                 bankBackends: [],
@@ -104,20 +104,15 @@ export function createAccountsModule(getApiService) {
              * @param {Object|null} account - Account to modify
              */
             openAccountModal(account = null) {
-                const me = Number(this.currentUser?.id) || null;
                 this.accountForm = account
-                    ? { id: account.id, account_number: account.account_number, bank_name: account.bank_name, user_id: Number(account.user_id) || me }
-                    : { id: null, account_number: '', bank_name: '', user_id: me };
+                    ? { id: account.id, account_number: account.account_number, bank_name: account.bank_name }
+                    : { id: null, account_number: '', bank_name: '' };
                 const bank = account ? account.bank_name : '';
                 const known = this.bankBackends.some(b => b.name === bank) || this.bankModules.some(m => m.module === bank);
                 this.newAccountBank = !bank ? '' : known ? bank : '__other';
                 this.discoveredAccounts = [];
                 this.discoverError = null;
                 this.showAccountModal = true;
-                // Owners to choose from
-                if (!this.users.length) {
-                    this.loadUsers();
-                }
             },
 
             /**
@@ -156,10 +151,10 @@ export function createAccountsModule(getApiService) {
                 this.savingAccount = true;
                 try {
                     if (form.id) {
-                        await getApiService().updateBankAccount(form.id, number, bank, form.user_id);
+                        await getApiService().updateBankAccount(form.id, number, bank);
                         this.showToast(this.t('accountUpdated'));
                     } else {
-                        await getApiService().createBankAccount(number, bank, form.user_id);
+                        await getApiService().createBankAccount(number, bank);
                         this.showToast(this.t('accountAdded'));
                     }
                     this.showAccountModal = false;

@@ -16,17 +16,18 @@ class BankTest extends DatabaseTestCase
         return $output;
     }
 
-    public function testGetAccountsOfTheUser()
+    public function testEveryUserSeesTheAccountsOfTheHousehold()
     {
         $this->loginAs(self::USER);
         $accounts = Bank::get();
-        $this->assertCount(1, $accounts);
+        // 111@bnp is followed twice (by two users): listed once
+        $this->assertSame(['fail@bank', '111@bnp'], array_column($accounts, 'bankId'));
         $this->assertSame(['bankId' => '111@bnp', 'account_number' => '111', 'bank_name' => 'bnp'],
-            array_diff_key($accounts[0], ['id' => true]));
-        $this->assertGreaterThan(0, $accounts[0]['id']);
+            array_diff_key($accounts[1], ['id' => true]));
+        $this->assertGreaterThan(0, $accounts[1]['id']);
 
         $this->loginAs(self::ADMIN);
-        $this->assertCount(2, Bank::get());
+        $this->assertSame($accounts, Bank::get());
     }
 
     public function testCrud()
@@ -34,34 +35,26 @@ class BankTest extends DatabaseTestCase
         $this->loginAs(self::ADMIN);
         $before = count(Bank::accounts());
 
-        // An administrator manages the accounts of every member of the household
-        $account = Bank::create('222', 'bnp', self::USER);
+        // user_id: the administrator who added the account
+        $account = Bank::create('222', 'bnp');
         $this->assertSame('222@bnp', $account['bankId']);
-        $this->assertSame(self::USER, $account['user_id']);
+        $this->assertSame(self::ADMIN, $account['user_id']);
         $this->assertCount($before + 1, Bank::accounts());
 
         $updated = Bank::update($account['id'], '333', 'creditmutuel');
         $this->assertSame('333@creditmutuel', $updated['bankId']);
-        $this->assertSame(self::USER, $updated['user_id']);
+        $this->assertSame(self::ADMIN, $updated['user_id']);
         $this->assertContains('333@creditmutuel', array_column(Bank::accounts(), 'bankId'));
 
         $this->assertTrue(Bank::delete($account['id']));
         $this->assertCount($before, Bank::accounts());
     }
 
-    public function testUnknownOwner()
-    {
-        $this->loginAs(self::ADMIN);
-        $this->expectException(Error::class);
-        $this->expectExceptionCode(404);
-        Bank::create('222', 'bnp', 999);
-    }
-
     public function testCreateDuplicateAndInvalid()
     {
         $this->loginAs(self::ADMIN);
         try {
-            Bank::create('111', 'bnp', self::USER);
+            Bank::create('111', 'bnp');
             $this->fail('Duplicate accepted');
         } catch (Error $e) {
             $this->assertSame(409, $e->getCode());
@@ -286,10 +279,11 @@ class BankTest extends DatabaseTestCase
         $this->assertSame(0, Db::queryOne("SELECT COUNT(*) AS n FROM bank_transaction WHERE user=2", "")['n']);
     }
 
-    public function testNotifyUnknownAccount()
+    public function testNotifyEveryUserOfTheHousehold()
     {
-        Bank::notifyBankUsers('unknown@bank', true);
-        $this->assertSame([], FakeApnsServer::requests());
+        // The devices of every user are notified, whoever added the account
+        Bank::notifyBankUsers('fail@bank', true);
+        $this->assertNotEmpty(FakeApnsServer::requests());
     }
 
     public function testOwnerOfUnknownAccount()

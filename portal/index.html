@@ -1034,7 +1034,7 @@
                                     <div class="account-details">
                                         <div class="account-name">
                                             {{ accountName(a) }}
-                                            <span v-if="a.username" class="account-owner"><span class="material-icons inline-icon">person</span>{{ a.username }}</span>
+                                            <span v-if="a.username" class="account-owner" :title="t('accountAddedBy', { user: a.username })"><span class="material-icons inline-icon" aria-hidden="true">person_add</span>{{ t('accountAddedBy', { user: a.username }) }}</span>
                                         </div>
                                         <code class="device-token">{{ a.bankId }}</code>
                                     </div>
@@ -1590,12 +1590,6 @@
                     <div class="form-group">
                         <label>{{ t('accountNumber') }} *</label>
                         <input v-model="accountForm.account_number" maxlength="100" />
-                    </div>
-                    <div class="form-group">
-                        <label>{{ t('accountOwner') }}</label>
-                        <select v-model.number="accountForm.user_id">
-                            <option v-for="u in users" :key="u.id" :value="Number(u.id)">{{ u.username }}</option>
-                        </select>
                     </div>
                     <p class="rules-help">
                         <span class="material-icons inline-icon">lock</span>

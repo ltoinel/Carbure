@@ -300,11 +300,10 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
      * Follows a bank account
      * @param {string} account_number - Account identifier in woob
      * @param {string} bank_name - woob backend name
-     * @param {number|null} user_id - Owner (default: the authenticated user)
      * @returns {Promise<Object>} The account
      */
-    async function createBankAccount(account_number, bank_name, user_id = null) {
-        return request(`${baseUrl}/bank`, { method: 'POST', body: JSON.stringify({ account_number, bank_name, user_id }) }, 'Failed to add the account');
+    async function createBankAccount(account_number, bank_name) {
+        return request(`${baseUrl}/bank`, { method: 'POST', body: JSON.stringify({ account_number, bank_name }) }, 'Failed to add the account');
     }
 
     /**
@@ -312,11 +311,10 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
      * @param {number} id - Account ID
      * @param {string} account_number - Account identifier in woob
      * @param {string} bank_name - woob backend name
-     * @param {number|null} user_id - Owner (unchanged when null)
      * @returns {Promise<Object>} The account
      */
-    async function updateBankAccount(id, account_number, bank_name, user_id = null) {
-        return request(`${baseUrl}/bank`, { method: 'PUT', body: JSON.stringify({ id, account_number, bank_name, user_id }) }, 'Failed to modify the account');
+    async function updateBankAccount(id, account_number, bank_name) {
+        return request(`${baseUrl}/bank`, { method: 'PUT', body: JSON.stringify({ id, account_number, bank_name }) }, 'Failed to modify the account');
     }
 
     /**

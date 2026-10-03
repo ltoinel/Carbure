@@ -107,14 +107,15 @@ protégée.
 
 ## Comptes
 
-- **Comptes du foyer** : chaque compte suivi avec son titulaire, la date et le statut de sa
+- **Comptes du foyer** (partagés par tous les utilisateurs) : chaque compte suivi avec
+  l'utilisateur qui l'a ajouté, la date et le statut de sa
   dernière synchronisation (le détail de l'erreur au survol), et trois actions :
   synchroniser ce compte seul, modifier, ne plus suivre (les transactions déjà importées sont
   conservées).
 - **Ajouter un compte** (fenêtre modale) : « Rechercher mes comptes dans woob » liste les
   comptes des banques configurées dans woob (libellé, solde) et remplit le formulaire en un
   clic ; sinon choisir la banque (configurées dans woob, ou toutes celles que woob supporte),
-  l'identifiant du compte et le titulaire. Les identifiants bancaires ne passent jamais par le
+  et l'identifiant du compte. Les identifiants bancaires ne passent jamais par le
   portail : une nouvelle banque se configure avec `php tools/carbure.php add-bank`.
 - **Synchronisation** : bouton de synchronisation de chaque compte, avec progression en direct, statut OK/KO de chaque
   étape par compte (opérations à venir, historique, notifications) et nombre de transactions

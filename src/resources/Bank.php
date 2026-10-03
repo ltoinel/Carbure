@@ -14,18 +14,16 @@ require_once "Transaction.php";
 final class Bank {
     
     /**
-     * Get the list of bank accounts for the authenticated user.
+     * Get the bank accounts of the household (every user sees all of them).
      * Each bank account is returned with bankId = account_number@bank_name
      * @return array List of bank accounts with bankId and details
      */
     #[ApiRoute('/bank', method: 'GET')]
     public static function get()
     {
-        $userId = Jwt::getUserIdFromToken();
-        
-        $sql = "SELECT MIN(id) AS id, account_number, bank_name FROM bank_account WHERE user_id = ?
+        $sql = "SELECT MIN(id) AS id, account_number, bank_name FROM bank_account
                 GROUP BY account_number, bank_name ORDER BY bank_name, account_number";
-        $stmt = Db::execute($sql, "i", $userId);
+        $stmt = Db::execute($sql, "");
         $result = $stmt->get_result();
         
         $accounts = array();
@@ -78,28 +76,11 @@ final class Bank {
     }
 
     /**
-     * Owner of an account: the given user, or the authenticated one.
+     * All the bank accounts of the household with the user who added them and the
+     * result of their last synchronization (administrators).
      *
-     * @param int|null $userId The owner
-     * @return int The owner id
-     * @throws Error If the user does not exist
-     */
-    private static function owner($userId)
-    {
-        if ($userId === null || $userId === '') {
-            return (int)Jwt::getUserIdFromToken();
-        }
-        if (!Db::queryOne("SELECT id FROM users WHERE id = ?", "i", $userId)) {
-            throw new Error("User not found", 404);
-        }
-        return (int)$userId;
-    }
-
-    /**
-     * All the bank accounts of the household with their owner and the result of
-     * their last synchronization (administrators).
-     *
-     * @return array The accounts: id, bankId, account_number, bank_name, user_id, username,
+     * @return array The accounts: id, bankId, account_number, bank_name, user_id and
+     *               username (who added it),
      *               last_sync_at, last_sync_status (OK|ERROR), last_sync_message
      */
     #[ApiRoute('/bank/accounts', method: 'GET')]
@@ -120,20 +101,19 @@ final class Bank {
     /**
      * Follow a bank account (it is synchronized from now on).
      *
-     * @param string   $account_number The account identifier in woob
-     * @param string   $bank_name      The woob backend name
-     * @param int|null $user_id        The owner (default: the authenticated administrator)
-     * @return array The account
-     * @throws Error If invalid or already followed
+     * @param string $account_number The account identifier in woob
+     * @param string $bank_name      The woob backend name
+     * @return array The account (user_id: the administrator who added it)
+     * @throws Error If invalid or already followed by the household
      */
     #[ApiRoute('/bank', method: 'POST')]
-    public static function create($account_number, $bank_name, $user_id = null)
+    public static function create($account_number, $bank_name)
     {
         User::requireAdmin();
         self::validateAccount($account_number, $bank_name);
-        $userId = self::owner($user_id);
+        $userId = (int)Jwt::getUserIdFromToken();
 
-        if (Db::queryOne("SELECT id FROM bank_account WHERE account_number = ? AND bank_name = ? AND user_id = ?", "ssi", $account_number, $bank_name, $userId)) {
+        if (Db::queryOne("SELECT id FROM bank_account WHERE account_number = ? AND bank_name = ?", "ss", $account_number, $bank_name)) {
             throw new Error("This account is already followed", 409);
         }
 
@@ -145,26 +125,25 @@ final class Bank {
     /**
      * Modify a followed bank account.
      *
-     * @param int      $id             The account id
-     * @param string   $account_number The account identifier in woob
-     * @param string   $bank_name      The woob backend name
-     * @param int|null $user_id        The owner (unchanged when omitted)
+     * @param int    $id             The account id
+     * @param string $account_number The account identifier in woob
+     * @param string $bank_name      The woob backend name
      * @return array The account
-     * @throws Error If not found, invalid or already followed
+     * @throws Error If not found, invalid or already followed by the household
      */
     #[ApiRoute('/bank', method: 'PUT')]
-    public static function update($id, $account_number, $bank_name, $user_id = null)
+    public static function update($id, $account_number, $bank_name)
     {
         User::requireAdmin();
         $account = self::existingAccount($id);
         self::validateAccount($account_number, $bank_name);
-        $userId = $user_id === null || $user_id === '' ? (int)$account['user_id'] : self::owner($user_id);
+        $userId = (int)$account['user_id'];
 
-        if (Db::queryOne("SELECT id FROM bank_account WHERE account_number = ? AND bank_name = ? AND user_id = ? AND id <> ?", "ssii", $account_number, $bank_name, $userId, $id)) {
+        if (Db::queryOne("SELECT id FROM bank_account WHERE account_number = ? AND bank_name = ? AND id <> ?", "ssi", $account_number, $bank_name, $id)) {
             throw new Error("This account is already followed", 409);
         }
 
-        Db::execute("UPDATE bank_account SET account_number = ?, bank_name = ?, user_id = ? WHERE id = ?", "ssii", $account_number, $bank_name, $userId, $id);
+        Db::execute("UPDATE bank_account SET account_number = ?, bank_name = ? WHERE id = ?", "ssi", $account_number, $bank_name, $id);
 
         return ['id' => (int)$id, 'bankId' => "$account_number@$bank_name", 'account_number' => $account_number, 'bank_name' => $bank_name, 'user_id' => $userId];
     }
@@ -459,15 +438,9 @@ final class Bank {
         // Parse bankId to extract account_number and bank_name
         list($accountNumber, $bankName) = explode('@', $bankId, 2);
         
-        // Get all users who own this bank account
-        $sql = "SELECT DISTINCT user_id FROM bank_account WHERE account_number = ? AND bank_name = ?";
-        $stmt = Db::execute($sql, "ss", $accountNumber, $bankName);
+        // The accounts are shared by the household: every user is notified
+        $stmt = Db::execute("SELECT id AS user_id FROM users", "");
         $result = $stmt->get_result();
-        
-        if ($result->num_rows === 0) {
-            Logger::warn("No users found for bank account: $bankId");
-            return;
-        }
         
         // Send notification to each user
         while ($row = $result->fetch_assoc()) {
@@ -516,10 +489,9 @@ final class Bank {
         }
 
         list($accountNumber, $bankName) = explode('@', $bankId, 2);
-        $sql = "SELECT DISTINCT u.id, u.language, u.alert_threshold FROM users u
-                JOIN bank_account a ON a.user_id = u.id
-                WHERE a.account_number = ? AND a.bank_name = ? AND u.alert_threshold > 0";
-        $users = Db::execute($sql, "ss", $accountNumber, $bankName)->get_result()->fetch_all(MYSQLI_ASSOC);
+        // The accounts are shared by the household: every user with a threshold is alerted
+        $sql = "SELECT id, language, alert_threshold FROM users WHERE alert_threshold > 0";
+        $users = Db::execute($sql, "")->get_result()->fetch_all(MYSQLI_ASSOC);
 
         $sent = 0;
         foreach ($users as $user) {

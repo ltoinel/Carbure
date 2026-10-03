@@ -3961,6 +3961,7 @@ a.footer-brand:hover {
 
 /* Add buttons: the + alone, the label is in the tooltip */
 .btn-add.btn-add-icon {
+    flex-shrink: 0;
     justify-content: center;
     width: 48px;
     height: 48px;
