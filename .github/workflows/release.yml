@@ -25,6 +25,10 @@ concurrency:
 jobs:
   ci:
     uses: ./.github/workflows/ci.yml
+    # The CI publishes the scan of the image in the Security tab
+    permissions:
+      contents: read
+      security-events: write
 
   release:
     name: Release archives
