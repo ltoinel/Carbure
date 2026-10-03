@@ -32,13 +32,38 @@ if (($argv[1] ?? '') === 'config' && $type === 'list') {
     exit(0);
 }
 
+if (($argv[1] ?? '') === 'config' && $type === 'info') {
+    if (($argv[3] ?? '') !== 'bnp') {
+        fwrite(STDERR, "Module \"{$argv[3]}\" does not exist.\n");
+        exit(1);
+    }
+    echo json_encode(['name' => 'bnp', 'description' => 'BNP Paribas', 'config' => [
+        'login' => ['label' => 'Numéro client', 'default' => null, 'description' => null, 'regexp' => '^(\\d{8}|)$', 'choices' => null, 'masked' => false, 'required' => true],
+        'password' => ['label' => 'Code secret', 'default' => null, 'description' => null, 'regexp' => null, 'choices' => null, 'masked' => true, 'required' => true],
+        'website' => ['label' => 'Type de compte', 'default' => 'pp', 'description' => null, 'regexp' => null, 'choices' => ['pp' => 'Particuliers/Professionnels', 'ent' => 'Entreprises'], 'masked' => false, 'required' => true],
+    ]]) . "\n";
+    exit(0);
+}
+
+if (($argv[1] ?? '') === 'config' && $type === 'add') {
+    // Records the arguments, to check what was sent
+    file_put_contents(sys_get_temp_dir() . '/carbure-fake-woob-add.json', json_encode(array_slice($argv, 3)));
+    if (($argv[4] ?? '') === 'taken') {
+        fwrite(STDERR, "Backend \"taken\" already exists.\n");
+        exit(1);
+    }
+    exit(0);
+}
+
 if (($argv[1] ?? '') === 'config') {
     exit(0);
 }
 
 if (($argv[1] ?? '') === 'bank' && $type === 'list') {
     $index = array_search('-b', $argv);
-    $backend = $index === false ? 'bnp' : $argv[$index + 1];
+    // Without -b: the backend added last by "config add" (or bnp)
+    $added = @json_decode((string)@file_get_contents(sys_get_temp_dir() . '/carbure-fake-woob-add.json'), true);
+    $backend = $index === false ? ($added[1] ?? 'bnp') : $argv[$index + 1];
     if ($backend === 'none') {
         fwrite(STDERR, "Error(none): Unable to load module \"none\"\n");
         exit(0);

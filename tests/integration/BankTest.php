@@ -71,7 +71,8 @@ class BankTest extends DatabaseTestCase
         $own = Bank::get()[0]['id'];
 
         foreach ([fn() => Bank::accounts(), fn() => Bank::create('222', 'bnp'), fn() => Bank::update($own, '222', 'bnp'),
-                  fn() => Bank::delete($own), fn() => Bank::backends(), fn() => Bank::modules(), fn() => Bank::discover()] as $i => $call) {
+                  fn() => Bank::delete($own), fn() => Bank::backends(), fn() => Bank::modules(), fn() => Bank::discover(),
+                  fn() => Bank::module('bnp'), fn() => Bank::createBackend('bnp', 'x', [])] as $i => $call) {
             try {
                 $call();
                 $this->fail("Case $i accepted");
@@ -117,8 +118,80 @@ class BankTest extends DatabaseTestCase
         ], Bank::modules());
     }
 
+    public function testModuleFields()
+    {
+        $this->loginAs(self::ADMIN);
+        $module = Bank::module('bnp');
+        $this->assertSame('BNP Paribas', $module['description']);
+        $fields = array_column($module['fields'], null, 'key');
+        $this->assertTrue($fields['password']['masked']);
+        $this->assertTrue($fields['login']['required']);
+        $this->assertSame([['value' => 'pp', 'label' => 'Particuliers/Professionnels'], ['value' => 'ent', 'label' => 'Entreprises']], $fields['website']['choices']);
+        $this->assertSame('pp', $fields['website']['default']);
+
+        try {
+            Bank::module('unknown');
+            $this->fail('Unknown module accepted');
+        } catch (Exception $e) {
+            $this->assertStringContainsString('does not exist', $e->getMessage());
+        }
+        $this->expectException(Error::class);
+        $this->expectExceptionCode(400);
+        Bank::module('../etc');
+    }
+
+    public function testCreateBackend()
+    {
+        $this->loginAs(self::ADMIN);
+        $added = sys_get_temp_dir() . '/carbure-fake-woob-add.json';
+        @unlink($added);
+
+        // The accounts woob finds for the new bank are returned
+        try {
+            $result = Bank::createBackend('bnp', 'mybnp', ['login' => '12345678', 'password' => 'secret', 'website' => 'ent', 'unknown' => 'x']);
+            $this->assertSame('mybnp', $result['backend']);
+            $this->assertSame(['00012345678@mybnp', '00087654321@mybnp'], array_column($result['accounts'], 'bankId'));
+            // Only the settings of the module, with their values
+            $this->assertSame(['bnp', 'mybnp', 'login=12345678', 'password=secret', 'website=ent'], json_decode(file_get_contents($added), true));
+        } finally {
+            @unlink($added);
+        }
+    }
+
+    public function testCreateBackendValidation()
+    {
+        $this->loginAs(self::ADMIN);
+        foreach ([
+            ['bnp', 'new', ['password' => 'secret']],                         // login missing
+            ['bnp', 'new', ['login' => '1 2', 'password' => 'secret']],       // space
+            ['bnp', 'new', ['login' => '1', 'password' => 'x', 'website' => 'nope']], // not a choice
+            ['bnp', 'New Bank', ['login' => '1', 'password' => 'x']],          // name
+            ['bnp', 'taken', ['login' => '1', 'password' => 'x']],             // woob refuses
+        ] as [$module, $backend, $settings]) {
+            try {
+                Bank::createBackend($module, $backend, $settings);
+                $this->fail("Accepted $backend " . json_encode($settings));
+            } catch (Error $e) {
+                $this->assertSame(400, $e->getCode(), $e->getMessage());
+            }
+        }
+
+        // A bank already configured in woob
+        $this->expectException(Error::class);
+        $this->expectExceptionCode(409);
+        Bank::createBackend('cic', 'cic_pro', []);
+    }
+
+    public function testSettingsAreNeverLogged()
+    {
+        $masked = Webservice::maskSensitive(['module' => 'bnp', 'settings' => ['login' => '123', 'pin' => '0000']]);
+        $this->assertSame('***', $masked['settings']);
+        $this->assertSame('bnp', $masked['module']);
+    }
+
     public function testDiscover()
     {
+        @unlink(sys_get_temp_dir() . '/carbure-fake-woob-add.json');
         $this->loginAs(self::ADMIN);
         $accounts = Bank::discover();
 

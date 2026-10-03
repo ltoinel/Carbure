@@ -101,6 +101,36 @@ class SetupTest extends TestCase
         $this->assertFileDoesNotExist($this->codeFile);
     }
 
+    public function testCodeBehindAReverseProxy()
+    {
+        // The proxy of the NAS is local, the client comes from Internet
+        $setup = new Setup($this->root, $this->configFile, $this->codeFile, '172.17.0.1,203.0.113.7');
+        [, $body] = $setup->handle('GET', '/setup', []);
+        $this->assertTrue($body['codeRequired']);
+
+        // Local client through the local proxy: no code
+        @unlink($this->codeFile);
+        $setup = new Setup($this->root, $this->configFile, $this->codeFile, '172.17.0.1,192.168.1.20');
+        [, $body] = $setup->handle('GET', '/setup', []);
+        $this->assertFalse($body['codeRequired']);
+
+        $_SERVER['REMOTE_ADDR'] = '127.0.0.1';
+        $_SERVER['HTTP_X_FORWARDED_FOR'] = '203.0.113.7, 10.0.0.2';
+        $_SERVER['HTTP_FORWARDED'] = 'for=198.51.100.1;proto=https';
+        try {
+            $this->assertSame('127.0.0.1,203.0.113.7,10.0.0.2,198.51.100.1', Setup::requestAddresses());
+        } finally {
+            unset($_SERVER['HTTP_X_FORWARDED_FOR'], $_SERVER['HTTP_FORWARDED']);
+        }
+    }
+
+    public function testEmptyCodeFileGetsACode()
+    {
+        file_put_contents($this->codeFile, '');
+        $setup = new Setup($this->root, $this->configFile, $this->codeFile, '192.168.1.20');
+        $this->assertMatchesRegularExpression('/^[A-Z2-9]{12}$/', $setup->code());
+    }
+
     public function testCodeFromInternet()
     {
         $setup = new Setup($this->root, $this->configFile, $this->codeFile, '8.8.8.8');
@@ -183,10 +213,10 @@ class SetupTest extends TestCase
         [$code, $output] = $this->tool(['add-bank', '--bank-backend=mybank', '--bank-accounts=2']);
         $this->assertSame(0, $code, $output);
         $this->assertStringContainsString('1) Compte chèques (00012345678@mybank)', $output);
-        $this->assertStringContainsString('account Livret A followed by boss', $output);
+        $this->assertStringContainsString('account Livret A followed (added by boss)', $output);
         [$code, $output] = $this->tool(['add-bank', '--bank-backend=mybank', '--bank-accounts=all']);
         $this->assertSame(0, $code, $output);
-        $this->assertStringContainsString('already followed by boss', $output);
+        $this->assertStringContainsString('already followed by the household', $output);
         $this->assertSame(2, (int)$db->query("SELECT COUNT(*) FROM bank_account")->fetch_row()[0]);
 
         [$code, $output] = $this->tool(['add-bank', '--bank-backend=none']);

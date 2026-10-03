@@ -130,6 +130,90 @@ final class Woob {
     }
 
     /**
+     * Settings asked by a woob bank module (login, password, website...), to
+     * build the form of the portal. Nothing secret is returned.
+     *
+     * @param string $module The woob module (e.g. bnp)
+     * @return array The fields: [{key, label, description, default, required, masked, choices}]
+     * @throws Exception If woob does not know the module
+     */
+    public static function moduleFields($module)
+    {
+        $woob_path = Config::get('woob_path');
+        $stderr = '';
+        $stdout = self::executeWithHeartbeat("$woob_path config info " . escapeshellarg($module) . " -f json", $stderr, false);
+
+        $info = null;
+        foreach (self::parseOutput('module', $stdout) ?? [] as $row) {
+            if (is_array($row) && isset($row['name'])) {
+                $info = $row;
+                break;
+            }
+        }
+        if ($info === null) {
+            throw new Exception("woob does not know the module $module" . self::lastLine($stderr));
+        }
+
+        $fields = [];
+        foreach (($info['config'] ?? []) as $key => $field) {
+            $choices = [];
+            foreach ((array)($field['choices'] ?? []) as $value => $label) {
+                // woob gives either {value: label} or a list of values
+                $choices[] = is_int($value) && !is_array($label)
+                    ? ['value' => (string)$label, 'label' => (string)$label]
+                    : ['value' => (string)$value, 'label' => (string)$label];
+            }
+            $fields[] = [
+                'key' => (string)$key,
+                'label' => (string)($field['label'] ?? $key),
+                'description' => (string)($field['description'] ?? ''),
+                'default' => is_scalar($field['default'] ?? null) ? (string)$field['default'] : '',
+                'required' => !empty($field['required']),
+                'masked' => !empty($field['masked']),
+                'choices' => $choices,
+            ];
+        }
+
+        return ['module' => $info['name'], 'description' => (string)($info['description'] ?? ''), 'fields' => $fields];
+    }
+
+    /**
+     * Configure a bank backend in woob with the settings typed in the portal
+     * (woob keeps them; Carbure does not store them).
+     *
+     * @param string $module  The woob module
+     * @param string $backend The backend name
+     * @param array  $params  The settings: key => value
+     * @return void
+     * @throws Exception If woob refuses the backend
+     */
+    public static function addBackend($module, $backend, $params)
+    {
+        $arguments = [escapeshellarg($module), escapeshellarg($backend)];
+        foreach ($params as $key => $value) {
+            $arguments[] = escapeshellarg("$key=$value");
+        }
+        $woob_path = Config::get('woob_path');
+        $stderr = '';
+        // The settings are not logged: they contain the bank credentials
+        $process = proc_open("$woob_path config add " . implode(' ', $arguments) . " < /dev/null",
+            [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
+        if (!is_resource($process)) {
+            throw new Exception("Unable to run woob");
+        }
+        $stdout = stream_get_contents($pipes[1]);
+        $stderr = stream_get_contents($pipes[2]);
+        fclose($pipes[1]);
+        fclose($pipes[2]);
+        $code = proc_close($process);
+
+        if ($code !== 0 || preg_match('/error|exception|traceback|already exists/i', $stderr . $stdout)) {
+            Logger::error("woob could not add the backend $backend ($module)");
+            throw new Exception("woob could not add the bank" . self::lastLine($stderr ?: $stdout));
+        }
+    }
+
+    /**
      * Last non empty line of an output, prefixed with ": " (empty string if none).
      *
      * @param string $output The command output

@@ -263,7 +263,7 @@ final class User {
         $result = $stmt->get_result();
 
         if ($result->num_rows > 0) {
-            throw new Error("Username already exists");
+            throw new Error("Username already exists", 409);
         }
 
         // Check if email already exists
@@ -272,7 +272,7 @@ final class User {
         $result = $stmt->get_result();
 
         if ($result->num_rows > 0) {
-            throw new Error("Email already exists");
+            throw new Error("Email already exists", 409);
         }
 
         // Hash the password
@@ -371,7 +371,7 @@ final class User {
         $result = $stmt->get_result();
 
         if ($result->num_rows == 0) {
-            throw new Error("User not found");
+            throw new Error("User not found", 404);
         }
 
         $currentUser = $result->fetch_assoc();
@@ -383,7 +383,7 @@ final class User {
             $result = $stmt->get_result();
 
             if ($result->num_rows > 0) {
-                throw new Error("Email already exists");
+                throw new Error("Email already exists", 409);
             }
         }
 

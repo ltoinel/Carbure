@@ -101,7 +101,7 @@ final class Webservice {
             throw new Error("Invalid JSON payload: " . json_last_error_msg());
         }
 
-        Logger::debug("Payload", $payload);
+        Logger::debug("Payload", is_array($payload) ? self::maskSensitive($payload) : null);
         
         return $payload ?? [];
     }
@@ -265,13 +265,14 @@ final class Webservice {
      * @param array $data The request data
      * @return array The data with sensitive values masked
      */
-    private static function maskSensitive($data)
+    public static function maskSensitive($data)
     {
         foreach ($data as $key => $value) {
-            if (is_array($value)) {
-                $data[$key] = self::maskSensitive($value);
-            } elseif (in_array(strtolower((string)$key), ['password', 'token'], true)) {
+            // settings: the bank credentials sent to woob, whatever their names
+            if (in_array(strtolower((string)$key), ['password', 'token', 'settings', 'admin_password', 'db_password'], true)) {
                 $data[$key] = '***';
+            } elseif (is_array($value)) {
+                $data[$key] = self::maskSensitive($value);
             }
         }
         return $data;

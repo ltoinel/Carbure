@@ -190,6 +190,76 @@ final class Bank {
     }
 
     /**
+     * Settings asked by a woob bank module, to configure the bank from the portal
+     * (administrators).
+     *
+     * @param string $module The woob module (e.g. bnp)
+     * @return array module, description, fields [{key, label, description, default, required, masked, choices}]
+     * @throws Error If the module name is invalid
+     */
+    #[ApiRoute('/bank/module', method: 'GET')]
+    public static function module($module)
+    {
+        User::requireAdmin();
+        if (!preg_match('/^[a-z0-9_]{1,50}$/', (string)$module)) {
+            throw new Error("Invalid woob module", 400);
+        }
+        return Woob::moduleFields($module);
+    }
+
+    /**
+     * Configure a bank in woob from the portal (administrators): the credentials
+     * are given to woob, which keeps them; Carbure stores and logs nothing of them.
+     * The accounts woob then finds are returned, to follow them.
+     *
+     * @param string $module   The woob module (e.g. bnp)
+     * @param string $backend  Name of the woob backend (e.g. bnp, bnp_pro)
+     * @param array  $settings The settings of the module (login, password...)
+     * @return array backend, accounts [{bankId, account_number, bank_name, label, balance, currency, followed}]
+     * @throws Error If a setting is missing or invalid, or woob refuses the bank
+     */
+    #[ApiRoute('/bank/backend', method: 'POST')]
+    public static function createBackend($module, $backend, $settings = [])
+    {
+        User::requireAdmin();
+        if (!preg_match('/^[a-z0-9_]{1,50}$/', (string)$module) || !preg_match('/^[a-z0-9_-]{1,50}$/', (string)$backend)) {
+            throw new Error("Invalid woob module or bank name (lowercase letters, digits, - and _)", 400);
+        }
+        if (in_array($backend, array_column(Woob::listBackends(), 'name'), true)) {
+            throw new Error("A bank named $backend is already configured in woob", 409);
+        }
+
+        // Only the settings of the module, required ones present, values on one line
+        $params = [];
+        foreach (Woob::moduleFields($module)['fields'] as $field) {
+            $value = is_array($settings) ? trim((string)($settings[$field['key']] ?? '')) : '';
+            if ($value === '') {
+                if ($field['required'] && $field['default'] === '') {
+                    throw new Error("Missing setting: " . $field['label'], 400);
+                }
+                continue;
+            }
+            if (preg_match('/[\x00-\x1f\x7f]/', $value) || preg_match('/\s/', $value) || mb_strlen($value) > 200) {
+                throw new Error("Invalid value for " . $field['label'] . " (no spaces)", 400);
+            }
+            if ($field['choices'] && !in_array($value, array_column($field['choices'], 'value'), true)) {
+                throw new Error("Invalid choice for " . $field['label'], 400);
+            }
+            $params[$field['key']] = $value;
+        }
+
+        try {
+            Woob::addBackend($module, $backend, $params);
+        } catch (Exception $e) {
+            throw new Error($e->getMessage(), 400);
+        }
+
+        // Accounts of the new bank, to follow them
+        $accounts = array_values(array_filter(self::discover(), fn($account) => $account['bank_name'] === $backend));
+        return ['backend' => $backend, 'accounts' => $accounts];
+    }
+
+    /**
      * Accounts available in the configured woob backends, to follow them in one click.
      *
      * @return array The accounts (bankId, account_number, bank_name, label, balance, currency, followed)

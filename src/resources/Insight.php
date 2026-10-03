@@ -48,7 +48,7 @@ final class Insight {
      * Create an insight (administrators); the query is tested on the current month.
      *
      * @param string $name  The name (1 to 20 characters)
-     * @param string $color red, green, blue, orange or gray
+     * @param string $color One of Insight::COLORS (red, orange, amber... gray)
      * @param string      $sql   SELECT … AS amount, with {month} and {year}
      * @param string|null $icon  Material icon (optional: chosen from the name)
      * @return array The insight with the amount of the current month
@@ -72,7 +72,7 @@ final class Insight {
      *
      * @param int    $id    The insight
      * @param string $name  The name (1 to 20 characters)
-     * @param string $color red, green, blue, orange or gray
+     * @param string $color One of Insight::COLORS (red, orange, amber... gray)
      * @param string      $sql   SELECT … AS amount, with {month} and {year}
      * @param string|null $icon  Material icon (optional: chosen from the name)
      * @return array The insight with the amount of the current month

@@ -19,7 +19,8 @@
  *   --bank-module=bnp          woob module of the bank ("list" shows them)
  *   --bank-backend=bnp         Name of the woob backend (default: the module name)
  *   --bank-accounts=all        Accounts to follow: "all" or numbers ("1,3")
- *   --bank-owner=admin         Carbure user owning the accounts (default: first administrator)
+ *   --bank-owner=admin         Carbure user recorded as having added the accounts (default: first
+ *                              administrator); the accounts are shared by the household
  *   Interactively, woob asks for the bank credentials itself: they are kept by woob,
  *   never by Carbure. Without a terminal, the backend must already be configured.
  *
@@ -195,7 +196,7 @@ function setupBank(mysqli $db, $woobPath, $options, $interactive)
     $selected = $choice === 'all' ? array_keys($accounts)
         : array_filter(array_map(fn($n) => (int)trim($n) - 1, explode(',', $choice)), fn($i) => isset($accounts[$i]));
 
-    // Owner of the accounts: a given user, or the first administrator
+    // User recorded as having added the accounts: a given user, or the first administrator
     $owner = $options['bank-owner'] ?? null;
     $stmt = $owner === null
         ? $db->prepare("SELECT id, username FROM users WHERE is_admin = 1 ORDER BY id LIMIT 1")
@@ -212,17 +213,18 @@ function setupBank(mysqli $db, $woobPath, $options, $interactive)
     foreach ($selected as $i) {
         // woob ids are "<account>@<backend>"
         $number = substr($accounts[$i]['id'], 0, strrpos($accounts[$i]['id'], '@') ?: strlen($accounts[$i]['id']));
-        $exists = $db->prepare("SELECT id FROM bank_account WHERE account_number = ? AND bank_name = ? AND user_id = ?");
-        $exists->bind_param('ssi', $number, $backend, $user['id']);
+        // An account is followed once per household
+        $exists = $db->prepare("SELECT id FROM bank_account WHERE account_number = ? AND bank_name = ?");
+        $exists->bind_param('ss', $number, $backend);
         $exists->execute();
         if ($exists->get_result()->num_rows > 0) {
-            step("account $number@$backend already followed by {$user['username']}");
+            step("account $number@$backend already followed by the household");
             continue;
         }
         $insert = $db->prepare("INSERT INTO bank_account (bank_name, account_number, user_id) VALUES (?, ?, ?)");
         $insert->bind_param('ssi', $backend, $number, $user['id']);
         $insert->execute();
-        step("account " . ($accounts[$i]['label'] ?? $number) . " followed by {$user['username']}");
+        step("account " . ($accounts[$i]['label'] ?? $number) . " followed (added by {$user['username']})");
     }
 }
 

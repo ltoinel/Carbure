@@ -31,7 +31,8 @@ final class Setup {
      * @param string $root       Root of the project
      * @param string $configFile Configuration file to create
      * @param string $codeFile   File of the setup code
-     * @param string $clientAddress IP address of the client
+     * @param string $clientAddress IP address of the client, or the addresses of the
+     *                              request separated by commas (proxy headers included)
      */
     public function __construct($root, $configFile, $codeFile, $clientAddress = '127.0.0.1')
     {
@@ -39,6 +40,27 @@ final class Setup {
         $this->configFile = $configFile;
         $this->codeFile = $codeFile;
         $this->clientAddress = $clientAddress;
+    }
+
+    /**
+     * Every address of the current request: the peer, and the client given by a
+     * reverse proxy (X-Forwarded-For, X-Real-IP, Forwarded). Behind a proxy of the
+     * NAS, the peer is local but the client may come from Internet.
+     *
+     * @return string The addresses, separated by commas
+     */
+    public static function requestAddresses()
+    {
+        $addresses = [$_SERVER['REMOTE_ADDR'] ?? ''];
+        foreach (['HTTP_X_FORWARDED_FOR', 'HTTP_X_REAL_IP', 'HTTP_CLIENT_IP'] as $header) {
+            if (!empty($_SERVER[$header])) {
+                $addresses = array_merge($addresses, explode(',', $_SERVER[$header]));
+            }
+        }
+        if (!empty($_SERVER['HTTP_FORWARDED']) && preg_match_all('/for="?\[?([0-9a-fA-F:.]+)/i', $_SERVER['HTTP_FORWARDED'], $matches)) {
+            $addresses = array_merge($addresses, $matches[1]);
+        }
+        return implode(',', array_map('trim', $addresses));
     }
 
     /**
@@ -50,7 +72,7 @@ final class Setup {
      */
     public static function serve($root, $env)
     {
-        $setup = new self($root, "$root/conf/$env.ini", "$root/conf/setup.code", $_SERVER['REMOTE_ADDR'] ?? '');
+        $setup = new self($root, "$root/conf/$env.ini", "$root/conf/setup.code", self::requestAddresses());
         $path = preg_replace('#^/api#', '', strtok($_SERVER['REQUEST_URI'] ?? '/', '?'));
         $data = json_decode(file_get_contents('php://input') ?: '[]', true);
 
@@ -245,7 +267,8 @@ final class Setup {
      */
     public function code()
     {
-        if (is_file($this->codeFile)) {
+        // A file created by hand may be empty: a new code is written then
+        if (is_file($this->codeFile) && trim((string)file_get_contents($this->codeFile)) !== '') {
             return trim(file_get_contents($this->codeFile));
         }
         // No ambiguous characters (0/O, 1/I/L): it is typed by hand
@@ -274,9 +297,15 @@ final class Setup {
         if (is_file($this->codeFile)) {
             return true;
         }
-        $local = filter_var($this->clientAddress, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false
-            && filter_var($this->clientAddress, FILTER_VALIDATE_IP) !== false;
-        return !$local;
+        // Local only if every address of the request (peer and proxy headers) is private
+        foreach (array_filter(array_map('trim', explode(',', $this->clientAddress)), 'strlen') ?: [''] as $address) {
+            $local = filter_var($address, FILTER_VALIDATE_IP) !== false
+                && filter_var($address, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false;
+            if (!$local) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
