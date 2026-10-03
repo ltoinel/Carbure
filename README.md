@@ -11,6 +11,10 @@
 </p>
 
 <p align="center">
+  <strong>💸 Gratuit, sans abonnement · 🏠 100 % hébergé chez vous · 🙅 Aucun service cloud tiers</strong>
+</p>
+
+<p align="center">
   <a href="https://github.com/ltoinel/Carbure/actions/workflows/ci.yml"><img src="https://github.com/ltoinel/Carbure/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://github.com/ltoinel/Carbure/releases"><img src="https://img.shields.io/github/v/release/ltoinel/Carbure" alt="Release"></a>
   <a href="https://github.com/ltoinel/Carbure/actions/workflows/ci.yml"><img src="https://img.shields.io/badge/coverage-%E2%89%A5%2090%25-brightgreen" alt="Coverage"></a>
@@ -38,7 +42,11 @@
   le seuil que vous avez choisi.
 - 👨‍👩‍👧 **Pensé pour le foyer** : plusieurs utilisateurs, des données partagées, chacun sa langue
   et ses appareils.
-- 🔒 **Chez vous** : auto-hébergé (un NAS suffit), vos données bancaires ne quittent pas votre réseau.
+- 🔒 **Tout reste chez vous, sans abonnement** : Carbure est gratuit et open source, il tourne
+  sur votre propre serveur (un NAS suffit). Pas de compte à créer, pas d'agrégateur bancaire tiers,
+  pas de cloud : vos identifiants et vos données bancaires restent dans votre base locale.
+  Seules sorties réseau : la connexion directe à votre banque (woob) et, si vous l'activez,
+  l'envoi des notifications via Apple.
 
 ## Comment ça marche
 
