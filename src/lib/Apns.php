@@ -19,6 +19,18 @@ final class Apns {
     private const APNS_SANDBOX = 'https://api.sandbox.push.apple.com';
 
     /**
+     * Provider token lifetime in seconds: Apple refuses tokens older than one hour
+     * and token refreshes more frequent than every 20 minutes
+     */
+    private const JWT_TTL = 3000;
+
+    /**
+     * Provider tokens already generated in this process, by key
+     * @var array<string, array{token: string, iat: int}>
+     */
+    private static $jwtCache = [];
+
+    /**
      * Send a push notification to an iOS device.
      *
      * @param string $deviceToken The device token (64 hex characters)
@@ -246,6 +258,16 @@ final class Apns {
      */
     private static function generateJwt($keyPath, $keyId, $teamId)
     {
+        // Reuse the token while it is valid (memory, then APCu shared between requests)
+        $cacheKey = 'carbure_apns_jwt_' . md5("$keyPath|$keyId|$teamId");
+        $cached = self::$jwtCache[$cacheKey] ?? null;
+        if ($cached === null && function_exists('apcu_fetch') && ini_get('apc.enabled')) {
+            $cached = apcu_fetch($cacheKey) ?: null;
+        }
+        if ($cached !== null && $cached['iat'] > time() - self::JWT_TTL) {
+            return $cached['token'];
+        }
+
         if (!file_exists($keyPath)) {
             throw new Error("APNs key file not found: $keyPath", 500);
         }
@@ -281,10 +303,62 @@ final class Apns {
         }
         
         openssl_sign($dataToSign, $signature, $key, OPENSSL_ALGO_SHA256);
-        
-        $signatureEncoded = rtrim(strtr(base64_encode($signature), '+/', '-_'), '=');
-        
-        return $dataToSign . '.' . $signatureEncoded;
+
+        // OpenSSL returns a DER signature, JWS ES256 expects R || S (2 x 32 bytes)
+        $signatureEncoded = rtrim(strtr(base64_encode(self::derToRaw($signature)), '+/', '-_'), '=');
+        $token = $dataToSign . '.' . $signatureEncoded;
+
+        $cached = ['token' => $token, 'iat' => $payload['iat']];
+        self::$jwtCache[$cacheKey] = $cached;
+        if (function_exists('apcu_store') && ini_get('apc.enabled')) {
+            apcu_store($cacheKey, $cached, self::JWT_TTL);
+        }
+
+        return $token;
+    }
+
+    /**
+     * Convert a DER encoded ECDSA signature (SEQUENCE of two INTEGERs) to the
+     * raw R || S form used by JWS (RFC 7518, section 3.4).
+     *
+     * @param string $der        The DER signature
+     * @param int    $partLength The length of R and S (32 bytes for P-256)
+     * @return string The raw signature
+     * @throws Error If the signature is not a valid DER ECDSA signature
+     */
+    public static function derToRaw($der, $partLength = 32)
+    {
+        $offset = 0;
+        $readLength = function () use ($der, &$offset) {
+            $length = ord($der[$offset++]);
+            if ($length & 0x80) {
+                $bytes = $length & 0x7f;
+                $length = 0;
+                for ($i = 0; $i < $bytes; $i++) {
+                    $length = ($length << 8) | ord($der[$offset++]);
+                }
+            }
+            return $length;
+        };
+
+        if (strlen($der) < 8 || ord($der[$offset++]) !== 0x30) {
+            throw new Error("Invalid DER signature", 500);
+        }
+        $readLength();
+
+        $raw = '';
+        for ($i = 0; $i < 2; $i++) {
+            if (ord($der[$offset++]) !== 0x02) {
+                throw new Error("Invalid DER signature", 500);
+            }
+            $length = $readLength();
+            // Remove the sign padding and left-pad to the fixed part length
+            $integer = ltrim(substr($der, $offset, $length), "\x00");
+            $offset += $length;
+            $raw .= str_pad($integer, $partLength, "\x00", STR_PAD_LEFT);
+        }
+
+        return $raw;
     }
 
     /**

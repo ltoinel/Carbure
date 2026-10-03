@@ -27,8 +27,53 @@ class ApnsTest extends TestCase
 
         // ES256 provider token: header.payload.signature with the key id
         $this->assertStringStartsWith('Bearer ', $request['authorization']);
-        $header = json_decode(base64_decode(explode('.', substr($request['authorization'], 7))[0]), true);
+        $parts = explode('.', substr($request['authorization'], 7));
+        $header = json_decode(base64_decode($parts[0]), true);
         $this->assertSame(['alg' => 'ES256', 'kid' => 'TESTKEY123'], $header);
+
+        // Raw R || S signature (64 bytes), valid for the public key
+        $raw = base64_decode(strtr($parts[2], '-_', '+/'));
+        $this->assertSame(64, strlen($raw));
+        $publicKey = openssl_pkey_get_details(openssl_pkey_get_private(file_get_contents(Config::get('apns_key_path'))))['key'];
+        $this->assertSame(1, openssl_verify("$parts[0].$parts[1]", self::rawToDer($raw), $publicKey, OPENSSL_ALGO_SHA256));
+    }
+
+    public function testProviderTokenIsReused()
+    {
+        Apns::send(self::TOKEN, 'First', 'Body');
+        Apns::send(self::TOKEN, 'Second', 'Body');
+
+        $requests = FakeApnsServer::requests();
+        $this->assertSame($requests[0]['authorization'], $requests[1]['authorization']);
+    }
+
+    public function testDerToRaw()
+    {
+        // r and s with a sign padding byte, s shorter than 32 bytes
+        $r = "\x00" . str_repeat("\xff", 32);
+        $s = str_repeat("\x01", 31);
+        $der = "\x30" . chr(4 + strlen($r) + strlen($s)) . "\x02" . chr(strlen($r)) . $r . "\x02" . chr(strlen($s)) . $s;
+
+        $this->assertSame(str_repeat("\xff", 32) . "\x00" . str_repeat("\x01", 31), Apns::derToRaw($der));
+
+        $this->expectException(Error::class);
+        Apns::derToRaw('not a signature');
+    }
+
+    /**
+     * Raw R || S signature back to DER (to verify it with OpenSSL).
+     */
+    private static function rawToDer($raw)
+    {
+        $integer = function ($bytes) {
+            $bytes = ltrim($bytes, "\x00");
+            if ($bytes === '' || ord($bytes[0]) & 0x80) {
+                $bytes = "\x00" . $bytes;
+            }
+            return "\x02" . chr(strlen($bytes)) . $bytes;
+        };
+        $sequence = $integer(substr($raw, 0, 32)) . $integer(substr($raw, 32));
+        return "\x30" . chr(strlen($sequence)) . $sequence;
     }
 
     public function testRejectedTokenReturnsTheReason()
