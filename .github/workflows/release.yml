@@ -1,43 +1,64 @@
 name: Release
 
+# Published from GitHub (Releases -> Draft a new release, tag 1.2.0 or v1.2.0) or with
+# "gh release create 1.2.0 --generate-notes": the workflow attaches the archives to the
+# release and publishes the Docker image. "Run workflow" rebuilds an existing release.
 on:
-  push:
-    tags: ['v*']
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Tag of the release to build (e.g. 1.0.0)
+        required: true
 
 permissions:
   contents: read
+
+env:
+  TAG: ${{ github.event.release.tag_name || inputs.tag }}
+
+concurrency:
+  group: release-${{ github.event.release.tag_name || inputs.tag }}
+  cancel-in-progress: false
 
 jobs:
   ci:
     uses: ./.github/workflows/ci.yml
 
   release:
-    name: GitHub release
+    name: Release archives
     needs: ci
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.TAG }}
 
       - name: Build the archive
         run: |
-          name="carbure-${GITHUB_REF_NAME}"
+          name="carbure-${TAG}"
           mkdir -p dist build
           git archive --format=tar --prefix="$name/" HEAD \
             src portal swagger sql conf/prod.sample.ini tools/migrate.php README.md LICENSE \
             | tar -x -C build
           # Version shown in the footer of the portal and by /api/health
-          echo "${GITHUB_REF_NAME#v}" > "build/$name/VERSION"
-          mkdir -p "build/$name/logs"
+          echo "${TAG#v}" > "build/$name/VERSION"
           tar -czf "dist/$name.tar.gz" -C build "$name"
           (cd build && zip -qr "../dist/$name.zip" "$name")
           (cd dist && sha256sum * > SHA256SUMS)
 
-      - name: Publish the release
+      - name: Attach the archives to the release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" dist/* --title "Carbure $GITHUB_REF_NAME" --generate-notes --verify-tag
+        run: |
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release upload "$TAG" dist/* --clobber
+          else
+            gh release create "$TAG" dist/* --title "Carbure $TAG" --generate-notes --verify-tag
+          fi
 
   docker:
     name: Docker image
@@ -48,6 +69,8 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.TAG }}
 
       - uses: docker/setup-qemu-action@v3
 
@@ -63,10 +86,11 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ghcr.io/${{ github.repository_owner }}/carbure
+          # 1.2.0 and v1.2.0 give the tags 1.2.0, 1.2 and latest (not for a pre-release)
           tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=raw,value=latest
+            type=semver,pattern={{version}},value=${{ env.TAG }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ env.TAG }}
+            type=raw,value=latest,enable=${{ !github.event.release.prerelease }}
 
       - uses: docker/build-push-action@v6
         with:
@@ -75,7 +99,7 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           build-args: |
-            CARBURE_VERSION=${{ github.ref_name }}
+            CARBURE_VERSION=${{ env.TAG }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           # Bill of materials and build provenance attached to the image
