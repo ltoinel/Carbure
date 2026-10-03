@@ -20,14 +20,10 @@ Ouvrez `http://<hôte>:8080/` : l'assistant d'installation s'affiche, déjà rem
 base de données de `docker-compose.yml`. Cliquez sur **Continuer**, choisissez le mot de
 passe administrateur, puis **Installer**. C'est tout.
 
-Configurez ensuite chaque banque une fois (woob demande vos identifiants bancaires, qui ne
-passent jamais par le portail) et suivez ses comptes :
-
-```bash
-docker compose exec -it -u www-data carbure php tools/carbure.php add-bank
-```
-
-Les comptes se gèrent ensuite dans l'onglet **Comptes** du portail.
+Ajoutez ensuite vos banques depuis l'onglet **Comptes** du portail (bouton **+**) :
+choisissez la banque, saisissez les identifiants demandés, puis les comptes à suivre. Les
+identifiants sont confiés à woob, qui les conserve sur votre serveur ; Carbure ne les
+enregistre pas.
 
 Pour choisir vous-même le mot de passe de la base, créez un fichier `.env` à côté de
 `docker-compose.yml` **avant** le premier démarrage :
@@ -115,7 +111,7 @@ docker compose restart carbure
 docker compose logs -f carbure                                         # journaux nginx, PHP et démarrage
 docker compose exec carbure ls /data/logs                              # logs de Carbure
 docker compose exec -u www-data carbure php tools/migrate.php --status # version du schéma de la base
-docker compose exec -it -u www-data carbure php tools/carbure.php add-bank           # ajouter une banque
+docker compose exec -it -u www-data carbure php tools/carbure.php add-bank           # ajouter une banque (ou depuis le portail)
 docker compose exec -u www-data carbure php tools/carbure.php rotate-jwt-secret      # nouveau jwtsecret
 ```
 
@@ -184,16 +180,13 @@ Depuis une adresse publique, l'assistant demande le code d'installation écrit d
 
 ### 4. Ajouter une banque
 
-Les identifiants bancaires ne passent jamais par le portail : ils sont enregistrés par
-woob. Configurez chaque banque une fois, en tant qu'utilisateur du serveur web :
+Depuis l'onglet **Comptes** du portail (bouton **+**) : choisissez la banque parmi celles
+que woob supporte, saisissez les identifiants demandés (confiés à woob, qui les conserve ;
+Carbure ne les enregistre pas), puis les comptes à suivre. woob doit être installé pour
+l'utilisateur du serveur web.
 
-```bash
-sudo -u www-data php tools/carbure.php add-bank
-```
-
-La commande demande le module woob de la banque (`list` les affiche), laisse woob
-demander vos identifiants, puis propose de suivre les comptes trouvés. Les comptes se
-gèrent ensuite dans l'onglet **Comptes** du portail.
+En ligne de commande, `sudo -u www-data php tools/carbure.php add-bank` fait la même chose
+(utile pour une banque qui demande une validation interactive).
 
 ### 5. Planifier la synchronisation
 

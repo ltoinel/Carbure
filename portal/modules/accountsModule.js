@@ -30,11 +30,75 @@ export function createAccountsModule(getApiService) {
                 // Bank of the manual form: a backend name, or '__other' to type it
                 newAccountBank: '',
                 discovering: false,
-                discoverError: null
+                discoverError: null,
+                // Configuration in woob of a bank not configured yet
+                bankSetup: { module: '', backend: '', description: '', fields: [], values: {}, loading: false, busy: false, error: null }
             };
         },
 
+        watch: {
+            /**
+             * A supported bank not configured yet: load the settings it asks for
+             */
+            newAccountBank() {
+                if (this.showAccountModal && this.chosenBankNotConfigured()) {
+                    this.loadBankSetup(this.newAccountBank);
+                } else {
+                    this.bankSetup = { ...this.bankSetup, module: '', fields: [], error: null };
+                }
+            }
+        },
+
         methods: {
+            /**
+             * Loads the settings asked by a woob module (login, password...)
+             * @param {string} module - woob module
+             * @returns {Promise<void>}
+             */
+            async loadBankSetup(module) {
+                this.bankSetup = { module, backend: module, description: '', fields: [], values: {}, loading: true, busy: false, error: null };
+                try {
+                    const info = await getApiService().fetchBankModuleFields(module);
+                    if (this.bankSetup.module !== module) {
+                        return;
+                    }
+                    const values = {};
+                    info.fields.forEach(f => { values[f.key] = f.default || (f.choices.length ? f.choices[0].value : ''); });
+                    this.bankSetup = { ...this.bankSetup, description: info.description, fields: info.fields, values, loading: false };
+                } catch (error) {
+                    this.bankSetup = { ...this.bankSetup, loading: false, error: error.message };
+                }
+            },
+
+            /**
+             * Configures the bank in woob, then shows its accounts to follow
+             * @returns {Promise<void>}
+             */
+            async connectBank() {
+                const setup = this.bankSetup;
+                const missing = setup.fields.find(f => f.required && !String(setup.values[f.key] || '').trim());
+                if (missing) {
+                    this.bankSetup = { ...setup, error: this.t('bankSettingRequired', { field: missing.label }) };
+                    return;
+                }
+                this.bankSetup = { ...setup, busy: true, error: null };
+                try {
+                    const result = await getApiService().createBankBackend(setup.module, setup.backend, setup.values);
+                    // The credentials leave the page as soon as woob has them
+                    this.bankSetup = { module: '', backend: '', description: '', fields: [], values: {}, loading: false, busy: false, error: null };
+                    await this.loadBankBackends();
+                    // Configured now, even if woob lists it a bit later
+                    if (!this.bankBackends.some(b => b.name === result.backend)) {
+                        this.bankBackends = [...this.bankBackends, { name: result.backend, module: setup.module }];
+                    }
+                    this.newAccountBank = result.backend;
+                    this.discoveredAccounts = result.accounts;
+                    this.showToast(this.t(result.accounts.length ? 'bankConnected' : 'bankConnectedNoAccount'));
+                } catch (error) {
+                    this.bankSetup = { ...this.bankSetup, busy: false, error: error.message };
+                }
+            },
+
             /**
              * Loads the banks configured in woob (for the bank selector)
              * @returns {Promise<void>}
@@ -120,6 +184,7 @@ export function createAccountsModule(getApiService) {
              */
             closeAccountModal() {
                 this.showAccountModal = false;
+                this.bankSetup = { module: '', backend: '', description: '', fields: [], values: {}, loading: false, busy: false, error: null };
             },
 
             /**

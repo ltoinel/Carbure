@@ -160,9 +160,10 @@ protégée.
 - **+** (fenêtre modale) : « Rechercher mes comptes dans woob » liste les comptes des
   banques configurées dans woob (libellé, solde) et les suit en un clic ; sinon choisir la
   banque (configurée dans woob, ou parmi toutes celles que woob supporte) et saisir
-  l'identifiant du compte. Les identifiants bancaires ne passent jamais par le portail :
-  une nouvelle banque se configure avec `php tools/carbure.php add-bank` (voir
-  [Installation](installation.md)).
+  l'identifiant du compte. Pour une banque pas encore configurée, le formulaire demande les
+  identifiants attendus par son module woob (numéro client, code, type de compte…) :
+  **Connecter la banque** les confie à woob (Carbure ne les enregistre ni ne les journalise)
+  et affiche les comptes trouvés, à suivre en un clic.
 - **Synchronisation** : progression en direct, statut OK/KO de chaque étape par compte
   (opérations à venir, historique, notifications), nombre de transactions reçues et
   nouvelles, journal détaillé. En cas d'échec woob, un lien ouvre la recherche des tickets

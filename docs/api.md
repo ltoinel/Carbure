@@ -148,8 +148,23 @@ Ne suit plus le compte ; ses transactions déjà importées sont conservées.
 ### `GET /bank/backends`, `GET /bank/modules` — administrateur
 
 Banques configurées dans woob (`name`, `module`) et banques supportées par woob (`module`,
-`description`). Une banque doit être configurée dans woob (identifiants bancaires) avec
-`php tools/carbure.php add-bank` avant que ses comptes puissent être synchronisés.
+`description`). Une banque doit être configurée dans woob (identifiants bancaires) avant
+que ses comptes puissent être synchronisés : depuis le portail (routes ci-dessous) ou avec
+`php tools/carbure.php add-bank`.
+
+### `GET /bank/module?module=` — administrateur
+
+Paramètres demandés par un module woob : `module`, `description`, `fields` (`key`, `label`,
+`description`, `default`, `required`, `masked`, `choices`). Rien de secret n'est renvoyé.
+
+### `POST /bank/backend` — administrateur
+
+Configure une banque dans woob : `module`, `backend` (nom, `[a-z0-9_-]`), `settings`
+(objet des paramètres du module ; seules ses clés sont transmises, valeurs sur une ligne
+sans espace, choix vérifiés). Les identifiants sont confiés à woob, ni stockés ni
+journalisés par Carbure (`settings` est masqué dans les logs). Renvoie `backend` et les
+`accounts` trouvés (même format que `/bank/discover`). `409` si une banque de ce nom existe
+déjà dans woob, `400` si un paramètre manque ou si woob refuse.
 
 ### `GET /bank/discover` — administrateur
 

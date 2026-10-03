@@ -100,26 +100,17 @@ puis **Démarrer**).
 
 ## 6. Ajouter vos comptes bancaires
 
-Vos identifiants bancaires ne passent jamais par le portail : ils sont enregistrés par
-[woob](https://woob.tech/), une fois par banque.
+Dans le portail, onglet **Comptes** → **+** :
 
-1. **Container Manager** → **Conteneur** → ouvrez le conteneur de Carbure (par exemple
-   `carbure-carbure-1`) → onglet **Terminal** → **Créer** → **Lancer avec la commande** :
+1. Choisissez votre banque dans la liste des banques supportées par
+   [woob](https://woob.tech/) (par exemple BNP Paribas, Crédit Mutuel, Boursorama).
+2. Saisissez les identifiants demandés et cliquez sur **Connecter la banque** : ils sont
+   confiés à woob, qui les conserve dans le dossier `docker/carbure/data` du NAS ; Carbure
+   ne les enregistre pas.
+3. Cliquez sur **Suivre** pour chaque compte à synchroniser, puis **Enregistrer**.
 
-    ```bash
-    su -s /bin/sh www-data -c "php tools/carbure.php add-bank"
-    ```
-
-    (ou, en SSH : `sudo docker exec -it -u www-data carbure-carbure-1 php tools/carbure.php add-bank`).
-2. Saisissez le module woob de votre banque (`list` affiche les banques supportées, par
-   exemple `bnp`, `creditmutuel`, `boursorama`), puis les identifiants demandés par woob.
-3. Choisissez les comptes à suivre (`all` pour tous).
-
-Les comptes apparaissent dans l'onglet **Comptes** du portail (administrateurs), où vous
-pouvez aussi en ajouter (**+** → « Rechercher mes comptes dans woob »), les modifier ou ne
-plus les suivre. Le bouton de synchronisation de chaque compte lance une synchronisation
-immédiate ; tous les comptes sont ensuite synchronisés chaque jour grâce à
-`SYNC_INTERVAL`.
+La synchronisation se lance compte par compte avec le bouton de synchronisation, et
+automatiquement chaque jour grâce à `SYNC_INTERVAL`.
 
 ## 7. (Facultatif) Un accès HTTPS avec un nom de domaine
 

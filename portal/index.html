@@ -1655,17 +1655,39 @@
                         </select>
                         <input v-if="newAccountBank === '__other'" v-model="accountForm.bank_name" :placeholder="t('accountBankPlaceholder')" :aria-label="t('accountBank')" maxlength="50" />
                     </div>
-                    <p v-if="chosenBankNotConfigured()" class="sync-step-error bank-not-configured">
-                        {{ t('bankNotConfigured') }} <code>php tools/carbure.php add-bank</code>
-                    </p>
+                    <!-- Bank not configured in woob yet: its settings, sent to woob only -->
+                    <fieldset v-if="chosenBankNotConfigured()" class="bank-setup">
+                        <legend>{{ t('bankSetupTitle', { bank: bankSetup.description || newAccountBank }) }}</legend>
+                        <p class="setup-help">
+                            <span class="material-icons inline-icon" aria-hidden="true">lock</span>{{ t('bankSetupHelp') }}
+                        </p>
+                        <div v-if="bankSetup.loading" class="transactions-hint">{{ t('loadingMessage') }}</div>
+                        <template v-else>
+                            <div v-for="f in bankSetup.fields" :key="f.key" class="form-group">
+                                <label :for="'bank-setting-' + f.key">{{ f.label }}{{ f.required ? ' *' : '' }}</label>
+                                <select v-if="f.choices.length" :id="'bank-setting-' + f.key" v-model="bankSetup.values[f.key]">
+                                    <option v-for="c in f.choices" :key="c.value" :value="c.value">{{ c.label }}</option>
+                                </select>
+                                <input v-else :id="'bank-setting-' + f.key" v-model="bankSetup.values[f.key]"
+                                       :type="f.masked ? 'password' : 'text'" autocomplete="off" :aria-describedby="f.description ? 'bank-setting-help-' + f.key : null" />
+                                <small v-if="f.description" :id="'bank-setting-help-' + f.key">{{ f.description }}</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="bank-backend-name">{{ t('bankBackendName') }}</label>
+                                <input id="bank-backend-name" v-model="bankSetup.backend" maxlength="50" pattern="[a-z0-9_-]+" aria-describedby="bank-backend-help" />
+                                <small id="bank-backend-help">{{ t('bankBackendHelp') }}</small>
+                            </div>
+                            <div v-if="bankSetup.error" class="sync-step-error" role="alert">{{ bankSetup.error }}</div>
+                            <button type="button" @click="connectBank" :disabled="bankSetup.busy || !bankSetup.fields.length">
+                                <span class="material-icons" :class="{ spin: bankSetup.busy }" aria-hidden="true">{{ bankSetup.busy ? 'sync' : 'link' }}</span>
+                                {{ bankSetup.busy ? t('bankConnecting') : t('bankConnect') }}
+                            </button>
+                        </template>
+                    </fieldset>
                     <div class="form-group">
                         <label>{{ t('accountNumber') }} *</label>
                         <input v-model="accountForm.account_number" maxlength="100" />
                     </div>
-                    <p class="rules-help">
-                        <span class="material-icons inline-icon">lock</span>
-                        {{ t('newBankHint') }} <code>php tools/carbure.php add-bank</code>
-                    </p>
                 </div>
                 <div class="modal-footer">
                     <button class="btn-secondary" @click="closeAccountModal">

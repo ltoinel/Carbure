@@ -33,11 +33,12 @@ if (($argv[1] ?? '') === 'config' && $type === 'list') {
 }
 
 if (($argv[1] ?? '') === 'config' && $type === 'info') {
-    if (($argv[3] ?? '') !== 'bnp') {
+    if (($argv[3] ?? '') === 'unknown') {
         fwrite(STDERR, "Module \"{$argv[3]}\" does not exist.\n");
         exit(1);
     }
-    echo json_encode(['name' => 'bnp', 'description' => 'BNP Paribas', 'config' => [
+    $names = ['bnp' => 'BNP Paribas', 'boursorama' => 'Boursorama', 'cic' => 'CIC'];
+    echo json_encode(['name' => $argv[3], 'description' => $names[$argv[3]] ?? $argv[3], 'config' => [
         'login' => ['label' => 'Numéro client', 'default' => null, 'description' => null, 'regexp' => '^(\\d{8}|)$', 'choices' => null, 'masked' => false, 'required' => true],
         'password' => ['label' => 'Code secret', 'default' => null, 'description' => null, 'regexp' => null, 'choices' => null, 'masked' => true, 'required' => true],
         'website' => ['label' => 'Type de compte', 'default' => 'pp', 'description' => null, 'regexp' => null, 'choices' => ['pp' => 'Particuliers/Professionnels', 'ent' => 'Entreprises'], 'masked' => false, 'required' => true],

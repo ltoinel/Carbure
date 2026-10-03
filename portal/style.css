@@ -4488,3 +4488,23 @@ a.footer-brand:hover {
     white-space: nowrap;
     border: 0;
 }
+
+/* ===== Bank setup in the account modal ===== */
+.bank-setup {
+    margin: 0 0 20px;
+    padding: 16px;
+    border: 1px solid var(--divider);
+    border-radius: var(--border-radius-md);
+}
+
+.bank-setup legend {
+    padding: 0 6px;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.bank-setup > button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}

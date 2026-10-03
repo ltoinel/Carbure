@@ -382,6 +382,26 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
     }
 
     /**
+     * Settings asked by a woob bank module (to configure the bank from the portal)
+     * @param {string} module - woob module
+     * @returns {Promise<Object>} {module, description, fields}
+     */
+    async function fetchBankModuleFields(module) {
+        return request(`${baseUrl}/bank/module?module=${encodeURIComponent(module)}`, {}, 'Failed to read the settings of the bank');
+    }
+
+    /**
+     * Configures a bank in woob with its settings (credentials kept by woob only)
+     * @param {string} module - woob module
+     * @param {string} backend - Name of the bank in woob
+     * @param {Object} settings - Settings of the module
+     * @returns {Promise<Object>} {backend, accounts}
+     */
+    async function createBankBackend(module, backend, settings) {
+        return request(`${baseUrl}/bank/backend`, { method: 'POST', body: JSON.stringify({ module, backend, settings }) }, 'Failed to configure the bank');
+    }
+
+    /**
      * Accounts available in the banks configured in woob (can take a while)
      * @returns {Promise<Array>} Array of {bankId, account_number, bank_name, label, balance, currency, followed}
      */
@@ -817,6 +837,8 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
         discoverBankAccounts,
         fetchBankBackends,
         fetchBankModules,
+        fetchBankModuleFields,
+        createBankBackend,
         syncBanks,
         fetchCategories,
         createCategory,
