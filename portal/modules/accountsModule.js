@@ -3,8 +3,8 @@
  *
  * Bank accounts of the household (administrators): list with the result of the
  * last synchronization, add (from the accounts woob finds, or manually) and
- * modify in a modal, delete. Bank credentials never go through the
- * portal: they are configured in woob (php tools/carbure.php add-bank).
+ * modify in a modal, delete. A bank not configured in woob yet is connected
+ * from the modal: its credentials are given to woob, never stored by Carbure.
  *
  * @module accountsModule
  */

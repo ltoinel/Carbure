@@ -10,7 +10,6 @@
 | `swagger/` | Générateur OpenAPI et Swagger UI |
 | `sql/` | Schéma et migrations |
 | `tests/unit/`, `tests/integration/` | Tests PHPUnit |
-| `tools/carbure.php` | Maintenance : `add-bank` (configurer une banque dans woob et suivre ses comptes), `rotate-jwt-secret` |
 | `tools/migrate.php` | Migrations du schéma (`--status`, `--dry-run`, `--baseline`) |
 | `tools/phpunit.phar`, `tools/coverage-check.php` | PHPUnit 11 et contrôle du seuil de couverture |
 | `Dockerfile`, `docker/`, `docker-compose.yml` | Image nginx + PHP-FPM + woob, et déploiement avec MariaDB |
@@ -97,7 +96,7 @@ git config core.hooksPath .githooks
 | Workflow | Déclencheur | Étapes |
 |---|---|---|
 | CI | Pull request, push sur `main` | Lint PHP/JS/CSS, tests unitaires et d'intégration (MariaDB), couverture ≥ 90 %, scan de secrets (gitleaks) ; image Docker : hadolint, build, scan Trivy, démarrage avec `docker compose`, installation par l'assistant et test de fumée |
-| Release | Tag `v*` | CI, archive de l'application (`src`, `portal`, `swagger`, `sql`, `tools/carbure.php`, `tools/migrate.php`, `VERSION` écrit depuis le tag) et release GitHub ; image Docker `amd64`/`arm64` publiée sur `ghcr.io` (version passée par `CARBURE_VERSION`), avec SBOM et provenance |
+| Release | Tag `v*` | CI, archive de l'application (`src`, `portal`, `swagger`, `sql`, `tools/migrate.php`, `VERSION` écrit depuis le tag) et release GitHub ; image Docker `amd64`/`arm64` publiée sur `ghcr.io` (version passée par `CARBURE_VERSION`), avec SBOM et provenance |
 | Docs | Push sur `main` | Construction MkDocs et déploiement GitHub Pages |
 
 Publier une version :

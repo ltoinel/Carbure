@@ -149,8 +149,7 @@ Ne suit plus le compte ; ses transactions déjà importées sont conservées.
 
 Banques configurées dans woob (`name`, `module`) et banques supportées par woob (`module`,
 `description`). Une banque doit être configurée dans woob (identifiants bancaires) avant
-que ses comptes puissent être synchronisés : depuis le portail (routes ci-dessous) ou avec
-`php tools/carbure.php add-bank`.
+que ses comptes puissent être synchronisés : depuis le portail (routes ci-dessous).
 
 ### `GET /bank/module?module=` — administrateur
 
@@ -436,6 +435,13 @@ Version du schéma de la base et migrations à appliquer :
 Applique les migrations en attente (bouton **Mettre à jour** du portail) :
 `{"version": "…", "applied": ["…"]}` ; `500` avec la cause si une migration échoue (les
 suivantes ne sont pas exécutées).
+
+### `POST /system/jwt-secret` — administrateur
+
+Remplace le `jwtsecret` de la configuration par une valeur aléatoire : toutes les sessions
+(portail et application iOS) prennent fin. `GET /system/schema` indique `weakJwtSecret`
+quand le secret est celui de l'exemple (ou trop court) : le portail propose alors de le
+renouveler.
 
 ## Assistant d'installation
 

@@ -186,6 +186,14 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
     }
 
     /**
+     * Renews the secret of the sessions (administrators): every session ends
+     * @returns {Promise<void>}
+     */
+    async function rotateJwtSecret() {
+        await request(`${baseUrl}/system/jwt-secret`, { method: 'POST' }, 'Failed to renew the secret');
+    }
+
+    /**
      * Applies the pending migrations (administrators)
      * @returns {Promise<Object>} {version, applied}
      */
@@ -824,6 +832,7 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
         updateMcpSettings,
         fetchSchemaStatus,
         migrateSchema,
+        rotateJwtSecret,
         fetchInsightDefinitions,
         saveInsight,
         deleteInsight,

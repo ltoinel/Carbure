@@ -3,8 +3,7 @@
 use PHPUnit\Framework\TestCase;
 
 /**
- * Installation wizard of the portal (Setup) against the test server, then the
- * maintenance tool (tools/carbure.php) on the installed instance.
+ * Installation wizard of the portal (Setup) against the test server.
  */
 class SetupTest extends TestCase
 {
@@ -81,13 +80,6 @@ class SetupTest extends TestCase
         return $db;
     }
 
-    private function tool(array $arguments)
-    {
-        $process = proc_open(array_merge([PHP_BINARY, "$this->root/tools/carbure.php"], $arguments, ['--env=' . self::ENV, '--no-interaction']),
-            [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
-        $output = stream_get_contents($pipes[1]) . stream_get_contents($pipes[2]);
-        return [proc_close($process), $output];
-    }
 
     public function testNoCodeFromTheLocalNetwork()
     {
@@ -201,31 +193,6 @@ class SetupTest extends TestCase
         $this->assertSame('en', $admin['language']);
         $this->assertSame($body['version'], (new Migrator($db))->version());
         $this->assertSame([], (new Migrator($db))->pending());
-
-        // Maintenance tool: new jwtsecret only
-        [$code, $output] = $this->tool(['rotate-jwt-secret']);
-        $this->assertSame(0, $code, $output);
-        $rotated = parse_ini_file($this->configFile);
-        $this->assertNotSame($ini['jwtsecret'], $rotated['jwtsecret']);
-        $this->assertSame($ini['sync_token'], $rotated['sync_token']);
-
-        // Maintenance tool: follow the accounts of a woob backend, no duplicate
-        [$code, $output] = $this->tool(['add-bank', '--bank-backend=mybank', '--bank-accounts=2']);
-        $this->assertSame(0, $code, $output);
-        $this->assertStringContainsString('1) Compte chèques (00012345678@mybank)', $output);
-        $this->assertStringContainsString('account Livret A followed (added by boss)', $output);
-        [$code, $output] = $this->tool(['add-bank', '--bank-backend=mybank', '--bank-accounts=all']);
-        $this->assertSame(0, $code, $output);
-        $this->assertStringContainsString('already followed by the household', $output);
-        $this->assertSame(2, (int)$db->query("SELECT COUNT(*) FROM bank_account")->fetch_row()[0]);
-
-        [$code, $output] = $this->tool(['add-bank', '--bank-backend=none']);
-        $this->assertStringContainsString('no account returned by woob for "none"', $output);
-        [$code, $output] = $this->tool(['add-bank', '--bank-backend=mybank', '--bank-owner=nobody']);
-        $this->assertSame(1, $code);
-        $this->assertStringContainsString('Carbure user not found: nobody', $output);
-        [$code, $output] = $this->tool(['unknown']);
-        $this->assertSame(1, $code);
     }
 
     public function testExistingDatabaseToMigrate()
@@ -254,10 +221,4 @@ class SetupTest extends TestCase
         $this->assertSame(1, (int)$db->query("SELECT COUNT(*) FROM users")->fetch_row()[0]);
     }
 
-    public function testToolWithoutConfiguration()
-    {
-        [$code, $output] = $this->tool(['add-bank']);
-        $this->assertSame(1, $code);
-        $this->assertStringContainsString('install Carbure first, from the portal', $output);
-    }
 }

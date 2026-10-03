@@ -23,6 +23,7 @@ export function createProfileModule(getApiService) {
                 // Database migrations to apply (administrators): {version, pending}
                 schemaStatus: null,
                 migrating: false,
+                rotatingSecret: false,
                 apiTokens: [],
                 // Token just created: {name, token}, shown once
                 newApiToken: null,
@@ -111,6 +112,25 @@ export function createProfileModule(getApiService) {
                     this.showToast(error.message);
                 } finally {
                     this.migrating = false;
+                }
+            },
+
+            /**
+             * Renews the secret of the sessions: everybody logs in again
+             * @returns {Promise<void>}
+             */
+            async rotateJwtSecret() {
+                if (!confirm(this.t('confirmRotateJwtSecret'))) {
+                    return;
+                }
+                this.rotatingSecret = true;
+                try {
+                    await getApiService().rotateJwtSecret();
+                    this.logout();
+                } catch (error) {
+                    this.showToast(error.message);
+                } finally {
+                    this.rotatingSecret = false;
                 }
             },
 

@@ -372,6 +372,15 @@
             </button>
         </div>
 
+        <div v-if="schemaStatus && schemaStatus.weakJwtSecret" class="schema-banner" role="status">
+            <span class="material-icons" aria-hidden="true">key</span>
+            <span class="schema-banner-text">{{ t('weakJwtSecret') }}</span>
+            <button @click="rotateJwtSecret" :disabled="rotatingSecret">
+                <span class="material-icons" aria-hidden="true">autorenew</span>
+                {{ t('rotateJwtSecret') }}
+            </button>
+        </div>
+
         <div v-if="error" class="error">
             <span class="material-icons">error</span>
             {{ error }}

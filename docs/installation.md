@@ -111,8 +111,6 @@ docker compose restart carbure
 docker compose logs -f carbure                                         # journaux nginx, PHP et démarrage
 docker compose exec carbure ls /data/logs                              # logs de Carbure
 docker compose exec -u www-data carbure php tools/migrate.php --status # version du schéma de la base
-docker compose exec -it -u www-data carbure php tools/carbure.php add-bank           # ajouter une banque (ou depuis le portail)
-docker compose exec -u www-data carbure php tools/carbure.php rotate-jwt-secret      # nouveau jwtsecret
 ```
 
 !!! note "Modules woob"
@@ -138,7 +136,7 @@ docker compose exec -u www-data carbure php tools/carbure.php rotate-jwt-secret 
 ### 1. Copier Carbure
 
 Copiez l'archive d'une release (`carbure-vX.Y.Z.tar.gz` : `src`, `portal`, `swagger`,
-`sql`, `tools/carbure.php`, `tools/migrate.php`, `conf/prod.sample.ini` et le fichier
+`sql`, `tools/migrate.php`, `conf/prod.sample.ini` et le fichier
 `VERSION` affiché dans le pied de page du portail) ou le contenu du dépôt dans le dossier
 du site, par exemple `/var/www/carbure`. Le dossier `conf/` doit être **modifiable par le serveur web** :
 l'assistant y écrit la configuration.
@@ -184,9 +182,6 @@ Depuis l'onglet **Comptes** du portail (bouton **+**) : choisissez la banque par
 que woob supporte, saisissez les identifiants demandés (confiés à woob, qui les conserve ;
 Carbure ne les enregistre pas), puis les comptes à suivre. woob doit être installé pour
 l'utilisateur du serveur web.
-
-En ligne de commande, `sudo -u www-data php tools/carbure.php add-bank` fait la même chose
-(utile pour une banque qui demande une validation interactive).
 
 ### 5. Planifier la synchronisation
 

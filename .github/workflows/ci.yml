@@ -212,7 +212,7 @@ jobs:
           # Without a token: 401
           test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/api/transaction)" = 401
           # Private files are never served
-          for path in /conf/prod.ini /conf/setup.code /logs/ /sql/carbure.sql /tools/carbure.php /src/lib/Config.php /src/api.php /README.md; do
+          for path in /conf/prod.ini /conf/setup.code /logs/ /sql/carbure.sql /tools/migrate.php /src/lib/Config.php /src/api.php /README.md; do
             code=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:8080$path")
             echo "$path -> $code"
             test "$code" = 403 || test "$code" = 404

@@ -114,7 +114,9 @@ Seules ces routes ne demandent pas de JWT (un test unitaire le vérifie) :
 ## Recommandations de déploiement
 
 !!! danger "Secret JWT"
-    Générer `jwtsecret` avec `openssl rand -hex 32`. Une valeur faible ou la valeur
+    L'assistant d'installation génère un `jwtsecret` aléatoire ; si la configuration
+    contient encore la valeur d'exemple, un bandeau propose aux administrateurs de le
+    renouveler en un clic (`POST /system/jwt-secret`). Une valeur faible ou la valeur
     d'exemple permet de forger un jeton pour n'importe quel utilisateur. Changer le
     secret invalide toutes les sessions (app iOS et portail).
 

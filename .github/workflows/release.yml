@@ -25,7 +25,7 @@ jobs:
           name="carbure-${GITHUB_REF_NAME}"
           mkdir -p dist build
           git archive --format=tar --prefix="$name/" HEAD \
-            src portal swagger sql conf/prod.sample.ini tools/carbure.php tools/migrate.php README.md LICENSE \
+            src portal swagger sql conf/prod.sample.ini tools/migrate.php README.md LICENSE \
             | tar -x -C build
           # Version shown in the footer of the portal and by /api/health
           echo "${GITHUB_REF_NAME#v}" > "build/$name/VERSION"

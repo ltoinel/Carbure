@@ -25,7 +25,7 @@ notifications APNs sont envoyées à l'application iOS. Un serveur MCP en lectur
 | `swagger/` | Génération OpenAPI par réflexion + Swagger UI |
 | `sql/carbure.sql` | Schéma complet (installation neuve) |
 | `sql/migrations/` | Migrations datées pour les bases existantes (appliquées par `Migrator`, table `schema_migrations`) |
-| `tools/carbure.php`, `tools/migrate.php` | Maintenance (`add-bank`, `rotate-jwt-secret`) et migrations en ligne de commande |
+| `tools/migrate.php` | Migrations du schéma en ligne de commande (lancé par l'image Docker à chaque démarrage) ; tout le reste se fait dans le portail |
 | `Dockerfile`, `docker/`, `docker-compose.yml` | Image nginx + PHP-FPM + woob (`HEALTHCHECK` sur `/api/health`) |
 | `conf/*.sample.ini`, `conf/testing.ini` | Configuration d'exemple et de test (`prod.ini` n'est jamais versionné) |
 | `tests/unit/`, `tests/integration/` | Tests PHPUnit (unitaires sans dépendance ; intégration avec MariaDB) |

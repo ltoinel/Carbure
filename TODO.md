@@ -5,8 +5,10 @@ Tâches restant à réaliser sur Carbure. Une tâche terminée est retirée de c
 
 ## Production (actions manuelles)
 
-- [ ] **Urgent** : remplacer le `jwtsecret` de production (valeur par défaut `secret`),
-      par exemple avec `openssl rand -hex 32`. Les sessions seront à rouvrir.
+- [ ] **Urgent** : remplacer le `jwtsecret` de production (valeur par défaut `secret`) :
+      bouton **Renouveler** du bandeau affiché aux administrateurs dans le portail (le serveur
+      web doit pouvoir écrire `conf/prod.ini`), ou à la main avec `openssl rand -hex 32`.
+      Les sessions seront à rouvrir.
 - [ ] Changer le mot de passe MySQL présent dans l'ancien historique (dépôt `Carbure-Archive`).
 - [ ] Ajouter `sync_token` dans `conf/prod.ini` et l'utiliser dans le cron
       (`/api/bank/sync` avec l'en-tête `X-Sync-Token`).
