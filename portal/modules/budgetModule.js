@@ -7,6 +7,8 @@
  * @module budgetModule
  */
 
+import { materialIconFor, cssColorFor } from '../utils/categoryIcons.js';
+
 /**
  * Known Material icon names (true) or unknown ones (false), measured once
  * @type {Map<string, boolean>}
@@ -179,7 +181,11 @@ export function createBudgetModule(getBudgetStore, getApiService) {
              */
             categoryIcon(item) {
                 // Re-evaluated once the icon font is loaded
-                return this.iconFontReady && isMaterialIcon(item.icon || '') ? item.icon : 'category';
+                if (!this.iconFontReady) {
+                    return 'category';
+                }
+                // Material name, or SF Symbol of the iOS app mapped to Material
+                return materialIconFor(item.icon, isMaterialIcon);
             },
 
             /**
@@ -188,7 +194,8 @@ export function createBudgetModule(getBudgetStore, getApiService) {
              * @returns {string}
              */
             categoryColor(item) {
-                return /^(#[0-9a-fA-F]{3,8}|[a-zA-Z]+)$/.test(item.color || '') ? item.color : 'var(--primary-color)';
+                // CSS color, hex, or SwiftUI color name of the iOS app
+                return cssColorFor(item.color) || 'var(--primary-color)';
             },
 
             /**
