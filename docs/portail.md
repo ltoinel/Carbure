@@ -140,10 +140,11 @@ la catégorie choisie.
   sélecteur de catégorie affiche l'icône, la couleur et le parent de chaque catégorie,
   regroupées par type (dépenses, revenus, hors budget), avec une recherche.
 - Liste des règles regroupées par catégorie, filtrable, avec suppression.
-- **Resynchroniser** : applique immédiatement les règles à toutes les transactions non
-  catégorisées de l'historique et affiche le nombre de transactions mises à jour. Les
-  règles sont aussi appliquées automatiquement après chaque synchronisation (transactions
-  du dernier mois).
+- **Resynchroniser** : applique toutes les règles à toutes les transactions de la base,
+  déjà catégorisées comprises, et affiche le nombre de transactions recatégorisées. Créer ou
+  modifier une règle l'applique aussi immédiatement à tout l'historique (ce qui remplace une
+  catégorie choisie à la main sur une transaction concernée) ; les nouvelles transactions
+  sont catégorisées à chaque synchronisation.
 - Un clic sur une règle ouvre sa fenêtre : modifier le mot-clé et la catégorie, voir combien
   de transactions contiennent le mot-clé (et combien sont déjà dans la catégorie), la
   supprimer (corbeille), et cocher **Notifier le foyer** : chaque nouvelle transaction

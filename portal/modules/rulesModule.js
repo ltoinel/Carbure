@@ -133,13 +133,12 @@ export function createRulesModule(getApiService) {
 
                 this.savingRule = true;
                 try {
-                    if (this.newRule.id) {
-                        await getApiService().updateRule(this.newRule.id, this.newRule.keyword, this.newRule.category, this.newRule.notify);
-                    } else {
-                        await getApiService().createRule(this.newRule.keyword, this.newRule.category, this.newRule.notify);
-                    }
+                    // The rule applies at once to the whole history
+                    const saved = this.newRule.id
+                        ? await getApiService().updateRule(this.newRule.id, this.newRule.keyword, this.newRule.category, this.newRule.notify)
+                        : await getApiService().createRule(this.newRule.keyword, this.newRule.category, this.newRule.notify);
                     this.showRuleModal = false;
-                    this.showToast(this.t(this.newRule.id ? 'ruleUpdated' : 'ruleAdded'));
+                    this.showToast(this.t('ruleSavedApplied', { count: Number(saved && saved.applied) || 0 }));
                     this.rules = await getApiService().fetchRules();
                 } catch (error) {
                     this.showToast(error.message);

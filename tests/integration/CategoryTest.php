@@ -128,12 +128,31 @@ class CategoryTest extends DatabaseTestCase
         $rule = Category::createKeyword('  bio ', 1);
         $this->assertSame('BIO', $rule['keyword']);
 
-        // The label "CB 100% BIO" (category 0) is now categorized
-        $this->assertSame(['updated' => 1], Category::applyKeywords());
+        // Applied at once to the history: "CB 100% BIO" (category 0) is categorized
+        $this->assertSame(1, $rule['applied']);
         $this->assertEquals(1, Db::queryOne("SELECT category FROM bank_transaction WHERE uuid='u4'", "")['category']);
+        $this->assertSame(['updated' => 0], Category::applyKeywords());
 
         $this->assertTrue(Category::deleteKeyword($rule['id']));
         $this->assertCount(3, Category::getKeywords());
+    }
+
+    public function testRulesApplyToCategorizedTransactions()
+    {
+        // "CB SUPERMARCHE" (u1) is in Supermarché (2); a rule moves it, categorized or not
+        $rule = Category::createKeyword('CB SUPER', 3);
+        $this->assertGreaterThanOrEqual(1, $rule['applied']);
+        $this->assertEquals(3, Db::queryOne("SELECT category FROM bank_transaction WHERE uuid='u1'", "")['category']);
+
+        // Modified rule: applied again
+        $updated = Category::updateKeyword($rule['id'], 'CB SUPER', 1);
+        $this->assertGreaterThanOrEqual(1, $updated['applied']);
+        $this->assertEquals(1, Db::queryOne("SELECT category FROM bank_transaction WHERE uuid='u1'", "")['category']);
+
+        // Resynchronize: every rule on every transaction (the first matching rule wins)
+        Db::query("UPDATE bank_transaction SET category = 4 WHERE uuid = 'u2'");
+        $this->assertGreaterThanOrEqual(1, Category::applyKeywords()['updated']);
+        $this->assertEquals(3, Db::queryOne("SELECT category FROM bank_transaction WHERE uuid='u2'", "")['category']);
     }
 
     public function testCreateDuplicateKeyword()

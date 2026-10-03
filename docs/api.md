@@ -386,8 +386,11 @@ dans la catégorie de la règle (`categorized`).
 
 ### `POST /category/keyword/apply` — administrateur
 
-Applique les règles à toutes les transactions sans catégorie (tout l'historique). Renvoie
-`{ "updated": <nombre de transactions catégorisées> }`.
+Applique toutes les règles à toutes les transactions de la base, déjà catégorisées
+comprises (la première règle trouvée dans le libellé l'emporte). Renvoie
+`{ "updated": <nombre de transactions dont la catégorie a changé> }`. Créer ou modifier une
+règle (`POST`/`PUT /category/keyword`) l'applique aussi immédiatement à tout l'historique et
+renvoie `applied`, le nombre de transactions recatégorisées.
 
 ## Appareils
 

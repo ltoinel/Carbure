@@ -1610,6 +1610,9 @@
                         <category-picker v-model="newRule.category" :categories="ruleCategories" :t="t"
                                          :icon-for="categoryIcon" :color-for="categoryColor"></category-picker>
                     </div>
+                    <p class="rules-help">
+                        <span class="material-icons inline-icon" aria-hidden="true">info</span>{{ t('ruleAppliesToAll') }}
+                    </p>
                     <label class="setup-checkbox">
                         <input type="checkbox" v-model="newRule.notify" />
                         {{ t('ruleNotifyLabel') }}

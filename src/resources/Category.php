@@ -202,7 +202,7 @@ final class Category {
      * @param string $keyword  The text to find in the transaction labels (stored in upper case)
      * @param int    $category The category to set
      * @param bool   $notify   Notify the household when a new transaction matches (optional)
-     * @return array The created rule
+     * @return array The rule, with applied: the transactions of the history recategorized
      * @throws Error If the keyword is empty or already exists, or the category does not exist
      */
     #[ApiRoute('/category/keyword', method: 'POST')]
@@ -229,7 +229,11 @@ final class Category {
             ? Db::execute("INSERT INTO bank_transaction_category_keyword (keyword, category, notify) VALUES (?, ?, 1)", "si", $keyword, $category)
             : Db::execute("INSERT INTO bank_transaction_category_keyword (keyword, category) VALUES (?, ?)", "si", $keyword, $category);
 
-        return ['id' => $stmt->insert_id, 'keyword' => $keyword, 'category' => (int)$category, 'notify' => $notify];
+        $id = $stmt->insert_id;
+        // The rule applies at once to the whole history
+        $applied = self::applyRule($keyword, (int)$category);
+
+        return ['id' => $id, 'keyword' => $keyword, 'category' => (int)$category, 'notify' => $notify, 'applied' => $applied];
     }
 
     /**
@@ -239,7 +243,7 @@ final class Category {
      * @param string $keyword  The keyword found in the labels
      * @param int    $category The category given to the transactions
      * @param bool   $notify   Notify the household when a new transaction matches
-     * @return array The rule
+     * @return array The rule, with applied: the transactions of the history recategorized
      * @throws Error If not found, invalid or the keyword already exists
      */
     #[ApiRoute('/category/keyword', method: 'PUT')]
@@ -261,8 +265,9 @@ final class Category {
         }
         $notify = filter_var($notify, FILTER_VALIDATE_BOOLEAN) ? 1 : 0;
         Db::execute("UPDATE bank_transaction_category_keyword SET keyword=?, category=?, notify=? WHERE id=?", "siii", $keyword, $category, $notify, $id);
+        $applied = self::applyRule($keyword, (int)$category);
 
-        return ['id' => (int)$id, 'keyword' => $keyword, 'category' => (int)$category, 'notify' => $notify];
+        return ['id' => (int)$id, 'keyword' => $keyword, 'category' => (int)$category, 'notify' => $notify, 'applied' => $applied];
     }
 
     /**
@@ -309,16 +314,41 @@ final class Category {
     }
 
     /**
-     * Apply the rules to all the transactions without category.
+     * Apply the rules to every transaction of the database (categorized ones
+     * included): the first rule found in a label gives its category.
      *
-     * @return array The number of transactions categorized
+     * @return array The number of transactions whose category changed
      */
     #[ApiRoute('/category/keyword/apply', method: 'POST')]
     public static function applyKeywords()
     {
         User::requireAdmin();
 
-        return ['updated' => Transaction::updateMissingCategories(true)];
+        $keywords = self::loadKeywords();
+        $updated = 0;
+        foreach (Db::execute("SELECT id, label, category FROM bank_transaction", "")->get_result()->fetch_all(MYSQLI_ASSOC) as $row) {
+            $category = self::find($row['label'], $keywords);
+            if ($category !== null && (int)$category !== (int)$row['category']) {
+                Db::execute("UPDATE bank_transaction SET category = ? WHERE id = ?", "ii", $category, $row['id']);
+                $updated++;
+            }
+        }
+        return ['updated' => $updated];
+    }
+
+    /**
+     * Apply one rule to every transaction whose label contains its keyword
+     * (categorized ones included).
+     *
+     * @param string $keyword  The keyword (upper case)
+     * @param int    $category The category of the rule
+     * @return int The number of transactions whose category changed
+     */
+    private static function applyRule($keyword, $category)
+    {
+        $pattern = '%' . addcslashes($keyword, '%_\\') . '%';
+        return Db::execute("UPDATE bank_transaction SET category = ? WHERE label LIKE ? AND category <> ?",
+            "isi", $category, $pattern, $category)->affected_rows;
     }
 
     /**
