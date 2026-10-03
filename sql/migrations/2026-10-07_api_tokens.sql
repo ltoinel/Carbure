@@ -1,5 +1,6 @@
 -- API tokens: long-lived read-only access for the MCP server (/api/mcp), used by Claude.
--- Apply BEFORE deploying the code that uses this table.
+-- Applied automatically by tools/migrate.php (Docker: at each start).
+-- applied-if: SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'api_tokens'
 
 CREATE TABLE `api_tokens` (
   `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,

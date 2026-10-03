@@ -1,5 +1,6 @@
 -- Migration 2026-10-03 : roles, device tokens, safer foreign key
 -- To apply once on the existing database before deploying the code.
+-- applied-if: SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'language'
 
 START TRANSACTION;
 

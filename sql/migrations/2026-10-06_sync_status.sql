@@ -1,5 +1,6 @@
 -- Date and result of the last synchronization of each bank account (Accounts tab).
--- Apply BEFORE deploying the code that reads these columns.
+-- Applied automatically by tools/migrate.php (Docker: at each start).
+-- applied-if: SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'bank_account' AND COLUMN_NAME = 'last_sync_status'
 
 ALTER TABLE `bank_account`
   ADD COLUMN `last_sync_at` datetime DEFAULT NULL,

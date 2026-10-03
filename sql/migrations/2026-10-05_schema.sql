@@ -1,5 +1,6 @@
 -- Migration 2026-10-05 : amounts in DECIMAL, utf8mb4, unique bank accounts
 -- Can be applied at any time: the code does not depend on it.
+-- applied-if: SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'bank_account' AND INDEX_NAME = 'unique_account_user'
 
 -- Budgets are amounts of money: exact decimals instead of floating point
 ALTER TABLE `budget` MODIFY `amount` decimal(10,2) NOT NULL;

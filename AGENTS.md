@@ -65,7 +65,9 @@ en pre-push).
   N'ajouter que des routes ou des paramètres facultatifs ; ne jamais renommer, supprimer
   ou changer le format d'une réponse existante.
 - **Schéma** : toute modification passe par un fichier `sql/migrations/AAAA-MM-JJ_nom.sql`
-  **et** par `sql/carbure.sql`. Le code ne doit pas dépendre d'une migration non appliquée.
+  (avec sa ligne `-- applied-if: …`, voir docs/developpement.md) **et** par
+  `sql/carbure.sql`. `tools/migrate.php` les applique (table `schema_migrations`). Le code
+  ne doit pas dépendre d'une migration non appliquée.
 - **Secrets** : jamais de secret, d'identifiant bancaire, d'e-mail personnel ou de log
   dans le dépôt (`conf/prod.ini`, `conf/certs/`, `logs/`, `woob/` sont ignorés). Les
   fichiers d'exemple ne contiennent que des valeurs factices.

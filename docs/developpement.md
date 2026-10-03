@@ -102,11 +102,19 @@ git push origin v1.2.0
 
 ## Migrations de base
 
-1. Créer `sql/migrations/AAAA-MM-JJ_description.sql` (instructions idempotentes si
-   possible, dans une transaction).
-2. Reporter la modification dans `sql/carbure.sql` (installations neuves et tests).
-3. Ne déployer le code qui en dépend qu'après application de la migration en production.
-4. Ajouter l'application de la migration dans `TODO.md` (section *Déploiement*).
+Le schéma est versionné : la table `schema_migrations` liste les migrations appliquées, la
+version du schéma est la dernière. `tools/migrate.php` applique celles qui manquent, dans
+l'ordre de leur nom ; le conteneur Docker le lance à chaque démarrage et l'installeur à
+chaque exécution.
+
+1. Créer `sql/migrations/AAAA-MM-JJ_description.sql`.
+2. Y déclarer **obligatoirement** une ligne `-- applied-if: <requête>` qui renvoie un nombre
+   non nul quand la migration est déjà en place (par exemple une colonne présente dans
+   `information_schema.COLUMNS`) : une base créée depuis `sql/carbure.sql`, ou migrée à la
+   main, est alors reconnue au lieu d'échouer. Un test le vérifie.
+3. Reporter la modification dans `sql/carbure.sql` (installations neuves et tests).
+4. Hors Docker, ne déployer le code qui en dépend qu'après `php tools/migrate.php` (ou
+   l'application du fichier) en production, et le noter dans `TODO.md`.
 
 ## Documentation
 

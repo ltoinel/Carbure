@@ -365,12 +365,23 @@ try {
 
 // 4. Schema and reference data
 $tables = $db->query("SHOW TABLES LIKE 'users'")->num_rows;
+require_once "$root/src/lib/Migrator.php";
+$migrator = new Migrator($db, "$root/sql/migrations");
 if ($tables > 0) {
-    step("schema already present: kept as is (apply sql/migrations/*.sql if needed)");
+    // Existing database: bring it up to date
+    try {
+        $applied = $migrator->migrate();
+        step("schema already present, " . ($applied ? count($applied) . " migration(s) applied" : "up to date")
+            . " (version " . ($migrator->version() ?? 'none') . ")");
+    } catch (RuntimeException $e) {
+        fail($e->getMessage());
+    }
 } else {
     try {
         runScript($db, file_get_contents("$root/sql/carbure.sql"));
-        step("schema imported (sql/carbure.sql)");
+        // sql/carbure.sql is up to date: every migration is already in it
+        $migrator->baseline();
+        step("schema imported (sql/carbure.sql), version " . $migrator->version());
     } catch (mysqli_sql_exception $e) {
         fail("Schema import failed: " . $e->getMessage());
     }

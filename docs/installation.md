@@ -78,8 +78,10 @@ simple reste toutefois d'importer `docker-compose.yml` dans **Container Manager 
 docker compose pull && docker compose up -d
 ```
 
-Le volume `/data` est conservé. Si la nouvelle version apporte une migration
-(`sql/migrations/`), appliquez-la sur la base **avant** de redémarrer le conteneur.
+Le volume `/data` est conservé. À chaque démarrage, le conteneur met le schéma à jour
+(`tools/migrate.php`) : les migrations de la nouvelle version sont appliquées
+automatiquement, et le conteneur s'arrête avec un message explicite si l'une d'elles
+échoue. Pensez à sauvegarder la base avant une mise à jour.
 
 ### Notifications iOS (APNs)
 
@@ -179,23 +181,29 @@ mysql -u root -p carbure < sql/carbure.sql
 (`bank_transaction_category`, dont la catégorie `0` « sans catégorie »), les mots-clés
 de catégorisation et les comptes bancaires (`bank_account`) à synchroniser.
 
-### Mettre à jour une base existante
-
-Appliquer, dans l'ordre de leur nom, les fichiers de `sql/migrations/` qui ne l'ont pas
-encore été :
+Après l'import manuel de `sql/carbure.sql`, enregistrer la version du schéma :
 
 ```bash
-mysql -u root -p carbure < sql/migrations/2026-10-03_audit.sql
-mysql -u root -p carbure < sql/migrations/2026-10-04_alerts.sql
-mysql -u root -p carbure < sql/migrations/2026-10-05_schema.sql
-mysql -u root -p carbure < sql/migrations/2026-10-06_sync_status.sql
-mysql -u root -p carbure < sql/migrations/2026-10-07_api_tokens.sql
+php tools/migrate.php --baseline
 ```
+
+### Mettre à jour une base existante
+
+Le schéma est versionné (table `schema_migrations`). Après chaque mise à jour du code :
+
+```bash
+php tools/migrate.php --status    # version du schéma et migrations en attente
+php tools/migrate.php             # applique les migrations manquantes, dans l'ordre
+```
+
+Une migration déjà appliquée à la main (avant le versionnage, par phpMyAdmin) est
+reconnue et seulement enregistrée. À défaut de PHP en ligne de commande, appliquer les
+fichiers de `sql/migrations/` qui manquent, dans l'ordre de leur nom, puis lancer
+`php tools/migrate.php` dès que possible pour les enregistrer.
 
 !!! warning "Migrations avant le code"
     Appliquer les migrations **avant** de déployer la nouvelle version du code : l'API
-    lit les nouvelles colonnes (`is_admin`, `language`, `alert_threshold`) dès
-    `GET /user/me`.
+    lit les nouvelles colonnes dès la première requête.
 
 ### 4. Configurer le serveur web
 

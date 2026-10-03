@@ -31,6 +31,10 @@ if [ ! -f /data/conf/prod.ini ]; then
     chown www-data:www-data /data/conf/prod.ini
 fi
 
+# Database schema up to date at each start (new image = possibly new migrations);
+# the container stops if a migration fails rather than running on a wrong schema
+php "$APP/tools/migrate.php"
+
 # Optional periodic synchronization (e.g. SYNC_INTERVAL=86400 for once a day)
 if [ -n "${SYNC_INTERVAL}" ]; then
     TOKEN=$(php -r '$c = parse_ini_file("/data/conf/prod.ini"); echo $c["sync_token"] ?? "";')
