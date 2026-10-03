@@ -36,6 +36,49 @@ Puis ajoutez le compte dans la table `bank_account` et lancez une synchronisatio
 l'onglet **Synchro** du portail. Sur un NAS Synology, le même `docker-compose.yml` s'utilise
 depuis **Container Manager → Projet**.
 
+### Image publiée
+
+À chaque release, l'image est publiée sur GitHub Container Registry pour `amd64` et `arm64`
+(NAS Synology Intel et ARM) :
+
+```bash
+docker pull ghcr.io/ltoinel/carbure:latest     # ou une version : ghcr.io/ltoinel/carbure:1.2.0
+```
+
+### Mettre à jour
+
+```bash
+docker compose pull && docker compose up -d
+```
+
+Le volume `/data` est conservé. Si la nouvelle version apporte une migration
+(`sql/migrations/`), appliquez-la sur la base **avant** de redémarrer le conteneur.
+
+### Notifications iOS (APNs)
+
+Copiez la clé `.p8` dans le volume, puis complétez la section `[apns]` de
+`/data/conf/prod.ini` :
+
+```bash
+docker compose cp AuthKey_XXXXXXXXXX.p8 carbure:/data/conf/certs/
+docker compose exec carbure vi /data/conf/prod.ini   # apns_key_path=conf/certs/AuthKey_XXXXXXXXXX.p8
+docker compose restart carbure
+```
+
+### Maintenance
+
+```bash
+docker compose logs -f carbure                                    # logs Apache et démarrage
+docker compose exec carbure ls /data/logs                         # logs de Carbure
+docker compose exec carbure php tools/install.php --rotate-jwt-secret   # nouveau jwtsecret
+```
+
+!!! note "Modules woob"
+    woob télécharge ses modules (dont celui de votre banque) dans `/data/woob` et les met
+    à jour automatiquement. Un correctif de module pas encore publié (par exemple pour la
+    BNP) peut être copié dans `/data/woob/.local/share/woob/modules/3.7/woob_modules/` ;
+    `curl_cffi`, nécessaire au module BNP récent, est déjà installé dans l'image.
+
 ## Option 2 : script d'installation
 
 Sur un serveur avec PHP et MariaDB/MySQL :
