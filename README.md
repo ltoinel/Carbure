@@ -71,8 +71,10 @@ git clone https://github.com/ltoinel/Carbure.git && cd Carbure
 DB_PASSWORD=change-me ADMIN_PASSWORD=change-me-too docker compose up -d
 ```
 
-Ouvrez `http://localhost:8080/`, connectez-vous avec `admin`, puis lancez une synchronisation
-depuis l'onglet **Synchro**. Sans Docker : `php tools/install.php` crée la base, le compte
+L'image est aussi disponible directement : `docker pull ghcr.io/ltoinel/carbure:latest`.
+Ouvrez `http://localhost:8080/`, connectez-vous avec `admin`, ajoutez votre banque avec
+`docker compose exec -it -u www-data carbure php tools/install.php --add-bank`, puis lancez
+une synchronisation depuis l'onglet **Synchro**. Sans Docker : `php tools/install.php` crée la base, le compte
 administrateur et la configuration.
 
 👉 **Installation détaillée, configuration, référence de l'API, modèle de données et sécurité :

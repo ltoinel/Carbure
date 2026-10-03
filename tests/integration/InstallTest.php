@@ -58,7 +58,7 @@ class InstallTest extends TestCase
             '--db-root-user=' . (getenv('DB_USER') ?: 'root'),
             '--db-root-password=' . (getenv('DB_PASSWORD') ?: ''),
             '--admin-user=boss', '--admin-password=supersecret', '--admin-email=boss@example.com',
-            '--woob-path=/usr/bin/woob'], $extra);
+            '--woob-path=' . escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg("$this->root/tests/fixtures/fake-woob.php")], $extra);
         $process = proc_open($command, [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
         $output = stream_get_contents($pipes[1]) . stream_get_contents($pipes[2]);
         $code = proc_close($process);
@@ -80,7 +80,7 @@ class InstallTest extends TestCase
         $ini = parse_ini_file("$this->root/conf/" . self::ENV . ".ini");
         $this->assertSame(self::DB, $ini['db_name']);
         $this->assertSame(self::USER, $ini['db_username']);
-        $this->assertSame('/usr/bin/woob', $ini['woob_path']);
+        $this->assertStringContainsString('fake-woob.php', $ini['woob_path']);
         $this->assertMatchesRegularExpression('/^[0-9a-f]{64}$/', $ini['jwtsecret']);
         $this->assertMatchesRegularExpression('/^[0-9a-f]{48}$/', $ini['sync_token']);
         $this->assertNotEmpty($ini['db_password']);
@@ -113,6 +113,48 @@ class InstallTest extends TestCase
         $this->assertSame(0, $code, $output);
         $this->assertStringContainsString('schema already present', $output);
         $this->assertStringContainsString('an administrator already exists', $output);
+    }
+
+    public function testBankAccountsProvisioning()
+    {
+        try {
+            $this->admin();
+        } catch (Throwable $e) {
+            $this->markTestSkipped('No database server');
+        }
+
+        // Installation with a woob backend already configured: its accounts are followed
+        [$code, $output] = $this->install(['--bank-backend=mybank', '--bank-accounts=2']);
+        $this->assertSame(0, $code, $output);
+        $this->assertStringContainsString('1) Compte chèques (00012345678@mybank)', $output);
+        $this->assertStringContainsString('account Livret A followed by boss', $output);
+
+        $ini = parse_ini_file("$this->root/conf/" . self::ENV . ".ini");
+        $db = new mysqli($ini['db_hostname'], $ini['db_username'], $ini['db_password'], $ini['db_name'], (int)$ini['db_port']);
+        $accounts = $db->query("SELECT account_number, bank_name FROM bank_account")->fetch_all(MYSQLI_ASSOC);
+        $this->assertSame([['account_number' => '00087654321', 'bank_name' => 'mybank']], $accounts);
+
+        // Later, --add-bank on the existing instance: all the accounts, no duplicate
+        $add = function (array $extra) {
+            $command = array_merge([PHP_BINARY, "$this->root/tools/install.php", '--no-interaction', '--add-bank', '--env=' . self::ENV], $extra);
+            $process = proc_open($command, [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
+            $output = stream_get_contents($pipes[1]) . stream_get_contents($pipes[2]);
+            return [proc_close($process), $output];
+        };
+        [$code, $output] = $add(['--bank-backend=mybank', '--bank-accounts=all']);
+        $this->assertSame(0, $code, $output);
+        $this->assertStringContainsString('already followed by boss', $output);
+        $this->assertSame(2, (int)$db->query("SELECT COUNT(*) FROM bank_account")->fetch_row()[0]);
+
+        // A backend that woob cannot load: reported, nothing added
+        [$code, $output] = $add(['--bank-backend=none']);
+        $this->assertSame(0, $code, $output);
+        $this->assertStringContainsString('no account returned by woob for "none": Error(none): Unable to load module', $output);
+
+        // Unknown owner
+        [$code, $output] = $add(['--bank-backend=mybank', '--bank-owner=nobody']);
+        $this->assertSame(1, $code);
+        $this->assertStringContainsString('Carbure user not found: nobody', $output);
     }
 
     public function testShortAdminPassword()

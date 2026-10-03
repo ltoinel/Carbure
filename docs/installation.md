@@ -26,24 +26,51 @@ le compte administrateur et `/data/conf/prod.ini` avec des secrets aléatoires.
 | `SYNC_INTERVAL` | Synchronisation automatique toutes les N secondes (`86400` = une fois par jour) | désactivée |
 
 Le volume `/data` conserve la configuration (`/data/conf/prod.ini`, clé APNs dans
-`/data/conf/certs`), les logs et la configuration woob. Pour déclarer vos banques dans woob :
+`/data/conf/certs`), les logs et la configuration woob. Pour ajouter une banque :
 
 ```bash
-docker compose exec -u www-data carbure env HOME=/data/woob woob config add bnp
+docker compose exec -it -u www-data carbure php tools/install.php --add-bank
 ```
 
-Puis ajoutez le compte dans la table `bank_account` et lancez une synchronisation depuis
-l'onglet **Synchro** du portail. Sur un NAS Synology, le même `docker-compose.yml` s'utilise
+L'assistant demande le module woob de votre banque (`list` pour les afficher), puis woob
+vous demande vos identifiants bancaires : ils sont conservés par woob, jamais par Carbure.
+Les comptes trouvés sont listés et vous choisissez ceux à suivre ; ils apparaissent ensuite
+dans le portail. Lancez une synchronisation depuis l'onglet **Synchro**. Sur un NAS Synology, le même `docker-compose.yml` s'utilise
 depuis **Container Manager → Projet**.
 
-### Image publiée
+### Récupérer l'image
 
-À chaque release, l'image est publiée sur GitHub Container Registry pour `amd64` et `arm64`
-(NAS Synology Intel et ARM) :
+L'image est publiée sur GitHub Container Registry à chaque release, pour `amd64` et `arm64`
+(NAS Synology Intel comme ARM) :
 
 ```bash
-docker pull ghcr.io/ltoinel/carbure:latest     # ou une version : ghcr.io/ltoinel/carbure:1.2.0
+docker pull ghcr.io/ltoinel/carbure:latest
 ```
+
+| Tag | Contenu |
+|---|---|
+| `latest` | Dernière release |
+| `1.2.0` | Une version précise (recommandé en production, pour maîtriser les mises à jour) |
+| `1.2` | Dernière version corrective de la 1.2 |
+
+Sans `docker compose`, avec une base MariaDB/MySQL existante (la base et son utilisateur
+doivent déjà exister) :
+
+```bash
+docker run -d --name carbure --restart unless-stopped -p 8080:80 \
+  -e DB_HOST=192.168.1.10 -e DB_NAME=carbure -e DB_USER=carbure -e DB_PASSWORD='…' \
+  -e ADMIN_PASSWORD='…' -e SYNC_INTERVAL=86400 \
+  -v carbure-data:/data \
+  ghcr.io/ltoinel/carbure:latest
+```
+
+Sur un NAS Synology : **Container Manager → Registre → Paramètres → Ajouter**, URL
+`https://ghcr.io`, puis recherchez `ltoinel/carbure` et téléchargez le tag voulu. Le plus
+simple reste toutefois d'importer `docker-compose.yml` dans **Container Manager → Projet**.
+
+!!! note
+    L'image est publiée à partir de la première release (tag `v*`). Avant cela,
+    `docker compose up -d` la construit à partir des sources (`build: .`).
 
 ### Mettre à jour
 
@@ -91,8 +118,18 @@ php tools/install.php
 Le script vérifie PHP et ses extensions, crée la base et son utilisateur (si vous lui donnez un
 compte administrateur MySQL), importe le schéma, crée le premier administrateur et génère
 `conf/prod.ini` avec des secrets aléatoires (`jwtsecret`, `password_salt`, `sync_token`). Il
-n'écrase jamais un fichier existant sans `--force`. `php tools/install.php --help` liste les
-options pour une installation non interactive.
+n'écrase jamais un fichier existant sans `--force`.
+
+Il propose enfin de **configurer une banque** : woob demande vos identifiants (conservés par
+woob, jamais par Carbure), puis les comptes trouvés sont ajoutés à Carbure. Lancez le script
+avec l'utilisateur du serveur web (par exemple `sudo -u www-data php tools/install.php`) :
+c'est lui qui exécute woob lors des synchronisations et doit donc retrouver sa configuration.
+
+| Commande | Rôle |
+|---|---|
+| `php tools/install.php --add-bank` | Ajouter une banque et ses comptes plus tard |
+| `php tools/install.php --rotate-jwt-secret` | Générer un nouveau `jwtsecret` (sessions à rouvrir) |
+| `php tools/install.php --help` | Toutes les options, dont l'installation non interactive |
 
 Il reste à configurer le serveur web (voir « Serveur web » plus bas) et woob.
 

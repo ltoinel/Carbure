@@ -5,6 +5,8 @@
  *
  * Test double of the woob CLI used by the tests (woob_path = "php tests/fixtures/fake-woob.php").
  * Usage: fake-woob.php bank <coming|history> <account@bank> [options...]
+ *        fake-woob.php bank list -b <backend> -f json   (two accounts, "none": no account)
+ *        fake-woob.php config add <module> <backend>     (always succeeds)
  *
  * - account "fail@bank"  : writes on stderr and exits with code 1
  * - account "empty@bank" : no output
@@ -15,6 +17,23 @@
 
 $type = $argv[2] ?? '';
 $account = $argv[3] ?? '';
+
+if (($argv[1] ?? '') === 'config') {
+    exit(0);
+}
+
+if (($argv[1] ?? '') === 'bank' && $type === 'list') {
+    $backend = $argv[array_search('-b', $argv) + 1] ?? 'bank';
+    if ($backend === 'none') {
+        fwrite(STDERR, "Error(none): Unable to load module \"none\"\n");
+        exit(0);
+    }
+    echo json_encode([
+        ['id' => "00012345678@$backend", 'label' => 'Compte chèques', 'balance' => '1234.56', 'currency' => 'EUR'],
+        ['id' => "00087654321@$backend", 'label' => 'Livret A', 'balance' => '5000.00', 'currency' => 'EUR'],
+    ]) . "\n";
+    exit(0);
+}
 
 if ($account === 'fail@bank') {
     fwrite(STDERR, "AttributeError: 'NoneType' object has no attribute 'iter_accounts'\n");

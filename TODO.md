@@ -20,9 +20,6 @@ Tâches restant à réaliser sur Carbure. Une tâche terminée est retirée de c
 
 ## Évolutions
 
-- [ ] Paquet Synology (`.spk`) généré par le pipeline de release, en plus du `.zip`, du
-      `.tar.gz` et de l'image Docker : métadonnées du paquet, scripts d'installation
-      réutilisant `tools/install.php`, intégration Web Station et MariaDB.
 - [ ] Remplacer le SQL stocké dans `budget_insight` par des insights définis dans le code
       (nécessite de connaître les insights actuellement utilisés en production).
 
