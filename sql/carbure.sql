@@ -32,7 +32,7 @@ CREATE TABLE `bank_account` (
   `bank_name` varchar(50) NOT NULL,
   `account_number` varchar(100) NOT NULL,
   `user_id` int(10) UNSIGNED NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -53,7 +53,7 @@ CREATE TABLE `bank_transaction` (
   `card` varchar(19) DEFAULT NULL COMMENT 'Card number used for this transaction',
   `pointed` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Pointed status for thjs transaction',
   `user` int(10) UNSIGNED NOT NULL COMMENT 'The user of this transaction'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -68,7 +68,7 @@ CREATE TABLE `bank_transaction_category` (
   `type` enum('DEBIT','CREDIT','HORS-BUDGET') NOT NULL,
   `icon` varchar(50) NOT NULL,
   `color` varchar(50) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -80,7 +80,7 @@ CREATE TABLE `bank_transaction_category_keyword` (
   `id` int(10) UNSIGNED NOT NULL,
   `keyword` varchar(60) NOT NULL,
   `category` tinyint(3) UNSIGNED NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -91,9 +91,9 @@ CREATE TABLE `bank_transaction_category_keyword` (
 CREATE TABLE `budget` (
   `id` bigint(20) UNSIGNED NOT NULL,
   `category` tinyint(3) UNSIGNED NOT NULL,
-  `amount` double NOT NULL,
+  `amount` decimal(10,2) NOT NULL,
   `date` date NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -106,7 +106,7 @@ CREATE TABLE `budget_insight` (
   `name` varchar(20) NOT NULL,
   `color` varchar(20) NOT NULL,
   `sql` varchar(500) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -120,7 +120,7 @@ CREATE TABLE `devices` (
   `token` varchar(200) NOT NULL,
   `lastLogin` timestamp NOT NULL DEFAULT current_timestamp(),
   `user_id` int(10) UNSIGNED NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -138,7 +138,7 @@ CREATE TABLE `users` (
   `is_admin` tinyint(1) NOT NULL DEFAULT 0,
   `language` varchar(5) NOT NULL DEFAULT 'fr',
   `alert_threshold` decimal(10,2) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Index pour les tables déchargées
@@ -149,6 +149,7 @@ CREATE TABLE `users` (
 --
 ALTER TABLE `bank_account`
   ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `unique_account_user` (`account_number`,`bank_name`,`user_id`),
   ADD KEY `FK_USER_ID` (`user_id`) USING BTREE;
 
 --
