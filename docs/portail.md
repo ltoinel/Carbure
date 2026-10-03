@@ -8,6 +8,10 @@ exemple sous `https://<serveur>/portal/`. Il utilise la même API que l'app iOS.
 L'écran de connexion demande l'URL de l'API, l'identifiant et le mot de passe. Le JWT et
 l'URL sont conservés dans le navigateur (`localStorage`) jusqu'à la déconnexion.
 
+Les pages d'administration (Règles, Catégories, Comptes, Utilisateurs) suivent la même
+présentation : un bouton **Ajouter** en haut à droite ouvre le formulaire dans une fenêtre
+modale, qui sert aussi à la modification.
+
 Deux profils existent : **utilisateur** (transactions, budget, tendances, analyses,
 synchronisation) et **administrateur**, qui gère en plus les onglets **Règles**,
 **Catégories**, **Comptes** et **Utilisateurs** (invisibles pour un utilisateur).
@@ -82,7 +86,9 @@ déroulant donne accès à :
 Gestion de la catégorisation automatique : une transaction dont le libellé contient le
 mot-clé reçoit la catégorie choisie.
 
-- Ajout d'une règle (mot-clé + catégorie ou sous-catégorie).
+- Ajout d'une règle (mot-clé + catégorie ou sous-catégorie) dans une modale. Le sélecteur
+  de catégorie affiche l'icône, la couleur et le parent de chaque catégorie, regroupées par
+  type (dépenses, revenus, hors budget), avec une recherche.
 - Liste des règles regroupées par catégorie, filtrable, avec suppression.
 - **Appliquer aux transactions non catégorisées** : catégorise immédiatement
   l'historique et affiche le nombre de transactions mises à jour. Les règles sont
@@ -90,8 +96,8 @@ mot-clé reçoit la catégorie choisie.
 
 ## Catégories
 
-Arborescence des catégories (un niveau de sous-catégories) avec ajout, modification et
-suppression. L'icône et la couleur se choisissent parmi celles que l'application iOS sait
+Arborescence des catégories (un niveau de sous-catégories) regroupée par type (dépenses,
+revenus, hors budget), avec ajout et modification dans une modale, et suppression. L'icône et la couleur se choisissent parmi celles que l'application iOS sait
 afficher (SF Symbols, couleurs SwiftUI), avec un aperçu. Supprimer une catégorie fait passer
 ses transactions en « Non catégorisé » et supprime ses budgets et règles ; une catégorie qui
 a des sous-catégories ne peut pas être supprimée. La catégorie « Non catégorisé » (0) est

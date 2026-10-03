@@ -29,6 +29,7 @@ export function createCategoriesModule(getApiService) {
                 categories: [],
                 loadingCategories: false,
                 categoryForm: emptyForm(),
+                showCategoryModal: false,
                 savingCategory: false,
                 categoryIcons: CATEGORY_ICONS,
                 categoryColors: CATEGORY_COLORS
@@ -52,6 +53,21 @@ export function createCategoriesModule(getApiService) {
                             .filter(c => Number(c.parent_category) === Number(category.id) && Number(c.id) !== Number(category.id))
                             .sort(byName)
                     }));
+            },
+
+            /**
+             * Categories grouped by type (expenses, income, off-budget): each top-level
+             * category of the type with its sub-categories
+             * @returns {Array<{type: string, count: number, nodes: Array}>}
+             */
+            categoryGroups() {
+                return ['DEBIT', 'CREDIT', 'HORS-BUDGET']
+                    .map(type => {
+                        const nodes = this.categoryTree.filter(node => node.category.type === type);
+                        const count = nodes.reduce((sum, node) => sum + 1 + node.children.length, 0);
+                        return { type, count, nodes };
+                    })
+                    .filter(group => group.nodes.length);
             },
 
             /**
@@ -84,11 +100,11 @@ export function createCategoriesModule(getApiService) {
             },
 
             /**
-             * Fills the form with a category to modify it
-             * @param {Object} category - Category
+             * Opens the category modal to add a category, or to modify the given one
+             * @param {Object|null} category - Category to modify
              */
-            editCategory(category) {
-                this.categoryForm = {
+            openCategoryModal(category = null) {
+                this.categoryForm = !category ? emptyForm() : {
                     id: Number(category.id),
                     name: category.name,
                     parent_category: Number(category.parent_category) || 0,
@@ -96,14 +112,8 @@ export function createCategoriesModule(getApiService) {
                     icon: category.icon || '',
                     color: category.color || ''
                 };
-                this.$nextTick(() => document.querySelector('.category-form')?.scrollIntoView({ behavior: 'smooth', block: 'center' }));
-            },
-
-            /**
-             * Back to an empty form
-             */
-            resetCategoryForm() {
-                this.categoryForm = emptyForm();
+                this.showCategoryModal = true;
+                this.$nextTick(() => document.getElementById('category-name')?.focus());
             },
 
             /**
@@ -126,7 +136,7 @@ export function createCategoriesModule(getApiService) {
                         await getApiService().updateCategory({ id: form.id, ...fields });
                         this.showToast(this.t('categoryUpdated'));
                     }
-                    this.resetCategoryForm();
+                    this.showCategoryModal = false;
                     await this.loadCategories();
                 } catch (error) {
                     this.showToast(error.message);
@@ -147,9 +157,6 @@ export function createCategoriesModule(getApiService) {
                 try {
                     await getApiService().deleteCategory(category.id);
                     this.showToast(this.t('categoryDeleted'));
-                    if (Number(this.categoryForm.id) === Number(category.id)) {
-                        this.resetCategoryForm();
-                    }
                     await this.loadCategories();
                 } catch (error) {
                     this.showToast(error.message);

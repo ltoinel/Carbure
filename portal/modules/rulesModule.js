@@ -21,6 +21,7 @@ export function createRulesModule(getApiService) {
                 loadingRules: false,
                 ruleFilter: '',
                 newRule: { keyword: '', category: '' },
+                showRuleModal: false,
                 savingRule: false,
                 applyingRules: false
             };
@@ -92,6 +93,23 @@ export function createRulesModule(getApiService) {
             },
 
             /**
+             * Opens the rule modal, optionally pre-filled
+             * @param {Object|null} rule - {keyword, category}
+             */
+            openRuleModal(rule = null) {
+                this.newRule = { keyword: rule?.keyword || '', category: rule?.category ?? '' };
+                this.showRuleModal = true;
+                // Let the user shorten the keyword (dates, card numbers...)
+                this.$nextTick(() => {
+                    const input = document.getElementById('rule-keyword');
+                    if (input) {
+                        input.focus();
+                        input.select();
+                    }
+                });
+            },
+
+            /**
              * Adds the rule of the form
              * @returns {Promise<void>}
              */
@@ -104,7 +122,7 @@ export function createRulesModule(getApiService) {
                 this.savingRule = true;
                 try {
                     await getApiService().createRule(this.newRule.keyword, this.newRule.category);
-                    this.newRule.keyword = '';
+                    this.showRuleModal = false;
                     this.showToast(this.t('ruleAdded'));
                     this.rules = await getApiService().fetchRules();
                 } catch (error) {

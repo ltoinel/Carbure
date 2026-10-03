@@ -10,6 +10,7 @@
 import BudgetBreadcrumb from './components/BudgetBreadcrumb.js';
 import BudgetItem from './components/BudgetItem.js';
 import BudgetEditModal from './components/BudgetEditModal.js';
+import CategoryPicker from './components/CategoryPicker.js';
 import { createApiService } from './services/apiService.js';
 import { createBudgetStore } from './stores/budgetStore.js';
 import { createTransactionModule } from './modules/transactionModule.js';
@@ -44,7 +45,8 @@ createApp({
     components: {
         BudgetBreadcrumb,
         BudgetItem,
-        BudgetEditModal
+        BudgetEditModal,
+        CategoryPicker
     },
 
     // Apply mixins from modules

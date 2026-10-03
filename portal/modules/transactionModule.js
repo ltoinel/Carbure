@@ -200,21 +200,13 @@ export function createTransactionModule(getApiService) {
             },
 
             /**
-             * Opens the rules tab with the suggested rule pre-filled
+             * Opens the rules tab and the rule modal with the suggested rule pre-filled
              */
             createSuggestedRule() {
                 const suggestion = this.ruleSuggestion;
                 this.ruleSuggestion = null;
                 this.setActiveTab('rules');
-                this.newRule = { keyword: suggestion.keyword, category: suggestion.category };
-                // Let the user shorten the keyword (dates, card numbers...) once the tab transition is over
-                setTimeout(() => {
-                    const input = document.querySelector('.rules-form input');
-                    if (input) {
-                        input.focus();
-                        input.select();
-                    }
-                }, 400);
+                this.openRuleModal({ keyword: suggestion.keyword, category: suggestion.category });
             },
 
             /**
