@@ -62,15 +62,15 @@ final class Bank {
     }
 
     /**
-     * Get an account of the authenticated user.
+     * Get a bank account of the household.
      *
      * @param int $id The account id
      * @return array The account
-     * @throws Error If the account does not exist or belongs to another user
+     * @throws Error If the account does not exist
      */
-    private static function ownAccount($id)
+    private static function existingAccount($id)
     {
-        $account = Db::queryOne("SELECT * FROM bank_account WHERE id = ? AND user_id = ?", "ii", $id, Jwt::getUserIdFromToken());
+        $account = Db::queryOne("SELECT * FROM bank_account WHERE id = ?", "i", $id);
         if (!$account) {
             throw new Error("Account not found", 404);
         }
@@ -78,18 +78,60 @@ final class Bank {
     }
 
     /**
+     * Owner of an account: the given user, or the authenticated one.
+     *
+     * @param int|null $userId The owner
+     * @return int The owner id
+     * @throws Error If the user does not exist
+     */
+    private static function owner($userId)
+    {
+        if ($userId === null || $userId === '') {
+            return (int)Jwt::getUserIdFromToken();
+        }
+        if (!Db::queryOne("SELECT id FROM users WHERE id = ?", "i", $userId)) {
+            throw new Error("User not found", 404);
+        }
+        return (int)$userId;
+    }
+
+    /**
+     * All the bank accounts of the household with their owner and the result of
+     * their last synchronization (administrators).
+     *
+     * @return array The accounts: id, bankId, account_number, bank_name, user_id, username,
+     *               last_sync_at, last_sync_status (OK|ERROR), last_sync_message
+     */
+    #[ApiRoute('/bank/accounts', method: 'GET')]
+    public static function accounts()
+    {
+        User::requireAdmin();
+        $sql = "SELECT a.id, a.account_number, a.bank_name, a.user_id, u.username,
+                       a.last_sync_at, a.last_sync_status, a.last_sync_message
+                FROM bank_account a JOIN users u ON u.id = a.user_id
+                ORDER BY a.bank_name, a.account_number, u.username";
+        $accounts = [];
+        foreach (Db::execute($sql, "")->get_result()->fetch_all(MYSQLI_ASSOC) as $row) {
+            $accounts[] = ['id' => $row['id'], 'bankId' => $row['account_number'] . '@' . $row['bank_name']] + $row;
+        }
+        return $accounts;
+    }
+
+    /**
      * Follow a bank account (it is synchronized from now on).
      *
-     * @param string $account_number The account identifier in woob
-     * @param string $bank_name      The woob backend name
+     * @param string   $account_number The account identifier in woob
+     * @param string   $bank_name      The woob backend name
+     * @param int|null $user_id        The owner (default: the authenticated administrator)
      * @return array The account
      * @throws Error If invalid or already followed
      */
     #[ApiRoute('/bank', method: 'POST')]
-    public static function create($account_number, $bank_name)
+    public static function create($account_number, $bank_name, $user_id = null)
     {
+        User::requireAdmin();
         self::validateAccount($account_number, $bank_name);
-        $userId = Jwt::getUserIdFromToken();
+        $userId = self::owner($user_id);
 
         if (Db::queryOne("SELECT id FROM bank_account WHERE account_number = ? AND bank_name = ? AND user_id = ?", "ssi", $account_number, $bank_name, $userId)) {
             throw new Error("This account is already followed", 409);
@@ -97,31 +139,34 @@ final class Bank {
 
         $stmt = Db::execute("INSERT INTO bank_account (bank_name, account_number, user_id) VALUES (?, ?, ?)", "ssi", $bank_name, $account_number, $userId);
 
-        return ['id' => $stmt->insert_id, 'bankId' => "$account_number@$bank_name", 'account_number' => $account_number, 'bank_name' => $bank_name];
+        return ['id' => $stmt->insert_id, 'bankId' => "$account_number@$bank_name", 'account_number' => $account_number, 'bank_name' => $bank_name, 'user_id' => $userId];
     }
 
     /**
      * Modify a followed bank account.
      *
-     * @param int    $id             The account id
-     * @param string $account_number The account identifier in woob
-     * @param string $bank_name      The woob backend name
+     * @param int      $id             The account id
+     * @param string   $account_number The account identifier in woob
+     * @param string   $bank_name      The woob backend name
+     * @param int|null $user_id        The owner (unchanged when omitted)
      * @return array The account
      * @throws Error If not found, invalid or already followed
      */
     #[ApiRoute('/bank', method: 'PUT')]
-    public static function update($id, $account_number, $bank_name)
+    public static function update($id, $account_number, $bank_name, $user_id = null)
     {
-        self::ownAccount($id);
+        User::requireAdmin();
+        $account = self::existingAccount($id);
         self::validateAccount($account_number, $bank_name);
+        $userId = $user_id === null || $user_id === '' ? (int)$account['user_id'] : self::owner($user_id);
 
-        if (Db::queryOne("SELECT id FROM bank_account WHERE account_number = ? AND bank_name = ? AND user_id = ? AND id <> ?", "ssii", $account_number, $bank_name, Jwt::getUserIdFromToken(), $id)) {
+        if (Db::queryOne("SELECT id FROM bank_account WHERE account_number = ? AND bank_name = ? AND user_id = ? AND id <> ?", "ssii", $account_number, $bank_name, $userId, $id)) {
             throw new Error("This account is already followed", 409);
         }
 
-        Db::execute("UPDATE bank_account SET account_number = ?, bank_name = ? WHERE id = ?", "ssi", $account_number, $bank_name, $id);
+        Db::execute("UPDATE bank_account SET account_number = ?, bank_name = ?, user_id = ? WHERE id = ?", "ssii", $account_number, $bank_name, $userId, $id);
 
-        return ['id' => (int)$id, 'bankId' => "$account_number@$bank_name", 'account_number' => $account_number, 'bank_name' => $bank_name];
+        return ['id' => (int)$id, 'bankId' => "$account_number@$bank_name", 'account_number' => $account_number, 'bank_name' => $bank_name, 'user_id' => $userId];
     }
 
     /**
@@ -134,7 +179,8 @@ final class Bank {
     #[ApiRoute('/bank', method: 'DELETE')]
     public static function delete($id)
     {
-        self::ownAccount($id);
+        User::requireAdmin();
+        self::existingAccount($id);
         Db::execute("DELETE FROM bank_account WHERE id = ?", "i", $id);
         return true;
     }
@@ -147,6 +193,7 @@ final class Bank {
     #[ApiRoute('/bank/backends', method: 'GET')]
     public static function backends()
     {
+        User::requireAdmin();
         return Woob::listBackends();
     }
 
@@ -159,6 +206,7 @@ final class Bank {
     #[ApiRoute('/bank/modules', method: 'GET')]
     public static function modules()
     {
+        User::requireAdmin();
         return Woob::listBankModules();
     }
 
@@ -171,7 +219,8 @@ final class Bank {
     #[ApiRoute('/bank/discover', method: 'GET')]
     public static function discover()
     {
-        $followed = array_column(self::get(), 'bankId');
+        User::requireAdmin();
+        $followed = array_column(self::accounts(), 'bankId');
 
         $accounts = [];
         foreach (Woob::listAccounts() as $account) {
@@ -268,13 +317,23 @@ final class Bank {
     /**
      * Synchronize the bank data with Server-Sent Events progress.
      *
-     * @param string|null $token The sync token (for the scheduler)
+     * @param string|null $token   The sync token (for the scheduler)
+     * @param string|null $account Synchronize only this account (account_number@bank_name)
      * @return void
+     * @throws Error If unauthorized or the account is not followed
      */
     #[ApiRoute('/bank/sync', method: 'GET', public: true, stream: true)]
-    public static function getSync($token = null)
+    public static function getSync($token = null, $account = null)
     {
         self::checkSyncAccess($token);
+
+        $bankIds = self::getBankIds();
+        if ($account !== null && $account !== '') {
+            if (!in_array($account, $bankIds, true)) {
+                throw new Error("Account not found", 404);
+            }
+            $bankIds = [$account];
+        }
 
         // Allow unlimited execution time for bank sync
         set_time_limit(0);
@@ -287,14 +346,12 @@ final class Bank {
         }
 
         try {
-            // Get all bank accounts
-            $bankIds = self::getBankIds();
-
             // Synchronize each bank account
             foreach ($bankIds as $bankId) {
                 
                 $status = true;
                 $created = [];
+                $error = null;
 
                 try {
                     Webservice::sendProgress("Syncing $bankId (coming)...");
@@ -307,7 +364,9 @@ final class Bank {
                     Logger::error("Error syncing $bankId: " . $e->getMessage());
                     Webservice::sendProgress("Error syncing $bankId: " . $e->getMessage());
                     $status = false;
+                    $error = $e->getMessage();
                 }
+                self::recordSyncResult($bankId, $status, $status ? count($created) . " new" : $error);
 
                 // Send notification to all users who own this bank account
                 Webservice::sendProgress("Notifying users of $bankId...");
@@ -352,6 +411,26 @@ final class Bank {
      * Get all bank IDs from the database.
      * @return array List of bankIds (account_number@bank_name)
      */
+    /**
+     * Store the date and result of the last synchronization of an account.
+     *
+     * @param string      $bankId  The account (account_number@bank_name)
+     * @param bool        $success True if the synchronization succeeded
+     * @param string|null $message The number of new transactions or the error
+     * @return void
+     */
+    private static function recordSyncResult($bankId, $success, $message)
+    {
+        [$number, $bank] = explode('@', $bankId, 2);
+        try {
+            Db::execute("UPDATE bank_account SET last_sync_at = NOW(), last_sync_status = ?, last_sync_message = ? WHERE account_number = ? AND bank_name = ?",
+                "ssss", $success ? 'OK' : 'ERROR', mb_substr((string)$message, 0, 500), $number, $bank);
+        } catch (Throwable $e) {
+            // Database not migrated yet (sql/migrations/2026-10-06_sync_status.sql): the sync goes on
+            Logger::error("Unable to record the sync result of $bankId: " . $e->getMessage());
+        }
+    }
+
     private static function getBankIds()
     {
         $sql = "SELECT DISTINCT account_number, bank_name FROM bank_account ORDER BY bank_name, account_number";

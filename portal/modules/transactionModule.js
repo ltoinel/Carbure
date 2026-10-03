@@ -188,7 +188,8 @@ export function createTransactionModule(getApiService) {
                     transaction.category = Number(category);
                     transaction.pointed = 1;
                     const option = this.ruleCategoryOptions.find(o => Number(o.id) === Number(category));
-                    this.ruleSuggestion = {
+                    // Only administrators manage the rules
+                    this.ruleSuggestion = !this.isAdmin ? null : {
                         keyword: transaction.label.trim(),
                         category: Number(category),
                         categoryName: option ? option.label : ''

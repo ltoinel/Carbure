@@ -203,11 +203,12 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
     }
 
     /**
-     * Fetches the bank accounts of the authenticated user
-     * @returns {Promise<Array>} Array of {bankId, account_number, bank_name}
+     * Fetches the bank accounts of the household (administrators)
+     * @returns {Promise<Array>} Array of {id, bankId, account_number, bank_name, user_id, username,
+     *                           last_sync_at, last_sync_status, last_sync_message}
      */
     async function fetchBankAccounts() {
-        const data = await request(`${baseUrl}/bank`, {}, 'Failed to fetch bank accounts');
+        const data = await request(`${baseUrl}/bank/accounts`, {}, 'Failed to fetch bank accounts');
         return Array.isArray(data) ? data : [];
     }
 
@@ -215,10 +216,11 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
      * Follows a bank account
      * @param {string} account_number - Account identifier in woob
      * @param {string} bank_name - woob backend name
+     * @param {number|null} user_id - Owner (default: the authenticated user)
      * @returns {Promise<Object>} The account
      */
-    async function createBankAccount(account_number, bank_name) {
-        return request(`${baseUrl}/bank`, { method: 'POST', body: JSON.stringify({ account_number, bank_name }) }, 'Failed to add the account');
+    async function createBankAccount(account_number, bank_name, user_id = null) {
+        return request(`${baseUrl}/bank`, { method: 'POST', body: JSON.stringify({ account_number, bank_name, user_id }) }, 'Failed to add the account');
     }
 
     /**
@@ -226,10 +228,11 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
      * @param {number} id - Account ID
      * @param {string} account_number - Account identifier in woob
      * @param {string} bank_name - woob backend name
+     * @param {number|null} user_id - Owner (unchanged when null)
      * @returns {Promise<Object>} The account
      */
-    async function updateBankAccount(id, account_number, bank_name) {
-        return request(`${baseUrl}/bank`, { method: 'PUT', body: JSON.stringify({ id, account_number, bank_name }) }, 'Failed to modify the account');
+    async function updateBankAccount(id, account_number, bank_name, user_id = null) {
+        return request(`${baseUrl}/bank`, { method: 'PUT', body: JSON.stringify({ id, account_number, bank_name, user_id }) }, 'Failed to modify the account');
     }
 
     /**
@@ -273,11 +276,13 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
      * The API answers with Server-Sent Events: "data: <message>" blocks, and
      * ": heartbeat" comments while woob is working.
      * @param {Function} onMessage - Called with each progress message
+     * @param {string|null} account - Synchronize only this account (bankId)
      * @returns {Promise<void>} Resolved when the synchronization ends
      * @throws {Error} If the request fails
      */
-    async function syncBanks(onMessage) {
-        const response = await authFetch(`${baseUrl}/bank/sync`, { headers: getHeaders() });
+    async function syncBanks(onMessage, account = null) {
+        const query = account ? `?account=${encodeURIComponent(account)}` : '';
+        const response = await authFetch(`${baseUrl}/bank/sync${query}`, { headers: getHeaders() });
 
         if (!response.ok || !response.body) {
             let message = `Failed to start the synchronization (${response.status})`;
@@ -553,12 +558,12 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
      * @returns {Promise<Object>} Created user object
      * @throws {Error} If request fails
      */
-    async function createUser(username, password, email, firstname, lastname) {
+    async function createUser(username, password, email, firstname, lastname, isAdmin = false) {
         const url = `${baseUrl}/user`;
         const response = await authFetch(url, {
             method: 'POST',
             headers: getHeaders(),
-            body: JSON.stringify({ username, password, email, firstname, lastname })
+            body: JSON.stringify({ username, password, email, firstname, lastname, is_admin: !!isAdmin })
         });
         
         if (!response.ok) {
@@ -620,9 +625,13 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
      * @returns {Promise<Object>} Updated user object
      * @throws {Error} If request fails
      */
-    async function updateUser(userId, email, firstname, lastname, password, language, alertThreshold) {
+    async function updateUser(userId, email, firstname, lastname, password, language, alertThreshold, isAdmin) {
         const url = `${baseUrl}/user?id=${userId}`;
         const body = { email, firstname, lastname };
+
+        if (isAdmin !== undefined && isAdmin !== null) {
+            body.is_admin = !!isAdmin;
+        }
 
         if (language) {
             body.language = language;

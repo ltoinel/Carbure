@@ -2,6 +2,28 @@
 
 class CategoryTest extends DatabaseTestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // Categories and rules are managed by administrators
+        $this->loginAs(self::ADMIN);
+    }
+
+    public function testUserCannotManageCategoriesAndRules()
+    {
+        $this->loginAs(self::USER);
+        $this->assertCount(5, Category::get());
+        foreach ([fn() => Category::create('X', 'DEBIT'), fn() => Category::update(1, 'X', 'DEBIT'), fn() => Category::delete(1),
+                  fn() => Category::createKeyword('X', 1), fn() => Category::deleteKeyword(1), fn() => Category::applyKeywords()] as $i => $call) {
+            try {
+                $call();
+                $this->fail("Case $i accepted");
+            } catch (Error $e) {
+                $this->assertSame(403, $e->getCode(), "Case $i");
+            }
+        }
+    }
+
     public function testGet()
     {
         $this->assertCount(5, Category::get());

@@ -26,7 +26,8 @@ export function createUserModule(getApiService) {
                     password: '',
                     email: '',
                     firstname: '',
-                    lastname: ''
+                    lastname: '',
+                    is_admin: 0
                 }
             };
         },
@@ -68,7 +69,8 @@ export function createUserModule(getApiService) {
                     password: '',
                     email: '',
                     firstname: '',
-                    lastname: ''
+                    lastname: '',
+                    is_admin: 0
                 };
                 this.showUserModal = true;
             },
@@ -84,7 +86,8 @@ export function createUserModule(getApiService) {
                     password: '', // Password is not loaded for security
                     email: user.email,
                     firstname: user.firstname || '',
-                    lastname: user.lastname || ''
+                    lastname: user.lastname || '',
+                    is_admin: Number(user.is_admin) ? 1 : 0
                 };
                 this.showUserModal = true;
             },
@@ -100,7 +103,8 @@ export function createUserModule(getApiService) {
                     password: '',
                     email: '',
                     firstname: '',
-                    lastname: ''
+                    lastname: '',
+                    is_admin: 0
                 };
             },
 
@@ -164,7 +168,10 @@ export function createUserModule(getApiService) {
                             this.userFormData.email,
                             this.userFormData.firstname,
                             this.userFormData.lastname,
-                            this.userFormData.password
+                            this.userFormData.password,
+                            null,
+                            null,
+                            this.userFormData.is_admin
                         );
                         this.showToast(this.t('userUpdated') || 'Utilisateur modifié avec succès');
                         await this.loadUsers(); // Reload user list
@@ -175,7 +182,8 @@ export function createUserModule(getApiService) {
                             this.userFormData.password,
                             this.userFormData.email,
                             this.userFormData.firstname,
-                            this.userFormData.lastname
+                            this.userFormData.lastname,
+                            this.userFormData.is_admin
                         );
                         this.showToast(this.t('userCreated') || 'Utilisateur créé avec succès');
                         await this.loadUsers(); // Reload user list

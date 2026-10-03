@@ -101,7 +101,7 @@ final class User {
      *
      * @return bool True if the user is an administrator
      */
-    private static function isAdmin()
+    public static function isAdmin()
     {
         $user = Db::queryOne("SELECT is_admin FROM users WHERE id=?", "i", Jwt::getUserIdFromToken());
         return $user !== null && (bool)$user['is_admin'];
@@ -113,7 +113,7 @@ final class User {
      * @return void
      * @throws Error If the user is not an administrator
      */
-    private static function requireAdmin()
+    public static function requireAdmin()
     {
         if (!self::isAdmin()) {
             throw new Error("Forbidden - Administrator only", 403);
@@ -170,11 +170,12 @@ final class User {
      * @param string      $email     The email
      * @param string|null $firstname The first name (optional)
      * @param string|null $lastname  The last name (optional)
+     * @param bool        $is_admin  Administrator profile (optional, user by default)
      * @return array The created user data with id
      * @throws Error If the username or email already exists or the caller is not an administrator
      */
     #[ApiRoute('/user', method: 'POST')]
-    public static function create($username, $password, $email, $firstname = null, $lastname = null)
+    public static function create($username, $password, $email, $firstname = null, $lastname = null, $is_admin = false)
     {
         self::requireAdmin();
 
@@ -200,8 +201,9 @@ final class User {
         $hashedPassword = self::hashPassword($password);
 
         // Insert the new user
-        $sql = "INSERT INTO users (username, password, email, firstname, lastname) VALUES (?, ?, ?, ?, ?)";
-        $stmt = Db::execute($sql, "sssss", $username, $hashedPassword, $email, $firstname, $lastname);
+        $isAdmin = filter_var($is_admin, FILTER_VALIDATE_BOOLEAN) ? 1 : 0;
+        $sql = "INSERT INTO users (username, password, email, firstname, lastname, is_admin) VALUES (?, ?, ?, ?, ?, ?)";
+        $stmt = Db::execute($sql, "sssssi", $username, $hashedPassword, $email, $firstname, $lastname, $isAdmin);
 
         $userId = $stmt->insert_id;
 
@@ -210,7 +212,8 @@ final class User {
             'username' => $username,
             'email' => $email,
             'firstname' => $firstname,
-            'lastname' => $lastname
+            'lastname' => $lastname,
+            'is_admin' => $isAdmin
         );
     }
 
@@ -263,15 +266,25 @@ final class User {
      * @param string|null $language  The interface language (optional, fr|en)
      * @param float|string|null $alertThreshold Push alert threshold for new expenses
      *                                    (optional, "" or 0 disables the alerts)
+     * @param bool|null   $is_admin  Administrator profile (optional, administrators only)
      * @return array The updated user data
      * @throws Error If the user is not found, email already exists or the caller is not allowed
      */
     #[ApiRoute('/user', method: 'PUT')]
-    public static function update($id, $email = null, $firstname = null, $lastname = null, $password = null, $language = null, $alertThreshold = null)
+    public static function update($id, $email = null, $firstname = null, $lastname = null, $password = null, $language = null, $alertThreshold = null, $is_admin = null)
     {
         // A user can only update his own profile, unless administrator
         if ((int)$id !== (int)Jwt::getUserIdFromToken()) {
             self::requireAdmin();
+        }
+
+        // Only an administrator changes a profile; the last administrator keeps his role
+        if ($is_admin !== null) {
+            self::requireAdmin();
+            $is_admin = filter_var($is_admin, FILTER_VALIDATE_BOOLEAN) ? 1 : 0;
+            if ($is_admin === 0 && !Db::queryOne("SELECT id FROM users WHERE is_admin = 1 AND id <> ? LIMIT 1", "i", $id)) {
+                throw new Error("At least one administrator is required", 409);
+            }
         }
 
         // Check if user exists
@@ -326,6 +339,12 @@ final class User {
             $updateFields[] = "language=?";
             $types .= "s";
             $params[] = $language;
+        }
+
+        if ($is_admin !== null) {
+            $updateFields[] = "is_admin=?";
+            $types .= "i";
+            $params[] = $is_admin;
         }
 
         if ($alertThreshold !== null) {

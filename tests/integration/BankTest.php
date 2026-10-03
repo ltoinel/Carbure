@@ -31,25 +31,37 @@ class BankTest extends DatabaseTestCase
 
     public function testCrud()
     {
-        $this->loginAs(self::USER);
+        $this->loginAs(self::ADMIN);
+        $before = count(Bank::accounts());
 
-        $account = Bank::create('222', 'bnp');
+        // An administrator manages the accounts of every member of the household
+        $account = Bank::create('222', 'bnp', self::USER);
         $this->assertSame('222@bnp', $account['bankId']);
-        $this->assertCount(2, Bank::get());
+        $this->assertSame(self::USER, $account['user_id']);
+        $this->assertCount($before + 1, Bank::accounts());
 
         $updated = Bank::update($account['id'], '333', 'creditmutuel');
         $this->assertSame('333@creditmutuel', $updated['bankId']);
-        $this->assertContains('333@creditmutuel', array_column(Bank::get(), 'bankId'));
+        $this->assertSame(self::USER, $updated['user_id']);
+        $this->assertContains('333@creditmutuel', array_column(Bank::accounts(), 'bankId'));
 
         $this->assertTrue(Bank::delete($account['id']));
-        $this->assertSame(['111@bnp'], array_column(Bank::get(), 'bankId'));
+        $this->assertCount($before, Bank::accounts());
+    }
+
+    public function testUnknownOwner()
+    {
+        $this->loginAs(self::ADMIN);
+        $this->expectException(Error::class);
+        $this->expectExceptionCode(404);
+        Bank::create('222', 'bnp', 999);
     }
 
     public function testCreateDuplicateAndInvalid()
     {
-        $this->loginAs(self::USER);
+        $this->loginAs(self::ADMIN);
         try {
-            Bank::create('111', 'bnp');
+            Bank::create('111', 'bnp', self::USER);
             $this->fail('Duplicate accepted');
         } catch (Error $e) {
             $this->assertSame(409, $e->getCode());
@@ -60,15 +72,28 @@ class BankTest extends DatabaseTestCase
         Bank::create('1; rm -rf /', 'bnp');
     }
 
-    public function testCannotModifyAnotherUserAccount()
+    public function testUserCannotManageAccounts()
+    {
+        $this->loginAs(self::USER);
+        $own = Bank::get()[0]['id'];
+
+        foreach ([fn() => Bank::accounts(), fn() => Bank::create('222', 'bnp'), fn() => Bank::update($own, '222', 'bnp'),
+                  fn() => Bank::delete($own), fn() => Bank::backends(), fn() => Bank::modules(), fn() => Bank::discover()] as $i => $call) {
+            try {
+                $call();
+                $this->fail("Case $i accepted");
+            } catch (Error $e) {
+                $this->assertSame(403, $e->getCode(), "Case $i");
+            }
+        }
+    }
+
+    public function testDeleteUnknownAccount()
     {
         $this->loginAs(self::ADMIN);
-        $adminAccount = Bank::get()[0]['id'];
-
-        $this->loginAs(self::USER);
         $this->expectException(Error::class);
         $this->expectExceptionCode(404);
-        Bank::delete($adminAccount);
+        Bank::delete(99999);
     }
 
     public function testUpdateToAnAlreadyFollowedAccount()
@@ -83,7 +108,7 @@ class BankTest extends DatabaseTestCase
 
     public function testBackends()
     {
-        $this->loginAs(self::USER);
+        $this->loginAs(self::ADMIN);
 
         // Name and module only: the woob configuration (bank login) never leaves the server
         $this->assertSame([['name' => 'bnp', 'module' => 'bnp'], ['name' => 'cic_pro', 'module' => 'cic']], Bank::backends());
@@ -91,7 +116,7 @@ class BankTest extends DatabaseTestCase
 
     public function testModules()
     {
-        $this->loginAs(self::USER);
+        $this->loginAs(self::ADMIN);
         $this->assertSame([
             ['module' => 'bnp', 'description' => 'BNP Paribas'],
             ['module' => 'boursorama', 'description' => 'Boursorama'],
@@ -101,7 +126,7 @@ class BankTest extends DatabaseTestCase
 
     public function testDiscover()
     {
-        $this->loginAs(self::USER);
+        $this->loginAs(self::ADMIN);
         $accounts = Bank::discover();
 
         $this->assertCount(2, $accounts);
@@ -111,6 +136,35 @@ class BankTest extends DatabaseTestCase
 
         Bank::create('00012345678', 'bnp');
         $this->assertTrue(Bank::discover()[0]['followed']);
+    }
+
+    public function testSyncRecordsTheLastResultOfEachAccount()
+    {
+        $this->loginAs(self::ADMIN);
+        $this->sync();
+
+        $accounts = array_column(Bank::accounts(), null, 'bankId');
+        $this->assertSame('OK', $accounts['111@bnp']['last_sync_status']);
+        $this->assertNotNull($accounts['111@bnp']['last_sync_at']);
+        $this->assertSame('ERROR', $accounts['fail@bank']['last_sync_status']);
+        $this->assertNotEmpty($accounts['fail@bank']['last_sync_message']);
+    }
+
+    public function testSyncOneAccount()
+    {
+        $this->loginAs(self::ADMIN);
+        ob_start();
+        try {
+            Bank::getSync(null, '111@bnp');
+        } finally {
+            $output = ob_get_clean();
+        }
+        $this->assertStringContainsString('Syncing 111@bnp', $output);
+        $this->assertStringNotContainsString('fail@bank', $output);
+
+        $this->expectException(Error::class);
+        $this->expectExceptionCode(404);
+        Bank::getSync(null, 'unknown@bnp');
     }
 
     public function testSync()

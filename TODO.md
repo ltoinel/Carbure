@@ -10,6 +10,8 @@ Tâches restant à réaliser sur Carbure. Une tâche terminée est retirée de c
 - [ ] Changer le mot de passe MySQL présent dans l'ancien historique (dépôt `Carbure-Archive`).
 - [ ] Ajouter `sync_token` dans `conf/prod.ini` et l'utiliser dans le cron
       (`/api/bank/sync` avec l'en-tête `X-Sync-Token`).
+- [ ] Appliquer `sql/migrations/2026-10-06_sync_status.sql` (date et statut de la dernière
+      synchro par compte) **avant** de déployer : l'onglet Comptes lit ces colonnes.
 - [ ] Appliquer `sql/migrations/2026-10-05_schema.sql` (DECIMAL, utf8mb4, comptes uniques ;
       sans impact sur le code, à faire quand on veut).
 - [ ] Installer `curl_cffi` (>= 0.7) dans l'image Docker woob (`ltoinel/woob:3.7`), requis par

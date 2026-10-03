@@ -1,8 +1,9 @@
 /**
  * Accounts Module
  *
- * Bank accounts followed by the user: list, add (from the accounts woob finds,
- * or manually), modify and delete. Bank credentials never go through the
+ * Bank accounts of the household (administrators): list with the result of the
+ * last synchronization, add (from the accounts woob finds, or manually) and
+ * modify in a modal, delete. Bank credentials never go through the
  * portal: they are configured in woob (php tools/install.php --add-bank).
  *
  * @module accountsModule
@@ -17,9 +18,10 @@ export function createAccountsModule(getApiService) {
     return {
         data() {
             return {
-                // Account being modified: {id, account_number, bank_name}
-                accountEdit: null,
-                newAccount: { account_number: '', bank_name: '' },
+                showAccountModal: false,
+                savingAccount: false,
+                // Account of the modal: {id (null for a new one), account_number, bank_name, user_id}
+                accountForm: { id: null, account_number: '', bank_name: '', user_id: null },
                 discoveredAccounts: [],
                 // Banks configured in woob: [{name, module}]
                 bankBackends: [],
@@ -98,63 +100,92 @@ export function createAccountsModule(getApiService) {
             },
 
             /**
-             * Follows an account
-             * @param {string} accountNumber - Account identifier in woob
-             * @param {string} bankName - woob backend name
-             * @returns {Promise<boolean>} True if added
+             * Opens the account modal to add an account, or to modify the given one
+             * @param {Object|null} account - Account to modify
              */
-            async followAccount(accountNumber, bankName) {
-                try {
-                    await getApiService().createBankAccount(String(accountNumber).trim(), String(bankName).trim());
-                    this.showToast(this.t('accountAdded'));
-                    await this.loadBankAccounts();
-                    return true;
-                } catch (error) {
-                    this.showToast(error.message);
-                    return false;
+            openAccountModal(account = null) {
+                const me = Number(this.currentUser?.id) || null;
+                this.accountForm = account
+                    ? { id: account.id, account_number: account.account_number, bank_name: account.bank_name, user_id: Number(account.user_id) || me }
+                    : { id: null, account_number: '', bank_name: '', user_id: me };
+                const bank = account ? account.bank_name : '';
+                const known = this.bankBackends.some(b => b.name === bank) || this.bankModules.some(m => m.module === bank);
+                this.newAccountBank = !bank ? '' : known ? bank : '__other';
+                this.discoveredAccounts = [];
+                this.discoverError = null;
+                this.showAccountModal = true;
+                // Owners to choose from
+                if (!this.users.length) {
+                    this.loadUsers();
                 }
             },
 
             /**
-             * Adds the account of the manual form
+             * Closes the account modal
+             */
+            closeAccountModal() {
+                this.showAccountModal = false;
+            },
+
+            /**
+             * Fills the modal with an account found by woob
+             * @param {Object} discovered - Account found by woob
+             */
+            pickDiscovered(discovered) {
+                this.accountForm.account_number = String(discovered.account_number);
+                const known = this.bankBackends.some(b => b.name === discovered.bank_name);
+                this.newAccountBank = known ? discovered.bank_name : '__other';
+                this.accountForm.bank_name = discovered.bank_name;
+            },
+
+            /**
+             * Adds or modifies the account of the modal
              * @returns {Promise<void>}
              */
-            async addAccount() {
+            async submitAccountForm() {
+                const form = this.accountForm;
                 if (this.newAccountBank !== '__other') {
-                    this.newAccount.bank_name = this.newAccountBank;
+                    form.bank_name = this.newAccountBank;
                 }
-                if (!this.newAccount.account_number.trim() || !this.newAccount.bank_name.trim()) {
+                const number = String(form.account_number).trim();
+                const bank = String(form.bank_name).trim();
+                if (!number || !bank) {
                     this.showToast(this.t('accountRequired'));
                     return;
                 }
-                if (await this.followAccount(this.newAccount.account_number, this.newAccount.bank_name)) {
-                    this.newAccount = { account_number: '', bank_name: '' };
-                    this.newAccountBank = '';
-                }
-            },
-
-            /**
-             * Starts modifying an account
-             * @param {Object} account - Account
-             */
-            editAccount(account) {
-                this.accountEdit = { id: account.id, account_number: account.account_number, bank_name: account.bank_name };
-            },
-
-            /**
-             * Saves the modified account
-             * @returns {Promise<void>}
-             */
-            async saveAccount() {
-                const edit = this.accountEdit;
+                this.savingAccount = true;
                 try {
-                    await getApiService().updateBankAccount(edit.id, String(edit.account_number).trim(), String(edit.bank_name).trim());
-                    this.accountEdit = null;
-                    this.showToast(this.t('accountUpdated'));
+                    if (form.id) {
+                        await getApiService().updateBankAccount(form.id, number, bank, form.user_id);
+                        this.showToast(this.t('accountUpdated'));
+                    } else {
+                        await getApiService().createBankAccount(number, bank, form.user_id);
+                        this.showToast(this.t('accountAdded'));
+                    }
+                    this.showAccountModal = false;
                     await this.loadBankAccounts();
                 } catch (error) {
                     this.showToast(error.message);
+                } finally {
+                    this.savingAccount = false;
                 }
+            },
+
+            /**
+             * Date of the last synchronization: "today 07:02", or the short date
+             * @param {string} value - "YYYY-MM-DD HH:MM:SS" (server time)
+             * @returns {string}
+             */
+            formatSyncDate(value) {
+                const date = new Date(String(value).replace(' ', 'T'));
+                if (isNaN(date)) {
+                    return value;
+                }
+                const time = date.toLocaleTimeString(this.locale, { hour: '2-digit', minute: '2-digit' });
+                if (date.toDateString() === new Date().toDateString()) {
+                    return this.t('todayAt', { time });
+                }
+                return `${date.toLocaleDateString(this.locale, { day: 'numeric', month: 'short', year: 'numeric' })} ${time}`;
             },
 
             /**

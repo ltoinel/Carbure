@@ -98,6 +98,8 @@ final class Category {
     #[ApiRoute('/category', method: 'POST')]
     public static function create($name, $type, $parent_category = 0, $icon = '', $color = '')
     {
+        User::requireAdmin();
+
         [$name, $parent, $type, $icon, $color] = self::validate(null, $name, $parent_category, $type, $icon, $color);
 
         $stmt = Db::execute("INSERT INTO bank_transaction_category (name, parent_category, type, icon, color) VALUES (?, ?, ?, ?, ?)",
@@ -121,6 +123,8 @@ final class Category {
     #[ApiRoute('/category', method: 'PUT')]
     public static function update($id, $name, $type, $parent_category = 0, $icon = '', $color = '')
     {
+        User::requireAdmin();
+
         $id = (int)$id;
         self::existing($id);
         [$name, $parent, $type, $icon, $color] = self::validate($id, $name, $parent_category, $type, $icon, $color);
@@ -142,6 +146,8 @@ final class Category {
     #[ApiRoute('/category', method: 'DELETE')]
     public static function delete($id)
     {
+        User::requireAdmin();
+
         $id = (int)$id;
         self::existing($id);
         if (Db::queryOne("SELECT id FROM bank_transaction_category WHERE parent_category = ? AND id <> ? LIMIT 1", "ii", $id, $id)) {
@@ -198,6 +204,8 @@ final class Category {
     #[ApiRoute('/category/keyword', method: 'POST')]
     public static function createKeyword($keyword, $category)
     {
+        User::requireAdmin();
+
         // Labels are stored in upper case
         $keyword = strtoupper(trim((string)$keyword));
         if ($keyword === '' || strlen($keyword) > 60) {
@@ -227,6 +235,8 @@ final class Category {
     #[ApiRoute('/category/keyword', method: 'DELETE')]
     public static function deleteKeyword($id)
     {
+        User::requireAdmin();
+
         $stmt = Db::execute("DELETE FROM bank_transaction_category_keyword WHERE id=?", "i", $id);
 
         if ($stmt->affected_rows === 0) {
@@ -244,6 +254,8 @@ final class Category {
     #[ApiRoute('/category/keyword/apply', method: 'POST')]
     public static function applyKeywords()
     {
+        User::requireAdmin();
+
         return ['updated' => Transaction::updateMissingCategories(true)];
     }
 

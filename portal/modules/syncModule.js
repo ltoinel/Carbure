@@ -17,6 +17,8 @@ export function createSyncModule(getApiService) {
         data() {
             return {
                 bankAccounts: [],
+                // Account being synchronized alone (bankId), null for all
+                syncTarget: null,
                 // 'idle', 'running', 'success', 'error' or 'busy' (another sync is running)
                 syncStatus: 'idle',
                 syncLog: [],
@@ -139,11 +141,12 @@ export function createSyncModule(getApiService) {
              * Starts a synchronization and follows its progress
              * @returns {Promise<void>}
              */
-            async startSync() {
+            async startSync(account = null) {
                 if (this.syncStatus === 'running') {
                     return;
                 }
 
+                this.syncTarget = typeof account === 'string' ? account : null;
                 this.syncStatus = 'running';
                 this.syncLog = [];
                 this.syncStartedAt = Date.now();
@@ -173,6 +176,10 @@ export function createSyncModule(getApiService) {
                     this.syncStatus = 'error';
                 } finally {
                     this.syncDuration = Math.round((Date.now() - this.syncStartedAt) / 1000);
+                    // Date and result of the last synchronization of each account
+                    if (this.isAdmin) {
+                        this.loadBankAccounts();
+                    }
                 }
             }
         }

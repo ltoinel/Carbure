@@ -97,8 +97,10 @@
         <template v-else>
         <div class="header">
             <h1>
-                <img src="icon.png" alt="Carbure" class="app-logo">
-                {{ t('appTitle') }}
+                <a href="./" class="app-home" :title="t('home')" @click.prevent="goHome">
+                    <img src="icon.png" alt="Carbure" class="app-logo">
+                    {{ t('appTitle') }}
+                </a>
             </h1>
             <div class="header-actions">
                 <div class="user-menu" @click.stop>
@@ -177,6 +179,7 @@
                 {{ t('tabTrends') }}
             </button>
             <button 
+                v-if="isAdmin"
                 class="tab-button" 
                 :class="{ active: activeTab === 'rules' }" 
                 @click="setActiveTab('rules')">
@@ -184,6 +187,7 @@
                 {{ t('tabRules') }}
             </button>
             <button 
+                v-if="isAdmin"
                 class="tab-button" 
                 :class="{ active: activeTab === 'categories' }" 
                 @click="setActiveTab('categories')">
@@ -191,6 +195,7 @@
                 {{ t('tabCategories') }}
             </button>
             <button 
+                v-if="isAdmin"
                 class="tab-button" 
                 :class="{ active: activeTab === 'accounts' }" 
                 @click="setActiveTab('accounts')">
@@ -889,90 +894,40 @@
                 <div v-else-if="activeTab === 'accounts'" key="accounts" class="tab-panel">
                     <div class="trends-view">
                         <section class="trends-card">
-                            <div class="trends-chart-head">
+                            <div class="trends-toolbar">
                                 <h2>{{ t('accountsTitle') }}</h2>
+                                <button @click="openAccountModal()">
+                                    <span class="material-icons">add</span>{{ t('addAccountTitle') }}
+                                </button>
                             </div>
                             <div v-if="bankAccounts.length === 0" class="transactions-hint">{{ t('noAccounts') }}</div>
                             <ul v-else class="accounts-list">
                                 <li v-for="a in bankAccounts" :key="a.id" class="account-item">
                                     <span class="material-icons account-icon">account_balance</span>
-                                    <template v-if="accountEdit && accountEdit.id === a.id">
-                                        <form class="account-edit" @submit.prevent="saveAccount">
-                                            <input v-model="accountEdit.account_number" :aria-label="t('accountNumber')" :placeholder="t('accountNumber')" maxlength="100" />
-                                            <input v-model="accountEdit.bank_name" :aria-label="t('accountBank')" :placeholder="t('accountBank')" maxlength="50" list="woob-backends" />
-                                            <datalist id="woob-backends">
-                                                <option v-for="b in bankBackends" :key="b.name" :value="b.name"></option>
-                                            </datalist>
-                                            <button type="submit">{{ t('save') }}</button>
-                                            <button type="button" class="btn-secondary" @click="accountEdit = null">{{ t('cancel') }}</button>
-                                        </form>
-                                    </template>
-                                    <template v-else>
-                                        <div class="account-details">
-                                            <div class="account-name">{{ accountName(a) }}</div>
-                                            <code class="device-token">{{ a.bankId }}</code>
-                                        </div>
-                                        <div class="device-actions">
-                                            <button class="btn-icon" @click="editAccount(a)" :title="t('editAccount')"><span class="material-icons">edit</span></button>
-                                            <button class="btn-icon btn-icon-delete" @click="removeAccount(a)" :title="t('deleteAccount')"><span class="material-icons">delete</span></button>
-                                        </div>
-                                    </template>
-                                </li>
-                            </ul>
-                        </section>
-
-                        <section class="trends-card">
-                            <div class="trends-toolbar">
-                                <div>
-                                    <h2>{{ t('addAccountTitle') }}</h2>
-                                    <p class="rules-help">{{ t('addAccountHelp') }}</p>
-                                </div>
-                                <button class="sync-button" @click="discoverAccounts" :disabled="discovering">
-                                    <span class="material-icons" :class="{ spin: discovering }">{{ discovering ? 'sync' : 'travel_explore' }}</span>
-                                    {{ discovering ? t('discovering') : t('discoverAccounts') }}
-                                </button>
-                            </div>
-                            <div v-if="discoverError" class="sync-step-error discover-error">{{ discoverError }}</div>
-                            <ul v-if="discoveredAccounts.length" class="accounts-list discovered">
-                                <li v-for="d in discoveredAccounts" :key="d.bankId" class="account-item">
-                                    <span class="material-icons account-icon">savings</span>
                                     <div class="account-details">
-                                        <div class="account-name">{{ d.label || accountName(d) }}</div>
-                                        <code class="device-token">{{ d.bankId }}</code>
+                                        <div class="account-name">
+                                            {{ accountName(a) }}
+                                            <span v-if="a.username" class="account-owner"><span class="material-icons inline-icon">person</span>{{ a.username }}</span>
+                                        </div>
+                                        <code class="device-token">{{ a.bankId }}</code>
                                     </div>
-                                    <span v-if="d.balance !== null && d.balance !== undefined" class="account-balance">{{ formatAmount(d.balance) }} {{ d.currency === 'EUR' || !d.currency ? t('currencySymbol') : d.currency }}</span>
-                                    <span v-if="isFollowed(d)" class="category-chip">{{ t('accountFollowed') }}</span>
-                                    <button v-else @click="followAccount(d.account_number, d.bank_name)">
-                                        <span class="material-icons">add</span>{{ t('followAccount') }}
-                                    </button>
+                                    <div class="account-sync" :class="'last-sync-' + (a.last_sync_status || 'never').toLowerCase()"
+                                         :title="a.last_sync_message || ''">
+                                        <span class="material-icons">{{ { OK: 'check_circle', ERROR: 'error' }[a.last_sync_status] || 'schedule' }}</span>
+                                        <span>
+                                            <span class="account-sync-state">{{ a.last_sync_status ? t('lastSync_' + a.last_sync_status) : t('lastSyncNever') }}</span>
+                                            <span v-if="a.last_sync_at" class="account-sync-date">{{ formatSyncDate(a.last_sync_at) }}</span>
+                                        </span>
+                                    </div>
+                                    <div class="device-actions">
+                                        <button class="btn-icon" @click="startSync(a.bankId)" :disabled="syncStatus === 'running'" :title="t('syncAccount')">
+                                            <span class="material-icons" :class="{ spin: syncStatus === 'running' && syncTarget === a.bankId }">sync</span>
+                                        </button>
+                                        <button class="btn-icon" @click="openAccountModal(a)" :title="t('editAccount')"><span class="material-icons">edit</span></button>
+                                        <button class="btn-icon btn-icon-delete" @click="removeAccount(a)" :title="t('deleteAccount')"><span class="material-icons">delete</span></button>
+                                    </div>
                                 </li>
                             </ul>
-                            <form class="rules-form account-form" @submit.prevent="addAccount">
-                                <input v-model="newAccount.account_number" :placeholder="t('accountNumber')" :aria-label="t('accountNumber')" maxlength="100" />
-                                <select v-model="newAccountBank" :aria-label="t('accountBank')">
-                                    <option value="" disabled>{{ t('accountBankChoose') }}</option>
-                                    <optgroup v-if="bankBackends.length" :label="t('banksConfigured')">
-                                        <option v-for="b in bankBackends" :key="b.name" :value="b.name">
-                                            {{ b.name === b.module ? b.name : b.name + ' (' + b.module + ')' }}
-                                        </option>
-                                    </optgroup>
-                                    <optgroup v-if="otherBankModules().length" :label="t('banksSupported')">
-                                        <option v-for="m in otherBankModules()" :key="m.module" :value="m.module">
-                                            {{ m.description ? m.description + ' (' + m.module + ')' : m.module }}
-                                        </option>
-                                    </optgroup>
-                                    <option value="__other">{{ t('accountBankOther') }}</option>
-                                </select>
-                                <input v-if="newAccountBank === '__other'" v-model="newAccount.bank_name" :placeholder="t('accountBankPlaceholder')" :aria-label="t('accountBank')" maxlength="50" />
-                                <button type="submit"><span class="material-icons">add</span>{{ t('addRule') }}</button>
-                            </form>
-                            <p v-if="chosenBankNotConfigured()" class="sync-step-error bank-not-configured">
-                                {{ t('bankNotConfigured') }} <code>php tools/install.php --add-bank</code>
-                            </p>
-                            <p class="rules-help">
-                                <span class="material-icons inline-icon">lock</span>
-                                {{ t('newBankHint') }} <code>php tools/install.php --add-bank</code>
-                            </p>
                         </section>
 
                         <section class="trends-card">
@@ -1070,6 +1025,7 @@
                                             <th>{{ t('email') }}</th>
                                             <th>{{ t('firstname') }}</th>
                                             <th>{{ t('lastname') }}</th>
+                                            <th>{{ t('userRole') }}</th>
                                             <th class="actions-column">{{ t('actions') }}</th>
                                         </tr>
                                     </thead>
@@ -1084,6 +1040,7 @@
                                             <td>{{ user.email }}</td>
                                             <td>{{ user.firstname || '-' }}</td>
                                             <td>{{ user.lastname || '-' }}</td>
+                                            <td><span class="category-chip" :class="{ 'role-admin': Number(user.is_admin) }">{{ Number(user.is_admin) ? t('role_admin') : t('role_user') }}</span></td>
                                             <td class="actions-column">
                                                 <button class="btn-icon btn-icon-edit" @click="openEditUserModal(user)" title="Modifier">
                                                     <span class="material-icons">edit</span>
@@ -1190,6 +1147,90 @@
             </transition>
         </div>
 
+        <!-- Account Modal: add or modify a followed bank account -->
+        <div v-if="showAccountModal" class="modal-overlay" @click.self="closeAccountModal">
+            <div class="modal modal-account">
+                <div class="modal-header">
+                    <span class="material-icons">{{ accountForm.id ? 'edit' : 'add_card' }}</span>
+                    <h3>{{ accountForm.id ? t('editAccount') : t('addAccountTitle') }}</h3>
+                    <button class="modal-close" @click="closeAccountModal">
+                        <span class="material-icons">close</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <template v-if="!accountForm.id">
+                        <div class="trends-toolbar">
+                            <p class="rules-help">{{ t('addAccountHelp') }}</p>
+                            <button class="btn-secondary" @click="discoverAccounts" :disabled="discovering">
+                                <span class="material-icons" :class="{ spin: discovering }">{{ discovering ? 'sync' : 'travel_explore' }}</span>
+                                {{ discovering ? t('discovering') : t('discoverAccounts') }}
+                            </button>
+                        </div>
+                        <div v-if="discoverError" class="sync-step-error discover-error">{{ discoverError }}</div>
+                        <ul v-if="discoveredAccounts.length" class="accounts-list discovered">
+                            <li v-for="d in discoveredAccounts" :key="d.bankId" class="account-item">
+                                <span class="material-icons account-icon">savings</span>
+                                <div class="account-details">
+                                    <div class="account-name">{{ d.label || accountName(d) }}</div>
+                                    <code class="device-token">{{ d.bankId }}</code>
+                                </div>
+                                <span v-if="d.balance !== null && d.balance !== undefined" class="account-balance">{{ formatAmount(d.balance) }} {{ d.currency === 'EUR' || !d.currency ? t('currencySymbol') : d.currency }}</span>
+                                <span v-if="isFollowed(d)" class="category-chip">{{ t('accountFollowed') }}</span>
+                                <button v-else class="btn-secondary" @click="pickDiscovered(d)">
+                                    <span class="material-icons">add</span>{{ t('followAccount') }}
+                                </button>
+                            </li>
+                        </ul>
+                    </template>
+                    <div class="form-group">
+                        <label>{{ t('accountBank') }} *</label>
+                        <select v-model="newAccountBank">
+                            <option value="" disabled>{{ t('accountBankChoose') }}</option>
+                            <optgroup v-if="bankBackends.length" :label="t('banksConfigured')">
+                                <option v-for="b in bankBackends" :key="b.name" :value="b.name">
+                                    {{ b.name === b.module ? b.name : b.name + ' (' + b.module + ')' }}
+                                </option>
+                            </optgroup>
+                            <optgroup v-if="otherBankModules().length" :label="t('banksSupported')">
+                                <option v-for="m in otherBankModules()" :key="m.module" :value="m.module">
+                                    {{ m.description ? m.description + ' (' + m.module + ')' : m.module }}
+                                </option>
+                            </optgroup>
+                            <option value="__other">{{ t('accountBankOther') }}</option>
+                        </select>
+                        <input v-if="newAccountBank === '__other'" v-model="accountForm.bank_name" :placeholder="t('accountBankPlaceholder')" :aria-label="t('accountBank')" maxlength="50" />
+                    </div>
+                    <p v-if="chosenBankNotConfigured()" class="sync-step-error bank-not-configured">
+                        {{ t('bankNotConfigured') }} <code>php tools/install.php --add-bank</code>
+                    </p>
+                    <div class="form-group">
+                        <label>{{ t('accountNumber') }} *</label>
+                        <input v-model="accountForm.account_number" maxlength="100" />
+                    </div>
+                    <div class="form-group">
+                        <label>{{ t('accountOwner') }}</label>
+                        <select v-model.number="accountForm.user_id">
+                            <option v-for="u in users" :key="u.id" :value="Number(u.id)">{{ u.username }}</option>
+                        </select>
+                    </div>
+                    <p class="rules-help">
+                        <span class="material-icons inline-icon">lock</span>
+                        {{ t('newBankHint') }} <code>php tools/install.php --add-bank</code>
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" @click="closeAccountModal">
+                        <span class="material-icons">cancel</span>
+                        {{ t('cancel') }}
+                    </button>
+                    <button @click="submitAccountForm" :disabled="savingAccount">
+                        <span class="material-icons">check_circle</span>
+                        {{ t('save') }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- User Modal -->
         <div v-if="showUserModal" class="modal-overlay" @click.self="closeUserModal">
             <div class="modal modal-user">
@@ -1221,6 +1262,14 @@
                     <div class="form-group">
                         <label>{{ t('lastname') }}</label>
                         <input type="text" v-model="userFormData.lastname" />
+                    </div>
+                    <div class="form-group">
+                        <label>{{ t('userRole') }}</label>
+                        <select v-model.number="userFormData.is_admin">
+                            <option :value="0">{{ t('role_user') }}</option>
+                            <option :value="1">{{ t('role_admin') }}</option>
+                        </select>
+                        <small>{{ t('roleHelp') }}</small>
                     </div>
                 </div>
                 <div class="modal-footer">

@@ -62,7 +62,8 @@ Liste des utilisateurs pour un administrateur ; l'utilisateur lui-même sinon.
 
 ### `POST /user` — administrateur
 
-`username`, `password`, `email` (requis), `firstname`, `lastname` (facultatifs).
+`username`, `password`, `email` (requis), `firstname`, `lastname`, `is_admin` (facultatifs ;
+profil utilisateur par défaut).
 
 ### `PUT /user`
 
@@ -73,6 +74,7 @@ Liste des utilisateurs pour un administrateur ; l'utilisateur lui-même sinon.
 | `password` | non | Nouveau mot de passe (ignoré si vide) |
 | `language` | non | `fr` ou `en` |
 | `alertThreshold` | non | Seuil d'alerte en euros pour les nouvelles dépenses ; `""` ou `0` désactive les alertes |
+| `is_admin` | non | Profil administrateur (`true`) ou utilisateur (`false`) ; administrateurs seulement, `409` pour retirer le rôle au dernier administrateur |
 
 ```bash
 curl -X PUT "https://exemple.fr/api/user?id=1" -H "Authorization: Bearer $TOKEN" \
@@ -96,22 +98,40 @@ Comptes bancaires de l'utilisateur :
 [{ "bankId": "12345678@bnp", "account_number": "12345678", "bank_name": "bnp" }]
 ```
 
-### `POST /bank`
+!!! note "Profils"
+    Un **utilisateur** consulte et pointe les transactions, les budgets, les tendances et
+    lance une synchronisation. Un **administrateur** gère en plus les règles, les catégories,
+    les comptes et les utilisateurs : les routes marquées « administrateur » renvoient `403`
+    aux autres.
 
-Suit un compte pour l'utilisateur connecté. Paramètres : `account_number` (identifiant du
-compte dans woob) et `bank_name` (nom du backend woob). `409` si le compte est déjà suivi,
-`400` si un identifiant est invalide.
+### `GET /bank/accounts` — administrateur
 
-### `PUT /bank`
+Tous les comptes du foyer avec leur titulaire et le résultat de leur dernière
+synchronisation : `id`, `bankId`, `account_number`, `bank_name`, `user_id`, `username`,
+`last_sync_at`, `last_sync_status` (`OK`, `ERROR` ou `null`), `last_sync_message` (nombre
+de nouvelles transactions ou erreur).
 
-Modifie un compte suivi : `id`, `account_number`, `bank_name`. `404` si le compte n'appartient
-pas à l'utilisateur.
+### `POST /bank` — administrateur
 
-### `DELETE /bank?id=`
+Suit un compte. Paramètres : `account_number` (identifiant du compte dans woob), `bank_name`
+(nom du backend woob) et `user_id` (titulaire, l'administrateur connecté par défaut). `409`
+si le compte est déjà suivi, `400` si un identifiant est invalide, `404` si le titulaire
+n'existe pas.
+
+### `PUT /bank` — administrateur
+
+Modifie un compte suivi : `id`, `account_number`, `bank_name`, `user_id` (facultatif).
+
+### `DELETE /bank?id=` — administrateur
 
 Ne suit plus le compte ; ses transactions déjà importées sont conservées.
 
-### `GET /bank/discover`
+### `GET /bank/backends`, `GET /bank/modules` — administrateur
+
+Banques configurées dans woob (`name`, `module`) et banques supportées par woob (`module`,
+`description`).
+
+### `GET /bank/discover` — administrateur
 
 Interroge woob (`woob bank list`) et renvoie les comptes des banques configurées :
 `bankId`, `account_number`, `bank_name`, `label`, `balance`, `currency`, `followed`. Peut
@@ -119,7 +139,9 @@ prendre plusieurs secondes (connexion aux banques).
 
 ### `GET /bank/sync` — flux SSE
 
-Lance la synchronisation de **tous** les comptes. Accès autorisé avec :
+Lance la synchronisation de **tous** les comptes, ou d'un seul avec
+`?account=<account_number>@<bank_name>` (`404` s'il n'est pas suivi). La date et le résultat
+sont enregistrés pour chaque compte. Accès autorisé avec :
 
 - un JWT valide, **ou**
 - le `sync_token` de la configuration, dans l'en-tête `X-Sync-Token` ou le paramètre
@@ -244,7 +266,7 @@ curl "https://exemple.fr/api/budget/trends?months=6&offset=12" -H "Authorization
 Toutes les catégories : `id`, `name`, `parent_category`, `type` (`DEBIT`, `CREDIT`,
 `HORS-BUDGET`), `icon`, `color`.
 
-### `POST /category`, `PUT /category`, `DELETE /category?id=`
+### `POST /category`, `PUT /category`, `DELETE /category?id=` — administrateur
 
 Crée ou modifie une catégorie (`name`, `type` : `DEBIT`, `CREDIT` ou `HORS-BUDGET`,
 `parent_category`, `icon`, `color` ; `id` pour la modification) ou la supprime. `409` si le

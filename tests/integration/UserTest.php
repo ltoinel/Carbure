@@ -218,6 +218,35 @@ class UserTest extends DatabaseTestCase
         User::update(self::USER, 'admin@example.com');
     }
 
+    public function testRoles()
+    {
+        $this->loginAs(self::ADMIN);
+        $created = User::create('admin2', 'password123', 'admin2@example.org', null, null, true);
+        $this->assertSame(1, $created['is_admin']);
+
+        // Demote then promote a user
+        User::update($created['id'], null, null, null, null, null, null, false);
+        $this->assertEquals(0, Db::queryOne("SELECT is_admin FROM users WHERE id = ?", "i", $created['id'])['is_admin']);
+        User::update(self::USER, null, null, null, null, null, null, true);
+        $this->assertEquals(1, Db::queryOne("SELECT is_admin FROM users WHERE id = ?", "i", self::USER)['is_admin']);
+    }
+
+    public function testLastAdministratorKeepsTheRole()
+    {
+        $this->loginAs(self::ADMIN);
+        $this->expectException(Error::class);
+        $this->expectExceptionCode(409);
+        User::update(self::ADMIN, null, null, null, null, null, null, false);
+    }
+
+    public function testUserCannotChangeHisRole()
+    {
+        $this->loginAs(self::USER);
+        $this->expectException(Error::class);
+        $this->expectExceptionCode(403);
+        User::update(self::USER, null, null, null, null, null, null, true);
+    }
+
     public function testUpdateOtherUserRequiresAdmin()
     {
         $this->loginAs(self::USER);

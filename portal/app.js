@@ -22,6 +22,9 @@ import { createRulesModule } from './modules/rulesModule.js';
 import { createSyncModule } from './modules/syncModule.js';
 import { createAccountsModule } from './modules/accountsModule.js';
 import { createCategoriesModule } from './modules/categoriesModule.js';
+
+/** Tabs reserved to administrators */
+const ADMIN_TABS = ['rules', 'categories', 'accounts', 'users'];
 import * as formatters from './utils/formatters.js';
 
 const { createApp } = Vue;
@@ -161,12 +164,26 @@ createApp({
         },
 
         // === Tab Navigation Methods ===
+
+        /**
+         * Back to the home page: transactions of the current month
+         */
+        goHome() {
+            const now = new Date();
+            this.selectedMonth = now.getMonth() + 1;
+            this.selectedYear = now.getFullYear();
+            this.setActiveTab('transactions');
+        },
         
         /**
          * Sets the active tab and loads corresponding data
          * @param {string} tab - Tab name ('transactions', 'budget', 'insights', 'users')
          */
         setActiveTab(tab) {
+            // Rules, categories, accounts and users are managed by administrators
+            if (ADMIN_TABS.includes(tab) && !this.isAdmin) {
+                tab = 'transactions';
+            }
             this.abortAllExcept(tab);
             this.activeTab = tab;
             

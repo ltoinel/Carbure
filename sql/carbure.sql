@@ -31,7 +31,10 @@ CREATE TABLE `bank_account` (
   `id` int(11) NOT NULL,
   `bank_name` varchar(50) NOT NULL,
   `account_number` varchar(100) NOT NULL,
-  `user_id` int(10) UNSIGNED NOT NULL
+  `user_id` int(10) UNSIGNED NOT NULL,
+  `last_sync_at` datetime DEFAULT NULL,
+  `last_sync_status` enum('OK','ERROR') DEFAULT NULL,
+  `last_sync_message` varchar(500) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------

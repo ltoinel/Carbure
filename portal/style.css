@@ -3543,3 +3543,103 @@ a.footer-brand:hover {
 .bank-not-configured {
     margin: 10px 0 0;
 }
+
+/* ===== Header link, accounts sync status, roles ===== */
+.app-home {
+    display: inline-flex;
+    align-items: center;
+    gap: inherit;
+    color: inherit;
+    text-decoration: none;
+}
+
+.app-home:hover {
+    opacity: 0.85;
+}
+
+.account-owner {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    margin-left: 8px;
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--text-secondary);
+}
+
+.account-sync {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 150px;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.account-sync > span:last-child {
+    display: flex;
+    flex-direction: column;
+}
+
+.account-sync-state {
+    font-weight: 500;
+}
+
+.account-sync .material-icons {
+    font-size: 20px;
+}
+
+.last-sync-ok .material-icons,
+.last-sync-ok .account-sync-state {
+    color: var(--success-color, #2e7d32);
+}
+
+.last-sync-error .material-icons,
+.last-sync-error .account-sync-state {
+    color: var(--error-color, #c62828);
+}
+
+.modal-account {
+    max-width: 640px;
+}
+
+.modal-account .accounts-list.discovered {
+    margin-bottom: 16px;
+}
+
+.modal-account .form-group select,
+.modal-account .form-group input {
+    width: 100%;
+}
+
+.modal-account .form-group input + select,
+.modal-account .form-group select + input {
+    margin-top: 8px;
+}
+
+.category-chip.role-admin {
+    background: color-mix(in srgb, var(--primary-color) 14%, transparent);
+    color: var(--primary-color);
+}
+
+@media (max-width: 768px) {
+    .account-sync {
+        min-width: 0;
+    }
+}
+
+.modal-account .form-group input {
+    padding: 12px 16px;
+    border: 2px solid var(--divider);
+    border-radius: var(--border-radius-md);
+    font-size: 15px;
+    font-family: 'Roboto', sans-serif;
+    background: var(--surface);
+    color: var(--text-primary);
+    box-sizing: border-box;
+}
+
+.modal-account .form-group input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}

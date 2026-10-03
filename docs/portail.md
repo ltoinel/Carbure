@@ -8,11 +8,16 @@ exemple sous `https://<serveur>/portal/`. Il utilise la même API que l'app iOS.
 L'écran de connexion demande l'URL de l'API, l'identifiant et le mot de passe. Le JWT et
 l'URL sont conservés dans le navigateur (`localStorage`) jusqu'à la déconnexion.
 
+Deux profils existent : **utilisateur** (transactions, budget, tendances, analyses,
+synchronisation) et **administrateur**, qui gère en plus les onglets **Règles**,
+**Catégories**, **Comptes** et **Utilisateurs** (invisibles pour un utilisateur).
+
 Le sélecteur de mois et d'année en haut de page s'applique aux onglets Transactions,
 Budget et Analyses. Les onglets Tendances et Règles ont leurs propres réglages.
 
 ## En-tête et menu utilisateur
 
+Le titre **Carbure** ramène à l'accueil (transactions du mois en cours).
 En haut à droite, le bouton affiche le **login** de l'utilisateur connecté. Son menu
 déroulant donne accès à :
 
@@ -94,12 +99,15 @@ protégée.
 
 ## Comptes
 
-- **Mes comptes** : les comptes bancaires suivis, modifiables (identifiant woob, banque) et
-  supprimables (les transactions déjà importées sont conservées).
-- **Ajouter un compte** : « Rechercher mes comptes dans woob » liste les comptes des banques
-  configurées dans woob (libellé, solde) et permet de les suivre en un clic ; un formulaire
-  permet aussi l'ajout manuel. Les identifiants bancaires ne passent jamais par le portail :
-  une nouvelle banque se configure avec `php tools/install.php --add-bank`.
+- **Comptes du foyer** : chaque compte suivi avec son titulaire, la date et le statut de sa
+  dernière synchronisation (le détail de l'erreur au survol), et trois actions :
+  synchroniser ce compte seul, modifier, ne plus suivre (les transactions déjà importées sont
+  conservées).
+- **Ajouter un compte** (fenêtre modale) : « Rechercher mes comptes dans woob » liste les
+  comptes des banques configurées dans woob (libellé, solde) et remplit le formulaire en un
+  clic ; sinon choisir la banque (configurées dans woob, ou toutes celles que woob supporte),
+  l'identifiant du compte et le titulaire. Les identifiants bancaires ne passent jamais par le
+  portail : une nouvelle banque se configure avec `php tools/install.php --add-bank`.
 - **Synchronisation** : lancement manuel avec progression en direct, statut OK/KO de chaque
   étape par compte (opérations à venir, historique, notifications) et nombre de transactions
   reçues et nouvelles. En cas d'échec woob, un lien ouvre la recherche des tickets woob sur le
@@ -112,7 +120,8 @@ Indicateurs du mois sélectionné (table `budget_insight`).
 ## Utilisateurs (administrateurs)
 
 L'onglet n'est visible que pour un administrateur (`is_admin`) : liste, création,
-modification et suppression des utilisateurs.
+modification (dont le profil utilisateur ou administrateur) et suppression des utilisateurs.
+Le dernier administrateur ne peut pas perdre son rôle.
 
 ## Mon profil
 
