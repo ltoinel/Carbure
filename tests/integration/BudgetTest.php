@@ -50,13 +50,28 @@ class BudgetTest extends DatabaseTestCase
         $this->assertEquals(130, $current['debit']);
         $this->assertEquals(2000, $current['credit']);
         $this->assertEquals(-10, $current['offBudget']);
-        // Savings exclude the off-budget categories: 2000 - 130
-        $this->assertEquals(1870, $current['savings']);
+        // No savings category in the data set
+        $this->assertEquals(0, $current['savings']);
         // Only the top-level budgets: Alimentation 200 + Énergie 100
         $this->assertEquals(300, $current['planned']);
 
         // Empty months are present with zeros
         $this->assertEquals(0, $trends[0]['debit']);
+    }
+
+    public function testTrendsSavingsFromTheSavingsCategory()
+    {
+        // "Épargne" (accent and case insensitive) with a sub-category
+        Db::query("INSERT INTO bank_transaction_category (id, name, parent_category, type, icon, color) VALUES (20, 'Épargne', 0, 'HORS-BUDGET', 'banknote', 'green')");
+        Db::query("INSERT INTO bank_transaction_category (id, name, parent_category, type, icon, color) VALUES (21, 'Livret A', 20, 'HORS-BUDGET', 'banknote', 'green')");
+        $date = date('Y-m-05');
+        foreach ([['s1', 20, -300], ['s2', 21, -200], ['s3', 21, 50]] as [$uuid, $category, $amount]) {
+            Db::execute("INSERT INTO bank_transaction (uuid, date, rdate, type, label, category, amount, user)
+                VALUES (?, ?, ?, 1, 'VIR EPARGNE', ?, ?, 1)", "sssid", $uuid, $date, $date, $category, $amount);
+        }
+
+        // 300 + 200 put aside, 50 taken back
+        $this->assertEquals(450, Budget::getTrends()[23]['savings']);
     }
 
     public function testTrendsWithOffset()

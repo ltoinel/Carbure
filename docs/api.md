@@ -240,7 +240,7 @@ Renvoie un élément par mois (du plus ancien au plus récent, mois vides inclus
 | `credit` | Revenus du mois, catégories hors budget exclues |
 | `offBudget` | Solde des catégories `HORS-BUDGET` (ex. virements vers l'épargne) |
 | `planned` | Somme des budgets des catégories de premier niveau |
-| `savings` | `credit - debit` (hors budget exclu) |
+| `savings` | Montant net versé sur la catégorie d'épargne (`savings_category`, `Epargne` par défaut) et ses sous-catégories, positif quand on épargne |
 
 ```bash
 curl "https://exemple.fr/api/budget/trends?months=6&offset=12" -H "Authorization: Bearer $TOKEN"

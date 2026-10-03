@@ -650,7 +650,10 @@
                         <!-- Savings -->
                         <section class="trends-card">
                             <div class="trends-chart-head">
-                                <h3>{{ t('trendsSavingsTitle') }}</h3>
+                                <div>
+                                    <h3>{{ t('trendsSavingsTitle') }}</h3>
+                                    <p class="rules-help">{{ t('trendsSavingsHelp') }}</p>
+                                </div>
                                 <ul class="trends-legend">
                                     <li><span class="swatch" style="background: #2a78d6"></span>{{ t('trendsSaved') }}</li>
                                     <li><span class="swatch" style="background: #e34948"></span>{{ t('trendsOverspent') }}</li>
@@ -856,6 +859,10 @@
                                     <p class="rules-help">{{ t('accountsHelp') }}</p>
                                 </div>
                                 <div class="panel-actions">
+                                    <button class="btn-secondary" @click="startSync()" :disabled="syncStatus === 'running'" :title="t('syncHelp')">
+                                        <span class="material-icons" :class="{ spin: syncStatus === 'running' && !syncTarget }">sync</span>
+                                        {{ syncStatus === 'running' ? t('syncRunning') : t('syncAll') }}
+                                    </button>
                                     <button class="btn-add" @click="openAccountModal()">
                                         <span class="material-icons">add</span>
                                         {{ t('addAccountTitle') }}
@@ -890,19 +897,6 @@
                                     </div>
                                 </li>
                             </ul>
-                        </section>
-
-                        <section class="trends-card">
-                            <div class="trends-toolbar">
-                                <div>
-                                    <h2>{{ t('syncTitle') }}</h2>
-                                    <p class="rules-help">{{ t('syncHelp') }}</p>
-                                </div>
-                                <button class="sync-button" @click="startSync" :disabled="syncStatus === 'running'">
-                                    <span class="material-icons" :class="{ spin: syncStatus === 'running' }">sync</span>
-                                    {{ syncStatus === 'running' ? t('syncRunning') : t('syncStart') }}
-                                </button>
-                            </div>
                         </section>
 
                         <section class="trends-card" v-if="syncStatus !== 'idle'">

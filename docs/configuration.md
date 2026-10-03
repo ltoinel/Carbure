@@ -13,6 +13,7 @@ par Git et ne doit jamais être publié.
 |---|---|---|
 | `log_level` | `debug`, `info`, `warning`, `error` | Niveau minimal des logs (`logs/carbure_AAAAMMJJ.log`). En `debug`, les erreurs PHP sont affichées et les réponses JSON indentées. |
 | `development` | `true` / `false` | Mode développement |
+| `savings_category` | nom | Catégorie dont les transactions (avec ses sous-catégories) constituent l'épargne de l'onglet Tendances ; `Epargne` par défaut, casse et accents ignorés |
 
 ## `[database]`
 

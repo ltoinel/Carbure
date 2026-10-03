@@ -116,7 +116,9 @@ final class Budget {
      * - credit:    incomes, off-budget categories excluded
      * - offBudget: net amount of the off-budget categories (e.g. transfers to savings)
      * - planned:   sum of the budgets of the top-level categories
-     * - savings:   credit - debit (off-budget categories excluded)
+     * - savings:   money put aside: net amount moved to the savings category
+     *              ("Epargne" by default, setting savings_category) and its
+     *              sub-categories, positive when saved
      *
      * @param int $months The number of months (1 to 60)
      * @param int $offset Number of months between the current month and the last month
@@ -143,12 +145,13 @@ final class Budget {
                 SUM(CASE WHEN IFNULL(c.type, '') <> 'HORS-BUDGET' AND t.amount < 0 THEN -t.amount ELSE 0 END) AS debit,
                 SUM(CASE WHEN IFNULL(c.type, '') <> 'HORS-BUDGET' AND t.amount > 0 THEN t.amount ELSE 0 END) AS credit,
                 SUM(CASE WHEN c.type = 'HORS-BUDGET' THEN t.amount ELSE 0 END) AS offBudget,
-                SUM(CASE WHEN IFNULL(c.type, '') <> 'HORS-BUDGET' THEN t.amount ELSE 0 END) AS savings
+                -SUM(CASE WHEN FIND_IN_SET(t.category, ?) THEN t.amount ELSE 0 END) AS savings
             FROM bank_transaction t
             LEFT JOIN bank_transaction_category c ON c.id = t.category
             WHERE t.date >= ? AND t.date < ?
             GROUP BY month";
-        foreach (Db::execute($sql, "ss", $from, $to)->get_result()->fetch_all(MYSQLI_ASSOC) as $row) {
+        $savings = implode(',', self::savingsCategories());
+        foreach (Db::execute($sql, "sss", $savings, $from, $to)->get_result()->fetch_all(MYSQLI_ASSOC) as $row) {
             foreach (['debit', 'credit', 'offBudget', 'savings'] as $key) {
                 $trends[$row['month']][$key] = round((float)$row[$key], 2);
             }
@@ -164,6 +167,38 @@ final class Budget {
         }
 
         return array_values($trends);
+    }
+
+    /**
+     * Ids of the savings category ("Epargne" by default, setting savings_category)
+     * and of its sub-categories. Names are compared without case nor accents, in
+     * PHP so that it does not depend on how the database stores the accents.
+     *
+     * @return array The category ids (empty if there is no savings category)
+     */
+    private static function savingsCategories()
+    {
+        // French accents first: iconv transliteration depends on the C library
+        $accents = ['é' => 'e', 'è' => 'e', 'ê' => 'e', 'ë' => 'e', 'É' => 'E', 'È' => 'E', 'Ê' => 'E', 'à' => 'a', 'â' => 'a', 'À' => 'A',
+                    'î' => 'i', 'ï' => 'i', 'ô' => 'o', 'Ô' => 'O', 'ù' => 'u', 'û' => 'u', 'ü' => 'u', 'ç' => 'c', 'Ç' => 'C'];
+        $normalize = fn($name) => strtolower(trim((string)preg_replace('/[^A-Za-z0-9 ]/', '', strtr((string)$name, $accents))));
+        $wanted = $normalize(Config::has('savings_category') ? Config::get('savings_category') : 'Epargne');
+
+        $categories = Db::execute("SELECT id, name, parent_category FROM bank_transaction_category", "")->get_result()->fetch_all(MYSQLI_ASSOC);
+        $roots = [];
+        foreach ($categories as $category) {
+            if ((int)$category['id'] !== 0 && $normalize($category['name']) === $wanted) {
+                $roots[] = (int)$category['id'];
+            }
+        }
+
+        $ids = $roots;
+        foreach ($categories as $category) {
+            if (in_array((int)$category['parent_category'], $roots, true) && !in_array((int)$category['id'], $ids, true)) {
+                $ids[] = (int)$category['id'];
+            }
+        }
+        return $ids;
     }
 
     /**

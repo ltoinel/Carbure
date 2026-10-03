@@ -77,8 +77,10 @@ déroulant donne accès à :
   planifié et épargne des deux périodes.
 - **Revenus, dépenses et budget planifié** : barres mensuelles crédit / débit / hors
   budget et ligne du budget planifié, avec infobulle détaillée au survol.
-- **Épargne mensuelle** : `crédit - débit`, hors budget exclu (barres bleues, rouges en
-  cas de déficit).
+- **Épargne mensuelle** : montants versés sur la catégorie **Épargne** et ses
+  sous-catégories, moins les retraits (barres bleues, rouges pour un mois de retrait net).
+  Le nom de la catégorie se règle avec `savings_category`. Le taux d'épargne est
+  `épargne / revenus`.
 - Vue **tableau** des données mois par mois.
 
 ## Règles
