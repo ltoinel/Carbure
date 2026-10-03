@@ -21,6 +21,7 @@ import { createTrendsModule } from './modules/trendsModule.js';
 import { createRulesModule } from './modules/rulesModule.js';
 import { createSyncModule } from './modules/syncModule.js';
 import { createAccountsModule } from './modules/accountsModule.js';
+import { createCategoriesModule } from './modules/categoriesModule.js';
 import * as formatters from './utils/formatters.js';
 
 const { createApp } = Vue;
@@ -53,7 +54,8 @@ createApp({
         createTrendsModule(() => apiService),
         createRulesModule(() => apiService),
         createSyncModule(() => apiService),
-        createAccountsModule(() => apiService)
+        createAccountsModule(() => apiService),
+        createCategoriesModule(() => apiService)
     ],
 
     data() {
@@ -202,6 +204,9 @@ createApp({
                     break;
                 case 'rules':
                     this.loadRules();
+                    break;
+                case 'categories':
+                    this.loadCategories();
                     break;
                 case 'accounts':
                     this.loadBankAccounts();

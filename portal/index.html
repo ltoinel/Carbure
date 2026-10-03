@@ -185,6 +185,13 @@
             </button>
             <button 
                 class="tab-button" 
+                :class="{ active: activeTab === 'categories' }" 
+                @click="setActiveTab('categories')">
+                <span class="material-icons">category</span>
+                {{ t('tabCategories') }}
+            </button>
+            <button 
+                class="tab-button" 
                 :class="{ active: activeTab === 'accounts' }" 
                 @click="setActiveTab('accounts')">
                 <span class="material-icons" :class="{ spin: syncStatus === 'running' }">{{ syncStatus === 'running' ? 'sync' : 'account_balance' }}</span>
@@ -781,6 +788,99 @@
                                     </div>
                                 </div>
                             </div>
+                        </section>
+                    </div>
+                </div>
+
+                <!-- Categories Tab -->
+                <div v-else-if="activeTab === 'categories'" key="categories" class="tab-panel">
+                    <div class="trends-view">
+                        <section class="trends-card category-form">
+                            <h2>{{ categoryForm.id === null ? t('addCategory') : t('editCategory') }}</h2>
+                            <form @submit.prevent="saveCategory">
+                                <div class="category-fields">
+                                    <label>{{ t('categoryName') }}
+                                        <input v-model="categoryForm.name" maxlength="50" required />
+                                    </label>
+                                    <label>{{ t('categoryParent') }}
+                                        <select v-model.number="categoryForm.parent_category">
+                                            <option :value="0">{{ t('categoryTopLevel') }}</option>
+                                            <option v-for="p in parentOptions" :key="p.id" :value="Number(p.id)">{{ p.name }}</option>
+                                        </select>
+                                    </label>
+                                    <label>{{ t('categoryType') }}
+                                        <select v-model="categoryForm.type">
+                                            <option value="DEBIT">{{ t('categoryType_DEBIT') }}</option>
+                                            <option value="CREDIT">{{ t('categoryType_CREDIT') }}</option>
+                                            <option value="HORS-BUDGET">{{ t('categoryType_HORS-BUDGET') }}</option>
+                                        </select>
+                                    </label>
+                                </div>
+
+                                <div class="summary-label">{{ t('categoryColor') }}</div>
+                                <div class="color-picker" role="radiogroup" :aria-label="t('categoryColor')">
+                                    <button v-for="c in categoryColors" :key="c" type="button" class="color-swatch"
+                                            :class="{ selected: categoryForm.color === c }" :style="{ background: categoryColor({ color: c }) }"
+                                            :title="c" :aria-label="c" role="radio" :aria-checked="categoryForm.color === c ? 'true' : 'false'"
+                                            @click="categoryForm.color = c"></button>
+                                </div>
+
+                                <div class="summary-label">{{ t('categoryIcon') }}</div>
+                                <div class="icon-picker" role="radiogroup" :aria-label="t('categoryIcon')">
+                                    <button v-for="i in categoryIcons" :key="i" type="button" class="icon-choice"
+                                            :class="{ selected: categoryForm.icon === i }" :title="i" :aria-label="i"
+                                            role="radio" :aria-checked="categoryForm.icon === i ? 'true' : 'false'"
+                                            :style="categoryForm.icon === i ? { color: categoryColor({ color: categoryForm.color }) } : {}"
+                                            @click="categoryForm.icon = i">
+                                        <span class="material-icons">{{ categoryIcon({ icon: i }) }}</span>
+                                    </button>
+                                </div>
+
+                                <div class="category-actions">
+                                    <span class="budget-card-icon" :style="{ color: categoryColor(categoryForm), background: 'color-mix(in srgb, ' + categoryColor(categoryForm) + ' 14%, transparent)' }">
+                                        <span class="material-icons">{{ categoryIcon(categoryForm) }}</span>
+                                    </span>
+                                    <strong>{{ categoryForm.name || t('categoryName') }}</strong>
+                                    <span class="spacer"></span>
+                                    <button v-if="categoryForm.id !== null" type="button" class="btn-secondary" @click="resetCategoryForm">{{ t('cancel') }}</button>
+                                    <button type="submit" :disabled="savingCategory">
+                                        <span class="material-icons">{{ categoryForm.id === null ? 'add' : 'check_circle' }}</span>
+                                        {{ categoryForm.id === null ? t('addRule') : t('save') }}
+                                    </button>
+                                </div>
+                            </form>
+                        </section>
+
+                        <section class="trends-card">
+                            <h2>{{ t('categoriesTitle', { count: categories.length }) }}</h2>
+                            <div v-if="loadingCategories" class="transactions-hint">{{ t('loadingMessage') }}</div>
+                            <ul v-else class="category-tree">
+                                <li v-for="node in categoryTree" :key="node.category.id">
+                                    <div class="category-row">
+                                        <span class="budget-card-icon" :style="{ color: categoryColor(node.category), background: 'color-mix(in srgb, ' + categoryColor(node.category) + ' 14%, transparent)' }">
+                                            <span class="material-icons">{{ categoryIcon(node.category) }}</span>
+                                        </span>
+                                        <span class="category-row-name">{{ node.category.name }}</span>
+                                        <span class="category-chip">{{ t('categoryType_' + node.category.type) }}</span>
+                                        <span v-if="Number(node.category.id) === 0" class="category-chip">{{ t('categoryDefault') }}</span>
+                                        <template v-else>
+                                            <button class="btn-icon" @click="editCategory(node.category)" :title="t('editCategory')"><span class="material-icons">edit</span></button>
+                                            <button class="btn-icon btn-icon-delete" @click="removeCategory(node.category)" :title="t('deleteCategory')"><span class="material-icons">delete</span></button>
+                                        </template>
+                                    </div>
+                                    <ul v-if="node.children.length">
+                                        <li v-for="child in node.children" :key="child.id" class="category-row child">
+                                            <span class="budget-card-icon" :style="{ color: categoryColor(child), background: 'color-mix(in srgb, ' + categoryColor(child) + ' 14%, transparent)' }">
+                                                <span class="material-icons">{{ categoryIcon(child) }}</span>
+                                            </span>
+                                            <span class="category-row-name">{{ child.name }}</span>
+                                            <span class="category-chip">{{ t('categoryType_' + child.type) }}</span>
+                                            <button class="btn-icon" @click="editCategory(child)" :title="t('editCategory')"><span class="material-icons">edit</span></button>
+                                            <button class="btn-icon btn-icon-delete" @click="removeCategory(child)" :title="t('deleteCategory')"><span class="material-icons">delete</span></button>
+                                        </li>
+                                    </ul>
+                                </li>
+                            </ul>
                         </section>
                     </div>
                 </div>

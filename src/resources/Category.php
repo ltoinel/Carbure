@@ -35,6 +35,144 @@ final class Category {
     }
 
     /**
+     * Types of category
+     */
+    private const TYPES = ['DEBIT', 'CREDIT', 'HORS-BUDGET'];
+
+    /**
+     * Validate the fields of a category and return them normalized.
+     *
+     * @param int|null $id     The category being modified (null for a new one)
+     * @param string   $name   The name
+     * @param int      $parent The parent category (0 for a top-level category)
+     * @param string   $type   DEBIT, CREDIT or HORS-BUDGET
+     * @param string   $icon   The icon (SF Symbols name used by the iOS app)
+     * @param string   $color  The color (SwiftUI name or hex)
+     * @return array [name, parent, type, icon, color]
+     * @throws Error If a field is invalid
+     */
+    private static function validate($id, $name, $parent, $type, $icon, $color)
+    {
+        $name = trim((string)$name);
+        $parent = (int)$parent;
+        if ($name === '' || mb_strlen($name) > 50) {
+            throw new Error("The name must contain 1 to 50 characters", 400);
+        }
+        if (!in_array($type, self::TYPES, true)) {
+            throw new Error("Invalid category type", 400);
+        }
+        if (!preg_match('/^[a-z0-9._]{0,50}$/', (string)$icon) || !preg_match('/^(#[0-9a-fA-F]{3,8}|[a-zA-Z]{0,30})$/', (string)$color)) {
+            throw new Error("Invalid icon or color", 400);
+        }
+
+        $duplicate = Db::queryOne("SELECT id FROM bank_transaction_category WHERE name = ? AND id <> ?", "si", $name, $id ?? -1);
+        if ($duplicate) {
+            throw new Error("A category with this name already exists", 409);
+        }
+
+        // One level of sub-categories: the parent must be a top-level category
+        if ($parent !== 0) {
+            $row = Db::queryOne("SELECT parent_category FROM bank_transaction_category WHERE id = ?", "i", $parent);
+            if (!$row || (int)$row['parent_category'] !== 0 || $parent === (int)$id) {
+                throw new Error("The parent must be a top-level category", 400);
+            }
+            if ($id !== null && Db::queryOne("SELECT id FROM bank_transaction_category WHERE parent_category = ? AND id <> ? LIMIT 1", "ii", $id, $id)) {
+                throw new Error("A category with sub-categories cannot become a sub-category", 400);
+            }
+        }
+
+        return [$name, $parent, $type, (string)$icon, (string)$color];
+    }
+
+    /**
+     * Create a category.
+     *
+     * @param string $name            The name
+     * @param string $type            DEBIT, CREDIT or HORS-BUDGET
+     * @param int    $parent_category The parent category (0 for a top-level category)
+     * @param string $icon            The icon (SF Symbols name)
+     * @param string $color           The color (SwiftUI name or hex)
+     * @return array The category
+     * @throws Error If invalid or the name already exists
+     */
+    #[ApiRoute('/category', method: 'POST')]
+    public static function create($name, $type, $parent_category = 0, $icon = '', $color = '')
+    {
+        [$name, $parent, $type, $icon, $color] = self::validate(null, $name, $parent_category, $type, $icon, $color);
+
+        $stmt = Db::execute("INSERT INTO bank_transaction_category (name, parent_category, type, icon, color) VALUES (?, ?, ?, ?, ?)",
+            "sisss", $name, $parent, $type, $icon, $color);
+
+        return ['id' => $stmt->insert_id, 'name' => $name, 'parent_category' => $parent, 'type' => $type, 'icon' => $icon, 'color' => $color];
+    }
+
+    /**
+     * Modify a category.
+     *
+     * @param int    $id              The category
+     * @param string $name            The name
+     * @param string $type            DEBIT, CREDIT or HORS-BUDGET
+     * @param int    $parent_category The parent category (0 for a top-level category)
+     * @param string $icon            The icon (SF Symbols name)
+     * @param string $color           The color (SwiftUI name or hex)
+     * @return array The category
+     * @throws Error If not found, protected, invalid or the name already exists
+     */
+    #[ApiRoute('/category', method: 'PUT')]
+    public static function update($id, $name, $type, $parent_category = 0, $icon = '', $color = '')
+    {
+        $id = (int)$id;
+        self::existing($id);
+        [$name, $parent, $type, $icon, $color] = self::validate($id, $name, $parent_category, $type, $icon, $color);
+
+        Db::execute("UPDATE bank_transaction_category SET name = ?, parent_category = ?, type = ?, icon = ?, color = ? WHERE id = ?",
+            "sisssi", $name, $parent, $type, $icon, $color, $id);
+
+        return ['id' => $id, 'name' => $name, 'parent_category' => $parent, 'type' => $type, 'icon' => $icon, 'color' => $color];
+    }
+
+    /**
+     * Delete a category: its transactions become uncategorized, its budgets and
+     * categorization rules are deleted.
+     *
+     * @param int $id The category
+     * @return bool True if deleted
+     * @throws Error If not found, protected or with sub-categories
+     */
+    #[ApiRoute('/category', method: 'DELETE')]
+    public static function delete($id)
+    {
+        $id = (int)$id;
+        self::existing($id);
+        if (Db::queryOne("SELECT id FROM bank_transaction_category WHERE parent_category = ? AND id <> ? LIMIT 1", "ii", $id, $id)) {
+            throw new Error("Delete or move its sub-categories first", 409);
+        }
+
+        Db::execute("UPDATE bank_transaction SET category = 0 WHERE category = ?", "i", $id);
+        Db::execute("DELETE FROM budget WHERE category = ?", "i", $id);
+        Db::execute("DELETE FROM bank_transaction_category WHERE id = ?", "i", $id);
+
+        return true;
+    }
+
+    /**
+     * Check that a category exists and can be modified.
+     *
+     * @param int $id The category
+     * @return void
+     * @throws Error If not found or protected
+     */
+    private static function existing($id)
+    {
+        if ($id === 0) {
+            throw new Error("The default category cannot be modified", 400);
+        }
+        if (!Db::queryOne("SELECT id FROM bank_transaction_category WHERE id = ?", "i", $id)) {
+            throw new Error("Category not found", 404);
+        }
+    }
+
+    /**
      * Get the automatic categorization rules (keywords found in the labels).
      *
      * @return array The rules with their category name, sorted by category

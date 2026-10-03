@@ -318,6 +318,33 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
     }
 
     /**
+     * Creates a category
+     * @param {Object} category - {name, type, parent_category, icon, color}
+     * @returns {Promise<Object>} The category
+     */
+    async function createCategory(category) {
+        return request(`${baseUrl}/category`, { method: 'POST', body: JSON.stringify(category) }, 'Failed to create the category');
+    }
+
+    /**
+     * Modifies a category
+     * @param {Object} category - {id, name, type, parent_category, icon, color}
+     * @returns {Promise<Object>} The category
+     */
+    async function updateCategory(category) {
+        return request(`${baseUrl}/category`, { method: 'PUT', body: JSON.stringify(category) }, 'Failed to modify the category');
+    }
+
+    /**
+     * Deletes a category (its transactions become uncategorized)
+     * @param {number} id - Category ID
+     * @returns {Promise<void>}
+     */
+    async function deleteCategory(id) {
+        await request(`${baseUrl}/category?id=${encodeURIComponent(id)}`, { method: 'DELETE' }, 'Failed to delete the category');
+    }
+
+    /**
      * Fetches the automatic categorization rules
      * @returns {Promise<Array>} Array of {id, keyword, category, category_name}
      */
@@ -641,6 +668,9 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
         fetchBankBackends,
         syncBanks,
         fetchCategories,
+        createCategory,
+        updateCategory,
+        deleteCategory,
         setTransactionCategory,
         fetchRules,
         createRule,

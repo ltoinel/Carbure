@@ -147,3 +147,10 @@ export function cssColorFor(color) {
     }
     return /^[a-zA-Z]+$/.test(value) && CSS.supports('color', value) ? value : null;
 }
+
+/** SF Symbols names offered when creating or editing a category (shown with their Material icon) */
+export const CATEGORY_ICONS = Object.keys(SF_TO_MATERIAL);
+
+/** Color names understood by the iOS app (SwiftUI) and the portal */
+export const CATEGORY_COLORS = ['red', 'orange', 'yellow', 'green', 'mint', 'teal', 'cyan', 'blue',
+    'indigo', 'purple', 'pink', 'magenta', 'brown', 'gray', 'darkGray'];

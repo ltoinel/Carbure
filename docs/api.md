@@ -244,6 +244,14 @@ curl "https://exemple.fr/api/budget/trends?months=6&offset=12" -H "Authorization
 Toutes les catégories : `id`, `name`, `parent_category`, `type` (`DEBIT`, `CREDIT`,
 `HORS-BUDGET`), `icon`, `color`.
 
+### `POST /category`, `PUT /category`, `DELETE /category?id=`
+
+Crée ou modifie une catégorie (`name`, `type` : `DEBIT`, `CREDIT` ou `HORS-BUDGET`,
+`parent_category`, `icon`, `color` ; `id` pour la modification) ou la supprime. `409` si le
+nom existe déjà ou si la catégorie à supprimer a des sous-catégories, `400` pour la catégorie
+par défaut (0) ou un parent qui n'est pas une catégorie principale. À la suppression, les
+transactions passent en catégorie 0 et les budgets et règles de la catégorie sont supprimés.
+
 ### `GET /category/keyword`
 
 Règles de catégorisation automatique : `id`, `keyword`, `category`, `category_name`.

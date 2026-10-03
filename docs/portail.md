@@ -83,6 +83,15 @@ mot-clé reçoit la catégorie choisie.
   l'historique et affiche le nombre de transactions mises à jour. Les règles sont
   aussi appliquées automatiquement après chaque synchronisation (dernier mois).
 
+## Catégories
+
+Arborescence des catégories (un niveau de sous-catégories) avec ajout, modification et
+suppression. L'icône et la couleur se choisissent parmi celles que l'application iOS sait
+afficher (SF Symbols, couleurs SwiftUI), avec un aperçu. Supprimer une catégorie fait passer
+ses transactions en « Non catégorisé » et supprime ses budgets et règles ; une catégorie qui
+a des sous-catégories ne peut pas être supprimée. La catégorie « Non catégorisé » (0) est
+protégée.
+
 ## Comptes
 
 - **Mes comptes** : les comptes bancaires suivis, modifiables (identifiant woob, banque) et

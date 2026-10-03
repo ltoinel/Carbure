@@ -7,6 +7,63 @@ class CategoryTest extends DatabaseTestCase
         $this->assertCount(5, Category::get());
     }
 
+    public function testCreateUpdateDelete()
+    {
+        $category = Category::create('Vacances', 'DEBIT', 0, 'airplane', 'teal');
+        $this->assertGreaterThan(4, $category['id']);
+
+        $child = Category::create('Hôtels', 'DEBIT', $category['id'], 'house', '');
+        $this->assertSame($category['id'], $child['parent_category']);
+
+        $updated = Category::update($child['id'], 'Hébergement', 'DEBIT', $category['id'], 'house', '#ff0000');
+        $this->assertSame('Hébergement', $updated['name']);
+
+        // A category with sub-categories cannot be deleted
+        try {
+            Category::delete($category['id']);
+            $this->fail('Deleted with a sub-category');
+        } catch (Error $e) {
+            $this->assertSame(409, $e->getCode());
+        }
+
+        $this->assertTrue(Category::delete($child['id']));
+        $this->assertTrue(Category::delete($category['id']));
+        $this->assertCount(5, Category::get());
+    }
+
+    public function testDeleteMovesTransactionsAndRemovesBudgetsAndRules()
+    {
+        // Énergie (3): transaction u2, a budget and the EDF rule
+        $this->assertTrue(Category::delete(3));
+
+        $this->assertEquals(0, Db::queryOne("SELECT category FROM bank_transaction WHERE uuid = 'u2'", "")['category']);
+        $this->assertEquals(0, Db::queryOne("SELECT COUNT(*) AS n FROM budget WHERE category = 3", "")['n']);
+        $this->assertNull(Category::find('PRLV SEPA EDF '));
+    }
+
+    public function testValidation()
+    {
+        foreach ([
+            fn() => Category::create('', 'DEBIT'),
+            fn() => Category::create('X', 'OTHER'),
+            fn() => Category::create('X', 'DEBIT', 0, 'bad icon!'),
+            fn() => Category::create('X', 'DEBIT', 2),              // 2 is already a sub-category
+            fn() => Category::update(1, 'Alimentation', 'DEBIT', 4), // 1 has sub-categories
+            fn() => Category::update(0, 'X', 'DEBIT'),               // protected
+        ] as $i => $call) {
+            try {
+                $call();
+                $this->fail("Case $i accepted");
+            } catch (Error $e) {
+                $this->assertSame(400, $e->getCode(), "Case $i: " . $e->getMessage());
+            }
+        }
+
+        $this->expectException(Error::class);
+        $this->expectExceptionCode(409);
+        Category::create('Salaire', 'CREDIT');
+    }
+
     public function testKeywords()
     {
         $rules = Category::getKeywords();
