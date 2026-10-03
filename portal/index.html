@@ -608,7 +608,8 @@
                                 <h3 class="budget-section-title">{{ group.title }}</h3>
                                 <div class="budget-grid">
                                     <article v-for="item in group.items" :key="item.id" class="budget-card"
-                                             :class="[group.key === 'expenses' ? 'status-' + budgetStatus(item) : '', { selected: budgetCategory && budgetCategory.id === item.id }]"
+                                             :class="[group.key === 'expenses' ? 'status-' + budgetStatus(item) + ' budget-card-filled' : '', { selected: budgetCategory && budgetCategory.id === item.id }]"
+                                             :style="group.key === 'expenses' ? { '--budget-fill': Math.min(Number(item.progress) || 0, 100) + '%' } : null"
                                              tabindex="0" @click="navigateToBudget(item)" @keydown.enter="navigateToBudget(item)">
                                         <div class="budget-card-head">
                                             <span class="budget-card-icon" :style="{ color: categoryColor(item), background: 'color-mix(in srgb, ' + categoryColor(item) + ' 14%, transparent)' }">
@@ -624,9 +625,6 @@
                                             <div class="budget-card-amounts">
                                                 <span class="spent">{{ formatAmount(item.consummed) }} {{ t('currencySymbol') }}</span>
                                                 <span class="of">/ {{ formatAmount(item.budget) }} {{ t('currencySymbol') }}</span>
-                                            </div>
-                                            <div class="budget-meter" :class="budgetStatus(item)">
-                                                <div class="budget-meter-fill" :style="{ width: Math.min(Number(item.progress) || 0, 100) + '%' }"></div>
                                             </div>
                                             <div class="budget-card-foot">
                                                 <span v-if="Number(item.budget) - Number(item.consummed) >= 0">

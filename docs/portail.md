@@ -78,7 +78,7 @@ ouvre le formulaire dans une fenêtre modale, qui sert aussi à la modification.
 
 ## Budget
 
-![Budget](assets/screenshot-budget.png)
+![Flux du mois](assets/screenshot-flow.png)
 
 Deux sous-onglets : **Flux** (affiché par défaut) et **Budgets**.
 
@@ -90,8 +90,9 @@ Deux sous-onglets : **Flux** (affiché par défaut) et **Budgets**.
 - **Synthèse du mois** (sous-onglet Budgets) : dépensé, budgété, reste (ou dépassement) et jauge globale des
   dépenses budgétées.
 - **Cartes par catégorie** avec l'icône et la couleur de la catégorie, le montant
-  dépensé sur le budget, le reste ou le dépassement et une jauge colorée (en bonne voie,
-  à partir de 80 %, au-delà de 100 %).
+  dépensé sur le budget, le reste ou le dépassement ; le fond de la carte se remplit de
+  gauche à droite à mesure que le budget est consommé (vert en bonne voie, orange à partir
+  de 80 %, rouge au-delà de 100 %).
 - Sections séparées : **dépenses budgétées**, **revenus**, **hors budget et sans
   activité**.
 - **Clic sur une catégorie** : liste de ses transactions du mois (sous-catégories

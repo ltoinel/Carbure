@@ -15,7 +15,7 @@ consultées :
 
 Tous s'appuient sur la même **API REST PHP** (`src/`).
 
-![Budget du mois](assets/screenshot-budget.png)
+![Flux du mois : des revenus aux dépenses, à l'épargne et au reste](assets/screenshot-flow.png)
 
 ## Fonctionnalités
 

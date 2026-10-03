@@ -29,7 +29,7 @@ const TOP = 48;
 const MAX_EXPENSES = 8;
 
 /** Colors of the computed nodes */
-const COLORS = { income: '#10b981', savings: '#3b82f6', balance: '#94a3b8', deficit: '#ef4444', others: '#a3a3a3', month: '#ef4860' };
+const COLORS = { income: '#10b981', savings: '#3b82f6', balance: '#94a3b8', deficit: '#ef4444', others: '#a3a3a3', month: '#d12c48' };
 
 export default {
     name: 'FlowChart',

@@ -4690,3 +4690,18 @@ textarea:focus-visible,
         scroll-behavior: auto !important;
     }
 }
+
+/* Budget cards filled from the left as the budget is spent (instead of a bar) */
+.budget-card.budget-card-filled {
+    --budget-fill-color: color-mix(in srgb, var(--success-color) 16%, var(--surface));
+    background: linear-gradient(to right, var(--budget-fill-color) var(--budget-fill, 0%), var(--surface) var(--budget-fill, 0%));
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-slow);
+}
+
+.budget-card.budget-card-filled.status-near {
+    --budget-fill-color: color-mix(in srgb, var(--warning-color) 22%, var(--surface));
+}
+
+.budget-card.budget-card-filled.status-over {
+    --budget-fill-color: color-mix(in srgb, var(--error-color) 18%, var(--surface));
+}
