@@ -63,11 +63,11 @@ L'image contient nginx (portail, Swagger et API sur le port 80), PHP-FPM et woob
 
 ### Récupérer l'image
 
-L'image est publiée sur GitHub Container Registry à chaque release, pour `amd64` et `arm64`
+L'image est publiée sur [Docker Hub](https://hub.docker.com/r/ltoinel/carbure) à chaque release, pour `amd64` et `arm64`
 (NAS Synology Intel comme ARM) :
 
 ```bash
-docker pull ghcr.io/ltoinel/carbure:latest
+docker pull ltoinel/carbure:latest
 ```
 
 | Tag | Contenu |
@@ -82,7 +82,7 @@ doivent déjà exister ; l'assistant les demande au premier lancement) :
 ```bash
 docker run -d --name carbure --restart unless-stopped -p 8080:80 \
   -e SYNC_INTERVAL=86400 -v carbure-data:/data \
-  ghcr.io/ltoinel/carbure:latest
+  ltoinel/carbure:latest
 ```
 
 ### Mettre à jour

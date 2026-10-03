@@ -59,7 +59,7 @@ tables lui-même à l'étape 5.
 ```yaml
 services:
   carbure:
-    image: ghcr.io/ltoinel/carbure:latest
+    image: ltoinel/carbure:latest
     ports:
       - "8080:80"
     environment:
@@ -135,7 +135,7 @@ règle.
 ## Mettre à jour Carbure
 
 Dans **Container Manager** → **Projet** → `carbure` → **Action** → **Construire** (DSM
-télécharge la dernière image), ou **Image** → `ghcr.io/ltoinel/carbure` → **Mettre à jour**.
+télécharge la dernière image), ou **Image** → `ltoinel/carbure` → **Mettre à jour**.
 Au redémarrage, Carbure met sa base de données à jour automatiquement.
 
 Pensez à sauvegarder la base avant une mise à jour : phpMyAdmin → base `carbure` →

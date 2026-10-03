@@ -72,8 +72,19 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write
     steps:
+      # Docker Hub account: secrets DOCKERHUB_USERNAME and DOCKERHUB_TOKEN (access token
+      # with Read & Write), image docker.io/ltoinel/carbure
+      - name: Check the Docker Hub credentials
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          if [ -z "$DOCKERHUB_USERNAME" ] || [ -z "$DOCKERHUB_TOKEN" ]; then
+            echo "::error::Set the repository secrets DOCKERHUB_USERNAME and DOCKERHUB_TOKEN (Settings > Secrets and variables > Actions)"
+            exit 1
+          fi
+
       - uses: actions/checkout@v7
         with:
           ref: ${{ env.TAG }}
@@ -84,14 +95,13 @@ jobs:
 
       - uses: docker/login-action@v3
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository_owner }}/carbure
+          images: docker.io/ltoinel/carbure
           # 1.2.0 and v1.2.0 give the tags 1.2.0, 1.2 and latest (not for a pre-release)
           tags: |
             type=semver,pattern={{version}},value=${{ env.TAG }}
@@ -108,6 +118,7 @@ jobs:
             CARBURE_VERSION=${{ env.TAG }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          annotations: ${{ steps.meta.outputs.annotations }}
           # Bill of materials and build provenance attached to the image
           sbom: true
           provenance: mode=max

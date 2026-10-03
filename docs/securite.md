@@ -142,11 +142,11 @@ Chaque build de la CI analyse l'image :
 
 Une vulnérabilité sans impact sur Carbure peut être acceptée dans `.trivyignore`, avec sa
 justification. Les images publiées embarquent leur SBOM et leur provenance de build
-(`docker buildx imagetools inspect ghcr.io/ltoinel/carbure:latest --format '{{ json .SBOM }}'`).
+(`docker buildx imagetools inspect ltoinel/carbure:latest --format '{{ json .SBOM }}'`).
 Pour analyser une image localement :
 
 ```bash
-docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image ghcr.io/ltoinel/carbure:latest
+docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image ltoinel/carbure:latest
 ```
 
 ## Signaler une vulnérabilité

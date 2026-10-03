@@ -97,7 +97,7 @@ git config core.hooksPath .githooks
 | Workflow | Déclencheur | Étapes |
 |---|---|---|
 | CI | Pull request, push sur `main` | Lint PHP/JS/CSS, tests unitaires et d'intégration (MariaDB), couverture ≥ 90 %, scan de secrets (gitleaks) ; image Docker : hadolint, build, scan Trivy, démarrage avec `docker compose`, installation par l'assistant et test de fumée |
-| Release | Release publiée sur GitHub (tag `1.2.0` ou `v1.2.0`), ou lancement manuel avec le tag | CI, archive de l'application (`src`, `portal`, `swagger`, `sql`, `tools/migrate.php`, `VERSION` écrit depuis le tag) jointe à la release ; image Docker `amd64`/`arm64` publiée sur `ghcr.io` (version passée par `CARBURE_VERSION`), avec SBOM et provenance |
+| Release | Release publiée sur GitHub (tag `1.2.0` ou `v1.2.0`), ou lancement manuel avec le tag | CI, archive de l'application (`src`, `portal`, `swagger`, `sql`, `tools/migrate.php`, `VERSION` écrit depuis le tag) jointe à la release ; image Docker `amd64`/`arm64` publiée sur Docker Hub (`ltoinel/carbure`) (version passée par `CARBURE_VERSION`), avec SBOM et provenance |
 | Docs | Push sur `main` | Construction MkDocs et déploiement GitHub Pages |
 
 Publier une version : sur GitHub, **Releases → Draft a new release**, créer le tag (par
@@ -107,9 +107,13 @@ exemple `1.2.0`) sur `main` et publier ; ou en ligne de commande :
 gh release create 1.2.0 --target main --generate-notes
 ```
 
-Le workflow joint les archives à la release et publie l'image `ghcr.io/ltoinel/carbure`
+Le workflow joint les archives à la release et publie l'image Docker Hub `ltoinel/carbure`
 (`1.2.0`, `1.2` et `latest`, sauf pour une pré-release). **Actions → Release → Run
 workflow** reconstruit une release existante (champ `tag`).
+
+La publication sur Docker Hub (`ltoinel/carbure`) utilise les secrets du dépôt
+`DOCKERHUB_USERNAME` et `DOCKERHUB_TOKEN` (jeton d'accès Docker Hub en lecture/écriture, dans
+**Settings → Secrets and variables → Actions**).
 
 ## Migrations de base
 

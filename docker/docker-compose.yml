@@ -4,7 +4,7 @@
 # The data of Carbure (configuration, logs, banks) is in the data/ directory of the project.
 services:
   carbure:
-    image: ghcr.io/ltoinel/carbure:latest
+    image: ltoinel/carbure:latest
     build:
       # The build context is the root of the project
       context: ..
