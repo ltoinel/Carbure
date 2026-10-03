@@ -1,8 +1,30 @@
 # Carbure: household budget web portal and API, with woob bundled
 # https://github.com/ltoinel/Carbure
-FROM php:8.3-fpm-bookworm
+#
+# Alpine image: the build tools (compilers, headers) stay in the first stage and in
+# temporary packages, the final image only keeps what runs Carbure.
+
+# --- woob and its Python dependencies, built apart --------------------------------
+FROM php:8.3-fpm-alpine AS woob
 
 ARG WOOB_VERSION=3.7
+
+# Compilers and headers in case a dependency has no wheel for musl (Alpine)
+# hadolint ignore=DL3018
+RUN apk add --no-cache python3 python3-dev build-base libffi-dev libxml2-dev libxslt-dev \
+        jpeg-dev zlib-dev
+
+# woob and curl_cffi (required by the BNP module) in a virtual environment
+# (pip and setuptools of the venv are upgraded: older versions have known vulnerabilities)
+RUN python3 -m venv /opt/woob \
+    && /opt/woob/bin/pip install --no-cache-dir --upgrade "pip>=26.1.2" "setuptools>=78.1.1" \
+    && /opt/woob/bin/pip install --no-cache-dir "woob==${WOOB_VERSION}" "curl_cffi>=0.7" \
+    && /opt/woob/bin/python -c "import curl_cffi, lxml, woob" \
+    && find /opt/woob -name "__pycache__" -type d -prune -exec rm -rf {} +
+
+# --- Carbure ---------------------------------------------------------------------
+FROM php:8.3-fpm-alpine
+
 # Version of Carbure (the release tag), shown in the portal footer and by /api/health
 ARG CARBURE_VERSION=dev
 
@@ -12,25 +34,27 @@ LABEL org.opencontainers.image.title="Carbure" \
       org.opencontainers.image.source="https://github.com/ltoinel/Carbure" \
       org.opencontainers.image.licenses="MIT"
 
-# nginx, PHP extensions (mysqli, APCu) and Python for woob
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends nginx python3 python3-venv curl ca-certificates \
+# nginx, Python for woob (with the libraries of its compiled dependencies), and the
+# PHP extensions mysqli and APCu (built with temporary packages, removed afterwards)
+# hadolint ignore=DL3018
+RUN apk add --no-cache nginx python3 curl ca-certificates libffi libxml2 libxslt libjpeg-turbo zlib libstdc++ \
+    && apk add --no-cache --virtual .build-deps $PHPIZE_DEPS linux-headers \
     && docker-php-ext-install mysqli \
     && pecl install apcu \
     && docker-php-ext-enable apcu \
-    && rm -rf /var/lib/apt/lists/* /tmp/pear \
+    && apk del .build-deps \
+    && rm -rf /tmp/pear \
+    && mkdir -p /run/nginx \
     && ln -sf /dev/stdout /var/log/nginx/access.log \
     && ln -sf /dev/stderr /var/log/nginx/error.log
 
-# woob and curl_cffi (required by the BNP module) in a virtual environment
-# (pip and setuptools of the venv are upgraded: the Debian ones have known vulnerabilities)
-RUN python3 -m venv /opt/woob \
-    && /opt/woob/bin/pip install --no-cache-dir --upgrade "pip>=26.1.2" "setuptools>=78.1.1" \
-    && /opt/woob/bin/pip install --no-cache-dir "woob==${WOOB_VERSION}" "curl_cffi>=0.7" \
-    && ln -s /opt/woob/bin/woob /usr/local/bin/woob
+COPY --from=woob /opt/woob /opt/woob
+# The compiled dependencies find their libraries in this image
+RUN ln -s /opt/woob/bin/woob /usr/local/bin/woob \
+    && /opt/woob/bin/python -c "import curl_cffi, lxml.etree, woob"
 
 # nginx serves the portal and Swagger, PHP-FPM runs the API
-COPY docker/nginx.conf /etc/nginx/sites-available/default
+COPY docker/nginx.conf /etc/nginx/http.d/default.conf
 COPY docker/php.ini /usr/local/etc/php/conf.d/carbure.ini
 COPY docker/php-fpm.conf /usr/local/etc/php-fpm.d/zz-carbure.conf
 

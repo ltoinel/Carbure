@@ -138,7 +138,7 @@ jobs:
       - name: Build the image
         run: docker compose -f docker/docker-compose.yml build carbure
 
-      # Security of the image: OS packages (Debian), PHP dependencies, secrets left in the
+      # Security of the image: OS packages (Alpine), PHP dependencies, secrets left in the
       # image. The build fails on a CRITICAL vulnerability that has a fix. woob and its
       # Python dependencies (/opt/woob) are not scanned: they follow the woob releases.
       - name: Scan the image (blocking)
@@ -160,6 +160,10 @@ jobs:
           image-ref: ltoinel/carbure:latest
           scanners: vuln,secret
           severity: CRITICAL,HIGH,MEDIUM
+          # Without it, the SARIF report keeps every severity (low, unknown)
+          limit-severities-for-sarif: true
+          # Only what can be fixed by an update of the image
+          ignore-unfixed: true
           format: sarif
           output: trivy-image.sarif
           trivyignores: .trivyignore
