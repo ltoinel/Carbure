@@ -191,34 +191,55 @@ class SetupTest extends TestCase
         $this->assertTrue(password_verify('supersecret', $admin['password']));
         $this->assertEquals(1, $admin['is_admin']);
         $this->assertSame('en', $admin['language']);
+        $this->assertSame('2026-10-13_base', $body['version']);
         $this->assertSame($body['version'], (new Migrator($db))->version());
         $this->assertSame([], (new Migrator($db))->pending());
     }
 
     public function testExistingDatabaseToMigrate()
     {
-        // A database installed before the last migration, with an administrator
+        // A database installed with an administrator, and a new version of Carbure that
+        // brings a migration (project copied with a test migration)
         $db = Installer::connect(getenv('DB_HOST') ?: '127.0.0.1', (int)(getenv('DB_PORT') ?: 3306), self::DB,
             getenv('DB_USER') ?: 'root', getenv('DB_PASSWORD') ?: '');
         Installer::installSchema($db, $this->root);
         Installer::createAdmin($db, 'boss', 'supersecret');
-        $db->query("DROP TABLE api_tokens");
-        $db->query("DELETE FROM schema_migrations WHERE version = '2026-10-07_api_tokens'");
+        $root = sys_get_temp_dir() . '/carbure-root-' . uniqid();
+        mkdir("$root/sql/migrations", 0777, true);
+        mkdir("$root/conf");
+        copy("$this->root/sql/carbure.sql", "$root/sql/carbure.sql");
+        copy("$this->root/conf/prod.sample.ini", "$root/conf/prod.sample.ini");
+        file_put_contents("$root/sql/migrations/2099-01-01_setup_test.sql",
+            "-- applied-if: SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'setup_test'\n"
+            . "CREATE TABLE setup_test (id int PRIMARY KEY);\n");
+        $setup = new Setup($root, $this->configFile, $this->codeFile);
 
-        [$status, $body] = $this->setup->handle('POST', '/setup/database', $this->fields());
-        $this->assertSame('outdated', $body['state']);
-        $this->assertSame(['2026-10-07_api_tokens'], $body['pending']);
-        $this->assertTrue($body['hasAdmin']);
+        try {
+            [$status, $body] = $setup->handle('POST', '/setup/database', $this->fields());
+            $this->assertSame('outdated', $body['state']);
+            $this->assertSame(['2099-01-01_setup_test'], $body['pending']);
+            $this->assertTrue($body['hasAdmin']);
 
-        // The migration needs the confirmation of a backup
-        [$status] = $this->setup->handle('POST', '/setup/install', $this->fields(['admin_password' => '']));
-        $this->assertSame(409, $status);
+            // The migration needs the confirmation of a backup
+            [$status] = $setup->handle('POST', '/setup/install', $this->fields(['admin_password' => '']));
+            $this->assertSame(409, $status);
 
-        [$status, $body] = $this->setup->handle('POST', '/setup/install', $this->fields(['admin_password' => '', 'backup_confirmed' => true]));
-        $this->assertSame(200, $status, json_encode($body));
-        $this->assertNull($body['username']);
-        $this->assertSame(1, $db->query("SHOW TABLES LIKE 'api_tokens'")->num_rows);
-        $this->assertSame(1, (int)$db->query("SELECT COUNT(*) FROM users")->fetch_row()[0]);
+            [$status, $body] = $setup->handle('POST', '/setup/install', $this->fields(['admin_password' => '', 'backup_confirmed' => true]));
+            $this->assertSame(200, $status, json_encode($body));
+            $this->assertNull($body['username']);
+            $this->assertSame('2099-01-01_setup_test', $body['version']);
+            $this->assertSame(1, $db->query("SHOW TABLES LIKE 'setup_test'")->num_rows);
+            $this->assertSame(1, (int)$db->query("SELECT COUNT(*) FROM users")->fetch_row()[0]);
+        } finally {
+            $db->query("DROP TABLE IF EXISTS setup_test");
+            unlink("$root/sql/migrations/2099-01-01_setup_test.sql");
+            unlink("$root/sql/carbure.sql");
+            unlink("$root/conf/prod.sample.ini");
+            rmdir("$root/conf");
+            rmdir("$root/sql/migrations");
+            rmdir("$root/sql");
+            rmdir($root);
+        }
     }
 
 }

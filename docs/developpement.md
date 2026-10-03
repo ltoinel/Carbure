@@ -128,11 +128,16 @@ bandeau du portail (`POST /api/system/migrate`).
    non nul quand la migration est déjà en place (par exemple une colonne présente dans
    `information_schema.COLUMNS`) : une base créée depuis `sql/carbure.sql`, ou migrée à la
    main, est alors reconnue au lieu d'échouer. Un test le vérifie.
-3. Reporter la modification dans `sql/carbure.sql` (installations neuves et tests).
+3. Reporter la modification dans `sql/carbure.sql` (installations neuves et tests) et
+   ajouter la version de la migration à la liste `schema_migrations` en fin de fichier.
 4. Tant que la migration peut ne pas être appliquée (instance hors Docker pas encore mise à
-   jour), le code qui en dépend doit rester tolérant (voir `Setting::get` ou
-   `User::login`), ou n'être déployé qu'après `php tools/migrate.php` ; le noter dans
+   jour), le code qui en dépend doit rester tolérant (par exemple en
+   interceptant l'erreur de la requête), ou n'être déployé qu'après `php tools/migrate.php` ; le noter dans
    `TODO.md`.
+
+Quand toutes les bases connues ont passé un ensemble de migrations, celles-ci peuvent être
+retirées : `sql/carbure.sql` les contient déjà (c'est ce qui a été fait pour la version 1.0,
+voir `sql/migrations/README.md`).
 
 ## Documentation
 

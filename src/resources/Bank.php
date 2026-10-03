@@ -484,13 +484,8 @@ final class Bank {
     private static function recordSyncResult($bankId, $success, $message)
     {
         [$number, $bank] = explode('@', $bankId, 2);
-        try {
-            Db::execute("UPDATE bank_account SET last_sync_at = NOW(), last_sync_status = ?, last_sync_message = ? WHERE account_number = ? AND bank_name = ?",
-                "ssss", $success ? 'OK' : 'ERROR', mb_substr((string)$message, 0, 500), $number, $bank);
-        } catch (Throwable $e) {
-            // Database not migrated yet (sql/migrations/2026-10-06_sync_status.sql): the sync goes on
-            Logger::error("Unable to record the sync result of $bankId: " . $e->getMessage());
-        }
+        Db::execute("UPDATE bank_account SET last_sync_at = NOW(), last_sync_status = ?, last_sync_message = ? WHERE account_number = ? AND bank_name = ?",
+            "ssss", $success ? 'OK' : 'ERROR', mb_substr((string)$message, 0, 500), $number, $bank);
     }
 
     private static function getBankIds()
@@ -577,12 +572,7 @@ final class Bank {
         if (empty($transactions)) {
             return 0;
         }
-        try {
-            $rules = Db::execute("SELECT keyword FROM bank_transaction_category_keyword WHERE notify = 1", "")->get_result()->fetch_all(MYSQLI_ASSOC);
-        } catch (Throwable $e) {
-            // Column not created yet (migration 2026-10-13_rule_notify.sql)
-            return 0;
-        }
+        $rules = Db::execute("SELECT keyword FROM bank_transaction_category_keyword WHERE notify = 1", "")->get_result()->fetch_all(MYSQLI_ASSOC);
         if (!$rules) {
             return 0;
         }

@@ -204,7 +204,6 @@ export function createProfileModule(getApiService) {
                 try {
                     this.apiTokens = await getApiService().fetchApiTokens();
                 } catch (error) {
-                    // Database not migrated yet (2026-10-07_api_tokens.sql): the section stays empty
                     this.apiTokens = [];
                 }
             },

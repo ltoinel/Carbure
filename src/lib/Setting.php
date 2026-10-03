@@ -21,12 +21,7 @@ final class Setting {
      */
     public static function get($name, $default = '')
     {
-        try {
-            $row = Db::queryOne("SELECT value FROM settings WHERE name = ?", "s", $name);
-        } catch (Throwable $e) {
-            // Table not created yet (migration 2026-10-09_settings.sql)
-            return $default;
-        }
+        $row = Db::queryOne("SELECT value FROM settings WHERE name = ?", "s", $name);
         return $row ? $row['value'] : $default;
     }
 

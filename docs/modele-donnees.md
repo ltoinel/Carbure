@@ -119,26 +119,19 @@ erDiagram
 | `budget` | Budget d'une catégorie pour un mois (unique par catégorie et date), en `DECIMAL(10,2)`. |
 | `budget_insight` | Insights : requête SQL renvoyant une colonne `amount`, avec les marqueurs `{month}` et `{year}` remplacés par des entiers ; `icon` (icône Material, facultative) et `color` (13 couleurs). |
 | `settings` | Réglages modifiés depuis le portail (`mcp_enabled`). |
-| `schema_migrations` | Migrations appliquées et leur date ; créée automatiquement par `Migrator` (absente de `sql/carbure.sql`). La version du schéma est la dernière migration enregistrée. |
+| `schema_migrations` | Migrations appliquées et leur date ; créée par `sql/carbure.sql` (version `2026-10-13_base`) ou par `Migrator`. La version du schéma est la dernière migration enregistrée. |
 
 ## Migrations
 
-| Fichier | Contenu |
-|---|---|
-| `2026-10-03_audit.sql` | `users.is_admin` (l'utilisateur 1 devient administrateur), `users.language`, `devices.token` en `varchar(200)`, clé étrangère `bank_transaction.user` en `ON DELETE RESTRICT` |
-| `2026-10-04_alerts.sql` | `users.alert_threshold`, index `transaction_date` sur `bank_transaction.date` |
-| `2026-10-05_schema.sql` | `budget.amount` en `DECIMAL(10,2)`, tables en `utf8mb4`, unicité des comptes bancaires |
-| `2026-10-06_sync_status.sql` | `bank_account.last_sync_at`, `last_sync_status`, `last_sync_message` |
-| `2026-10-07_api_tokens.sql` | Table `api_tokens` |
-| `2026-10-08_insight_icon.sql` | `budget_insight.icon` |
-| `2026-10-09_settings.sql` | Table `settings` |
-| `2026-10-10_last_login.sql` | `users.last_login` |
-| `2026-10-11_token_expiry.sql` | `api_tokens.expires_at` |
-| `2026-10-12_login_lockout.sql` | `users.failed_logins`, `users.locked_until` |
+Les migrations de la version 1.0 (`2026-10-03_audit` à `2026-10-13_rule_notify` : droits
+administrateur, alertes, `utf8mb4`, statut de synchronisation, jetons d'API, réglages,
+dernière connexion, verrouillage, notification des règles) sont intégrées à
+`sql/carbure.sql` et ont été retirées du dépôt. Une base créée depuis `sql/carbure.sql` a la
+version `2026-10-13_base`.
 
-Chaque migration déclare une ligne `-- applied-if: <requête>` qui permet de reconnaître
-une migration déjà appliquée (à la main, ou par `sql/carbure.sql`). Voir
-[Développement](developpement.md#migrations-de-base).
+Les prochaines migrations iront dans `sql/migrations/` avec leur ligne
+`-- applied-if: <requête>`, qui permet de reconnaître une migration déjà appliquée (à la
+main, ou par `sql/carbure.sql`). Voir [Développement](developpement.md#migrations-de-base).
 
 ## Modèle « foyer »
 

@@ -186,10 +186,7 @@ final class Category {
     #[ApiRoute('/category/keyword', method: 'GET')]
     public static function getKeywords()
     {
-        // notify exists once the migration 2026-10-13_rule_notify.sql is applied
-        $notify = Db::queryOne("SELECT COUNT(*) AS n FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE()
-            AND TABLE_NAME = 'bank_transaction_category_keyword' AND COLUMN_NAME = 'notify'", "")['n'] > 0;
-        $sql = "SELECT k.id, k.keyword, k.category, c.name AS category_name, " . ($notify ? "k.notify" : "0 AS notify") . "
+        $sql = "SELECT k.id, k.keyword, k.category, c.name AS category_name, k.notify
                 FROM bank_transaction_category_keyword k
                 JOIN bank_transaction_category c ON c.id = k.category
                 ORDER BY c.name, k.keyword";

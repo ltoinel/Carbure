@@ -85,14 +85,11 @@ class MigratorTest extends DatabaseTestCase
 
     public function testRealMigrationsAreDetectedOnTheCurrentSchema()
     {
-        // The test database comes from sql/carbure.sql: every real migration must
-        // declare an applied-if check that recognizes it
+        // The test database comes from sql/carbure.sql: every real migration must be in
+        // it, with an applied-if check that recognizes it
         $migrator = new Migrator(Db::getConnection());
-        $this->assertNotEmpty($migrator->available());
         $log = [];
         $migrator->migrate(function ($m) use (&$log) { $log[] = $m; }, true);
-        foreach ($log as $line) {
-            $this->assertStringEndsWith('already applied, recorded', $line);
-        }
+        $this->assertSame([], array_values(array_filter($log, fn($line) => !str_ends_with($line, 'already applied, recorded'))));
     }
 }

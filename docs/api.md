@@ -455,7 +455,7 @@ invalide, 404 s'il n'existe pas.
 ### `GET /system/schema` — administrateur
 
 Version du schéma de la base et migrations à appliquer :
-`{"version": "2026-10-12_login_lockout", "pending": []}`.
+`{"version": "2026-10-13_base", "pending": []}`.
 
 ### `POST /system/migrate` — administrateur
 

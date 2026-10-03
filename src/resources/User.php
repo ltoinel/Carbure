@@ -36,24 +36,23 @@ final class User {
         // check if the $username and the $password are valid in database
         $sql = "SELECT * FROM users where username=?";
         $user = Db::queryOne($sql, "s", $username);
-        $lockout = $user && array_key_exists('locked_until', $user);
 
         // Locked after too many failures (the password is not even checked);
         // compared by the database, whose clock wrote the date
-        if ($lockout && $user['locked_until'] !== null
+        if ($user && $user['locked_until'] !== null
             && Db::queryOne("SELECT ? > NOW() AS locked", "s", $user['locked_until'])['locked']) {
             throw new Error("Account locked after too many failed logins, until " . $user['locked_until']
                 . ": ask an administrator to unlock it", 423);
         }
 
         if (!$user || !self::verifyPassword($user, $password)) {
-            if ($lockout) {
+            if ($user) {
                 self::recordFailedLogin($user);
             }
             throw new Error("Invalid username or password", 401);
         }
 
-        if ($lockout && ((int)$user['failed_logins'] > 0 || $user['locked_until'] !== null)) {
+        if (((int)$user['failed_logins'] > 0 || $user['locked_until'] !== null)) {
             Db::execute("UPDATE users SET failed_logins = 0, locked_until = NULL WHERE id = ?", "i", $user['id']);
         }
 
@@ -65,12 +64,7 @@ final class User {
         $token = Jwt::createJwt($user['id']);
 
         // Shown to the administrators (Users tab)
-        try {
-            Db::execute("UPDATE users SET last_login = NOW() WHERE id = ?", "i", $user['id']);
-        } catch (Throwable $e) {
-            // Column not created yet (migration 2026-10-10_last_login.sql): the login goes on
-            Logger::error("Unable to record the last login: " . $e->getMessage());
-        }
+        Db::execute("UPDATE users SET last_login = NOW() WHERE id = ?", "i", $user['id']);
 
         return $token;
 
@@ -198,14 +192,7 @@ final class User {
     #[ApiRoute('/user', method: 'GET')]
     public static function get()
     {
-        // Columns of the migrations 2026-10-10_last_login and 2026-10-12_login_lockout
-        $columns = array_column(Db::execute("SELECT COLUMN_NAME FROM information_schema.COLUMNS
-            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users'", "")->get_result()->fetch_all(MYSQLI_ASSOC), 'COLUMN_NAME');
-        $extra = [];
-        foreach (['last_login', 'locked_until'] as $column) {
-            $extra[] = in_array($column, $columns, true) ? $column : "NULL AS $column";
-        }
-        $sql = "SELECT " . self::COLUMNS . ", " . implode(', ', $extra) . " FROM users";
+        $sql = "SELECT " . self::COLUMNS . ", last_login, locked_until FROM users";
         if (self::isAdmin()) {
             $stmt = Db::execute($sql . " ORDER BY username", "");
         } else {

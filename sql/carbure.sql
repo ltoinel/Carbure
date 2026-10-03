@@ -1,11 +1,11 @@
 -- Carbure: complete database schema
 --
--- Every migration of sql/migrations is included (up to 2026-10-13_rule_notify): a new database is
--- created from this file alone. The installation wizard runs it, or import it with
--- phpMyAdmin into an empty database (utf8mb4).
+-- A new database is created from this file alone: the installation wizard runs it,
+-- or import it with phpMyAdmin into an empty database (utf8mb4).
 --
--- A change of schema goes into a new migration sql/migrations/YYYY-MM-DD_name.sql
--- (with its "-- applied-if:" line) AND into this file, with its version below.
+-- A change of schema goes into this file AND into a migration
+-- sql/migrations/YYYY-MM-DD_name.sql for the existing databases (see its README),
+-- with its version added below.
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 SET NAMES utf8mb4;
@@ -173,7 +173,8 @@ CREATE TABLE `users` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
--- Table `schema_migrations`: migrations included in this schema
+-- Table `schema_migrations`: version of this schema (base of version 1.0, then the
+-- migrations included since)
 
 CREATE TABLE `schema_migrations` (
   `version` varchar(100) NOT NULL,
@@ -182,17 +183,7 @@ CREATE TABLE `schema_migrations` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 INSERT IGNORE INTO `schema_migrations` (`version`) VALUES
-('2026-10-03_audit'),
-('2026-10-04_alerts'),
-('2026-10-05_schema'),
-('2026-10-06_sync_status'),
-('2026-10-07_api_tokens'),
-('2026-10-08_insight_icon'),
-('2026-10-09_settings'),
-('2026-10-10_last_login'),
-('2026-10-11_token_expiry'),
-('2026-10-12_login_lockout'),
-('2026-10-13_rule_notify');
+('2026-10-13_base');
 
 SET FOREIGN_KEY_CHECKS = 1;
 COMMIT;

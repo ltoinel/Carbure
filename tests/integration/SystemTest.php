@@ -5,16 +5,14 @@ class SystemTest extends DatabaseTestCase
     public function testSchemaAndMigrate()
     {
         $this->loginAs(self::ADMIN);
-        Db::query("DROP TABLE IF EXISTS schema_migrations");
 
-        // The test database comes from carbure.sql: migrations are recognized and recorded
-        $this->assertNotEmpty(System::schema()['pending']);
-        $result = System::migrate();
-        $this->assertNotEmpty($result['applied']);
+        // The test database comes from carbure.sql: every migration included
         $schema = System::schema();
-        $this->assertSame($result['version'], $schema['version']);
         $this->assertSame([], $schema['pending']);
         $this->assertIsBool($schema['weakJwtSecret']);
+        $result = System::migrate();
+        $this->assertSame([], $result['applied']);
+        $this->assertSame($schema['version'], $result['version']);
     }
 
     public function testHealth()
