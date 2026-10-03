@@ -103,7 +103,7 @@ final class Bank {
             return;
         }
 
-        throw new Error("Unauthorized - Invalid or missing JWT token or sync token", 403);
+        throw new Error("Unauthorized - Invalid or missing JWT token or sync token", 401);
     }
 
     /**

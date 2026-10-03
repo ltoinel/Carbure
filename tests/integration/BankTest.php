@@ -108,7 +108,7 @@ class BankTest extends DatabaseTestCase
         Config::set('sync_token', 'scheduler-secret');
         try {
             $this->expectException(Error::class);
-            $this->expectExceptionCode(403);
+            $this->expectExceptionCode(401);
             $this->sync('wrong');
         } finally {
             Config::set('sync_token', '');

@@ -153,7 +153,7 @@ final class Webservice {
 
         // Protected endpoints require valid JWT token
         if (!Jwt::checkAuthorization()) {
-            throw new Error("Unauthorized - Invalid or missing JWT token", 403);
+            throw new Error("Unauthorized - Invalid or missing JWT token", 401);
         }
     }
 

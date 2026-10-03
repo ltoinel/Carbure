@@ -331,7 +331,7 @@ createApp({
                 this.username = this.loginForm.username;
                 
                 // Reinitialize services with new API URL and token
-                apiService = createApiService(this.apiBaseUrl, this.authToken);
+                apiService = createApiService(this.apiBaseUrl, this.authToken, () => this.sessionExpired());
                 budgetStore = createBudgetStore(apiService);
                 
                 // Clear password
@@ -349,6 +349,17 @@ createApp({
             } finally {
                 this.loggingIn = false;
             }
+        },
+
+        /**
+         * Expired or invalid token: back to the login screen with a message
+         */
+        sessionExpired() {
+            if (!this.isAuthenticated) {
+                return;
+            }
+            this.logout();
+            this.loginError = this.t('sessionExpired');
         },
 
         /**
@@ -431,7 +442,7 @@ createApp({
         // Only initialize services if authenticated
         if (this.isAuthenticated && this.apiBaseUrl) {
             // Initialize API service with token
-            apiService = createApiService(this.apiBaseUrl, this.authToken);
+            apiService = createApiService(this.apiBaseUrl, this.authToken, () => this.sessionExpired());
 
             // Initialize budget store
             budgetStore = createBudgetStore(apiService);

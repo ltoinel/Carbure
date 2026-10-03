@@ -94,7 +94,7 @@ class WebserviceTest extends TestCase
         $_SERVER['REQUEST_METHOD'] = 'GET';
 
         $this->expectException(Error::class);
-        $this->expectExceptionCode(403);
+        $this->expectExceptionCode(401);
         Webservice::exec();
     }
 
@@ -108,7 +108,7 @@ class WebserviceTest extends TestCase
             Webservice::exec();
             $this->fail('An error was expected');
         } catch (Error $e) {
-            $this->assertSame(403, $e->getCode());
+            $this->assertSame(401, $e->getCode());
         } finally {
             // The stream headers close the output buffers: restore PHPUnit's
             while (ob_get_level() < $level) {

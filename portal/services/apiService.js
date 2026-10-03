@@ -11,9 +11,24 @@
  * Creates an API service instance
  * @param {string} baseUrl - Base URL for API endpoints
  * @param {string} authToken - JWT authentication token
+ * @param {Function} onUnauthorized - Called when the API answers 401 (expired or invalid token)
  * @returns {Object} API service methods
  */
-export function createApiService(baseUrl, authToken = null) {
+export function createApiService(baseUrl, authToken = null, onUnauthorized = null) {
+    /**
+     * fetch() that reports an expired session (HTTP 401)
+     * @param {string} url - Request URL
+     * @param {Object} options - fetch options
+     * @returns {Promise<Response>}
+     */
+    async function authFetch(url, options) {
+        const response = await authFetch(url, options);
+        if (response.status === 401 && authToken && onUnauthorized) {
+            onUnauthorized();
+        }
+        return response;
+    }
+
     /**
      * Active AbortControllers for cancellable requests
      */
@@ -72,7 +87,7 @@ export function createApiService(baseUrl, authToken = null) {
         controllers.transactions = new AbortController();
         
         const url = `${baseUrl}/transaction?month=${month}&year=${year}`;
-        const response = await fetch(url, { 
+        const response = await authFetch(url, { 
             signal: controllers.transactions.signal,
             headers: getHeaders()
         });
@@ -96,7 +111,7 @@ export function createApiService(baseUrl, authToken = null) {
      * @throws {Error} If request fails
      */
     async function request(url, options, errorLabel) {
-        const response = await fetch(url, { ...options, headers: getHeaders() });
+        const response = await authFetch(url, { ...options, headers: getHeaders() });
         const text = await response.text();
 
         if (!response.ok) {
@@ -265,7 +280,7 @@ export function createApiService(baseUrl, authToken = null) {
             url += `&category=${categoryId}`;
         }
         
-        const response = await fetch(url, { 
+        const response = await authFetch(url, { 
             signal: controllers.budget.signal,
             headers: getHeaders()
         });
@@ -299,7 +314,7 @@ export function createApiService(baseUrl, authToken = null) {
      */
     async function updateBudget(budgetId, month, year, newBudget) {
         const url = `${baseUrl}/budget/${budgetId}?month=${month}&year=${year}`;
-        const response = await fetch(url, {
+        const response = await authFetch(url, {
             method: 'PUT',
             headers: getHeaders(),
             body: JSON.stringify({ budget: newBudget })
@@ -326,7 +341,7 @@ export function createApiService(baseUrl, authToken = null) {
         controllers.insights = new AbortController();
         
         const url = `${baseUrl}/budget/insights?month=${month}&year=${year}`;
-        const response = await fetch(url, { 
+        const response = await authFetch(url, { 
             signal: controllers.insights.signal,
             headers: getHeaders()
         });
@@ -356,7 +371,7 @@ export function createApiService(baseUrl, authToken = null) {
      */
     async function fetchUsers() {
         const url = `${baseUrl}/user`;
-        const response = await fetch(url, {
+        const response = await authFetch(url, {
             headers: getHeaders()
         });
         
@@ -375,7 +390,7 @@ export function createApiService(baseUrl, authToken = null) {
      */
     async function fetchMe() {
         const url = `${baseUrl}/user/me`;
-        const response = await fetch(url, {
+        const response = await authFetch(url, {
             headers: getHeaders()
         });
         
@@ -398,7 +413,7 @@ export function createApiService(baseUrl, authToken = null) {
      */
     async function createUser(username, password, email, firstname, lastname) {
         const url = `${baseUrl}/user`;
-        const response = await fetch(url, {
+        const response = await authFetch(url, {
             method: 'POST',
             headers: getHeaders(),
             body: JSON.stringify({ username, password, email, firstname, lastname })
@@ -429,7 +444,7 @@ export function createApiService(baseUrl, authToken = null) {
      */
     async function deleteUser(userId) {
         const url = `${baseUrl}/user?id=${userId}`;
-        const response = await fetch(url, {
+        const response = await authFetch(url, {
             method: 'DELETE',
             headers: getHeaders()
         });
@@ -480,7 +495,7 @@ export function createApiService(baseUrl, authToken = null) {
             body.password = password;
         }
         
-        const response = await fetch(url, {
+        const response = await authFetch(url, {
             method: 'PUT',
             headers: getHeaders(),
             body: JSON.stringify(body)
