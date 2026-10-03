@@ -9,7 +9,7 @@ L'écran de connexion demande l'URL de l'API, l'identifiant et le mot de passe. 
 l'URL sont conservés dans le navigateur (`localStorage`) jusqu'à la déconnexion.
 
 Les pages d'administration (Règles, Catégories, Comptes, Utilisateurs) suivent la même
-présentation : un bouton **Ajouter** en haut à droite ouvre le formulaire dans une fenêtre
+présentation : un bouton **+** en haut à droite ouvre le formulaire dans une fenêtre
 modale, qui sert aussi à la modification.
 
 Deux profils existent : **utilisateur** (transactions, budget, tendances, analyses,
@@ -116,7 +116,7 @@ protégée.
   clic ; sinon choisir la banque (configurées dans woob, ou toutes celles que woob supporte),
   l'identifiant du compte et le titulaire. Les identifiants bancaires ne passent jamais par le
   portail : une nouvelle banque se configure avec `php tools/install.php --add-bank`.
-- **Synchronisation** : lancement manuel avec progression en direct, statut OK/KO de chaque
+- **Synchronisation** : bouton de synchronisation de chaque compte, avec progression en direct, statut OK/KO de chaque
   étape par compte (opérations à venir, historique, notifications) et nombre de transactions
   reçues et nouvelles. En cas d'échec woob, un lien ouvre la recherche des tickets woob sur le
   module concerné.

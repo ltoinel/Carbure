@@ -759,9 +759,8 @@
                                         <span class="material-icons">auto_fix_high</span>
                                         {{ t('applyRules') }}
                                     </button>
-                                    <button class="btn-add" @click="openRuleModal()">
+                                    <button class="btn-add btn-add-icon" @click="openRuleModal()" :title="t('addRuleTitle')" :aria-label="t('addRuleTitle')">
                                         <span class="material-icons">add</span>
-                                        {{ t('addRuleTitle') }}
                                     </button>
                                 </div>
                             </div>
@@ -804,9 +803,8 @@
                                     <p class="rules-help">{{ t('categoriesHelp') }}</p>
                                 </div>
                                 <div class="panel-actions">
-                                    <button class="btn-add" @click="openCategoryModal()">
+                                    <button class="btn-add btn-add-icon" @click="openCategoryModal()" :title="t('addCategory')" :aria-label="t('addCategory')">
                                         <span class="material-icons">add</span>
-                                        {{ t('addCategory') }}
                                     </button>
                                 </div>
                             </div>
@@ -859,13 +857,8 @@
                                     <p class="rules-help">{{ t('accountsHelp') }}</p>
                                 </div>
                                 <div class="panel-actions">
-                                    <button class="btn-secondary" @click="startSync()" :disabled="syncStatus === 'running'" :title="t('syncHelp')">
-                                        <span class="material-icons" :class="{ spin: syncStatus === 'running' && !syncTarget }">sync</span>
-                                        {{ syncStatus === 'running' ? t('syncRunning') : t('syncAll') }}
-                                    </button>
-                                    <button class="btn-add" @click="openAccountModal()">
+                                    <button class="btn-add btn-add-icon" @click="openAccountModal()" :title="t('addAccountTitle')" :aria-label="t('addAccountTitle')">
                                         <span class="material-icons">add</span>
-                                        {{ t('addAccountTitle') }}
                                     </button>
                                 </div>
                             </div>
@@ -967,9 +960,8 @@
                         <div class="users-container">
                             <div class="users-header">
                                 <h2>{{ t('usersTitle') }}</h2>
-                                <button class="btn-add" @click="openAddUserModal">
+                                <button class="btn-add btn-add-icon" @click="openAddUserModal" :title="t('addUser')" :aria-label="t('addUser')">
                                     <span class="material-icons">add</span>
-                                    {{ t('addUser') }}
                                 </button>
                             </div>
                             

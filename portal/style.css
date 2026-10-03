@@ -3950,3 +3950,24 @@ a.footer-brand:hover {
     margin: 0;
     font-size: 13px;
 }
+
+/* Add buttons: the + alone, the label is in the tooltip */
+.btn-add.btn-add-icon {
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    border-radius: 50%;
+}
+
+.btn-add.btn-add-icon .material-icons {
+    font-size: 28px;
+}
+
+@media (max-width: 768px) {
+    .users-header .btn-add.btn-add-icon,
+    .panel-actions .btn-add.btn-add-icon {
+        width: 48px;
+        align-self: flex-end;
+    }
+}
