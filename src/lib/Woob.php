@@ -46,6 +46,32 @@ final class Woob {
     }
 
     /**
+     * List the bank accounts of every configured woob backend.
+     *
+     * @return array The accounts: id ("<account>@<backend>"), label, balance, currency...
+     * @throws Exception If woob fails or returns nothing while reporting an error
+     */
+    public static function listAccounts()
+    {
+        $woob_path = Config::get('woob_path');
+        $woob_logging = Config::get('woob_logging');
+        $command = "$woob_path bank list -f json --logging $woob_logging";
+        Logger::debug("Calling woob : $command");
+
+        // Plain JSON request: no Server-Sent Events heartbeat in the output
+        $stderr = '';
+        $stdout = self::executeWithHeartbeat($command, $stderr, false);
+        $accounts = self::parseOutput('accounts', $stdout);
+
+        if ($accounts === null && preg_match('/error|exception|traceback|unable|no module/i', $stderr)) {
+            Logger::error("woob returned no account", ["stderr" => $stderr]);
+            throw new Exception("woob returned no account" . self::lastLine($stderr));
+        }
+
+        return array_values(array_filter($accounts ?? [], fn($a) => is_array($a) && !empty($a['id'])));
+    }
+
+    /**
      * Last non empty line of an output, prefixed with ": " (empty string if none).
      *
      * @param string $output The command output
@@ -83,12 +109,13 @@ final class Woob {
     /**
      * Execute a shell command with SSE heartbeats sent during execution.
      *
-     * @param string $command The shell command to execute
-     * @param string $stderr  Receives the error output of the command
+     * @param string $command   The shell command to execute
+     * @param string $stderr    Receives the error output of the command
+     * @param bool   $heartbeat Send SSE heartbeats while waiting (stream routes only)
      * @return string The stdout output of the command
      * @throws Exception If the process fails to start or exits with a non-zero code
      */
-    private static function executeWithHeartbeat($command, &$stderr = '')
+    private static function executeWithHeartbeat($command, &$stderr = '', $heartbeat = true)
     {
         $descriptors = [
             0 => ['pipe', 'r'],
@@ -115,7 +142,9 @@ final class Woob {
             $except = null;
 
             if (stream_select($read, $write, $except, self::HEARTBEAT_INTERVAL) === 0) {
-                Webservice::sendHeartbeat();
+                if ($heartbeat) {
+                    Webservice::sendHeartbeat();
+                }
                 continue;
             }
 

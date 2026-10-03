@@ -23,7 +23,8 @@ if (($argv[1] ?? '') === 'config') {
 }
 
 if (($argv[1] ?? '') === 'bank' && $type === 'list') {
-    $backend = $argv[array_search('-b', $argv) + 1] ?? 'bank';
+    $index = array_search('-b', $argv);
+    $backend = $index === false ? 'bnp' : $argv[$index + 1];
     if ($backend === 'none') {
         fwrite(STDERR, "Error(none): Unable to load module \"none\"\n");
         exit(0);

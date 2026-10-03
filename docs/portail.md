@@ -83,6 +83,19 @@ mot-clé reçoit la catégorie choisie.
   l'historique et affiche le nombre de transactions mises à jour. Les règles sont
   aussi appliquées automatiquement après chaque synchronisation (dernier mois).
 
+## Comptes
+
+- **Mes comptes** : les comptes bancaires suivis, modifiables (identifiant woob, banque) et
+  supprimables (les transactions déjà importées sont conservées).
+- **Ajouter un compte** : « Rechercher mes comptes dans woob » liste les comptes des banques
+  configurées dans woob (libellé, solde) et permet de les suivre en un clic ; un formulaire
+  permet aussi l'ajout manuel. Les identifiants bancaires ne passent jamais par le portail :
+  une nouvelle banque se configure avec `php tools/install.php --add-bank`.
+- **Synchronisation** : lancement manuel avec progression en direct, statut OK/KO de chaque
+  étape par compte (opérations à venir, historique, notifications) et nombre de transactions
+  reçues et nouvelles. En cas d'échec woob, un lien ouvre la recherche des tickets woob sur le
+  module concerné.
+
 ## Analyses
 
 Indicateurs du mois sélectionné (table `budget_insight`).

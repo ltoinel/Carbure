@@ -206,8 +206,27 @@ final class Webservice {
         Logger::debug("Result", $response);
 
         // Return JSON response with pretty print in debug mode
-        $flags = JSON_NUMERIC_CHECK | (Config::get('log_level') === 'debug' ? JSON_PRETTY_PRINT : 0);
-        return json_encode($response, $flags);
+        $flags = Config::get('log_level') === 'debug' ? JSON_PRETTY_PRINT : 0;
+        return json_encode(self::normalizeNumbers($response), $flags);
+    }
+
+    /**
+     * Convert the numeric strings returned by MySQL (amounts, ids...) to JSON numbers,
+     * like JSON_NUMERIC_CHECK, but keep as strings the identifiers that a number would
+     * alter: leading zeros ("00087654321") or more digits than a number can hold exactly.
+     *
+     * @param mixed $value The response
+     * @return mixed The response with numbers
+     */
+    public static function normalizeNumbers($value)
+    {
+        if (is_array($value)) {
+            return array_map([self::class, 'normalizeNumbers'], $value);
+        }
+        if (is_string($value) && preg_match('/^-?(0|[1-9][0-9]{0,14})(\.[0-9]{1,15})?$/', $value)) {
+            return $value + 0;
+        }
+        return $value;
     }
 
     /**

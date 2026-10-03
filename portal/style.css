@@ -3277,3 +3277,98 @@ button .material-icons {
 .sync-step-count {
     margin-left: 6px;
 }
+
+/* ===== Accounts ===== */
+.accounts-list {
+    list-style: none;
+    margin: 12px 0 0;
+    padding: 0;
+}
+
+.account-item {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--divider);
+}
+
+.account-item:last-child {
+    border-bottom: none;
+}
+
+.account-icon {
+    color: var(--primary-color);
+}
+
+.account-details {
+    flex: 1;
+    min-width: 0;
+}
+
+.account-name {
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.account-balance {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-primary);
+}
+
+.account-item button {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.account-edit {
+    flex: 1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.account-edit input {
+    flex: 1;
+    min-width: 140px;
+    padding: 8px 10px;
+    border: 1px solid var(--divider);
+    border-radius: var(--border-radius-md);
+    font-size: 14px;
+    font-family: 'Roboto', sans-serif;
+}
+
+.accounts-list.discovered {
+    margin-bottom: 16px;
+}
+
+.account-form {
+    margin-top: 12px;
+}
+
+.discover-error {
+    margin: 12px 0 0;
+}
+
+.inline-icon {
+    font-size: 16px;
+    vertical-align: -3px;
+}
+
+.rules-help code {
+    background: var(--background);
+    padding: 2px 6px;
+    border-radius: var(--border-radius-sm);
+    font-size: 12px;
+}
+
+.woob-issues-link {
+    display: block;
+    margin-top: 6px;
+    color: var(--error-color);
+    font-weight: 500;
+    text-decoration: underline;
+}

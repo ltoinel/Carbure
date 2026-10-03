@@ -242,3 +242,20 @@ VALUES ('admin', '<hash>', 'admin@example.org', 1, 'fr');
 
 Après un déploiement qui modifie les routes, le cache APCu est invalidé automatiquement
 (signature des fichiers de `src/resources/`).
+
+## En cas d'échec de la synchronisation
+
+Dans l'onglet **Comptes**, chaque étape en échec affiche la cause renvoyée par woob. Les sites
+des banques changent régulièrement : un module woob peut cesser de fonctionner du jour au
+lendemain. Avant toute chose, vérifiez si le problème est connu ou en cours de correction dans
+les tickets woob, en cherchant le nom du module de votre banque (le portail propose
+directement ce lien) :
+
+```
+https://gitlab.com/search?group_id=11540390&project_id=25520182&scope=work_items&search=<module>&sort=created_desc
+```
+
+Remplacez `<module>` par le nom du module woob (par exemple `bnp`, `creditmutuel`,
+`boursorama`). Une fois le correctif publié, woob met à jour ses modules automatiquement
+(`woob_auto_update=true`).
+

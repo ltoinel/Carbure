@@ -96,6 +96,27 @@ Comptes bancaires de l'utilisateur :
 [{ "bankId": "12345678@bnp", "account_number": "12345678", "bank_name": "bnp" }]
 ```
 
+### `POST /bank`
+
+Suit un compte pour l'utilisateur connecté. Paramètres : `account_number` (identifiant du
+compte dans woob) et `bank_name` (nom du backend woob). `409` si le compte est déjà suivi,
+`400` si un identifiant est invalide.
+
+### `PUT /bank`
+
+Modifie un compte suivi : `id`, `account_number`, `bank_name`. `404` si le compte n'appartient
+pas à l'utilisateur.
+
+### `DELETE /bank?id=`
+
+Ne suit plus le compte ; ses transactions déjà importées sont conservées.
+
+### `GET /bank/discover`
+
+Interroge woob (`woob bank list`) et renvoie les comptes des banques configurées :
+`bankId`, `account_number`, `bank_name`, `label`, `balance`, `currency`, `followed`. Peut
+prendre plusieurs secondes (connexion aux banques).
+
 ### `GET /bank/sync` — flux SSE
 
 Lance la synchronisation de **tous** les comptes. Accès autorisé avec :

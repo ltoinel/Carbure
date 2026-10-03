@@ -109,6 +109,17 @@ export function createSyncModule(getApiService) {
 
         methods: {
             /**
+             * Search of the woob issues about a bank module (known problems and fixes)
+             * @param {string} bankId - Account "<number>@<backend>" (backend named after the module)
+             * @returns {string} URL of the search on the woob GitLab
+             */
+            woobIssuesUrl(bankId) {
+                const module = String(bankId).split('@').pop();
+                return 'https://gitlab.com/search?group_id=11540390&project_id=25520182&scope=work_items'
+                    + `&search=${encodeURIComponent(module)}&sort=created_desc`;
+            },
+
+            /**
              * Loads the bank accounts of the user
              * @returns {Promise<void>}
              */

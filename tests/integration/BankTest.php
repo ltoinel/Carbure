@@ -19,10 +19,80 @@ class BankTest extends DatabaseTestCase
     public function testGetAccountsOfTheUser()
     {
         $this->loginAs(self::USER);
-        $this->assertSame([['bankId' => '111@bnp', 'account_number' => '111', 'bank_name' => 'bnp']], Bank::get());
+        $accounts = Bank::get();
+        $this->assertCount(1, $accounts);
+        $this->assertSame(['bankId' => '111@bnp', 'account_number' => '111', 'bank_name' => 'bnp'],
+            array_diff_key($accounts[0], ['id' => true]));
+        $this->assertGreaterThan(0, $accounts[0]['id']);
 
         $this->loginAs(self::ADMIN);
         $this->assertCount(2, Bank::get());
+    }
+
+    public function testCrud()
+    {
+        $this->loginAs(self::USER);
+
+        $account = Bank::create('222', 'bnp');
+        $this->assertSame('222@bnp', $account['bankId']);
+        $this->assertCount(2, Bank::get());
+
+        $updated = Bank::update($account['id'], '333', 'creditmutuel');
+        $this->assertSame('333@creditmutuel', $updated['bankId']);
+        $this->assertContains('333@creditmutuel', array_column(Bank::get(), 'bankId'));
+
+        $this->assertTrue(Bank::delete($account['id']));
+        $this->assertSame(['111@bnp'], array_column(Bank::get(), 'bankId'));
+    }
+
+    public function testCreateDuplicateAndInvalid()
+    {
+        $this->loginAs(self::USER);
+        try {
+            Bank::create('111', 'bnp');
+            $this->fail('Duplicate accepted');
+        } catch (Error $e) {
+            $this->assertSame(409, $e->getCode());
+        }
+
+        $this->expectException(Error::class);
+        $this->expectExceptionCode(400);
+        Bank::create('1; rm -rf /', 'bnp');
+    }
+
+    public function testCannotModifyAnotherUserAccount()
+    {
+        $this->loginAs(self::ADMIN);
+        $adminAccount = Bank::get()[0]['id'];
+
+        $this->loginAs(self::USER);
+        $this->expectException(Error::class);
+        $this->expectExceptionCode(404);
+        Bank::delete($adminAccount);
+    }
+
+    public function testUpdateToAnAlreadyFollowedAccount()
+    {
+        $this->loginAs(self::ADMIN);
+        $accounts = Bank::get();
+
+        $this->expectException(Error::class);
+        $this->expectExceptionCode(409);
+        Bank::update($accounts[1]['id'], $accounts[0]['account_number'], $accounts[0]['bank_name']);
+    }
+
+    public function testDiscover()
+    {
+        $this->loginAs(self::USER);
+        $accounts = Bank::discover();
+
+        $this->assertCount(2, $accounts);
+        $this->assertSame('00012345678@bnp', $accounts[0]['bankId']);
+        $this->assertSame('Compte chèques', $accounts[0]['label']);
+        $this->assertFalse($accounts[0]['followed']);
+
+        Bank::create('00012345678', 'bnp');
+        $this->assertTrue(Bank::discover()[0]['followed']);
     }
 
     public function testSync()

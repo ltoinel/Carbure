@@ -53,6 +53,28 @@ class WebserviceTest extends TestCase
         Webservice::callService('EchoResource', 'echo', ['first' => 'a', 'unknown' => 'x']);
     }
 
+    public function testNumbersKeepIdentifiersIntact()
+    {
+        $normalized = Webservice::normalizeNumbers([
+            'amount' => '-42.50', 'id' => '12', 'zero' => '0', 'progress' => '113',
+            'account_number' => '00087654321',
+            'bnp' => '2741588268268091098895144775404880395391938022422272465153',
+            'exponent' => '1e5', 'label' => 'CB 100% BIO', 'null' => null, 'int' => 7,
+            'nested' => [['account_number' => '0123']],
+        ]);
+
+        $this->assertSame(-42.5, $normalized['amount']);
+        $this->assertSame(12, $normalized['id']);
+        $this->assertSame(0, $normalized['zero']);
+        $this->assertSame('00087654321', $normalized['account_number']);
+        $this->assertSame('2741588268268091098895144775404880395391938022422272465153', $normalized['bnp']);
+        $this->assertSame('1e5', $normalized['exponent']);
+        $this->assertSame('CB 100% BIO', $normalized['label']);
+        $this->assertNull($normalized['null']);
+        $this->assertSame(7, $normalized['int']);
+        $this->assertSame('0123', $normalized['nested'][0]['account_number']);
+    }
+
     public function testSensitiveValuesAreMasked()
     {
         $method = new ReflectionMethod(Webservice::class, 'maskSensitive');

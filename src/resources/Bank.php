@@ -23,7 +23,8 @@ final class Bank {
     {
         $userId = Jwt::getUserIdFromToken();
         
-        $sql = "SELECT DISTINCT account_number, bank_name FROM bank_account WHERE user_id = ? ORDER BY bank_name, account_number";
+        $sql = "SELECT MIN(id) AS id, account_number, bank_name FROM bank_account WHERE user_id = ?
+                GROUP BY account_number, bank_name ORDER BY bank_name, account_number";
         $stmt = Db::execute($sql, "i", $userId);
         $result = $stmt->get_result();
         
@@ -31,6 +32,7 @@ final class Bank {
         if ($result->num_rows > 0) {
             while ($row = $result->fetch_assoc()) {
                 $accounts[] = array(
+                    'id' => $row['id'],
                     'bankId' => $row['account_number'] . '@' . $row['bank_name'],
                     'account_number' => $row['account_number'],
                     'bank_name' => $row['bank_name']
@@ -41,6 +43,134 @@ final class Bank {
         return $accounts;
     }
     
+    /**
+     * Validate a bank account identifier and woob backend name.
+     *
+     * @param string $accountNumber The account identifier in woob
+     * @param string $bankName      The woob backend name
+     * @return void
+     * @throws Error If one of them is invalid
+     */
+    private static function validateAccount($accountNumber, $bankName)
+    {
+        if (!preg_match('/^[A-Za-z0-9_.:-]{1,100}$/', (string)$accountNumber)) {
+            throw new Error("Invalid account number", 400);
+        }
+        if (!preg_match('/^[A-Za-z0-9_-]{1,50}$/', (string)$bankName)) {
+            throw new Error("Invalid bank (woob backend) name", 400);
+        }
+    }
+
+    /**
+     * Get an account of the authenticated user.
+     *
+     * @param int $id The account id
+     * @return array The account
+     * @throws Error If the account does not exist or belongs to another user
+     */
+    private static function ownAccount($id)
+    {
+        $account = Db::queryOne("SELECT * FROM bank_account WHERE id = ? AND user_id = ?", "ii", $id, Jwt::getUserIdFromToken());
+        if (!$account) {
+            throw new Error("Account not found", 404);
+        }
+        return $account;
+    }
+
+    /**
+     * Follow a bank account (it is synchronized from now on).
+     *
+     * @param string $account_number The account identifier in woob
+     * @param string $bank_name      The woob backend name
+     * @return array The account
+     * @throws Error If invalid or already followed
+     */
+    #[ApiRoute('/bank', method: 'POST')]
+    public static function create($account_number, $bank_name)
+    {
+        self::validateAccount($account_number, $bank_name);
+        $userId = Jwt::getUserIdFromToken();
+
+        if (Db::queryOne("SELECT id FROM bank_account WHERE account_number = ? AND bank_name = ? AND user_id = ?", "ssi", $account_number, $bank_name, $userId)) {
+            throw new Error("This account is already followed", 409);
+        }
+
+        $stmt = Db::execute("INSERT INTO bank_account (bank_name, account_number, user_id) VALUES (?, ?, ?)", "ssi", $bank_name, $account_number, $userId);
+
+        return ['id' => $stmt->insert_id, 'bankId' => "$account_number@$bank_name", 'account_number' => $account_number, 'bank_name' => $bank_name];
+    }
+
+    /**
+     * Modify a followed bank account.
+     *
+     * @param int    $id             The account id
+     * @param string $account_number The account identifier in woob
+     * @param string $bank_name      The woob backend name
+     * @return array The account
+     * @throws Error If not found, invalid or already followed
+     */
+    #[ApiRoute('/bank', method: 'PUT')]
+    public static function update($id, $account_number, $bank_name)
+    {
+        self::ownAccount($id);
+        self::validateAccount($account_number, $bank_name);
+
+        if (Db::queryOne("SELECT id FROM bank_account WHERE account_number = ? AND bank_name = ? AND user_id = ? AND id <> ?", "ssii", $account_number, $bank_name, Jwt::getUserIdFromToken(), $id)) {
+            throw new Error("This account is already followed", 409);
+        }
+
+        Db::execute("UPDATE bank_account SET account_number = ?, bank_name = ? WHERE id = ?", "ssi", $account_number, $bank_name, $id);
+
+        return ['id' => (int)$id, 'bankId' => "$account_number@$bank_name", 'account_number' => $account_number, 'bank_name' => $bank_name];
+    }
+
+    /**
+     * Stop following a bank account (its transactions are kept).
+     *
+     * @param int $id The account id
+     * @return bool True if deleted
+     * @throws Error If not found
+     */
+    #[ApiRoute('/bank', method: 'DELETE')]
+    public static function delete($id)
+    {
+        self::ownAccount($id);
+        Db::execute("DELETE FROM bank_account WHERE id = ?", "i", $id);
+        return true;
+    }
+
+    /**
+     * Accounts available in the configured woob backends, to follow them in one click.
+     *
+     * @return array The accounts (bankId, account_number, bank_name, label, balance, currency, followed)
+     * @throws Exception If woob fails
+     */
+    #[ApiRoute('/bank/discover', method: 'GET')]
+    public static function discover()
+    {
+        $followed = array_column(self::get(), 'bankId');
+
+        $accounts = [];
+        foreach (Woob::listAccounts() as $account) {
+            $at = strrpos($account['id'], '@');
+            if ($at === false) {
+                continue;
+            }
+            $bankId = $account['id'];
+            $accounts[] = [
+                'bankId' => $bankId,
+                'account_number' => substr($bankId, 0, $at),
+                'bank_name' => substr($bankId, $at + 1),
+                'label' => $account['label'] ?? null,
+                'balance' => $account['balance'] ?? null,
+                'currency' => $account['currency'] ?? null,
+                'followed' => in_array($bankId, $followed, true),
+            ];
+        }
+
+        return $accounts;
+    }
+
     /**
      * Get the list of coming transactions from a bank.
      *

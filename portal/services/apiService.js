@@ -212,6 +212,45 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
     }
 
     /**
+     * Follows a bank account
+     * @param {string} account_number - Account identifier in woob
+     * @param {string} bank_name - woob backend name
+     * @returns {Promise<Object>} The account
+     */
+    async function createBankAccount(account_number, bank_name) {
+        return request(`${baseUrl}/bank`, { method: 'POST', body: JSON.stringify({ account_number, bank_name }) }, 'Failed to add the account');
+    }
+
+    /**
+     * Modifies a followed bank account
+     * @param {number} id - Account ID
+     * @param {string} account_number - Account identifier in woob
+     * @param {string} bank_name - woob backend name
+     * @returns {Promise<Object>} The account
+     */
+    async function updateBankAccount(id, account_number, bank_name) {
+        return request(`${baseUrl}/bank`, { method: 'PUT', body: JSON.stringify({ id, account_number, bank_name }) }, 'Failed to modify the account');
+    }
+
+    /**
+     * Stops following a bank account (its transactions are kept)
+     * @param {number} id - Account ID
+     * @returns {Promise<void>}
+     */
+    async function deleteBankAccount(id) {
+        await request(`${baseUrl}/bank?id=${encodeURIComponent(id)}`, { method: 'DELETE' }, 'Failed to delete the account');
+    }
+
+    /**
+     * Accounts available in the banks configured in woob (can take a while)
+     * @returns {Promise<Array>} Array of {bankId, account_number, bank_name, label, balance, currency, followed}
+     */
+    async function discoverBankAccounts() {
+        const data = await request(`${baseUrl}/bank/discover`, {}, 'Failed to query woob');
+        return Array.isArray(data) ? data : [];
+    }
+
+    /**
      * Starts a bank synchronization and reports each progress message.
      * The API answers with Server-Sent Events: "data: <message>" blocks, and
      * ": heartbeat" comments while woob is working.
@@ -586,6 +625,10 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
         fetchMe,
         fetchDevices,
         fetchBankAccounts,
+        createBankAccount,
+        updateBankAccount,
+        deleteBankAccount,
+        discoverBankAccounts,
         syncBanks,
         fetchCategories,
         setTransactionCategory,

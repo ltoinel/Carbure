@@ -185,10 +185,10 @@
             </button>
             <button 
                 class="tab-button" 
-                :class="{ active: activeTab === 'sync' }" 
-                @click="setActiveTab('sync')">
-                <span class="material-icons" :class="{ spin: syncStatus === 'running' }">sync</span>
-                {{ t('tabSync') }}
+                :class="{ active: activeTab === 'accounts' }" 
+                @click="setActiveTab('accounts')">
+                <span class="material-icons" :class="{ spin: syncStatus === 'running' }">{{ syncStatus === 'running' ? 'sync' : 'account_balance' }}</span>
+                {{ t('tabAccounts') }}
             </button>
             <button 
                 v-if="isAdmin"
@@ -785,9 +785,76 @@
                     </div>
                 </div>
 
-                <!-- Synchronization Tab -->
-                <div v-else-if="activeTab === 'sync'" key="sync" class="tab-panel">
+                <!-- Accounts Tab: followed accounts and synchronization -->
+                <div v-else-if="activeTab === 'accounts'" key="accounts" class="tab-panel">
                     <div class="trends-view">
+                        <section class="trends-card">
+                            <div class="trends-chart-head">
+                                <h2>{{ t('accountsTitle') }}</h2>
+                            </div>
+                            <div v-if="bankAccounts.length === 0" class="transactions-hint">{{ t('noAccounts') }}</div>
+                            <ul v-else class="accounts-list">
+                                <li v-for="a in bankAccounts" :key="a.id" class="account-item">
+                                    <span class="material-icons account-icon">account_balance</span>
+                                    <template v-if="accountEdit && accountEdit.id === a.id">
+                                        <form class="account-edit" @submit.prevent="saveAccount">
+                                            <input v-model="accountEdit.account_number" :aria-label="t('accountNumber')" :placeholder="t('accountNumber')" maxlength="100" />
+                                            <input v-model="accountEdit.bank_name" :aria-label="t('accountBank')" :placeholder="t('accountBank')" maxlength="50" />
+                                            <button type="submit">{{ t('save') }}</button>
+                                            <button type="button" class="btn-secondary" @click="accountEdit = null">{{ t('cancel') }}</button>
+                                        </form>
+                                    </template>
+                                    <template v-else>
+                                        <div class="account-details">
+                                            <div class="account-name">{{ accountName(a) }}</div>
+                                            <code class="device-token">{{ a.bankId }}</code>
+                                        </div>
+                                        <div class="device-actions">
+                                            <button class="btn-icon" @click="editAccount(a)" :title="t('editAccount')"><span class="material-icons">edit</span></button>
+                                            <button class="btn-icon btn-icon-delete" @click="removeAccount(a)" :title="t('deleteAccount')"><span class="material-icons">delete</span></button>
+                                        </div>
+                                    </template>
+                                </li>
+                            </ul>
+                        </section>
+
+                        <section class="trends-card">
+                            <div class="trends-toolbar">
+                                <div>
+                                    <h2>{{ t('addAccountTitle') }}</h2>
+                                    <p class="rules-help">{{ t('addAccountHelp') }}</p>
+                                </div>
+                                <button class="sync-button" @click="discoverAccounts" :disabled="discovering">
+                                    <span class="material-icons" :class="{ spin: discovering }">{{ discovering ? 'sync' : 'travel_explore' }}</span>
+                                    {{ discovering ? t('discovering') : t('discoverAccounts') }}
+                                </button>
+                            </div>
+                            <div v-if="discoverError" class="sync-step-error discover-error">{{ discoverError }}</div>
+                            <ul v-if="discoveredAccounts.length" class="accounts-list discovered">
+                                <li v-for="d in discoveredAccounts" :key="d.bankId" class="account-item">
+                                    <span class="material-icons account-icon">savings</span>
+                                    <div class="account-details">
+                                        <div class="account-name">{{ d.label || accountName(d) }}</div>
+                                        <code class="device-token">{{ d.bankId }}</code>
+                                    </div>
+                                    <span v-if="d.balance !== null && d.balance !== undefined" class="account-balance">{{ formatAmount(d.balance) }} {{ d.currency === 'EUR' || !d.currency ? t('currencySymbol') : d.currency }}</span>
+                                    <span v-if="isFollowed(d)" class="category-chip">{{ t('accountFollowed') }}</span>
+                                    <button v-else @click="followAccount(d.account_number, d.bank_name)">
+                                        <span class="material-icons">add</span>{{ t('followAccount') }}
+                                    </button>
+                                </li>
+                            </ul>
+                            <form class="rules-form account-form" @submit.prevent="addAccount">
+                                <input v-model="newAccount.account_number" :placeholder="t('accountNumber')" :aria-label="t('accountNumber')" maxlength="100" />
+                                <input v-model="newAccount.bank_name" :placeholder="t('accountBankPlaceholder')" :aria-label="t('accountBank')" maxlength="50" />
+                                <button type="submit"><span class="material-icons">add</span>{{ t('addRule') }}</button>
+                            </form>
+                            <p class="rules-help">
+                                <span class="material-icons inline-icon">lock</span>
+                                {{ t('newBankHint') }} <code>php tools/install.php --add-bank</code>
+                            </p>
+                        </section>
+
                         <section class="trends-card">
                             <div class="trends-toolbar">
                                 <div>
@@ -798,12 +865,6 @@
                                     <span class="material-icons" :class="{ spin: syncStatus === 'running' }">sync</span>
                                     {{ syncStatus === 'running' ? t('syncRunning') : t('syncStart') }}
                                 </button>
-                            </div>
-                            <div class="sync-accounts" v-if="bankAccounts.length">
-                                <span class="summary-label">{{ t('syncAccounts') }}</span>
-                                <span v-for="a in bankAccounts" :key="a.bankId" class="category-chip">
-                                    {{ a.bank_name.toUpperCase() }} ···{{ String(a.account_number).slice(-4) }}
-                                </span>
                             </div>
                         </section>
 
@@ -832,7 +893,13 @@
                                                 <span v-else-if="step.count" class="sync-step-count">{{ t('syncStepCount', { count: step.count }) }}</span>
                                             </span>
                                             <span class="sync-step-state">{{ t('syncState_' + step.status) }}</span>
-                                            <div v-if="step.error" class="sync-step-error">{{ step.error }}</div>
+                                            <div v-if="step.error" class="sync-step-error">
+                                                {{ step.error }}
+                                                <a v-if="/woob/i.test(step.error)" class="woob-issues-link" :href="woobIssuesUrl(acc.id)" target="_blank" rel="noopener">
+                                                    <span class="material-icons inline-icon">bug_report</span>
+                                                    {{ t('woobIssues', { module: acc.id.split('@').pop() }) }}
+                                                </a>
+                                            </div>
                                         </li>
                                     </ul>
                                 </div>
