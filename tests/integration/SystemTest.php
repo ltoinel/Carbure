@@ -20,6 +20,7 @@ class SystemTest extends DatabaseTestCase
         $this->assertSame('ok', $health['status']);
         $this->assertSame('ok', $health['database']);
         $this->assertArrayHasKey('schema', $health);
+        $this->assertSame(trim(file_get_contents(dirname(__DIR__, 2) . '/VERSION')), $health['version']);
     }
 
     public function testAdministratorsOnly()

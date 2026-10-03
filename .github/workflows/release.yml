@@ -23,11 +23,15 @@ jobs:
       - name: Build the archive
         run: |
           name="carbure-${GITHUB_REF_NAME}"
-          mkdir -p dist
-          git archive --format=tar.gz --prefix="$name/" -o "dist/$name.tar.gz" HEAD \
-            src portal swagger sql conf/prod.sample.ini README.md LICENSE
-          git archive --format=zip --prefix="$name/" -o "dist/$name.zip" HEAD \
-            src portal swagger sql conf/prod.sample.ini README.md LICENSE
+          mkdir -p dist build
+          git archive --format=tar --prefix="$name/" HEAD \
+            src portal swagger sql conf/prod.sample.ini tools/carbure.php tools/migrate.php README.md LICENSE \
+            | tar -x -C build
+          # Version shown in the footer of the portal and by /api/health
+          echo "${GITHUB_REF_NAME#v}" > "build/$name/VERSION"
+          mkdir -p "build/$name/logs"
+          tar -czf "dist/$name.tar.gz" -C build "$name"
+          (cd build && zip -qr "../dist/$name.zip" "$name")
           (cd dist && sha256sum * > SHA256SUMS)
 
       - name: Publish the release
@@ -69,6 +73,8 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
+          build-args: |
+            CARBURE_VERSION=${{ github.ref_name }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           # Bill of materials and build provenance attached to the image

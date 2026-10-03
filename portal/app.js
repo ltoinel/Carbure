@@ -77,6 +77,8 @@ createApp({
             selectedYear: new Date().getFullYear(),
             locale: localStorage.getItem('locale') || defaultLocale(),
             apiBaseUrl: null,
+            // Version of Carbure (GET /api/health), shown in the footer
+            appVersion: null,
             
             // Authentication state
             isAuthenticated: false,
@@ -470,6 +472,12 @@ createApp({
         if (!this.isAuthenticated) {
             this.checkSetup();
         }
+
+        // Version of the server for the footer
+        fetch(`${(this.loginForm.apiUrl || window.location.origin).replace(/\/$/, '')}/api/health`)
+            .then(response => response.ok ? response.json() : null)
+            .then(health => { this.appVersion = health && health.version ? health.version : null; })
+            .catch(() => { this.appVersion = null; });
 
         // Read API base URL from DOM attribute (legacy support)
         try {

@@ -83,7 +83,9 @@ final class Setup {
             }
             // Healthy while waiting for the installation (Docker HEALTHCHECK)
             if ($path === '/health' && $method === 'GET') {
-                return [200, ['status' => 'setup']];
+                $file = "$this->root/VERSION";
+                $version = is_file($file) ? trim((string)file_get_contents($file)) : 'dev';
+                return [200, ['status' => 'setup', 'version' => preg_match('/^[0-9A-Za-z.+-]{1,40}$/', $version) ? $version : 'dev']];
             }
             if ($path === '/setup/database' && $method === 'POST') {
                 $this->checkCode($data);

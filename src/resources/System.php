@@ -16,14 +16,26 @@ final class System {
      * Health of the instance, for the Docker HEALTHCHECK and supervision tools
      * (no authentication, no data): the database answers.
      *
-     * @return array status (ok), database (ok), schema (version)
+     * @return array status (ok), version (of Carbure), database (ok), schema (version)
      * @throws Exception If the database does not answer (HTTP 500)
      */
     #[ApiRoute('/health', method: 'GET', public: true)]
     public static function health()
     {
         Db::query("SELECT 1");
-        return ['status' => 'ok', 'database' => 'ok', 'schema' => (new Migrator(Db::getConnection()))->version()];
+        return ['status' => 'ok', 'version' => self::version(), 'database' => 'ok', 'schema' => (new Migrator(Db::getConnection()))->version()];
+    }
+
+    /**
+     * Version of Carbure: the VERSION file written by the release build ("dev" otherwise).
+     *
+     * @return string The version
+     */
+    public static function version()
+    {
+        $file = dirname(__DIR__, 2) . '/VERSION';
+        $version = is_file($file) ? trim((string)file_get_contents($file)) : '';
+        return preg_match('/^[0-9A-Za-z.+-]{1,40}$/', $version) ? $version : 'dev';
     }
 
     /**

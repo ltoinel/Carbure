@@ -1765,7 +1765,7 @@
                 <span class="footer-sep" aria-hidden="true"></span>
                 <small class="footer-copy">&copy; {{ new Date().getFullYear() }} Tous droits réservés</small>
                 <span class="footer-sep" aria-hidden="true"></span>
-                <small class="footer-version">v1.0.0</small>
+                <small class="footer-version" v-if="appVersion">{{ appVersion === 'dev' ? 'dev' : 'v' + appVersion }}</small>
             </div>
         </footer>
         </template>

@@ -3,8 +3,11 @@
 FROM php:8.3-fpm-bookworm
 
 ARG WOOB_VERSION=3.7
+# Version of Carbure (the release tag), shown in the portal footer and by /api/health
+ARG CARBURE_VERSION=dev
 
 LABEL org.opencontainers.image.title="Carbure" \
+      org.opencontainers.image.version="${CARBURE_VERSION}" \
       org.opencontainers.image.description="Household budget web portal and API, bank synchronization with woob" \
       org.opencontainers.image.source="https://github.com/ltoinel/Carbure" \
       org.opencontainers.image.licenses="MIT"
@@ -36,7 +39,8 @@ COPY --chown=www-data:www-data . .
 
 # Persistent data in /data: configuration, logs and woob settings (bank backends).
 # conf/ is writable by PHP: the installation wizard writes conf/prod.ini (-> /data)
-RUN ln -sf /data/conf/prod.ini conf/prod.ini \
+RUN echo "${CARBURE_VERSION#v}" > VERSION \
+    && ln -sf /data/conf/prod.ini conf/prod.ini \
     && ln -sf /data/conf/setup.code conf/setup.code \
     && rm -rf logs && ln -s /data/logs logs \
     && rm -rf conf/certs && ln -s /data/conf/certs conf/certs \
