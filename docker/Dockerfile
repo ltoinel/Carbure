@@ -35,9 +35,11 @@ LABEL org.opencontainers.image.title="Carbure" \
       org.opencontainers.image.licenses="MIT"
 
 # nginx, Python for woob (with the libraries of its compiled dependencies), and the
-# PHP extensions mysqli and APCu (built with temporary packages, removed afterwards)
-# hadolint ignore=DL3018
-RUN apk add --no-cache nginx python3 curl ca-certificates libffi libxml2 libxslt libjpeg-turbo zlib libstdc++ \
+# PHP extensions mysqli and APCu (built with temporary packages, removed afterwards);
+# the packages of the base image are upgraded to the security fixes released since
+# hadolint ignore=DL3017,DL3018
+RUN apk upgrade --no-cache \
+    && apk add --no-cache nginx python3 curl ca-certificates libffi libxml2 libxslt libjpeg-turbo zlib libstdc++ \
     && apk add --no-cache --virtual .build-deps $PHPIZE_DEPS linux-headers \
     && docker-php-ext-install mysqli \
     && pecl install apcu \
