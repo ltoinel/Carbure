@@ -1,0 +1,213 @@
+<?php
+
+/**
+ * Insight.php
+ *
+ * Insights of the Insights tab: a name, a color and an SQL query returning an
+ * `amount` for a month ({month} and {year} are replaced by the selected month).
+ * Administrators manage them; as the SQL is stored and executed by the server,
+ * it is restricted to one read-only SELECT on the bank data, run in a read-only
+ * transaction.
+ *
+ * @author     Ludovic Toinel
+ * @copyright  2026 Carbure App
+ */
+
+final class Insight {
+
+    /**
+     * Colors of the insight cards
+     */
+    public const COLORS = ['red', 'green', 'blue', 'orange', 'gray'];
+
+    /**
+     * Words refused in an insight query: writes, administration, files, locks, delays
+     */
+    private const FORBIDDEN_WORDS = 'INSERT|UPDATE|DELETE|REPLACE|MERGE|UPSERT|DROP|ALTER|CREATE|TRUNCATE|RENAME|GRANT|REVOKE|'
+        . 'LOCK|UNLOCK|CALL|HANDLER|EXECUTE|PREPARE|DEALLOCATE|SET|DO|LOAD|LOAD_FILE|OUTFILE|DUMPFILE|INTO|SLEEP|BENCHMARK|'
+        . 'GET_LOCK|RELEASE_LOCK|SHOW|DESCRIBE|EXPLAIN|KILL|SHUTDOWN|FLUSH|RESET|PURGE|INSTALL|UNINSTALL|USER|PASSWORD|CURRENT_USER|SYSTEM_USER|SESSION_USER';
+
+    /**
+     * Tables an insight cannot read: credentials and devices, and the system schemas
+     */
+    private const FORBIDDEN_TABLES = 'users|api_tokens|devices|mysql|information_schema|performance_schema|sys';
+
+    /**
+     * All the insights with their SQL (administrators).
+     *
+     * @return array The insights: id, name, color, sql
+     */
+    #[ApiRoute('/insight', method: 'GET')]
+    public static function get()
+    {
+        User::requireAdmin();
+        return Db::execute("SELECT id, name, color, `sql` FROM budget_insight ORDER BY id", "")->get_result()->fetch_all(MYSQLI_ASSOC);
+    }
+
+    /**
+     * Create an insight (administrators); the query is tested on the current month.
+     *
+     * @param string $name  The name (1 to 20 characters)
+     * @param string $color red, green, blue, orange or gray
+     * @param string $sql   SELECT … AS amount, with {month} and {year}
+     * @return array The insight with the amount of the current month
+     * @throws Error If a field or the query is invalid
+     */
+    #[ApiRoute('/insight', method: 'POST')]
+    public static function create($name, $color, $sql)
+    {
+        User::requireAdmin();
+        [$name, $color, $sql] = self::validate($name, $color, $sql);
+        $amount = self::test($sql);
+
+        $stmt = Db::execute("INSERT INTO budget_insight (name, color, `sql`) VALUES (?, ?, ?)", "sss", $name, $color, $sql);
+
+        return ['id' => $stmt->insert_id, 'name' => $name, 'color' => $color, 'sql' => $sql, 'amount' => $amount];
+    }
+
+    /**
+     * Modify an insight (administrators); the query is tested on the current month.
+     *
+     * @param int    $id    The insight
+     * @param string $name  The name (1 to 20 characters)
+     * @param string $color red, green, blue, orange or gray
+     * @param string $sql   SELECT … AS amount, with {month} and {year}
+     * @return array The insight with the amount of the current month
+     * @throws Error If not found, or a field or the query is invalid
+     */
+    #[ApiRoute('/insight', method: 'PUT')]
+    public static function update($id, $name, $color, $sql)
+    {
+        User::requireAdmin();
+        if (!Db::queryOne("SELECT id FROM budget_insight WHERE id = ?", "i", $id)) {
+            throw new Error("Insight not found", 404);
+        }
+        [$name, $color, $sql] = self::validate($name, $color, $sql);
+        $amount = self::test($sql);
+
+        Db::execute("UPDATE budget_insight SET name = ?, color = ?, `sql` = ? WHERE id = ?", "sssi", $name, $color, $sql, $id);
+
+        return ['id' => (int)$id, 'name' => $name, 'color' => $color, 'sql' => $sql, 'amount' => $amount];
+    }
+
+    /**
+     * Delete an insight (administrators).
+     *
+     * @param int $id The insight
+     * @return bool True if deleted
+     * @throws Error If not found
+     */
+    #[ApiRoute('/insight', method: 'DELETE')]
+    public static function delete($id)
+    {
+        User::requireAdmin();
+        $stmt = Db::execute("DELETE FROM budget_insight WHERE id = ?", "i", $id);
+        if ($stmt->affected_rows === 0) {
+            throw new Error("Insight not found", 404);
+        }
+        return true;
+    }
+
+    /**
+     * Compute the amount of an insight query for a month, in a read-only transaction.
+     *
+     * @param string $sql   The query with {month} and {year}
+     * @param int    $month The month
+     * @param int    $year  The year
+     * @return float|null The amount (null if the query fails)
+     */
+    public static function amount($sql, $month, $year)
+    {
+        try {
+            return self::run($sql, $month, $year);
+        } catch (Throwable $e) {
+            Logger::error("Insight query failed: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Check the fields of an insight.
+     *
+     * @param string $name  The name
+     * @param string $color The color
+     * @param string $sql   The query
+     * @return array [name, color, sql] normalized
+     * @throws Error If a field is invalid
+     */
+    public static function validate($name, $color, $sql)
+    {
+        $name = trim((string)$name);
+        if ($name === '' || mb_strlen($name) > 20) {
+            throw new Error("The name must contain 1 to 20 characters", 400);
+        }
+        if (!in_array($color, self::COLORS, true)) {
+            throw new Error("Invalid color", 400);
+        }
+
+        $sql = rtrim(trim((string)$sql), "; \t\r\n");
+        if ($sql === '' || mb_strlen($sql) > 500) {
+            throw new Error("The query must contain 1 to 500 characters", 400);
+        }
+        if (!preg_match('/^SELECT\s/i', $sql)) {
+            throw new Error("The query must be a SELECT", 400);
+        }
+        // One statement, no comment (they could hide a part of the query)
+        if (preg_match('/;|--|#|\/\*|\*\//', $sql)) {
+            throw new Error("The query must be a single statement without comments", 400);
+        }
+        if (preg_match('/\b(' . self::FORBIDDEN_WORDS . ')\b/i', $sql, $match)) {
+            throw new Error("Forbidden keyword in the query: " . strtoupper($match[1]), 400);
+        }
+        if (preg_match('/\b(' . self::FORBIDDEN_TABLES . ')\b/i', $sql, $match)) {
+            throw new Error("The query cannot read " . $match[1], 400);
+        }
+        if (!preg_match('/\bAS\s+`?amount`?\b/i', $sql)) {
+            throw new Error("The query must return a column named amount (… AS amount)", 400);
+        }
+
+        return [$name, $color, $sql];
+    }
+
+    /**
+     * Run a query on the current month to check it before saving it.
+     *
+     * @param string $sql The query
+     * @return float|null The amount
+     * @throws Error If the query fails
+     */
+    private static function test($sql)
+    {
+        try {
+            return self::run($sql, (int)date('m'), (int)date('Y'));
+        } catch (Throwable $e) {
+            throw new Error("Invalid query: " . $e->getMessage(), 400);
+        }
+    }
+
+    /**
+     * Run an insight query in a read-only transaction.
+     *
+     * @param string $sql   The query with {month} and {year}
+     * @param int    $month The month
+     * @param int    $year  The year
+     * @return float|null The amount
+     * @throws Throwable If the query fails or does not return an amount
+     */
+    private static function run($sql, $month, $year)
+    {
+        $sql = str_replace(['{month}', '{year}'], [(string)(int)$month, (string)(int)$year], $sql);
+
+        Db::query("START TRANSACTION READ ONLY");
+        try {
+            $row = Db::query($sql)->fetch_assoc();
+        } finally {
+            Db::query("COMMIT");
+        }
+
+        if (!is_array($row) || !array_key_exists('amount', $row)) {
+            throw new Error("The query must return a column named amount", 400);
+        }
+        return $row['amount'] === null ? null : round((float)$row['amount'], 2);
+    }
+}

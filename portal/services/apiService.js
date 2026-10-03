@@ -178,6 +178,36 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
     }
 
     /**
+     * Fetches the insights with their SQL (administrators)
+     * @returns {Promise<Array>} Array of {id, name, color, sql}
+     */
+    async function fetchInsightDefinitions() {
+        const data = await request(`${baseUrl}/insight`, {}, 'Failed to fetch the insights');
+        return Array.isArray(data) ? data : [];
+    }
+
+    /**
+     * Creates or modifies an insight (the query is checked by the server)
+     * @param {Object} insight - {id (null for a new one), name, color, sql}
+     * @returns {Promise<Object>} The insight with the amount of the current month
+     */
+    async function saveInsight(insight) {
+        const { id, name, color, sql } = insight;
+        return id
+            ? request(`${baseUrl}/insight`, { method: 'PUT', body: JSON.stringify({ id, name, color, sql }) }, 'Failed to modify the insight')
+            : request(`${baseUrl}/insight`, { method: 'POST', body: JSON.stringify({ name, color, sql }) }, 'Failed to create the insight');
+    }
+
+    /**
+     * Deletes an insight
+     * @param {number} id - Insight ID
+     * @returns {Promise<void>}
+     */
+    async function deleteInsight(id) {
+        await request(`${baseUrl}/insight?id=${encodeURIComponent(id)}`, { method: 'DELETE' }, 'Failed to delete the insight');
+    }
+
+    /**
      * Fetches the API tokens of the authenticated user (without the tokens themselves)
      * @returns {Promise<Array>} Array of {id, name, token_hint, created_at, last_used_at}
      */
@@ -706,6 +736,9 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
         fetchMe,
         fetchDevices,
         fetchApiTokens,
+        fetchInsightDefinitions,
+        saveInsight,
+        deleteInsight,
         createApiToken,
         deleteApiToken,
         fetchBankAccounts,

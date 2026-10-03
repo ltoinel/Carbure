@@ -123,7 +123,11 @@ protégée.
 
 ## Analyses
 
-Indicateurs du mois sélectionné (table `budget_insight`).
+Indicateurs du mois sélectionné (table `budget_insight`). Un administrateur les ajoute,
+modifie et supprime (bouton **+**, crayon et corbeille de chaque carte) : un nom, une couleur
+et une requête SQL `SELECT … AS amount` où `{month}` et `{year}` sont remplacés par le mois
+affiché. La requête est testée à l'enregistrement ; l'erreur éventuelle s'affiche dans la
+modale.
 
 ## Utilisateurs (administrateurs)
 

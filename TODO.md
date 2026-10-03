@@ -10,8 +10,6 @@ Tâches restant à réaliser sur Carbure. Une tâche terminée est retirée de c
 - [ ] Changer le mot de passe MySQL présent dans l'ancien historique (dépôt `Carbure-Archive`).
 - [ ] Ajouter `sync_token` dans `conf/prod.ini` et l'utiliser dans le cron
       (`/api/bank/sync` avec l'en-tête `X-Sync-Token`).
-- [ ] Appliquer `sql/migrations/2026-10-07_api_tokens.sql` (jetons d'accès du serveur MCP)
-      **avant** de déployer.
 - [ ] Appliquer `sql/migrations/2026-10-06_sync_status.sql` (date et statut de la dernière
       synchro par compte) **avant** de déployer : l'onglet Comptes lit ces colonnes.
 - [ ] Appliquer `sql/migrations/2026-10-05_schema.sql` (DECIMAL, utf8mb4, comptes uniques ;
@@ -21,11 +19,6 @@ Tâches restant à réaliser sur Carbure. Une tâche terminée est retirée de c
       puis vérifier la synchro BNP. Alternative : passer à l'image Docker de Carbure, qui
       embarque woob et `curl_cffi`.
 - [ ] Supprimer le dépôt privé `Carbure-Archive` (après une sauvegarde `git bundle` si besoin).
-
-## Évolutions
-
-- [ ] Remplacer le SQL stocké dans `budget_insight` par des insights définis dans le code
-      (nécessite de connaître les insights actuellement utilisés en production).
 
 ## Dette technique
 

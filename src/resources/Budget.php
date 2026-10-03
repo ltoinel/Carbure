@@ -219,26 +219,10 @@ final class Budget {
             $year = date('Y');
         }
 
-        $sql = "SELECT * from budget_insight";
-
-        // For earch insights in database.     
-        $result = Db::query($sql);
-        $insights = array();
-        if ($result->num_rows > 0) {
-
-            // We fill the date into the SQL requests
-            while ($row = $result->fetch_assoc()) {
-                $row["sql"] = str_replace("{month}", (int)$month, $row["sql"]);
-                $row["sql"] = str_replace("{year}", (int)$year, $row["sql"]);
-                $insights[] = $row;
-            }
-        }
-
-        // For each insights we calculate the SQL associated
+        // Each query runs in a read-only transaction; a failing query gives 0
+        $insights = Db::execute("SELECT * FROM budget_insight ORDER BY id", "")->get_result()->fetch_all(MYSQLI_ASSOC);
         foreach ($insights as &$insight) {
-            $result = Db::query($insight["sql"]);
-            $amount = $result->fetch_assoc()["amount"]; 
-            $insight["amount"] = ($amount == null) ? 0 : $amount;
+            $insight["amount"] = Insight::amount($insight["sql"], $month, $year) ?? 0;
             unset($insight["sql"]);
         }
 

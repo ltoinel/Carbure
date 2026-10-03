@@ -255,6 +255,15 @@ curl "https://exemple.fr/api/budget/trends?months=6&offset=12" -H "Authorization
 `month`, `year` : indicateurs définis dans la table `budget_insight` (`id`, `name`,
 `color`, `amount`).
 
+### `GET /insight`, `POST /insight`, `PUT /insight`, `DELETE /insight?id=` — administrateur
+
+Gestion des insights : `name` (1 à 20 caractères), `color` (`red`, `green`, `blue`,
+`orange`, `gray`), `sql`. La requête doit être un unique `SELECT` renvoyant une colonne
+`amount`, sans commentaire ni mot-clé d'écriture ou d'administration, et ne peut pas lire
+les tables `users`, `api_tokens`, `devices` ni les schémas système ; elle est testée sur le
+mois courant avant l'enregistrement (`400` avec la cause sinon). `POST` et `PUT` renvoient le
+montant du mois courant.
+
 ### `GET /budget/insights/history`
 
 `year` : pour chaque indicateur, la liste `history` des montants mois par mois.

@@ -4005,3 +4005,38 @@ a.footer-brand:hover {
 .profile-devices .users-header .rules-help {
     margin: 4px 0 0;
 }
+
+/* ===== Insights administration ===== */
+.insight-card {
+    position: relative;
+}
+
+.insight-actions {
+    display: flex;
+    gap: 4px;
+    margin-left: auto;
+    align-self: flex-start;
+}
+
+.modal-insight {
+    max-width: 640px;
+}
+
+.modal-body textarea {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid var(--divider);
+    border-radius: var(--border-radius-md);
+    font-family: 'Roboto Mono', ui-monospace, monospace;
+    font-size: 13px;
+    background: var(--surface);
+    color: var(--text-primary);
+    box-sizing: border-box;
+    resize: vertical;
+}
+
+.modal-body textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(239, 72, 96, 0.1);
+}

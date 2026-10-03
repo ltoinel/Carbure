@@ -20,6 +20,18 @@ Un administrateur ne peut pas supprimer son propre compte ; un utilisateur propr
 de transactions ne peut pas être supprimé ; le dernier administrateur ne peut pas perdre
 son rôle.
 
+## Insights (SQL stocké)
+
+Les insights sont des requêtes SQL stockées en base et exécutées par le serveur. Seul un
+administrateur peut les gérer, et chaque requête est encadrée :
+
+- à l'enregistrement : un unique `SELECT`, sans `;` ni commentaire, sans mot-clé d'écriture,
+  d'administration, de fichier (`INTO OUTFILE`, `LOAD_FILE`) ou de temporisation (`SLEEP`,
+  `BENCHMARK`), sans accès aux tables `users`, `api_tokens`, `devices` ni aux schémas système ;
+  la requête est testée avant d'être enregistrée ;
+- à l'exécution : dans une **transaction en lecture seule** (`START TRANSACTION READ ONLY`),
+  et une requête en échec donne `0` sans bloquer les autres.
+
 ## Jetons d'accès (MCP)
 
 Le serveur MCP (`/api/mcp`) accepte des jetons d'accès créés par chaque utilisateur dans

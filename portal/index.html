@@ -491,11 +491,17 @@
                         <p>{{ t('loadingInsightsMessage') }}</p>
                     </div>
 
-                    <div v-else-if="insights.length > 0" class="content-wrapper">
+                    <div v-else-if="insights.length > 0 || isAdmin" class="content-wrapper">
                         <div class="insights-container">
-                            <div class="insights-header">
+                            <div class="insights-header panel-header">
                                 <h2>{{ t('insightsTitle') }}</h2>
+                                <div v-if="isAdmin" class="panel-actions">
+                                    <button class="btn-add btn-add-icon" @click="openInsightModal()" :title="t('addInsight')" :aria-label="t('addInsight')">
+                                        <span class="material-icons">add</span>
+                                    </button>
+                                </div>
                             </div>
+                            <div v-if="insights.length === 0" class="transactions-hint">{{ t('noInsightsMessage') }}</div>
                             <div class="insights-grid">
                             <div v-for="insight in insights" :key="insight.id" class="insight-card" :class="'insight-' + insight.color">
                                 <div class="insight-icon">
@@ -506,6 +512,14 @@
                                     <div class="insight-value" :class="{ 'negative': insight.amount < 0 }">
                                         {{ formatAmount(Math.abs(insight.amount)) }} {{ t('currencySymbol') }}
                                     </div>
+                                </div>
+                                <div v-if="isAdmin" class="insight-actions">
+                                    <button class="btn-icon" @click="openInsightModal(insight)" :title="t('editInsight')" :aria-label="t('editInsight') + ' ' + getInsightName(insight.name)">
+                                        <span class="material-icons">edit</span>
+                                    </button>
+                                    <button class="btn-icon btn-icon-delete" @click="removeInsight(insight)" :title="t('deleteInsight')" :aria-label="t('deleteInsight') + ' ' + getInsightName(insight.name)">
+                                        <span class="material-icons">delete</span>
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -1124,6 +1138,50 @@
                     </div>
                 </div>
             </transition>
+        </div>
+
+        <!-- Insight Modal -->
+        <div v-if="insightForm" class="modal-overlay" @click.self="closeInsightModal">
+            <div class="modal modal-form modal-insight">
+                <div class="modal-header">
+                    <span class="material-icons">analytics</span>
+                    <h3>{{ insightForm.id ? t('editInsight') : t('addInsight') }}</h3>
+                    <button class="modal-close" @click="closeInsightModal" :aria-label="t('close')">
+                        <span class="material-icons">close</span>
+                    </button>
+                </div>
+                <form class="modal-body" id="insight-form" @submit.prevent="submitInsight">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="insight-name">{{ t('insightName') }} *</label>
+                            <input id="insight-name" v-model="insightForm.name" maxlength="20" required />
+                        </div>
+                        <div class="form-group">
+                            <label for="insight-color">{{ t('categoryColor') }}</label>
+                            <select id="insight-color" v-model="insightForm.color">
+                                <option v-for="c in insightColors" :key="c" :value="c">{{ t('insightColor_' + c) }}</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="insight-sql">{{ t('insightSql') }} *</label>
+                        <textarea id="insight-sql" v-model="insightForm.sql" rows="6" maxlength="500" spellcheck="false"
+                                  aria-describedby="insight-sql-help" :aria-invalid="insightError ? 'true' : 'false'"></textarea>
+                        <small id="insight-sql-help">{{ t('insightSqlHelp') }}</small>
+                    </div>
+                    <div v-if="insightError" class="sync-step-error" role="alert">{{ insightError }}</div>
+                </form>
+                <div class="modal-footer">
+                    <button class="btn-secondary" @click="closeInsightModal">
+                        <span class="material-icons">cancel</span>
+                        {{ t('cancel') }}
+                    </button>
+                    <button type="submit" form="insight-form" :disabled="savingInsight">
+                        <span class="material-icons">check_circle</span>
+                        {{ t('save') }}
+                    </button>
+                </div>
+            </div>
         </div>
 
         <!-- API Token Modal -->
