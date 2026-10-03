@@ -128,7 +128,7 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Lint the Dockerfile
-        uses: hadolint/hadolint-action@v3.1.0
+        uses: hadolint/hadolint-action@v3.5.0
         with:
           dockerfile: Dockerfile
           failure-threshold: error
@@ -139,7 +139,7 @@ jobs:
       # Security of the image: OS packages (Debian), PHP and Python (woob) dependencies,
       # secrets left in the image. The build fails on a CRITICAL vulnerability that has a fix.
       - name: Scan the image (blocking)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ghcr.io/ltoinel/carbure:latest
           scanners: vuln,secret
@@ -151,7 +151,7 @@ jobs:
 
       - name: Scan the image (report)
         if: always()
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ghcr.io/ltoinel/carbure:latest
           scanners: vuln,secret
@@ -163,7 +163,7 @@ jobs:
 
       - name: Publish the scan in the Security tab
         if: always() && github.event_name != 'pull_request'
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: trivy-image.sarif
           category: trivy-image
