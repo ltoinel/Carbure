@@ -12,11 +12,11 @@ Tâches restant à réaliser sur Carbure. Une tâche terminée est retirée de c
 - [ ] Changer le mot de passe MySQL présent dans l'ancien historique (dépôt `Carbure-Archive`).
 - [ ] Ajouter `sync_token` dans `conf/prod.ini` et l'utiliser dans le cron
       (`/api/bank/sync` avec l'en-tête `X-Sync-Token`).
-- [ ] Lancer `php tools/migrate.php --status` puis `php tools/migrate.php` sur le serveur de
-      prod : enregistre la version du schéma (migrations déjà appliquées à la main reconnues)
-      et applique celles qui manquent, a priori `2026-10-06_sync_status` (statut de synchro,
-      lu par l'onglet Comptes) et `2026-10-05_schema` (DECIMAL, utf8mb4, comptes uniques).
-      Sans PHP CLI sur le NAS : appliquer ces deux fichiers dans phpMyAdmin.
+- [ ] Mettre la base de prod à jour : après le déploiement, un administrateur voit le bandeau
+      **Mise à jour de la base de données** dans le portail → sauvegarder la base (phpMyAdmin),
+      puis **Mettre à jour**. Les migrations déjà appliquées à la main sont reconnues ; restent
+      a priori `2026-10-05_schema` à `2026-10-13_rule_notify` (statut de synchro, insights,
+      paramètres, connexions, jetons, règles). Le serveur web doit pouvoir lire `sql/`.
 - [ ] Installer `curl_cffi` (>= 0.7) dans l'image Docker woob (`ltoinel/woob:3.7`), requis par
       le correctif BNP appliqué dans `woob/.local/share/woob/modules/3.7/woob_modules/bnp`,
       puis vérifier la synchro BNP. Alternative : passer à l'image Docker de Carbure, qui
