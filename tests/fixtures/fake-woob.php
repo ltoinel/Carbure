@@ -8,6 +8,7 @@
  *
  * - account "fail@bank"  : writes on stderr and exits with code 1
  * - account "empty@bank" : no output
+ * - account "broken@bank": no output, error on stderr, exit code 0 (module not loaded)
  * - account "slow@bank"  : waits 2 seconds before answering
  * - other accounts       : one JSON array of transactions per line, like woob -f json
  */
@@ -21,6 +22,11 @@ if ($account === 'fail@bank') {
 }
 
 if ($account === 'empty@bank') {
+    exit(0);
+}
+
+if ($account === 'broken@bank') {
+    fwrite(STDERR, "Error(bnp): Unable to load module \"bnp\": No module named 'curl_cffi'\n");
     exit(0);
 }
 

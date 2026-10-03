@@ -828,7 +828,8 @@
                                             </span>
                                             <span class="sync-step-label">
                                                 {{ t('syncStep_' + step.kind) }}
-                                                <span v-if="step.count" class="sync-step-count">{{ t('syncStepCount', { count: step.count }) }}</span>
+                                                <span v-if="step.created !== null && step.created !== undefined" class="sync-step-count">{{ t('syncStepResult', { count: step.count, created: step.created }) }}</span>
+                                                <span v-else-if="step.count" class="sync-step-count">{{ t('syncStepCount', { count: step.count }) }}</span>
                                             </span>
                                             <span class="sync-step-state">{{ t('syncState_' + step.status) }}</span>
                                             <div v-if="step.error" class="sync-step-error">{{ step.error }}</div>

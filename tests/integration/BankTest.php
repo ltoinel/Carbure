@@ -33,6 +33,8 @@ class BankTest extends DatabaseTestCase
         $output = $this->sync();
 
         $this->assertStringContainsString('data: Syncing 111@bnp (coming)...', $output);
+        $this->assertStringContainsString('data: Done 111@bnp (coming): 1 received, 1 new', $output);
+        $this->assertStringContainsString('data: Done 111@bnp (history): 3 received, 3 new', $output);
         $this->assertStringContainsString('data: Error syncing fail@bank', $output);
         $this->assertStringContainsString('data: Synchronization complete', $output);
 
@@ -138,6 +140,7 @@ class BankTest extends DatabaseTestCase
         $output = $this->sync();
 
         $this->assertStringContainsString('Notifying users of empty@bank', $output);
+        $this->assertStringContainsString('Done empty@bank (history): 0 received, 0 new', $output);
         $this->assertSame(0, Db::queryOne("SELECT COUNT(*) AS n FROM bank_transaction WHERE user=2", "")['n']);
     }
 

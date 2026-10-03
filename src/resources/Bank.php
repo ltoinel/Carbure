@@ -53,6 +53,7 @@ final class Bank {
 
         if (empty($transactions)) {
             Logger::warn("No coming transactions for $bankId");
+            Webservice::sendProgress("Done $bankId (coming): 0 received, 0 new");
             return [];
         }
 
@@ -61,7 +62,9 @@ final class Bank {
             return $transaction['type'] == 12;
         });
 
-        return Transaction::save($transactions, self::getBankOwner($bankId));
+        $created = Transaction::save($transactions, self::getBankOwner($bankId));
+        Webservice::sendProgress("Done $bankId (coming): " . count($transactions) . " received, " . count($created) . " new");
+        return $created;
     }
 
     /**
@@ -76,10 +79,13 @@ final class Bank {
 
         if (empty($transactions)) {
             Logger::warn("No history transactions for $bankId");
+            Webservice::sendProgress("Done $bankId (history): 0 received, 0 new");
             return [];
         }
 
-        return Transaction::save($transactions, self::getBankOwner($bankId));
+        $created = Transaction::save($transactions, self::getBankOwner($bankId));
+        Webservice::sendProgress("Done $bankId (history): " . count($transactions) . " received, " . count($created) . " new");
+        return $created;
     }
 
     /**

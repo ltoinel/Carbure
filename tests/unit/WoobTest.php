@@ -27,6 +27,13 @@ class WoobTest extends TestCase
         $this->assertNull(Woob::getBankData('history', 'empty@bank'));
     }
 
+    public function testErrorWithoutDataThrows()
+    {
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessage("woob returned no data: Error(bnp): Unable to load module \"bnp\": No module named 'curl_cffi'");
+        Woob::getBankData('history', 'broken@bank');
+    }
+
     public function testFailureThrows()
     {
         $this->expectException(Exception::class);

@@ -24,15 +24,37 @@ final class Woob {
      * @param string $type   The type of transactions to get (coming or history)
      * @param string $bankId The bank account identifier
      * @return array|null The transaction data or null if no data
+     * @throws Exception If woob fails, or reports an error without returning data
      */
     public static function getBankData($type, $bankId)
     {
         $command = self::buildCommand($type, $bankId);
         Logger::debug("Calling woob : $command");
 
-        $stdout = self::executeWithHeartbeat($command);
+        $stderr = '';
+        $stdout = self::executeWithHeartbeat($command, $stderr);
+        $data = self::parseOutput($type, $stdout);
 
-        return self::parseOutput($type, $stdout);
+        // woob may exit with 0 when a backend cannot be loaded or logged in:
+        // no data + an error on stderr is a failure, not an empty account
+        if ($data === null && preg_match('/error|exception|traceback|unable|no module/i', $stderr)) {
+            Logger::error("woob returned no data", ["stderr" => $stderr]);
+            throw new Exception("woob returned no data" . self::lastLine($stderr));
+        }
+
+        return $data;
+    }
+
+    /**
+     * Last non empty line of an output, prefixed with ": " (empty string if none).
+     *
+     * @param string $output The command output
+     * @return string The suffix to add to an error message
+     */
+    private static function lastLine($output)
+    {
+        $lines = array_values(array_filter(array_map('trim', explode("\n", $output))));
+        return $lines ? ': ' . mb_substr(end($lines), 0, 200) : '';
     }
 
     /**
@@ -62,10 +84,11 @@ final class Woob {
      * Execute a shell command with SSE heartbeats sent during execution.
      *
      * @param string $command The shell command to execute
+     * @param string $stderr  Receives the error output of the command
      * @return string The stdout output of the command
      * @throws Exception If the process fails to start or exits with a non-zero code
      */
-    private static function executeWithHeartbeat($command)
+    private static function executeWithHeartbeat($command, &$stderr = '')
     {
         $descriptors = [
             0 => ['pipe', 'r'],
@@ -122,9 +145,7 @@ final class Woob {
             Logger::error("Error while calling woob (exit code: $return_var)", ["stdout" => $stdout, "stderr" => $stderr]);
 
             // The last line of the error output usually gives the cause (e.g. a Python exception)
-            $lines = array_values(array_filter(array_map('trim', explode("\n", $stderr))));
-            $cause = $lines ? ': ' . mb_substr(end($lines), 0, 200) : '';
-            throw new Exception("Error while calling woob (exit code: $return_var)$cause");
+            throw new Exception("Error while calling woob (exit code: $return_var)" . self::lastLine($stderr));
         }
 
         return $stdout;

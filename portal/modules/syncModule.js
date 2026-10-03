@@ -56,8 +56,15 @@ export function createSyncModule(getApiService) {
                     let match;
                     if ((match = line.match(/^Syncing (.+) \((coming|history)\)\.\.\.$/))) {
                         close('ok');
-                        current = { kind: match[2], status: 'running', count: 0, error: null };
+                        current = { kind: match[2], status: 'running', count: 0, created: null, error: null };
                         account(match[1]).steps.push(current);
+                    } else if ((match = line.match(/^Done (.+) \((coming|history)\): (\d+) received, (\d+) new$/))) {
+                        // Result of the step sent by the server
+                        if (current && current.kind === match[2]) {
+                            current.count = Number(match[3]);
+                            current.created = Number(match[4]);
+                            current.status = 'ok';
+                        }
                     } else if ((match = line.match(/^Error syncing (.+?): (.*)$/))) {
                         if (current && current.status === 'running') {
                             current.status = 'error';
@@ -77,8 +84,8 @@ export function createSyncModule(getApiService) {
                         close('ok');
                     } else if (line.startsWith('Error')) {
                         global.push({ kind: 'error', status: 'error', count: 0, error: line });
-                    } else if (current && !line.includes('already in progress')) {
-                        // Any other message is a transaction being saved
+                    } else if (current && current.status === 'running' && current.created === null && !line.includes('already in progress')) {
+                        // Any other message is a transaction being saved (live count)
                         current.count++;
                     }
                 }
