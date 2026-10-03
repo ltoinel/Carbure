@@ -120,11 +120,53 @@ jobs:
   docker:
     name: Docker image
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # Upload of the scan results to the Security tab
+      security-events: write
     steps:
       - uses: actions/checkout@v7
 
+      - name: Lint the Dockerfile
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: Dockerfile
+          failure-threshold: error
+
       - name: Build the image
         run: docker compose build carbure
+
+      # Security of the image: OS packages (Debian), PHP and Python (woob) dependencies,
+      # secrets left in the image. The build fails on a CRITICAL vulnerability that has a fix.
+      - name: Scan the image (blocking)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ghcr.io/ltoinel/carbure:latest
+          scanners: vuln,secret
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+          format: table
+          trivyignores: .trivyignore
+
+      - name: Scan the image (report)
+        if: always()
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ghcr.io/ltoinel/carbure:latest
+          scanners: vuln,secret
+          severity: CRITICAL,HIGH,MEDIUM
+          format: sarif
+          output: trivy-image.sarif
+          trivyignores: .trivyignore
+          skip-setup-trivy: true
+
+      - name: Publish the scan in the Security tab
+        if: always() && github.event_name != 'pull_request'
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-image.sarif
+          category: trivy-image
 
       - name: Start Carbure and MariaDB
         env:

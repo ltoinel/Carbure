@@ -1,0 +1,4 @@
+# Vulnerabilities accepted after analysis (one CVE id per line, with the reason).
+# The CI fails on a CRITICAL vulnerability that has a fix; list here only those
+# that do not affect Carbure, e.g.:
+# CVE-2024-00000  # in a library not used at runtime

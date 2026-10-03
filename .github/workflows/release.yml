@@ -71,4 +71,7 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          # Bill of materials and build provenance attached to the image
+          sbom: true
+          provenance: mode=max
 
