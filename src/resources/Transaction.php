@@ -218,8 +218,8 @@ final class Transaction {
     public static function countUnpointed()
     {
         // Count the number of transactions with pointed=0 for the current month only
-        $sql = "SELECT COUNT(*) as count FROM bank_transaction WHERE pointed=0 AND MONTH(date)=MONTH(CURDATE()) AND YEAR(date)=YEAR(CURDATE())";
-        $stmt = Db::execute($sql, "");
+        $sql = "SELECT COUNT(*) as count FROM bank_transaction WHERE pointed=0 AND date >= ? AND date < ?";
+        $stmt = Db::execute($sql, "ss", date('Y-m-01'), date('Y-m-01', strtotime(date('Y-m-01') . ' +1 month')));
 
         $result = $stmt->get_result();
         $count = $result->fetch_assoc()['count'];

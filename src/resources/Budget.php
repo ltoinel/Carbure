@@ -31,37 +31,47 @@ final class Budget {
             $year = date('Y');
         }
 
-        // Return all the categories with the budget
-        $sql = "SELECT c.id, c.name, c.type, c.icon, c.color, IFNULL(b.amount, 0) as budget, IFNULL(ABS(sum(t.amount)),0) as consummed
-        , IFNULL(ABS(ROUND(sum(t.amount)/b.amount*100)),0) as progress 
-            FROM bank_transaction_category c 
+        // Month as a date range (uses the index on the dates)
+        $from = sprintf('%04d-%02d-01', (int)$year, (int)$month);
+        $to = date('Y-m-d', strtotime("$from +1 month"));
 
-            LEFT JOIN budget b ON 
-                b.category=c.id 
-                and MONTH(b.date)=?
-                and YEAR(b.date)=?
+        // Total of the month for each category, in one pass
+        $sql = "SELECT category, SUM(amount) AS total FROM bank_transaction
+                WHERE date >= ? AND date < ? GROUP BY category";
+        $totals = array_column(Db::execute($sql, "ss", $from, $to)->get_result()->fetch_all(MYSQLI_ASSOC), 'total', 'category');
 
-            LEFT JOIN bank_transaction t ON 
-                (t.category=c.id 
-                or t.category IN (SELECT id from bank_transaction_category where parent_category=c.id and parent_category!=0))
-                and MONTH(t.date)=?
-                and YEAR(t.date)=?
-
-            WHERE c.parent_category=?
-    
-            GROUP BY c.id, c.name, c.type, c.icon, c.color, b.amount ORDER BY consummed desc";
-
-        $stmt = Db::execute($sql, "iiiii", $month, $year, $month, $year, $category);
-        $resultBudget = $stmt->get_result();
-
-        // Collect the rows
-        $budget = array();
-        if ($resultBudget->num_rows > 0) {
-
-            while ($row = $resultBudget->fetch_assoc()) {
-                $budget[] = $row;
-            }
+        // Sub-categories of each category
+        $children = [];
+        $sql = "SELECT id, parent_category FROM bank_transaction_category WHERE parent_category <> 0 AND id <> parent_category";
+        foreach (Db::execute($sql, "")->get_result()->fetch_all(MYSQLI_ASSOC) as $row) {
+            $children[$row['parent_category']][] = $row['id'];
         }
+
+        // Categories of the requested level with their budget of the month
+        $sql = "SELECT c.id, c.name, c.type, c.icon, c.color, IFNULL(b.amount, 0) AS budget
+                FROM bank_transaction_category c
+                LEFT JOIN budget b ON b.category = c.id AND b.date >= ? AND b.date < ?
+                WHERE c.parent_category = ?";
+        $categories = Db::execute($sql, "ssi", $from, $to, $category)->get_result()->fetch_all(MYSQLI_ASSOC);
+
+        // Consumption of a category = its transactions + those of its sub-categories
+        $budget = [];
+        foreach ($categories as $row) {
+            $total = null;
+            foreach (array_merge([$row['id']], $children[$row['id']] ?? []) as $id) {
+                if (isset($totals[$id])) {
+                    $total = ($total ?? 0) + (float)$totals[$id];
+                }
+            }
+
+            $amount = (float)$row['budget'];
+            $row['consummed'] = $total === null ? 0 : round(abs($total), 2);
+            $row['progress'] = ($total === null || $amount == 0) ? 0 : (int)abs(round($total / $amount * 100));
+            $budget[] = $row;
+        }
+
+        // Most consumed first
+        usort($budget, fn($a, $b) => $b['consummed'] <=> $a['consummed']);
 
         return $budget;
     }
