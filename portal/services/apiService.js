@@ -22,7 +22,7 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
      * @returns {Promise<Response>}
      */
     async function authFetch(url, options) {
-        const response = await authFetch(url, options);
+        const response = await window.fetch(url, options);
         if (response.status === 401 && authToken && onUnauthorized) {
             onUnauthorized();
         }
