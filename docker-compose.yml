@@ -1,0 +1,44 @@
+# Carbure with MariaDB: docker compose up -d, then open http://localhost:8080/
+# Set the passwords below (or in a .env file) before the first start.
+services:
+  carbure:
+    image: ghcr.io/ltoinel/carbure:latest
+    build: .
+    ports:
+      - "8080:80"
+    environment:
+      DB_HOST: db
+      DB_NAME: carbure
+      DB_USER: carbure
+      DB_PASSWORD: ${DB_PASSWORD:-change-me}
+      ADMIN_USER: ${ADMIN_USER:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-change-me-too}
+      LANGUAGE: fr
+      # Daily bank synchronization (seconds); remove to disable
+      SYNC_INTERVAL: 86400
+    volumes:
+      - carbure-data:/data
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: mariadb:11
+    environment:
+      MARIADB_DATABASE: carbure
+      MARIADB_USER: carbure
+      MARIADB_PASSWORD: ${DB_PASSWORD:-change-me}
+      MARIADB_RANDOM_ROOT_PASSWORD: "yes"
+    volumes:
+      - carbure-db:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    restart: unless-stopped
+
+volumes:
+  carbure-data:
+  carbure-db:

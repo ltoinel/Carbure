@@ -116,3 +116,52 @@ jobs:
       - uses: gitleaks/gitleaks-action@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  docker:
+    name: Docker image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build the image
+        run: docker compose build carbure
+
+      - name: Start Carbure and MariaDB
+        env:
+          DB_PASSWORD: ci-db-password
+          ADMIN_PASSWORD: ci-admin-password
+        run: docker compose up -d
+
+      - name: Wait for the portal
+        run: |
+          for i in $(seq 1 60); do
+            curl -fsS http://localhost:8080/portal/ > /dev/null && exit 0
+            sleep 3
+          done
+          exit 1
+
+      - name: Smoke test
+        run: |
+          set -e
+          # Login with the administrator created at first start
+          token=$(curl -fsS -X POST http://localhost:8080/api/user/login \
+            -H 'Content-Type: application/json' \
+            -d '{"username":"admin","password":"ci-admin-password"}' | python3 -c 'import sys,json; print(json.load(sys.stdin)["token"])')
+          # Authenticated call
+          curl -fsS -H "Authorization: Bearer $token" http://localhost:8080/api/user/me | grep -q '"username": *"admin"'
+          # Without a token: 401
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/api/transaction)" = 401
+          # Private files are never served
+          for path in /conf/prod.ini /logs/ /sql/carbure.sql /tools/install.php /src/lib/Config.php /README.md; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:8080$path")
+            echo "$path -> $code"
+            test "$code" = 403 || test "$code" = 404
+          done
+          # woob and curl_cffi are installed
+          docker compose exec -T carbure woob --version
+          docker compose exec -T carbure /opt/woob/bin/python -c 'import curl_cffi'
+
+      - name: Logs
+        if: failure()
+        run: docker compose logs
+

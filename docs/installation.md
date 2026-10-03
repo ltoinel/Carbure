@@ -1,6 +1,61 @@
 # Installation
 
-## Prérequis
+Trois façons d'installer Carbure, de la plus simple à la plus manuelle.
+
+## Option 1 : image Docker (recommandée)
+
+L'image contient tout : PHP 8.3, Apache, woob et `curl_cffi`. Avec MariaDB :
+
+```bash
+git clone https://github.com/ltoinel/Carbure.git && cd Carbure
+cat > .env <<'ENV'
+DB_PASSWORD=un-mot-de-passe-solide
+ADMIN_PASSWORD=le-mot-de-passe-de-l-admin
+ENV
+docker compose up -d
+```
+
+Le portail est sur `http://<hôte>:8080/`. Au premier démarrage, le conteneur crée le schéma,
+le compte administrateur et `/data/conf/prod.ini` avec des secrets aléatoires.
+
+| Variable | Rôle | Défaut |
+|---|---|---|
+| `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` | Base de données | `db`, `3306`, `carbure`, `carbure` |
+| `ADMIN_USER`, `ADMIN_PASSWORD`, `ADMIN_EMAIL` | Premier administrateur (premier démarrage) | `admin` |
+| `LANGUAGE` | Langue du premier administrateur (`fr`, `en`) | `fr` |
+| `SYNC_INTERVAL` | Synchronisation automatique toutes les N secondes (`86400` = une fois par jour) | désactivée |
+
+Le volume `/data` conserve la configuration (`/data/conf/prod.ini`, clé APNs dans
+`/data/conf/certs`), les logs et la configuration woob. Pour déclarer vos banques dans woob :
+
+```bash
+docker compose exec -u www-data carbure env HOME=/data/woob woob config add bnp
+```
+
+Puis ajoutez le compte dans la table `bank_account` et lancez une synchronisation depuis
+l'onglet **Synchro** du portail. Sur un NAS Synology, le même `docker-compose.yml` s'utilise
+depuis **Container Manager → Projet**.
+
+## Option 2 : script d'installation
+
+Sur un serveur avec PHP et MariaDB/MySQL :
+
+```bash
+git clone https://github.com/ltoinel/Carbure.git /var/www/carbure && cd /var/www/carbure
+php tools/install.php
+```
+
+Le script vérifie PHP et ses extensions, crée la base et son utilisateur (si vous lui donnez un
+compte administrateur MySQL), importe le schéma, crée le premier administrateur et génère
+`conf/prod.ini` avec des secrets aléatoires (`jwtsecret`, `password_salt`, `sync_token`). Il
+n'écrase jamais un fichier existant sans `--force`. `php tools/install.php --help` liste les
+options pour une installation non interactive.
+
+Il reste à configurer le serveur web (voir « Serveur web » plus bas) et woob.
+
+## Option 3 : installation manuelle
+
+### Prérequis
 
 - PHP **8.2** ou plus avec `mysqli`, `curl`, `openssl` et `json` ; APCu recommandé (cache
   des routes).
@@ -8,16 +63,16 @@
 - Un serveur web avec PHP-FPM (nginx, Apache…).
 - [woob](https://woob.tech/) installé localement ou via Docker, configuré avec les
   backends de vos banques (`woob bank list` doit fonctionner pour l'utilisateur du
-  serveur web).
+  serveur web). Le module BNP récent nécessite `curl_cffi` (`pip install "curl_cffi>=0.7"`).
 - Facultatif : une clé APNs `.p8` (Apple Developer) pour les notifications iOS.
 
-## 1. Récupérer le code
+### 1. Récupérer le code
 
 ```bash
 git clone https://github.com/ltoinel/Carbure.git /var/www/carbure
 ```
 
-## 2. Configurer
+### 2. Configurer
 
 ```bash
 cd /var/www/carbure
@@ -32,7 +87,7 @@ sont décrites dans [Configuration](configuration.md).
 !!! danger "Ne jamais garder `jwtsecret=secret`"
     La valeur d'exemple permet à n'importe qui de fabriquer un jeton valide.
 
-## 3. Créer la base
+### 3. Créer la base
 
 ```bash
 mysql -u root -p -e "CREATE DATABASE carbure CHARACTER SET utf8mb4"
@@ -52,6 +107,7 @@ encore été :
 ```bash
 mysql -u root -p carbure < sql/migrations/2026-10-03_audit.sql
 mysql -u root -p carbure < sql/migrations/2026-10-04_alerts.sql
+mysql -u root -p carbure < sql/migrations/2026-10-05_schema.sql
 ```
 
 !!! warning "Migrations avant le code"
@@ -59,7 +115,7 @@ mysql -u root -p carbure < sql/migrations/2026-10-04_alerts.sql
     lit les nouvelles colonnes (`is_admin`, `language`, `alert_threshold`) dès
     `GET /user/me`.
 
-## 4. Configurer le serveur web
+### 4. Configurer le serveur web
 
 - Les URL `/api/…` **sans point** dans le chemin sont envoyées à `src/api.php` (le
   préfixe `/api` est retiré par l'API).
@@ -82,7 +138,7 @@ location /portal/ { root /var/www/carbure; }
 location ~ ^/(conf|logs|sql|tests|tools|woob)/ { deny all; }
 ```
 
-## 5. Créer le premier utilisateur
+### 5. Créer le premier utilisateur
 
 Les utilisateurs sont gérés par un administrateur via l'API ou le portail. Pour le
 premier compte, insérer un utilisateur administrateur directement en base avec un
@@ -97,7 +153,7 @@ INSERT INTO users (username, password, email, is_admin, language)
 VALUES ('admin', '<hash>', 'admin@example.org', 1, 'fr');
 ```
 
-## 6. Planifier la synchronisation
+### 6. Planifier la synchronisation
 
 ```bash
 # crontab : tous les jours à 7h

@@ -1,0 +1,17 @@
+.git
+.github
+.githooks
+.phpunit.cache
+.phpunit.result.cache
+cache
+conf/prod.ini
+conf/certs
+docs
+logs
+tests
+woob
+CLAUDE.md
+TODO.md
+tools/phpunit.phar
+tools/coverage-check.php
+mkdocs.yml

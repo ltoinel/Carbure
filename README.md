@@ -64,16 +64,16 @@ flowchart LR
 
 ## Démarrage rapide
 
+Avec Docker (PHP, Apache et woob inclus) :
+
 ```bash
-git clone https://github.com/ltoinel/Carbure.git
-cd Carbure
-cp conf/prod.sample.ini conf/prod.ini        # base de données, jwtsecret, woob, APNs
-mysql carbure < sql/carbure.sql              # schéma
+git clone https://github.com/ltoinel/Carbure.git && cd Carbure
+DB_PASSWORD=change-me ADMIN_PASSWORD=change-me-too docker compose up -d
 ```
 
-Servez le dossier avec PHP ≥ 8.2 (Nginx/Apache + PHP-FPM), routez `/api/*` vers `src/api.php`,
-puis ouvrez `/portal/`. Planifiez `/api/bank/sync` (avec votre `sync_token`) pour la synchronisation
-quotidienne.
+Ouvrez `http://localhost:8080/`, connectez-vous avec `admin`, puis lancez une synchronisation
+depuis l'onglet **Synchro**. Sans Docker : `php tools/install.php` crée la base, le compte
+administrateur et la configuration.
 
 👉 **Installation détaillée, configuration, référence de l'API, modèle de données et sécurité :
 [la documentation](https://ltoinel.github.io/Carbure/).**
