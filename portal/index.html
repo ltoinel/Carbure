@@ -1309,10 +1309,14 @@
                             <input id="insight-name" v-model="insightForm.name" maxlength="20" required />
                         </div>
                         <div class="form-group">
-                            <label for="insight-color">{{ t('categoryColor') }}</label>
-                            <select id="insight-color" v-model="insightForm.color">
-                                <option v-for="c in insightColors" :key="c" :value="c">{{ t('insightColor_' + c) }}</option>
-                            </select>
+                            <label id="insight-color-label">{{ t('categoryColor') }}</label>
+                            <div class="color-picker" role="radiogroup" aria-labelledby="insight-color-label">
+                                <button v-for="c in insightColors" :key="c" type="button" class="color-swatch"
+                                        :class="{ selected: insightForm.color === c }" :style="{ background: insightColorValues[c] }"
+                                        :title="t('insightColor_' + c)" :aria-label="t('insightColor_' + c)" role="radio"
+                                        :aria-checked="insightForm.color === c ? 'true' : 'false'"
+                                        @click="insightForm.color = c"></button>
+                            </div>
                         </div>
                     </div>
                     <div class="form-group">

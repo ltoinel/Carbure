@@ -23,6 +23,8 @@ export function createInsightsModule(getApiService) {
                 savingInsight: false,
                 insightError: null,
                 insightColors: ['red', 'green', 'blue', 'orange', 'gray'],
+                // Same colors as the cards (style.css, .insight-card.insight-*)
+                insightColorValues: { red: '#ef4444', green: '#10b981', blue: '#3b82f6', orange: '#f59e0b', gray: '#6b7280' },
                 insightIcons: ['trending_down', 'trending_up', 'savings', 'account_balance_wallet', 'payments', 'credit_card',
                     'shopping_cart', 'restaurant', 'local_gas_station', 'directions_car', 'home', 'bolt', 'local_hospital',
                     'school', 'flight', 'sports_esports', 'pets', 'receipt_long', 'percent', 'analytics', 'pie_chart',
