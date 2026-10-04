@@ -108,20 +108,29 @@ seul utilisateur (Kresus).
 
 ✅ oui · ⚠️ en partie · ➖ non
 
+#### Hébergement
+
 | | **Carbure** | **Firefly III** | **Actual Budget** | **Kresus** |
 |---|---|---|---|---|
-| **Hébergement** | | | | |
 | Hébergé chez soi, open source | ✅ MIT | ✅ AGPL-3.0 | ✅ MIT | ✅ AGPL-3.0 |
 | Technologies | PHP, MariaDB/MySQL | PHP (Laravel), base SQL | Node.js, local-first | Node.js, base SQL |
 | Image Docker | ✅ nginx, PHP et woob inclus | ✅ | ✅ | ✅ |
 | Assistant d'installation web, mises à jour de la base automatiques | ✅ | ➖ | ⚠️ | ➖ |
-| **Données bancaires** | | | | |
+
+#### Données bancaires
+
+| | **Carbure** | **Firefly III** | **Actual Budget** | **Kresus** |
+|---|---|---|---|---|
 | Connexion bancaire | Directe, via woob | Importeur : GoCardless, Enable Banking, SimpleFIN, Salt Edge | GoCardless, Enable Banking, SimpleFIN et d'autres | Directe, via woob |
 | Sans agrégateur tiers | ✅ | ➖ | ➖ | ✅ |
 | Banques couvertes | Surtout françaises | Monde entier, via les fournisseurs | Europe et Amériques, via les fournisseurs | Surtout françaises |
 | Import de fichiers (CSV, OFX…) | ➖ | ✅ | ✅ | ⚠️ |
 | Plusieurs devises | ➖ euros | ✅ | ➖ | ⚠️ |
-| **Budget et analyse** | | | | |
+
+#### Budget et analyse
+
+| | **Carbure** | **Firefly III** | **Actual Budget** | **Kresus** |
+|---|---|---|---|---|
 | Budgets mensuels par catégorie | ✅ | ✅ | ✅ enveloppes | ✅ |
 | Sous-catégories additionnées dans leur parent | ✅ | ➖ catégories à plat, étiquettes | ⚠️ groupes de catégories | ➖ |
 | Règles de catégorisation automatique | ✅ mots-clés, proposées après un choix manuel | ✅ moteur de règles riche | ✅ | ✅ |
@@ -130,12 +139,20 @@ seul utilisateur (Kresus).
 | Indicateurs personnalisés | ✅ insights SQL | ➖ | ⚠️ rapports personnalisés | ➖ |
 | Opérations récurrentes, factures | ➖ | ✅ | ✅ échéances | ✅ |
 | Objectifs d'épargne | ➖ | ✅ tirelires | ✅ modèles d'objectifs | ➖ |
-| **Foyer et appareils** | | | | |
+
+#### Foyer et appareils
+
+| | **Carbure** | **Firefly III** | **Actual Budget** | **Kresus** |
+|---|---|---|---|---|
 | Plusieurs utilisateurs sur les mêmes données | ✅ administrateur et utilisateurs | ⚠️ utilisateurs séparés | ✅ | ➖ |
 | iPhone | ✅ app native | ⚠️ apps tierces | ⚠️ application web (PWA) | ⚠️ interface web |
 | Android | ⚠️ portail web | ⚠️ apps tierces | ⚠️ application web (PWA) | ⚠️ interface web |
 | Alertes | ✅ push iPhone : synchro, grosse dépense, règle | ⚠️ e-mail, webhooks | ➖ | ⚠️ e-mail : montant, solde |
-| **Ouvert et extensible** | | | | |
+
+#### Ouvert et extensible
+
+| | **Carbure** | **Firefly III** | **Actual Budget** | **Kresus** |
+|---|---|---|---|---|
 | API REST | ✅ JWT, OpenAPI | ✅ OAuth2 | ⚠️ API JavaScript | ⚠️ interne |
 | Serveur MCP intégré pour les agents IA | ✅ lecture seule, OAuth pour Claude | ➖ serveurs communautaires | ➖ | ➖ |
 
