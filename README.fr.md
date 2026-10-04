@@ -80,6 +80,8 @@
 > couvrent surtout les banques françaises. Le portail existe en français et en anglais ; les
 > montants sont en euros.
 
+> 📱 **App iPhone** : l'application iOS Carbure sera prochainement disponible sur l'App Store.
+
 ## Comment se situe Carbure ?
 
 | | **Carbure** | **Firefly III** | **Actual Budget** | **Kresus** |

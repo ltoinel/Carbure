@@ -4,7 +4,7 @@ Carbure face aux autres gestionnaires de budget open source à héberger soi-mê
 Actual Budget et Kresus.
 
 Carbure vise un foyer dont les comptes sont en France et qui veut garder ses données chez lui,
-avec une app iPhone et un agent IA. Les autres outils open source ci-dessous sont excellents,
+avec une app iPhone (bientôt sur l'App Store) et un agent IA. Les autres outils open source ci-dessous sont excellents,
 avec d'autres points forts : un modèle comptable plus riche (Firefly III), le budget par
 enveloppes et une application local-first (Actual Budget), ou la même connexion woob pour un
 seul utilisateur (Kresus).

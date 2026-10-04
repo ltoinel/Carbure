@@ -9,7 +9,8 @@ consultées :
   budgets, insights, tendances, et pour les administrateurs règles, catégories, comptes
   et utilisateurs ;
 - dans l'**application iOS** Carbure, qui reçoit aussi des notifications push (APNs)
-  après chaque synchronisation et pour les dépenses importantes ;
+  après chaque synchronisation et pour les dépenses importantes — bientôt disponible sur
+  l'App Store ;
 - par un **agent IA** (Claude, ChatGPT, Cursor, Copilot, Gemini…) grâce au serveur MCP
   intégré, en lecture seule.
 

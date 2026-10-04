@@ -218,6 +218,9 @@ renvoie un montant pour le mois affiché.
 
 L'**app iPhone** reçoit des notifications push (Apple Push Notification service) :
 
+!!! info "App iPhone"
+    L'application iOS Carbure sera prochainement disponible sur l'App Store.
+
 | Quand | Qui la reçoit | Contenu |
 |---|---|---|
 | Après la synchronisation de chaque compte | Tout le foyer | Réussite ou échec, et nombre de transactions à vérifier |
