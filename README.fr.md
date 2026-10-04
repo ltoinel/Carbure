@@ -11,7 +11,7 @@
 <p align="center">
   <strong>Le budget de votre foyer, enfin sous contrôle.</strong><br>
   Vos comptes bancaires synchronisés automatiquement, vos dépenses catégorisées,<br>
-  vos budgets suivis au jour le jour — sur le web et sur iPhone.
+  vos budgets suivis au jour le jour — sur le web et sur iPhone. Hébergé chez vous, gratuit et open source.
 </p>
 
 <p align="center">
@@ -21,6 +21,7 @@
 <p align="center">
   <a href="https://github.com/ltoinel/Carbure/actions/workflows/ci.yml"><img src="https://github.com/ltoinel/Carbure/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://github.com/ltoinel/Carbure/releases"><img src="https://img.shields.io/github/v/release/ltoinel/Carbure" alt="Release"></a>
+  <a href="https://hub.docker.com/r/ltoinel/carbure"><img src="https://img.shields.io/docker/pulls/ltoinel/carbure?logo=docker&logoColor=white" alt="Docker pulls"></a>
   <a href="https://github.com/ltoinel/Carbure/actions/workflows/ci.yml"><img src="https://img.shields.io/badge/coverage-%E2%89%A5%2090%25-brightgreen" alt="Coverage"></a>
   <a href="https://www.php.net/"><img src="https://img.shields.io/badge/PHP-%3E%3D%208.2-777BB4?logo=php&logoColor=white" alt="PHP"></a>
   <a href="https://mariadb.org/"><img src="https://img.shields.io/badge/MariaDB%20%2F%20MySQL-003545?logo=mariadb&logoColor=white" alt="MariaDB"></a>
@@ -29,34 +30,117 @@
 </p>
 
 <p align="center">
-  <img src="docs/assets/screenshot-transactions.png" alt="Transactions du mois : recherche, pointage et catégories" width="820">
+  <img src="docs/assets/screenshot-transactions.png" alt="Transactions du mois : revenus, dépenses, recherche, pointage et catégories" width="100%">
 </p>
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/assets/screenshot-budget.png" alt="Budgets par catégorie, les sous-catégories s'additionnent dans leur parent">
+      <br><sub><b>Budgets</b> — dépensé, restant et dépassement par catégorie ; un parent additionne ses sous-catégories</sub>
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/assets/screenshot-flow.png" alt="Flux du mois">
+      <br><sub><b>Flux du mois</b> — où partent les revenus du mois : dépenses, épargne, reste</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/assets/screenshot-trends.png" alt="Tendances sur 3, 6 ou 12 mois">
+      <br><sub><b>Tendances</b> — revenus, dépenses et épargne sur 3, 6 ou 12 mois, avec comparaisons</sub>
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/assets/screenshot-insights.png" alt="Insights du mois">
+      <br><sub><b>Insights</b> — vos propres indicateurs du mois, définis par une requête</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/assets/screenshot-categories.png" alt="Catégories avec leurs icônes et couleurs">
+      <br><sub><b>Catégories</b> — deux niveaux, icônes et couleurs partagées avec l'app iPhone</sub>
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/assets/screenshot-agents.png" alt="Onglet Agent IA : serveur MCP et connecteur Claude">
+      <br><sub><b>Agent IA</b> — connectez Claude, ChatGPT et d'autres à vos données, en lecture seule</sub>
+    </td>
+  </tr>
+</table>
 
 ## Pourquoi Carbure ?
 
-- 🔄 **Zéro saisie** : vos opérations arrivent toutes seules depuis votre banque grâce à
-  [woob](https://woob.tech/), chaque jour.
+- 🔄 **Zéro saisie** : vos opérations arrivent toutes seules depuis votre banque, chaque jour,
+  grâce à [woob](https://woob.tech/) — une connexion directe, sans agrégateur tiers.
 - 🏷️ **Catégorisation automatique** : des règles simples (« CARREFOUR → Supermarché ») classent
   chaque transaction. Une nouvelle ? Choisissez sa catégorie, Carbure vous propose la règle.
-- 🎯 **Budgets mensuels** : dépensé, restant, dépassement, catégorie par catégorie, d'un coup d'œil,
-  et le **flux du mois** : d'où vient l'argent et où il part (dépenses, épargne, reste).
-- 📈 **Tendances** : revenus, dépenses, épargne sur 3, 6 ou 12 mois, comparés à la période
-  précédente ou à l'an dernier.
+- 🎯 **Budgets mensuels** : dépensé, restant, dépassement, catégorie par catégorie, d'un coup
+  d'œil. Budgétez les sous-catégories et leur parent les additionne — ou fixez-lui son propre
+  montant. Le **flux du mois** montre d'où vient l'argent et où il part.
+- 📈 **Tendances** : revenus, dépenses et épargne sur 3, 6 ou 12 mois, comparés à la période
+  précédente ou à la même période l'an dernier.
 - ✅ **Pointage** : vérifiez vos transactions en un clic, filtrez celles qui restent à contrôler.
-- 🔔 **Alertes sur iPhone** : un push après chaque synchronisation, et dès qu'une dépense dépasse
-  le seuil que vous avez choisi.
+- 🔔 **Alertes sur iPhone** : un push après chaque synchronisation, dès qu'une dépense dépasse
+  le seuil que vous avez choisi, ou quand une règle que vous avez désignée s'applique.
 - 📊 **Insights** : vos propres indicateurs du mois (courses, carburant, abonnements…).
 - 👨‍👩‍👧 **Pensé pour le foyer** : plusieurs utilisateurs, des comptes et des données partagés,
   chacun sa langue et ses appareils ; un administrateur gère comptes, catégories, règles et
   utilisateurs.
-- 🤖 **Interrogez vos comptes avec votre agent IA** (Claude, ChatGPT, Cursor, Copilot,
-  Gemini) : un serveur MCP intégré, en lecture seule et désactivable, permet de demander
-  « combien en restaurants cette année ? » ou « où dépasse-t-on le budget ? ».
-- 🔒 **Tout reste chez vous, sans abonnement** : Carbure est gratuit et open source, il tourne
-  sur votre propre serveur (un NAS suffit). Pas de compte à créer, pas d'agrégateur bancaire tiers,
-  pas de cloud : vos identifiants et vos données bancaires restent dans votre base locale.
-  Seules sorties réseau : la connexion directe à votre banque (woob) et, si vous l'activez,
-  l'envoi des notifications via Apple.
+- 🤖 **Interrogez vos comptes avec votre agent IA** : un serveur MCP intégré, en lecture seule
+  et désactivable, répond à « combien en restaurants cette année ? » ou « où dépasse-t-on le
+  budget ? ». Claude (web, Desktop, mobile) se connecte avec la seule URL du serveur, après
+  votre accord dans le portail ; Claude Code, ChatGPT, Cursor, Copilot et Gemini avec un
+  jeton d'accès.
+- 🔒 **Tout reste chez vous** : Carbure tourne sur votre propre serveur (un NAS suffit). Pas de
+  compte à créer, pas d'agrégateur, pas de cloud : vos identifiants et vos données bancaires
+  restent dans votre base locale. Seules sorties réseau : votre banque (woob) et, si vous
+  l'activez, le service de notifications d'Apple.
+
+> 🌍 **Banques couvertes** : Carbure s'appuie sur les modules [woob](https://woob.tech/), qui
+> couvrent surtout les banques françaises. Le portail existe en français et en anglais ; les
+> montants sont en euros.
+
+## Comment se situe Carbure ?
+
+Carbure vise un foyer dont les comptes sont en France et qui veut garder ses données chez lui,
+avec une app iPhone et un agent IA. Les autres outils open source ci-dessous sont excellents,
+avec d'autres points forts : un modèle comptable plus riche (Firefly III), le budget par
+enveloppes et une application local-first (Actual Budget), ou la même connexion woob pour un
+seul utilisateur (Kresus).
+
+✅ oui · ⚠️ en partie · ➖ non
+
+| | **Carbure** | **Firefly III** | **Actual Budget** | **Kresus** |
+|---|---|---|---|---|
+| **Hébergement** | | | | |
+| Hébergé chez soi, open source | ✅ MIT | ✅ AGPL-3.0 | ✅ MIT | ✅ AGPL-3.0 |
+| Technologies | PHP, MariaDB/MySQL | PHP (Laravel), base SQL | Node.js, local-first | Node.js, base SQL |
+| Image Docker | ✅ nginx, PHP et woob inclus | ✅ | ✅ | ✅ |
+| Assistant d'installation web, mises à jour de la base automatiques | ✅ | ➖ | ⚠️ | ➖ |
+| **Données bancaires** | | | | |
+| Connexion bancaire | Directe, via woob | Importeur : GoCardless, Enable Banking, SimpleFIN, Salt Edge | GoCardless, Enable Banking, SimpleFIN et d'autres | Directe, via woob |
+| Sans agrégateur tiers | ✅ | ➖ | ➖ | ✅ |
+| Banques couvertes | Surtout françaises | Monde entier, via les fournisseurs | Europe et Amériques, via les fournisseurs | Surtout françaises |
+| Import de fichiers (CSV, OFX…) | ➖ | ✅ | ✅ | ⚠️ |
+| Plusieurs devises | ➖ euros | ✅ | ➖ | ⚠️ |
+| **Budget et analyse** | | | | |
+| Budgets mensuels par catégorie | ✅ | ✅ | ✅ enveloppes | ✅ |
+| Sous-catégories additionnées dans leur parent | ✅ | ➖ catégories à plat, étiquettes | ⚠️ groupes de catégories | ➖ |
+| Règles de catégorisation automatique | ✅ mots-clés, proposées après un choix manuel | ✅ moteur de règles riche | ✅ | ✅ |
+| Pointage des transactions | ✅ | ✅ rapprochement | ✅ rapprochement | ➖ |
+| Graphiques et tendances | ✅ tendances, comparaisons, flux du mois | ✅ rapports | ✅ rapports personnalisés | ✅ |
+| Indicateurs personnalisés | ✅ insights SQL | ➖ | ⚠️ rapports personnalisés | ➖ |
+| Opérations récurrentes, factures | ➖ | ✅ | ✅ échéances | ✅ |
+| Objectifs d'épargne | ➖ | ✅ tirelires | ✅ modèles d'objectifs | ➖ |
+| **Foyer et appareils** | | | | |
+| Plusieurs utilisateurs sur les mêmes données | ✅ administrateur et utilisateurs | ⚠️ utilisateurs séparés | ✅ | ➖ |
+| iPhone | ✅ app native | ⚠️ apps tierces | ⚠️ application web (PWA) | ⚠️ interface web |
+| Android | ⚠️ portail web | ⚠️ apps tierces | ⚠️ application web (PWA) | ⚠️ interface web |
+| Alertes | ✅ push iPhone : synchro, grosse dépense, règle | ⚠️ e-mail, webhooks | ➖ | ⚠️ e-mail : montant, solde |
+| **Ouvert et extensible** | | | | |
+| API REST | ✅ JWT, OpenAPI | ✅ OAuth2 | ⚠️ API JavaScript | ⚠️ interne |
+| Serveur MCP intégré pour les agents IA | ✅ lecture seule, OAuth pour Claude | ➖ serveurs communautaires | ➖ | ➖ |
+
+<sub>D'après la documentation de chaque projet, en octobre 2026 — corrections bienvenues dans une
+[issue](https://github.com/ltoinel/Carbure/issues).</sub>
 
 ## Comment ça marche
 
@@ -93,7 +177,9 @@ base de données sont, elles aussi, automatiques. Sur un NAS Synology, suivez le
 ## Contribuer
 
 Les contributions sont les bienvenues : lisez [AGENTS.md](AGENTS.md) (conventions, tests,
-définition de « terminé ») et la liste des tâches ouvertes dans [TODO.md](TODO.md).
+définition de « terminé ») et la liste des tâches ouvertes dans [TODO.md](TODO.md). Un bug, une
+idée ? [Ouvrez une issue](https://github.com/ltoinel/Carbure/issues). Si Carbure vous est utile,
+une ⭐ aide d'autres personnes à le découvrir.
 
 Pour développer, `./start.sh` démarre l'environnement de développement avec Docker : l'image
 de production et MariaDB, le code du dépôt monté en direct et un foyer d'exemple

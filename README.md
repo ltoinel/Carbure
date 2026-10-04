@@ -30,13 +30,41 @@
 </p>
 
 <p align="center">
-  <img src="docs/assets/screenshot-transactions.png" alt="Monthly transactions: search, check-off and categories" width="820">
+  <img src="docs/assets/en/screenshot-transactions.png" alt="Transactions of the month: income, expenses, search, check-off and categories" width="100%">
 </p>
 
-<p align="center">
-  <img src="docs/assets/screenshot-flow.png" alt="Monthly money flow: where income goes (spending, savings, remainder)" width="400">
-  <img src="docs/assets/screenshot-trends.png" alt="Trends: income, spending and savings over 3, 6 or 12 months" width="400">
-</p>
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/assets/en/screenshot-budget.png" alt="Budgets by category, sub-categories adding up to their parent">
+      <br><sub><b>Budgets</b> — spent, remaining and overspent per category; a parent adds up its sub-categories</sub>
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/assets/en/screenshot-flow.png" alt="Money flow of the month">
+      <br><sub><b>Money flow</b> — where the month's income goes: expenses, savings, remainder</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/assets/en/screenshot-trends.png" alt="Trends over 3, 6 or 12 months">
+      <br><sub><b>Trends</b> — income, spending and savings over 3, 6 or 12 months, with comparisons</sub>
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/assets/en/screenshot-insights.png" alt="Insights of the month">
+      <br><sub><b>Insights</b> — your own monthly indicators, defined by a query</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/assets/en/screenshot-categories.png" alt="Categories with their icons and colors">
+      <br><sub><b>Categories</b> — two levels, icons and colors shared with the iPhone app</sub>
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/assets/en/screenshot-agents.png" alt="AI agent tab: MCP server and Claude connector">
+      <br><sub><b>AI agent</b> — connect Claude, ChatGPT and others to your data, read-only</sub>
+    </td>
+  </tr>
+</table>
 
 ## Why Carbure?
 
@@ -44,38 +72,72 @@
   [woob](https://woob.tech/) — a direct connection, no third-party aggregator.
 - 🏷️ **Automatic categorization**: simple rules ("CARREFOUR → Groceries") sort every
   transaction. A new one? Pick its category and Carbure suggests the rule.
-- 🎯 **Monthly budgets**: spent, remaining and overspent, category by category, at a glance —
-  plus the **monthly flow**: where the money comes from and where it goes (spending, savings,
-  remainder).
+- 🎯 **Monthly budgets**: spent, remaining and overspent, category by category, at a glance.
+  Budget the sub-categories and their parent adds them up — or set its own amount. The
+  **monthly flow** shows where the money comes from and where it goes.
 - 📈 **Trends**: income, spending and savings over 3, 6 or 12 months, compared with the
   previous period or the same period last year.
 - ✅ **Check-off**: verify transactions in one click and filter those still to review.
-- 🔔 **iPhone alerts**: a push after each sync, and as soon as an expense exceeds the threshold
-  you set.
+- 🔔 **iPhone alerts**: a push after each sync, as soon as an expense exceeds the threshold
+  you set, or when a rule you chose matches.
 - 📊 **Insights**: your own monthly indicators (groceries, fuel, subscriptions…).
 - 👨‍👩‍👧 **Built for households**: several users, shared accounts and data, each with their own
   language and devices; an administrator manages accounts, categories, rules and users.
-- 🤖 **Ask your AI agent about your money** (Claude, ChatGPT, Cursor, Copilot, Gemini): a
-  built-in, read-only MCP server — which you can turn off — answers questions like "how much
-  did we spend on restaurants this year?" or "which budgets are we over?".
+- 🤖 **Ask your AI agent about your money**: a built-in, read-only MCP server — which you can
+  turn off — answers questions like "how much did we spend on restaurants this year?" or
+  "which budgets are we over?". Claude (web, Desktop, mobile) connects from the server URL
+  alone, after your approval in the portal; Claude Code, ChatGPT, Cursor, Copilot and Gemini
+  with an access token.
 - 🔒 **Everything stays with you**: Carbure runs on your own server (a NAS is enough). No
   account to create, no aggregator, no cloud: your bank credentials and data stay in your
   local database. The only outbound connections are to your bank (woob) and, if you enable
   them, Apple's push notification service.
 
 > 🌍 **Bank coverage**: Carbure relies on [woob](https://woob.tech/) modules, which mainly
-> cover French banks. The portal is available in English and French.
+> cover French banks. The portal is available in English and French; amounts are in euros.
 
 ## How does it compare?
 
-| | Carbure | Firefly III | Actual Budget | Kresus |
-|---|---|---|---|---|
-| Self-hosted, open source | ✅ | ✅ | ✅ | ✅ |
-| Bank connection | Direct, via woob | Importer + third-party providers | Third-party providers | Direct, via woob |
-| Native iPhone app with push alerts | ✅ | Third-party apps | ➖ | ➖ |
-| Built-in MCP server for AI agents | ✅ | ➖ | ➖ | ➖ |
+Carbure focuses on a household that banks in France and wants its data at home, with an
+iPhone app and an AI agent. The other open source tools below are excellent too, with other
+strengths: a richer accounting model (Firefly III), envelope budgeting and a local-first app
+(Actual Budget), or the same woob connection for a single user (Kresus).
 
-<sub>To the best of our knowledge as of October 2026 — corrections welcome via an issue.</sub>
+✅ yes · ⚠️ partly · ➖ no
+
+| | **Carbure** | **Firefly III** | **Actual Budget** | **Kresus** |
+|---|---|---|---|---|
+| **Hosting** | | | | |
+| Self-hosted, open source | ✅ MIT | ✅ AGPL-3.0 | ✅ MIT | ✅ AGPL-3.0 |
+| Stack | PHP, MariaDB/MySQL | PHP (Laravel), SQL database | Node.js, local-first | Node.js, SQL database |
+| Docker image | ✅ nginx, PHP and woob included | ✅ | ✅ | ✅ |
+| Web setup wizard, automatic database upgrades | ✅ | ➖ | ⚠️ | ➖ |
+| **Bank data** | | | | |
+| Bank connection | Direct, via woob | Data importer: GoCardless, Enable Banking, SimpleFIN, Salt Edge | GoCardless, Enable Banking, SimpleFIN and others | Direct, via woob |
+| Without a third-party aggregator | ✅ | ➖ | ➖ | ✅ |
+| Banks covered | Mostly French | Worldwide, through providers | Europe and Americas, through providers | Mostly French |
+| File import (CSV, OFX…) | ➖ | ✅ | ✅ | ⚠️ |
+| Several currencies | ➖ euros | ✅ | ➖ | ⚠️ |
+| **Budget and analysis** | | | | |
+| Monthly budgets per category | ✅ | ✅ | ✅ envelopes | ✅ |
+| Sub-categories adding up to their parent | ✅ | ➖ flat categories, tags | ⚠️ category groups | ➖ |
+| Automatic categorization rules | ✅ keywords, suggested after a manual choice | ✅ rich rule engine | ✅ | ✅ |
+| Transaction check-off | ✅ | ✅ reconciliation | ✅ reconciliation | ➖ |
+| Charts and trends | ✅ trends, comparisons, money flow | ✅ reports | ✅ custom reports | ✅ |
+| Custom indicators | ✅ SQL insights | ➖ | ⚠️ custom reports | ➖ |
+| Recurring transactions, bills | ➖ | ✅ | ✅ schedules | ✅ |
+| Savings goals | ➖ | ✅ piggy banks | ✅ goal templates | ➖ |
+| **Household and devices** | | | | |
+| Several users sharing the same data | ✅ administrator and users | ⚠️ separate users | ✅ | ➖ |
+| iPhone | ✅ native app | ⚠️ third-party apps | ⚠️ web app (PWA) | ⚠️ web interface |
+| Android | ⚠️ web portal | ⚠️ third-party apps | ⚠️ web app (PWA) | ⚠️ web interface |
+| Alerts | ✅ iPhone push: sync, large expense, rule | ⚠️ email, webhooks | ➖ | ⚠️ email: amount, balance |
+| **Open and extensible** | | | | |
+| REST API | ✅ JWT, OpenAPI | ✅ OAuth2 | ⚠️ JavaScript API | ⚠️ internal |
+| Built-in MCP server for AI agents | ✅ read-only, OAuth for Claude | ➖ community servers | ➖ | ➖ |
+
+<sub>From each project's documentation, as of October 2026 — corrections welcome via an
+[issue](https://github.com/ltoinel/Carbure/issues).</sub>
 
 ## How it works
 

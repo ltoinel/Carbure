@@ -999,7 +999,7 @@ const i18n = {
         },
         
         // Currency
-        currencySymbol: '$'
+        currencySymbol: '€'
     }
 };
 
