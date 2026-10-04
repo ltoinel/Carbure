@@ -21,6 +21,7 @@ Les réglages modifiés depuis le portail sont, eux, enregistrés en base (voir
 | `log_level` | `debug`, `info`, `warning`, `error` | Niveau minimal des logs (`data/logs/carbure_AAAAMMJJ.log`). En `debug`, les erreurs PHP sont affichées et les réponses JSON indentées. |
 | `development` | `true` / `false` | Indicateur de mode développement, écrit à `false` par l'assistant (sans effet actuellement) |
 | `savings_category` | nom | Catégorie dont les transactions (avec ses sous-catégories) constituent l'épargne de l'onglet Tendances ; `Epargne` par défaut, casse et accents ignorés |
+| `public_url` | URL | Facultatif : adresse publique de Carbure (`https://carbure.exemple.fr`), annoncée aux agents IA qui se connectent par OAuth. Par défaut, déduite de la requête : à renseigner si le proxy HTTPS n'envoie pas `X-Forwarded-Proto` |
 
 ## `[database]`
 
@@ -85,7 +86,7 @@ Les réglages modifiés depuis le portail sont enregistrés dans la table `setti
 
 | Réglage | Valeurs | Modifié dans |
 |---|---|---|
-| `mcp_enabled` | `1` / `0` (désactivé par défaut) | Onglet **Agent**, interrupteur **Serveur MCP activé** (administrateur) |
+| `mcp_enabled` | `1` / `0` (désactivé par défaut) | Onglet **Agent IA**, interrupteur **Serveur MCP activé** (administrateur) |
 
 ## Variables d'environnement
 

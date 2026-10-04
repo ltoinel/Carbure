@@ -37,6 +37,36 @@ class BudgetTest extends DatabaseTestCase
         $this->assertEquals(1000, $budget['Salaire']['budget']);
     }
 
+    public function testParentBudgetOverridesTheSumOfItsChildren()
+    {
+        // Alimentation has its own budget (200) and Supermarché one of 150
+        Budget::create(2, 150);
+
+        $budget = $this->byName(Budget::get());
+        $this->assertEquals(200, $budget['Alimentation']['budget']);
+        $this->assertSame('own', $budget['Alimentation']['budget_mode']);
+        $this->assertSame(1, $budget['Alimentation']['children']);
+        $this->assertEquals(150, $budget['Alimentation']['children_budget']);
+        // No sub-category: always its own budget
+        $this->assertSame('own', $budget['Énergie']['budget_mode']);
+        $this->assertSame(0, $budget['Énergie']['children']);
+    }
+
+    public function testParentBudgetIsTheSumOfItsChildren()
+    {
+        // 0 removes the override of Alimentation: the budget of Supermarché is used
+        Budget::create(1, 0);
+        Budget::create(2, 160);
+
+        $budget = $this->byName(Budget::get());
+        $this->assertEquals(160, $budget['Alimentation']['budget']);
+        $this->assertSame('children', $budget['Alimentation']['budget_mode']);
+        $this->assertEquals(50, $budget['Alimentation']['progress']);
+
+        // Planned budget of the month: Alimentation 160 (sum) + Énergie 100
+        $this->assertEquals(260, Budget::getTrends(1)[0]['planned']);
+    }
+
     public function testTrends()
     {
         $trends = Budget::getTrends();

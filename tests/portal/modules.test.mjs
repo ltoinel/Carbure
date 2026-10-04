@@ -1,0 +1,129 @@
+// Methods of the portal mixins (portal/modules) that do not need the DOM
+import './setup.mjs';
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { createBudgetModule } from '../../portal/modules/budgetModule.js';
+import { createTransactionModule } from '../../portal/modules/transactionModule.js';
+import { createRulesModule } from '../../portal/modules/rulesModule.js';
+import { agentConfigurations } from '../../portal/modules/agentsModule.js';
+
+const budget = createBudgetModule(() => null, () => null);
+const transactions = createTransactionModule(() => null);
+const rules = createRulesModule(() => null);
+
+const CATEGORIES = [
+    { id: 0, name: 'Non catégorisé', parent_category: 0, icon: 'help', color: '#9e9e9e' },
+    { id: 1, name: 'Alimentation', parent_category: 0, icon: 'restaurant', color: 'green' },
+    { id: 2, name: 'Supermarché', parent_category: 1, icon: 'shopping_cart', color: 'teal' },
+    { id: 3, name: 'Restaurant', parent_category: 1, icon: '', color: '' },
+    { id: 4, name: 'Logement', parent_category: 0, icon: 'home', color: 'blue' },
+];
+
+/** `this` of the portal for the transaction methods */
+function transactionContext() {
+    const context = {
+        ...budget.methods,
+        ruleCategories: CATEGORIES,
+        // Icon font loaded: the stored names are kept, '' gives the default icon
+        categoryIcon: item => item.icon || 'category',
+        getTransactionIcon: type => `type-${type}`,
+    };
+    for (const [name, method] of Object.entries(transactions.methods)) {
+        context[name] = method.bind(context);
+    }
+    context.categoryColor = budget.methods.categoryColor.bind(context);
+    context.categoryBadgeStyle = budget.methods.categoryBadgeStyle.bind(context);
+    return context;
+}
+
+test('budgetStatus: green up to 105 %, red beyond', () => {
+    const status = progress => budget.methods.budgetStatus({ progress });
+    assert.equal(status(0), 'ok');
+    assert.equal(status(95), 'ok');
+    assert.equal(status(105), 'ok');
+    assert.equal(status(106), 'over');
+    assert.equal(status('abc'), 'ok');
+});
+
+test('budgetGroups: expenses, incomes, off-budget or empty', () => {
+    const groups = budget.computed.budgetGroups.call({ currentBudgetList: [
+        { name: 'Logement', type: 'DEBIT', budget: '1000.00', consummed: 950 },
+        { name: 'Vacances', type: 'DEBIT', budget: '0.00', consummed: 0 },
+        { name: 'Salaire', type: 'CREDIT', budget: '0.00', consummed: 3200 },
+        { name: 'Épargne', type: 'HORS-BUDGET', budget: '0.00', consummed: 500 },
+    ] });
+    assert.deepEqual(groups.expenses.map(i => i.name), ['Logement']);
+    assert.deepEqual(groups.incomes.map(i => i.name), ['Salaire']);
+    assert.deepEqual(groups.others.map(i => i.name), ['Vacances', 'Épargne']);
+});
+
+test('budgetSummary: totals of the budgeted expenses', () => {
+    const summary = budget.computed.budgetSummary.call({ budgetGroups: { expenses: [
+        { budget: '1000.00', consummed: 950 }, { budget: '400.00', consummed: 127.4 },
+    ] } });
+    assert.equal(summary.budget, 1400);
+    assert.equal(Math.round(summary.consumed * 100) / 100, 1077.4);
+    assert.equal(summary.progress, 77);
+});
+
+test('categoryColor: color of the category, the primary color by default', () => {
+    assert.equal(budget.methods.categoryColor({ color: 'teal' }), '#30b0c7');
+    assert.equal(budget.methods.categoryColor({ color: '' }), 'var(--primary-color)');
+});
+
+test('the icon of a transaction is the one of its own category', () => {
+    const context = transactionContext();
+    assert.equal(context.transactionIcon({ category: '2', type: 7 }), 'shopping_cart');
+    // A sub-category without icon: its own (default) icon, as on the categories page, not its parent's
+    assert.equal(context.transactionIcon({ category: 3, type: 7 }), 'category');
+    // Uncategorized: icon of the operation type, without category colors
+    assert.equal(context.transactionIcon({ category: 0, type: 7 }), 'type-7');
+    assert.equal(context.transactionIconStyle({ category: 0, type: 7 }), null);
+    assert.deepEqual(context.transactionIconStyle({ category: 3 }), { color: 'var(--primary-color)', background: 'color-mix(in srgb, var(--primary-color) 14%, transparent)' });
+});
+
+test('categoryName and isUncategorized', () => {
+    const context = transactionContext();
+    assert.equal(context.categoryName({ category: 4 }), 'Logement');
+    assert.equal(context.categoryName({ category: 0 }), '');
+    assert.equal(context.isUncategorized({ category: '0' }), true);
+    assert.equal(context.isUncategorized({ category: 2 }), false);
+});
+
+test('displayedTransactions, stats and totals', () => {
+    const list = [
+        { id: 1, amount: '3200.00', pointed: '1' },
+        { id: 2, amount: '-82.40', pointed: '0' },
+        { id: 3, amount: '-950.00', pointed: '1' },
+    ];
+    const context = { transactions: list, searchResults: [], isSearching: false, transactionFilter: 'unchecked' };
+    const displayed = transactions.computed.displayedTransactions.call(context);
+    assert.deepEqual(displayed.map(t => t.id), [2]);
+    assert.equal(transactions.computed.displayedTotal.call({ displayedTransactions: displayed }), -82.4);
+    assert.equal(transactions.computed.uncheckedCount.call(context), 1);
+
+    const stats = transactions.computed.stats.call(context);
+    assert.equal(stats.income, 3200);
+    assert.equal(Math.round(stats.expense * 100) / 100, -1032.4);
+});
+
+test('isSearching: from 2 characters', () => {
+    assert.equal(transactions.computed.isSearching.call({ searchQuery: ' a ' }), false);
+    assert.equal(transactions.computed.isSearching.call({ searchQuery: 'ed' }), true);
+});
+
+test('ruleCategoryOptions: each parent followed by its sub-categories, without the default one', () => {
+    const options = rules.computed.ruleCategoryOptions.call({ ruleCategories: CATEGORIES });
+    assert.deepEqual(options.map(o => o.label), ['Alimentation', 'Alimentation › Restaurant', 'Alimentation › Supermarché', 'Logement']);
+});
+
+test('agentConfigurations: the MCP URL and the token in each configuration', () => {
+    const url = 'https://carbure.example.com/api/mcp';
+    const configs = agentConfigurations(url, 'tok-123');
+    assert.deepEqual(configs.map(c => c.id), ['claude-code', 'chatgpt', 'cursor', 'vscode', 'gemini']);
+    for (const config of configs) {
+        assert.ok(config.code.includes(url), config.id);
+        assert.ok(config.code.includes('tok-123'), config.id);
+    }
+    assert.deepEqual(JSON.parse(configs.find(c => c.id === 'cursor').code), { mcpServers: { carbure: { url, headers: { Authorization: 'Bearer tok-123' } } } });
+});

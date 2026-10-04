@@ -7,9 +7,6 @@
  * @module app
  */
 
-import BudgetBreadcrumb from './components/BudgetBreadcrumb.js';
-import BudgetItem from './components/BudgetItem.js';
-import BudgetEditModal from './components/BudgetEditModal.js';
 import CategoryPicker from './components/CategoryPicker.js';
 import SqlEditor from './components/SqlEditor.js';
 import FlowChart from './components/FlowChart.js';
@@ -28,9 +25,20 @@ import { createCategoriesModule } from './modules/categoriesModule.js';
 import { createSetupModule } from './modules/setupModule.js';
 import { createAgentsModule } from './modules/agentsModule.js';
 import { createLogsModule } from './modules/logsModule.js';
+import { createOAuthModule } from './modules/oauthModule.js';
 
 /** Tabs reserved to administrators */
 const ADMIN_TABS = ['rules', 'categories', 'accounts', 'users', 'logs'];
+
+/**
+ * Tabs grouped under "Administration" in the navigation of the administrators (the
+ * other users reach "agents", their own AI agent tokens, from the user menu)
+ */
+const ADMINISTRATION_TABS = [
+    { key: 'users', icon: 'people', label: 'tabUsers' },
+    { key: 'logs', icon: 'receipt_long', label: 'tabLogs' },
+    { key: 'agents', icon: 'smart_toy', label: 'tabAgents' }
+];
 import * as formatters from './utils/formatters.js';
 
 const { createApp } = Vue;
@@ -48,9 +56,6 @@ let budgetStore = null;
 createApp({
     // Register imported components
     components: {
-        BudgetBreadcrumb,
-        BudgetItem,
-        BudgetEditModal,
         CategoryPicker,
         SqlEditor,
         FlowChart
@@ -70,7 +75,8 @@ createApp({
         createCategoriesModule(() => apiService),
         createSetupModule(),
         createAgentsModule(() => apiService),
-        createLogsModule(() => apiService)
+        createLogsModule(() => apiService),
+        createOAuthModule(() => apiService)
     ],
 
     data() {
@@ -87,6 +93,9 @@ createApp({
             budgetFlow: null,
             // Budget tab: 'flow' (money flow) or 'budgets' (budget of each category)
             budgetView: 'flow',
+            // Tabs of the Administration menu, and the last one opened
+            administrationTabs: ADMINISTRATION_TABS,
+            administrationTab: ADMINISTRATION_TABS[0].key,
             
             // Authentication state
             isAuthenticated: false,
@@ -140,6 +149,14 @@ createApp({
          */
         isDebugMode() {
             return formatters.isDebugMode();
+        },
+
+        /**
+         * Checks if the tab shown is one of the Administration menu (administrators)
+         * @returns {boolean}
+         */
+        isAdministrationTab() {
+            return this.isAdmin && ADMINISTRATION_TABS.some(tab => tab.key === this.activeTab);
         },
 
         /**
@@ -225,6 +242,9 @@ createApp({
             }
             this.abortAllExcept(tab);
             this.activeTab = tab;
+            if (ADMINISTRATION_TABS.some(t => t.key === tab)) {
+                this.administrationTab = tab;
+            }
             
             if (this.isDebugMode) {
                 console.log('Switching to tab:', tab);
@@ -367,7 +387,7 @@ createApp({
          */
         async login() {
             if (!this.loginForm.username || !this.loginForm.password) {
-                this.loginError = this.t('loginRequired') || 'Nom d\'utilisateur et mot de passe requis';
+                this.loginError = this.t('loginRequired');
                 return;
             }
 
@@ -422,7 +442,7 @@ createApp({
                 
             } catch (error) {
                 console.error('Login error:', error);
-                this.loginError = error.message || (this.t('loginError') || 'Erreur de connexion');
+                this.loginError = error.message || (this.t('loginError'));
             } finally {
                 this.loggingIn = false;
             }

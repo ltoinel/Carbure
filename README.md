@@ -116,6 +116,12 @@ done) and the open tasks in [TODO.md](TODO.md). Found a bug or have an idea?
 [Open an issue](https://github.com/ltoinel/Carbure/issues). If Carbure is useful to you,
 a ⭐ helps others find it.
 
+To develop, `./start.sh` starts the development environment with Docker: the production
+image and MariaDB, the code of the repository mounted live and a sample household
+(`http://localhost:8000/portal/`, `admin` / `admin-password`). The tests (PHPUnit, portal
+unit tests, Playwright end-to-end tests) are described in the
+[developer documentation](https://ltoinel.github.io/Carbure/developpement/) (in French).
+
 ## License
 
 [MIT](LICENSE) © Ludovic Toinel

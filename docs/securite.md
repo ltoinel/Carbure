@@ -89,7 +89,17 @@ onglet : 192 bits aléatoires, préfixe `cbt_`, **seule l'empreinte SHA-256 est 
 durée de validité au choix (30, 90 ou 365 jours, ou sans expiration), révocables, avec la
 date de dernière utilisation. Ils ne donnent accès qu'aux outils en
 lecture seule du serveur MCP, pas au reste de l'API. Le serveur refuse les requêtes
-portant un en-tête `Origin` d'un autre site (protection contre le DNS rebinding).
+portant un en-tête `Origin` d'un autre site que Carbure ou les clients web de Claude
+(protection contre le DNS rebinding).
+
+Les agents qui ne prennent qu'une URL (Claude web, Desktop, mobile) obtiennent un tel jeton
+par **OAuth 2.1** : l'utilisateur se connecte au portail et autorise explicitement l'agent ;
+**PKCE `S256` obligatoire**, codes d'autorisation à usage unique valables 5 minutes, URI de
+retour enregistrées et comparées à l'identique (HTTPS, ou HTTP sur `localhost`), jetons de
+rafraîchissement à rotation, seules les empreintes SHA-256 des codes, jetons et secrets
+clients sont stockées. L'enregistrement des clients est ouvert (comme le prévoit la
+spécification MCP) mais limité à 100 clients, les clients inutilisés étant purgés après
+un jour ; tout est refusé quand le serveur MCP est désactivé.
 
 ## Routes publiques
 
@@ -100,12 +110,17 @@ Seules ces routes ne demandent pas de JWT (un test unitaire le vérifie) :
   configuration (en-tête `X-Sync-Token` de préférence, ou `?token=`). Sans `sync_token`
   configuré, seul un utilisateur connecté peut lancer la synchronisation ;
 - `POST /mcp` et `GET /mcp` (serveur MCP), qui exigent un jeton d'accès ou un JWT ;
+- les routes OAuth des agents IA (métadonnées `/.well-known/oauth-*`, enregistrement,
+  autorisation et jetons), désactivées avec le serveur MCP ; l'autorisation elle-même
+  (`POST /oauth/approve`) exige l'utilisateur connecté au portail ;
 - `GET /health` (supervision), qui ne renvoie que l'état de la base et la version du schéma.
 
 ## Données sensibles
 
-- Les logs masquent les champs `password` et `token` des requêtes, et le paramètre
-  `token=` des URL (synchronisation, MCP).
+- Les logs masquent les champs `password` et `token` des requêtes, les secrets OAuth
+  (`code`, `code_verifier`, `refresh_token`, `access_token`, `client_secret`), et le
+  paramètre `token=` des URL (synchronisation, MCP). Le corps des réponses du serveur MCP et
+  d'OAuth n'est pas journalisé.
 - Les messages d'erreur ne renvoient ni hachage ni secret ; l'`uid` permet de retrouver
   le détail dans les logs serveur.
 - `data/` : `conf/prod.ini`, `conf/certs/*.p8`, `logs/`, `woob/` (identifiants bancaires woob)

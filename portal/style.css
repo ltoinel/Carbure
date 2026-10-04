@@ -1659,17 +1659,31 @@ button .material-icons {
     overflow: visible;
 }
 
-.insights-header {
+/* Header band of a page (title, help, actions): Insights, Trends, Categories, Accounts */
+.page-header {
     padding: 28px 32px;
     border-bottom: 1px solid var(--divider);
     background: linear-gradient(to right, var(--background), transparent);
 }
 
-.insights-header h2 {
+.page-header h2 {
     font-size: 22px;
     font-weight: 500;
     color: var(--text-primary);
     letter-spacing: -0.5px;
+}
+
+/* At the top of a card: across the whole width of the card */
+.trends-card > .page-header:first-child {
+    margin: calc(-1 * var(--card-padding-y)) calc(-1 * var(--card-padding-x)) var(--card-padding-y);
+    border-radius: var(--border-radius-xl) var(--border-radius-xl) 0 0;
+}
+
+/* Card made of the header band only */
+.trends-card > .page-header:only-child {
+    margin-bottom: calc(-1 * var(--card-padding-y));
+    border-bottom: none;
+    border-radius: var(--border-radius-xl);
 }
 
 .insights-grid {
@@ -2517,10 +2531,12 @@ button .material-icons {
 }
 
 .trends-card {
+    --card-padding-y: 22px;
+    --card-padding-x: 26px;
     background: var(--surface);
     border-radius: var(--border-radius-xl);
     box-shadow: var(--shadow-2);
-    padding: 22px 26px;
+    padding: var(--card-padding-y) var(--card-padding-x);
 }
 
 .trends-toolbar {
@@ -2761,7 +2777,12 @@ button .material-icons {
     }
 
     .trends-card {
-        padding: 16px;
+        --card-padding-y: 16px;
+        --card-padding-x: 16px;
+    }
+
+    .page-header {
+        padding: 20px;
     }
 }
 
@@ -2896,18 +2917,6 @@ button .material-icons {
 }
 
 /* Manual categorization */
-.transaction-category-picker {
-    max-width: 200px;
-    padding: 6px 8px;
-    border: 1px dashed var(--primary-color);
-    border-radius: var(--border-radius-md);
-    background: var(--surface);
-    color: var(--primary-color);
-    font-size: 13px;
-    font-family: 'Roboto', sans-serif;
-    cursor: pointer;
-}
-
 .rule-suggestion {
     display: flex;
     align-items: center;
@@ -2932,12 +2941,6 @@ button .material-icons {
 .rule-suggestion button {
     padding: 6px 12px;
     font-size: 13px;
-}
-
-@media (max-width: 768px) {
-    .transaction-category-picker {
-        max-width: 120px;
-    }
 }
 
 /* Trends: period and comparison */
@@ -3102,9 +3105,19 @@ button .material-icons {
     justify-content: flex-start;
 }
 
-.transaction-category .transaction-category-picker {
+.transaction-category .category-picker {
     width: 100%;
-    max-width: none;
+}
+
+/* Category picker of a row: a small button, its list floats over the page */
+.category-picker.compact .category-picker-button {
+    min-height: 34px;
+    padding: 4px 10px;
+    font-size: 13px;
+}
+
+.category-picker.compact .category-picker-placeholder {
+    color: var(--primary-color);
 }
 
 .category-chip {
@@ -4154,13 +4167,33 @@ a.footer-brand:hover {
     align-items: center;
     gap: 10px;
     font-size: 15px;
+    line-height: 20px;
     color: var(--text-primary);
     cursor: pointer;
 }
 
 .setup-checkbox input {
+    flex: none;
     width: 20px;
     height: 20px;
+    margin: 0;
+    accent-color: var(--primary-color);
+}
+
+/* Checkbox and its label in a form: side by side, centered (not a field label) */
+.modal-body label.setup-checkbox {
+    display: flex;
+    margin-bottom: 0;
+    font-size: 15px;
+    color: var(--text-primary);
+    text-transform: none;
+    letter-spacing: normal;
+}
+
+.budget-edit-category {
+    margin: 0;
+    font-weight: 600;
+    color: var(--text-primary);
 }
 
 .setup-actions {

@@ -1,0 +1,79 @@
+<?php
+
+/**
+ * router.php
+ *
+ * Router of the PHP built-in server for the end-to-end tests of the portal:
+ *   APP_ENV=e2e php -S 127.0.0.1:8091 -t . tests/e2e/server/router.php
+ * (started by Playwright for the tests, and by start.sh for the development)
+ *
+ * - /portal/...           : the static files of the portal
+ * - /api/...              : the real API (src/api.php), on the e2e database
+ * - /api/__e2e/reset      : recreates the e2e database with the data set (seed.php)
+ *
+ * Test-only: it is never served by nginx, and refuses to answer outside APP_ENV=e2e.
+ * The database comes from E2E_DB_HOST, E2E_DB_PORT, E2E_DB_USER, E2E_DB_PASSWORD
+ * (127.0.0.1:3306, root, no password by default) and E2E_DB_NAME (carbure_e2e by
+ * default; the name must end with _e2e or _dev: the reset drops it). The logs and the files
+ * of the instance go to tests/e2e/.data, the woob CLI is the fake one of the tests.
+ *
+ * @author     Ludovic Toinel
+ * @copyright  2026 Carbure App
+ */
+
+if (getenv('APP_ENV') !== 'e2e') {
+    http_response_code(500);
+    echo "The e2e router only runs with APP_ENV=e2e\n";
+    return true;
+}
+
+$root = dirname(__DIR__, 3);
+$path = (string)parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+
+if ($path === '/') {
+    header('Location: /portal/');
+    return true;
+}
+
+// Static files of the portal, served by the built-in server
+if (str_starts_with($path, '/portal/')) {
+    return false;
+}
+
+// The API, and the OAuth metadata of the MCP server (as nginx does)
+if (!str_starts_with($path, '/api/') && !str_starts_with($path, '/.well-known/oauth-')) {
+    http_response_code(404);
+    return true;
+}
+
+require_once $root . '/src/autoload.php';
+require_once __DIR__ . '/seed.php';
+
+// Logs into carbure_e2e_YYYYMMDD.log, in the data directory of the tests
+$GLOBALS['SCOPE'] = 'e2e';
+$dataDir = __DIR__ . '/../.data';
+@mkdir($dataDir . '/logs', 0700, true);
+Config::set('data_dir', realpath($dataDir));
+Config::set('db_hostname', getenv('E2E_DB_HOST') ?: '127.0.0.1');
+Config::set('db_port', (int)(getenv('E2E_DB_PORT') ?: 3306));
+Config::set('db_username', getenv('E2E_DB_USER') ?: 'root');
+Config::set('db_password', getenv('E2E_DB_PASSWORD') ?: '');
+if (getenv('E2E_DB_NAME')) {
+    Config::set('db_name', getenv('E2E_DB_NAME'));
+}
+Config::set('woob_path', escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($root . '/tests/fixtures/fake-woob.php'));
+
+if ($path === '/api/__e2e/reset') {
+    header('Content-Type: application/json');
+    try {
+        carbure_e2e_seed();
+        echo json_encode(['reset' => true]);
+    } catch (Throwable $e) {
+        http_response_code(500);
+        echo json_encode(['error' => $e->getMessage()]);
+    }
+    return true;
+}
+
+require $root . '/src/api.php';
+return true;

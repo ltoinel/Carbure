@@ -151,6 +151,15 @@ export function cssColorFor(color) {
 /** SF Symbols names offered when creating or editing a category (shown with their Material icon) */
 export const CATEGORY_ICONS = Object.keys(SF_TO_MATERIAL);
 
+/**
+ * Style of an icon badge: the icon in the color, on a light tint of it
+ * @param {string} color - CSS color
+ * @returns {{color: string, background: string}}
+ */
+export function badgeStyle(color) {
+    return { color, background: `color-mix(in srgb, ${color} 14%, transparent)` };
+}
+
 /** Color names understood by the iOS app (SwiftUI) and the portal */
 export const CATEGORY_COLORS = ['red', 'orange', 'yellow', 'green', 'mint', 'teal', 'cyan', 'blue',
     'indigo', 'purple', 'pink', 'magenta', 'brown', 'gray', 'darkGray'];

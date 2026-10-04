@@ -8,7 +8,8 @@
  */
 
 /**
- * Configuration of each AI agent for a token
+ * Configuration of each AI agent for a token (Claude web, Desktop and mobile need none:
+ * they connect with OAuth, from the URL of the server shown in the AI agent tab)
  * @param {string} url - URL of the MCP server
  * @param {string} token - Access token
  * @returns {Array<{id: string, name: string, how: string, code: string}>}
@@ -22,12 +23,6 @@ export function agentConfigurations(url, token) {
             name: 'Claude Code',
             how: 'agentHow_claudeCode',
             code: `claude mcp add --transport http carbure ${url} --header "${header}"`
-        },
-        {
-            id: 'claude-desktop',
-            name: 'Claude Desktop',
-            how: 'agentHow_claudeDesktop',
-            code: json({ mcpServers: { carbure: { command: 'npx', args: ['-y', 'mcp-remote', url, '--header', header] } } })
         },
         {
             id: 'chatgpt',

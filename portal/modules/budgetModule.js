@@ -7,7 +7,7 @@
  * @module budgetModule
  */
 
-import { materialIconFor, cssColorFor } from '../utils/categoryIcons.js';
+import { materialIconFor, cssColorFor, badgeStyle } from '../utils/categoryIcons.js';
 
 /**
  * Known Material icon names (true) or unknown ones (false), measured once
@@ -57,7 +57,11 @@ export function createBudgetModule(getBudgetStore, getApiService) {
                 budgetTransactions: [],
                 loadingBudgetTransactions: false,
                 iconFontReady: !document.fonts || document.fonts.status === 'loaded',
-                budgetToEdit: null
+                budgetToEdit: null,
+                // Edit modal: amount, and for a parent category the sum of its sub-categories
+                budgetNewValue: '',
+                budgetUseChildren: false,
+                savingBudget: false
             };
         },
 
@@ -159,7 +163,6 @@ export function createBudgetModule(getBudgetStore, getApiService) {
                 this.clearBudgetTransactions();
 
                 try {
-                    console.log('Loading budget for', month, year);
                     await store.loadRootBudgets(month, year);
 
                     // Show debug toast in dev mode
@@ -167,7 +170,6 @@ export function createBudgetModule(getBudgetStore, getApiService) {
                         this.showToast(`Budget loaded: ${this.currentBudgetList.length} items`);
                     }
                     
-                    console.log('Budget loaded, items count:', this.currentBudgetList.length);
                 } catch (err) {
                     console.error('Budget loading error:', err);
                     this.error = err.message;
@@ -199,15 +201,23 @@ export function createBudgetModule(getBudgetStore, getApiService) {
             },
 
             /**
-             * Budget status of an item: ok, near (>= 80 %) or over (> 100 %)
+             * Style of the icon badge of a category (its color on a light tint)
+             * @param {Object} item - Category or budget item
+             * @returns {{color: string, background: string}}
+             */
+            categoryBadgeStyle(item) {
+                return badgeStyle(this.categoryColor(item));
+            },
+
+            /**
+             * Budget status of an item: ok (green up to 105 %, a small overrun is tolerated)
+             * or over (> 105 %)
              * @param {Object} item - Budget item
              * @returns {string}
              */
             budgetStatus(item) {
                 const progress = Number(item.progress) || 0;
-                if (progress > 100) return 'over';
-                if (progress >= 80) return 'near';
-                return 'ok';
+                return progress > 105 ? 'over' : 'ok';
             },
 
             /**
@@ -266,7 +276,7 @@ export function createBudgetModule(getBudgetStore, getApiService) {
                     await store.navigateToChildren(item, month, year);
                 } catch (err) {
                     console.error('Navigate to budget error:', err);
-                    this.showToast(err.message || 'Erreur de navigation');
+                    this.showToast(err.message || this.t('navigationError'));
                 }
             },
 
@@ -294,7 +304,7 @@ export function createBudgetModule(getBudgetStore, getApiService) {
                     }
                 } catch (err) {
                     console.error('Breadcrumb navigation error:', err);
-                    this.showToast(err.message || 'Erreur de navigation');
+                    this.showToast(err.message || this.t('navigationError'));
                 }
             },
 
@@ -304,7 +314,29 @@ export function createBudgetModule(getBudgetStore, getApiService) {
              */
             handleBudgetEdit(item) {
                 this.budgetToEdit = item;
+                this.budgetUseChildren = item.budget_mode === 'children';
+                this.budgetNewValue = this.budgetUseChildren ? '' : (Number(item.budget) || '');
                 this.showBudgetModal = true;
+                this.$nextTick(() => document.getElementById('budget-edit-amount')?.focus());
+            },
+
+            /**
+             * Saves the budget of the edit modal: the amount, or 0 for a parent category
+             * whose budget is the sum of its sub-categories
+             * @returns {Promise<void>}
+             */
+            async submitBudgetEdit() {
+                const amount = this.budgetUseChildren ? 0 : Number(this.budgetNewValue);
+                if (!Number.isFinite(amount) || amount < 0 || (!this.budgetUseChildren && this.budgetNewValue === '')) {
+                    this.showToast(this.t('budgetInvalidAmount'));
+                    return;
+                }
+                this.savingBudget = true;
+                try {
+                    await this.handleBudgetSave(amount, this.selectedMonth, this.selectedYear);
+                } finally {
+                    this.savingBudget = false;
+                }
             },
 
             /**
@@ -337,11 +369,11 @@ export function createBudgetModule(getBudgetStore, getApiService) {
                         newValue
                     );
 
-                    this.showToast(this.t('budgetUpdatedToast') || 'Budget mis à jour');
+                    this.showToast(this.t('budgetUpdatedToast'));
                     this.closeBudgetModal();
                 } catch (err) {
                     console.error('Edit budget error:', err);
-                    alert(err.message || 'Erreur lors de la mise à jour du budget');
+                    this.showToast(err.message);
                 }
             },
 

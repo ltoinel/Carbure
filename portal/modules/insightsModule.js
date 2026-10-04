@@ -79,7 +79,6 @@ export function createInsightsModule(getApiService) {
                     }
                 } catch (err) {
                     if (err.name === 'AbortError') {
-                        console.log('Insights request aborted');
                         return;
                     }
                     

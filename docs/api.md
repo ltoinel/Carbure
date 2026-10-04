@@ -6,7 +6,9 @@
 - **Authentification** : en-tête `Authorization: Bearer <token>` (JWT obtenu par
   `POST /user/login`) sur toutes les routes, sauf les routes **publiques** :
   `POST /user/login`, `GET /bank/sync` (JWT ou `sync_token`), `POST /mcp` et `GET /mcp`
-  (jeton d'accès ou JWT) et `GET /health`. Un test unitaire vérifie cette liste.
+  (jeton d'accès ou JWT), `GET /health`, et les routes OAuth des agents IA (métadonnées
+  `/.well-known/oauth-*`, `POST /oauth/register`, `GET /oauth/authorize`,
+  `POST /oauth/token`). Un test unitaire vérifie cette liste.
 - **Paramètres nommés** : chaque clé de la requête correspond à un paramètre de la
   méthode PHP. Une clé inconnue renvoie une erreur 400.
 - **Profils** : un **utilisateur** consulte et pointe les transactions, les budgets, les
@@ -256,7 +258,10 @@ curl -X PUT https://exemple.fr/api/transaction/pointed -H "Authorization: Bearer
 
 `month`, `year`, `category` (catégorie parente, `0` = racine). Pour chaque catégorie :
 `id`, `name`, `type`, `icon`, `color`, `budget`, `consummed` (somme absolue des
-transactions de la catégorie et de ses sous-catégories), `progress` (%).
+transactions de la catégorie et de ses sous-catégories), `progress` (%), `children`
+(nombre de sous-catégories), `children_budget` (somme de leurs budgets) et `budget_mode` :
+`own` (montant défini pour la catégorie) ou `children` (catégorie avec sous-catégories et
+sans montant défini : `budget` est alors la somme des budgets des sous-catégories).
 
 ### `GET /budget/flow`
 
@@ -276,7 +281,8 @@ catégories `HORS-BUDGET` (virements internes) sont exclues, sauf la catégorie 
 ### `POST /budget`
 
 `category`, `amount` (requis), `month`, `year` (mois courant par défaut) : crée ou met à
-jour le budget de la catégorie pour le mois.
+jour le budget de la catégorie pour le mois. Pour une catégorie avec sous-catégories, le
+montant remplace la somme de leurs budgets ; `0` revient à cette somme.
 
 ### `GET /budget/trends`
 
@@ -293,7 +299,7 @@ Renvoie un élément par mois (du plus ancien au plus récent, mois vides inclus
 | `debit` | Dépenses du mois, catégories hors budget exclues (montant positif) |
 | `credit` | Revenus du mois, catégories hors budget exclues |
 | `offBudget` | Solde des catégories `HORS-BUDGET` (ex. virements vers l'épargne) |
-| `planned` | Somme des budgets des catégories de premier niveau |
+| `planned` | Somme des budgets des catégories de premier niveau (montant défini, ou somme des sous-catégories) |
 | `savings` | Montant net versé sur la catégorie d'épargne (`savings_category`, `Epargne` par défaut) et ses sous-catégories, positif quand on épargne |
 
 ```bash
@@ -429,6 +435,24 @@ l'active ou le désactive — administrateur.
 Serveur MCP (JSON-RPC 2.0, transport Streamable HTTP) en lecture seule, authentifié par
 `Authorization: Bearer <jeton>` (ou `?token=`). `GET /mcp` répond `405`. Voir
 [Agents IA (MCP)](mcp.md).
+
+### OAuth 2.1 des agents IA — publiques (sauf indication)
+
+Pour les agents qui ne prennent que l'URL du serveur MCP (Claude web, Desktop, mobile).
+Réponses et erreurs au format OAuth (`{"error", "error_description"}`), pas au format de
+l'API.
+
+| Route | Rôle |
+|---|---|
+| `GET /.well-known/oauth-protected-resource` (et `…/api/mcp`) | Métadonnées du serveur MCP (RFC 9728) : `resource`, `authorization_servers` |
+| `GET /.well-known/oauth-authorization-server` | Métadonnées OAuth (RFC 8414) : points d'accès, `S256`, méthodes d'authentification du client |
+| `POST /api/oauth/register` | Enregistrement dynamique (RFC 7591) : `redirect_uris` (HTTPS, ou HTTP sur `localhost`), `client_name`, `token_endpoint_auth_method` (`none`, `client_secret_post`, `client_secret_basic`) ; `201` avec `client_id` (et `client_secret`) |
+| `GET /api/oauth/authorize` | `response_type=code`, `client_id`, `redirect_uri`, `state`, `code_challenge` (`S256`) : `302` vers la page de consentement du portail, ou vers l'agent avec `error=` ; `400` si le client ou l'URI de retour est inconnu |
+| `GET /api/oauth/client?request=` — JWT | Nom de l'agent et hôte de retour, pour la page de consentement |
+| `POST /api/oauth/approve` — JWT | `request`, `approved` : `{"redirect"}` vers l'agent, avec le code (5 minutes, usage unique) ou `error=access_denied` |
+| `POST /api/oauth/token` | Formulaire ou JSON : `grant_type=authorization_code` (`code`, `redirect_uri`, `client_id`, `code_verifier`) ou `refresh_token` ; `{"access_token", "token_type": "Bearer", "expires_in", "refresh_token"}` |
+
+Toutes répondent `403` (`access_denied`) quand le serveur MCP est désactivé.
 
 ## Système
 

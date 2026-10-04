@@ -19,14 +19,14 @@ restaurants cette année ? », « Quelles catégories dépassent leur budget ce 
 
 ## 1. Activer le serveur MCP
 
-Onglet **Agent** du portail : un administrateur active l'interrupteur **Serveur MCP
+Onglet **Agent IA** du portail (menu **Administration**) : un administrateur active l'interrupteur **Serveur MCP
 activé** (le réglage `mcp_enabled` est enregistré en base). Tant qu'il est désactivé,
 `/api/mcp` répond `403`, même avec un jeton valide, et les utilisateurs ne peuvent pas créer
 de jeton.
 
 ## 2. Créer un jeton d'accès
 
-Toujours dans l'onglet **Agent**, bouton **+** : donnez un nom au jeton (par exemple
+Dans l'onglet **Agent IA** (menu **Administration** pour un administrateur, menu utilisateur sinon), bouton **+** : donnez un nom au jeton (par exemple
 « Claude Code sur mon portable ») et choisissez sa **durée de validité** (30 jours, 90 jours,
 1 an ou sans expiration ; un jeton expiré est refusé et signalé « Expiré » dans la
 liste). Le jeton (`cbt_…`) n'est affiché **qu'une seule fois**, avec la configuration prête
@@ -38,10 +38,20 @@ conservée en base.
 
 ## 3. Connecter son agent IA
 
+### Claude (web, Desktop, mobile) : sans jeton, par OAuth
+
+Dans Claude : **Paramètres → Connecteurs → Ajouter un connecteur personnalisé**, collez
+l'URL du serveur MCP (`https://<votre-serveur>/api/mcp`, affichée dans l'onglet **Agent IA**)
+puis cliquez sur **Se connecter**. Claude ouvre le portail de Carbure : connectez-vous si
+besoin, puis **Autoriser**. L'accès apparaît dans **Mes jetons d'accès**, au nom de l'agent
+(« Claude »), et se révoque comme les autres jetons. Carbure doit être accessible en HTTPS
+depuis Internet (voir [Synology](synology.md), étape 8).
+
+### Les autres agents : avec un jeton
+
 | Agent | Configuration (proposée par le portail) |
 |---|---|
 | Claude Code | `claude mcp add --transport http carbure <url> --header "Authorization: Bearer <jeton>"` |
-| Claude Desktop | bloc `mcpServers` de `claude_desktop_config.json`, via `npx mcp-remote` (Node.js) |
 | ChatGPT | connecteur en mode développeur, URL `<url>?token=<jeton>` (HTTPS public requis) |
 | Cursor | bloc `mcpServers` de `~/.cursor/mcp.json` avec l'en-tête `Authorization` |
 | VS Code (Copilot) | bloc `servers` de `mcp.json` (type `http`) avec l'en-tête `Authorization` |
@@ -74,9 +84,22 @@ conservée en base.
   (pas de flux SSE).
 - Versions du protocole : `2025-11-25`, `2025-06-18`, `2025-03-26`, `2024-11-05`.
 - Authentification : jeton d'accès (`cbt_…`, en-tête `Authorization` ou `?token=`) ou JWT du
-  portail ; `401` sinon. Une requête portant un en-tête `Origin` d'un autre site est refusée
-  (`403`), comme toute requête quand le serveur est désactivé.
+  portail ; sinon `401` avec `WWW-Authenticate: Bearer resource_metadata="…"`, qui indique à
+  l'agent où trouver comment obtenir un jeton. Une requête portant un en-tête `Origin` d'un
+  autre site que Carbure, `claude.ai` ou `claude.com` est refusée (`403`), comme toute
+  requête quand le serveur est désactivé.
+- **OAuth 2.1** (agents qui ne prennent qu'une URL), selon la spécification MCP :
+  métadonnées `/.well-known/oauth-protected-resource` (RFC 9728) et
+  `/.well-known/oauth-authorization-server` (RFC 8414) ; enregistrement dynamique du client
+  `POST /api/oauth/register` (RFC 7591, URI de retour en HTTPS ou sur `localhost`) ;
+  autorisation `GET /api/oauth/authorize` (PKCE `S256` obligatoire), qui renvoie vers la page
+  de consentement du portail ; `POST /api/oauth/token` (code d'autorisation à usage unique,
+  valable 5 minutes, ou jeton de rafraîchissement, avec rotation). Le jeton d'accès est un
+  jeton `cbt_` valable 30 jours ; une nouvelle autorisation remplace les jetons précédents du
+  même agent. L'URL publique est déduite de la requête (`X-Forwarded-Proto` du proxy) ou du
+  réglage `public_url`.
 - État du serveur : `GET /api/mcp/settings`, `PUT /api/mcp/settings` (`enabled`,
   administrateurs), table `settings`.
 - Les outils s'exécutent avec les droits de l'utilisateur du jeton.
-- Code : `src/resources/Mcp.php` (protocole et outils), `src/resources/ApiToken.php` (jetons).
+- Code : `src/resources/Mcp.php` (protocole et outils), `src/resources/ApiToken.php` (jetons),
+  `src/resources/OAuth.php` (OAuth 2.1), `portal/modules/oauthModule.js` (consentement).

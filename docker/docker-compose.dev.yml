@@ -1,0 +1,42 @@
+# Development stack, started by ./start.sh: http://localhost:8000/portal/
+# An override of docker-compose.yml (production), used with it:
+#   docker compose -f docker/docker-compose.yml -f docker/docker-compose.dev.yml ...
+# Same image of Carbure (nginx, PHP-FPM, woob, entrypoint applying the migrations) and
+# same MariaDB; only differences: the code of the project is mounted instead of copied
+# (a change is taken at the next request), /data is a volume whose conf/prod.ini is
+# written by start.sh, and the ports only listen on 127.0.0.1.
+name: carbure-dev
+
+services:
+  carbure:
+    image: carbure:dev
+    ports: !override
+      - "127.0.0.1:${PORT:-8000}:80"
+    volumes: !override
+      # The code, not the whole project: data/ (local instance) stays out
+      - ../src:/var/www/carbure/src
+      - ../portal:/var/www/carbure/portal
+      - ../swagger:/var/www/carbure/swagger
+      - ../sql:/var/www/carbure/sql
+      - ../tools:/var/www/carbure/tools
+      # Sample data and fake woob (not in the image)
+      - ../tests:/var/www/carbure/tests:ro
+      - data:/data
+    environment:
+      DB_NAME: carbure_dev
+      SYNC_INTERVAL: !reset null
+    # Same check as the image, more often: start.sh waits for it
+    healthcheck:
+      interval: 2s
+      start_period: 60s
+    restart: "no"
+
+  db:
+    environment:
+      MARIADB_DATABASE: carbure_dev
+    ports:
+      - "127.0.0.1:${DB_PORT:-3308}:3306"
+    restart: "no"
+
+volumes:
+  data:

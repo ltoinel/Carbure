@@ -81,17 +81,26 @@ final class Webservice {
     /**
      * Get the payload of the request.
      *
-     * @param string|null $rawPayload The raw body (read from php://input when null)
-     * @return array The decoded JSON payload
+     * @param string|null $rawPayload  The raw body (read from php://input when null)
+     * @param string|null $contentType The Content-Type of the body (header of the request when null)
+     * @return array The decoded JSON payload, or the fields of a form (OAuth token endpoint)
      * @throws Error If the JSON is invalid
      */
-    public static function getPayload($rawPayload = null)
+    public static function getPayload($rawPayload = null, $contentType = null)
     {
         // Get the raw POST data
         $rawPayload ??= file_get_contents('php://input');
         
         if (empty($rawPayload)) {
             return [];
+        }
+
+        // Form fields (application/x-www-form-urlencoded), as OAuth clients send them
+        $contentType ??= (string)($_SERVER['CONTENT_TYPE'] ?? self::getHeader('Content-Type') ?? '');
+        if (stripos($contentType, 'application/x-www-form-urlencoded') === 0) {
+            parse_str($rawPayload, $fields);
+            Logger::debug("Payload", self::maskSensitive($fields));
+            return $fields;
         }
 
         // Decode JSON to associative array (not object)
@@ -229,11 +238,13 @@ final class Webservice {
             $response = call_user_func_array(array($resource, $method), $data);
         }
 
-        Logger::debug("Result", $response);
-
         if ($raw) {
+            // Not logged: tokens (OAuth) and household data (MCP)
+            Logger::debug("Result", strlen((string)$response) . " bytes");
             return (string)$response;
         }
+
+        Logger::debug("Result", $response);
 
         // Return JSON response with pretty print in debug mode
         $flags = Config::get('log_level') === 'debug' ? JSON_PRETTY_PRINT : 0;
@@ -269,7 +280,8 @@ final class Webservice {
     {
         foreach ($data as $key => $value) {
             // settings: the bank credentials sent to woob, whatever their names
-            if (in_array(strtolower((string)$key), ['password', 'token', 'settings', 'admin_password', 'db_password'], true)) {
+            if (in_array(strtolower((string)$key), ['password', 'token', 'settings', 'admin_password', 'db_password',
+                    'code', 'code_verifier', 'refresh_token', 'access_token', 'client_secret'], true)) {
                 $data[$key] = '***';
             } elseif (is_array($value)) {
                 $data[$key] = self::maskSensitive($value);

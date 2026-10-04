@@ -1,15 +1,23 @@
 #!/bin/sh
-# Run the unit tests before pushing.
+# Run the unit tests (PHP and portal) before pushing.
 # Enable with: git config core.hooksPath .githooks
 
 PHP=${PHP:-php}
 
-if ! command -v "$PHP" >/dev/null 2>&1; then
-    echo "pre-push: php not found, unit tests skipped (set PHP=/path/to/php)" >&2
-    exit 0
+if command -v "$PHP" >/dev/null 2>&1; then
+    "$PHP" tools/phpunit.phar --testsuite unit --no-progress || {
+        echo "pre-push: PHP unit tests failed, push aborted" >&2
+        exit 1
+    }
+else
+    echo "pre-push: php not found, PHP unit tests skipped (set PHP=/path/to/php)" >&2
 fi
 
-"$PHP" tools/phpunit.phar --testsuite unit --no-progress || {
-    echo "pre-push: unit tests failed, push aborted" >&2
-    exit 1
-}
+if command -v node >/dev/null 2>&1; then
+    node --test 'tests/portal/*.test.mjs' >/dev/null || {
+        echo "pre-push: portal unit tests failed (node --test 'tests/portal/*.test.mjs'), push aborted" >&2
+        exit 1
+    }
+else
+    echo "pre-push: node not found, portal unit tests skipped" >&2
+fi

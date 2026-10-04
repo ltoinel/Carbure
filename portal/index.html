@@ -260,6 +260,10 @@
                             <span class="material-icons" aria-hidden="true">person</span>
                             {{ t('myProfile') }}
                         </button>
+                        <button v-if="!isAdmin" role="menuitem" @click="closeUserMenu(); setActiveTab('agents')">
+                            <span class="material-icons" aria-hidden="true">smart_toy</span>
+                            {{ t('tabAgents') }}
+                        </button>
                         <button role="menuitem" class="user-menu-logout" @click="logout">
                             <span class="material-icons" aria-hidden="true">logout</span>
                             {{ t('logout') }}
@@ -355,30 +359,13 @@
                 {{ t('tabAccounts') }}
             </button>
             <button 
-                class="tab-button" 
-                :class="{ active: activeTab === 'agents' }"
-                :aria-current="activeTab === 'agents' ? 'page' : null" 
-                @click="setActiveTab('agents')">
-                <span class="material-icons" aria-hidden="true">smart_toy</span>
-                {{ t('tabAgents') }}
-            </button>
-            <button 
                 v-if="isAdmin"
                 class="tab-button" 
-                :class="{ active: activeTab === 'users' }"
-                :aria-current="activeTab === 'users' ? 'page' : null" 
-                @click="setActiveTab('users')">
-                <span class="material-icons" aria-hidden="true">people</span>
-                {{ t('tabUsers') }}
-            </button>
-            <button 
-                v-if="isAdmin"
-                class="tab-button" 
-                :class="{ active: activeTab === 'logs' }"
-                :aria-current="activeTab === 'logs' ? 'page' : null" 
-                @click="setActiveTab('logs')">
-                <span class="material-icons" aria-hidden="true">receipt_long</span>
-                {{ t('tabLogs') }}
+                :class="{ active: isAdministrationTab }"
+                :aria-current="isAdministrationTab ? 'page' : null" 
+                @click="setActiveTab(administrationTab)">
+                <span class="material-icons" aria-hidden="true">admin_panel_settings</span>
+                {{ t('tabAdministration') }}
             </button>
         </div>
 
@@ -411,6 +398,13 @@
 
         <!-- Tab Content Container -->
         <div class="tab-content" id="main-content" role="main" tabindex="-1">
+            <div v-if="isAdministrationTab" class="sub-tabs" role="tablist" :aria-label="t('tabAdministration')">
+                <button v-for="tab in administrationTabs" :key="tab.key" type="button" role="tab" class="sub-tab"
+                        :class="{ active: activeTab === tab.key }" :aria-selected="activeTab === tab.key ? 'true' : 'false'"
+                        @click="setActiveTab(tab.key)">
+                    <span class="material-icons" aria-hidden="true">{{ tab.icon }}</span>{{ t(tab.label) }}
+                </button>
+            </div>
             <!-- Transactions Tab -->
             <transition name="fade" mode="out-in">
                 <div v-if="activeTab === 'transactions'" key="transactions" class="tab-panel">
@@ -509,11 +503,10 @@
                                         <div class="transaction-date">{{ formatDate(transaction.rdate || transaction.date) }}</div>
                                     </div>
                                     <div class="transaction-category">
-                                        <select v-if="isUncategorized(transaction) && ruleCategoryOptions.length > 0" class="transaction-category-picker"
-                                                :aria-label="t('chooseCategory')" @change="categorizeTransaction(transaction, $event.target.value)">
-                                            <option value="" selected>{{ t('chooseCategory') }}</option>
-                                            <option v-for="c in ruleCategoryOptions" :key="c.id" :value="c.id">{{ c.label }}</option>
-                                        </select>
+                                        <category-picker v-if="isUncategorized(transaction) && ruleCategoryOptions.length > 0" compact
+                                                         model-value="" :categories="ruleCategories" :t="t" :placeholder="t('chooseCategory')"
+                                                         :icon-for="categoryIcon" :color-for="categoryColor"
+                                                         @update:model-value="categorizeTransaction(transaction, $event)"></category-picker>
                                         <span v-else-if="categoryName(transaction)" class="category-chip" :title="categoryName(transaction)">{{ categoryName(transaction) }}</span>
                                     </div>
                                     <div class="transaction-amount" :class="transaction.amount >= 0 ? 'positive' : 'negative'">
@@ -621,7 +614,7 @@
                                              :style="group.key === 'expenses' ? { '--budget-fill': Math.min(Number(item.progress) || 0, 100) + '%' } : null"
                                              tabindex="0" @click="navigateToBudget(item)" @keydown.enter="navigateToBudget(item)">
                                         <div class="budget-card-head">
-                                            <span class="budget-card-icon" :style="{ color: categoryColor(item), background: 'color-mix(in srgb, ' + categoryColor(item) + ' 14%, transparent)' }">
+                                            <span class="budget-card-icon" :style="categoryBadgeStyle(item)">
                                                 <span class="material-icons" aria-hidden="true">{{ categoryIcon(item) }}</span>
                                             </span>
                                             <span class="budget-card-name">{{ item.name }}</span>
@@ -633,7 +626,7 @@
                                         <template v-if="group.key === 'expenses'">
                                             <div class="budget-card-amounts">
                                                 <span class="spent">{{ formatAmount(item.consummed) }} {{ t('currencySymbol') }}</span>
-                                                <span class="of">/ {{ formatAmount(item.budget) }} {{ t('currencySymbol') }}</span>
+                                                <span class="of" :title="item.budget_mode === 'children' ? t('budgetSumOfChildren') : null">/ {{ item.budget_mode === 'children' ? 'Σ ' : '' }}{{ formatAmount(item.budget) }} {{ t('currencySymbol') }}</span>
                                             </div>
                                             <div class="budget-card-foot">
                                                 <span v-if="Number(item.budget) - Number(item.consummed) >= 0">
@@ -714,7 +707,7 @@
 
                     <div v-else-if="insights.length > 0 || isAdmin" class="content-wrapper">
                         <div class="insights-container">
-                            <div class="insights-header panel-header">
+                            <div class="page-header panel-header">
                                 <h2>{{ t('insightsTitle') }}</h2>
                                 <div v-if="isAdmin" class="panel-actions">
                                     <button class="btn-add btn-add-icon" @click="openInsightModal()" :title="t('addInsight')" :aria-label="t('addInsight')">
@@ -763,7 +756,7 @@
                     <div v-else class="trends-view">
                         <!-- Period and key figures -->
                         <section class="trends-card">
-                            <div class="trends-toolbar">
+                            <div class="trends-toolbar page-header">
                                 <h2>{{ t('trendsTitle', { months: trendsMonths }) }}</h2>
                                 <div class="trends-controls">
                                     <div class="trends-period" role="group" :aria-label="t('trendsPeriod')">
@@ -1029,7 +1022,7 @@
                 <div v-else-if="activeTab === 'categories'" key="categories" class="tab-panel">
                     <div class="trends-view">
                         <section class="trends-card">
-                            <div class="panel-header">
+                            <div class="panel-header page-header">
                                 <div>
                                     <h2>{{ t('categoriesTitle', { count: categories.length }) }}</h2>
                                     <p class="rules-help">{{ t('categoriesHelp') }}</p>
@@ -1052,7 +1045,7 @@
                             <ul class="category-tree">
                                 <li v-for="node in group.nodes" :key="node.category.id">
                                     <div class="category-row" :class="{ 'category-row-other-type': node.otherType }">
-                                        <span class="budget-card-icon" :style="{ color: categoryColor(node.category), background: 'color-mix(in srgb, ' + categoryColor(node.category) + ' 14%, transparent)' }">
+                                        <span class="budget-card-icon" :style="categoryBadgeStyle(node.category)">
                                             <span class="material-icons" aria-hidden="true">{{ categoryIcon(node.category) }}</span>
                                         </span>
                                         <span class="category-row-name">{{ node.category.name }}</span>
@@ -1064,7 +1057,7 @@
                                     </div>
                                     <ul v-if="node.children.length">
                                         <li v-for="child in node.children" :key="child.id" class="category-row child">
-                                            <span class="budget-card-icon" :style="{ color: categoryColor(child), background: 'color-mix(in srgb, ' + categoryColor(child) + ' 14%, transparent)' }">
+                                            <span class="budget-card-icon" :style="categoryBadgeStyle(child)">
                                                 <span class="material-icons" aria-hidden="true">{{ categoryIcon(child) }}</span>
                                             </span>
                                             <span class="category-row-name">{{ child.name }}</span>
@@ -1083,7 +1076,7 @@
                 <div v-else-if="activeTab === 'accounts'" key="accounts" class="tab-panel">
                     <div class="trends-view">
                         <section class="trends-card">
-                            <div class="panel-header">
+                            <div class="panel-header page-header">
                                 <div>
                                     <h2>{{ t('accountsTitle') }}</h2>
                                     <p class="rules-help">{{ t('accountsHelp') }}</p>
@@ -1209,6 +1202,17 @@
                             <p class="rules-help api-token-privacy">
                                 <span class="material-icons inline-icon" aria-hidden="true">privacy_tip</span>{{ t('apiTokenPrivacy') }}
                             </p>
+                        </section>
+
+                        <section class="trends-card">
+                            <h3>{{ t('oauthConnectTitle') }}</h3>
+                            <p class="rules-help">{{ t('oauthConnectHelp') }}</p>
+                            <div class="copy-field">
+                                <code>{{ mcpUrl() }}</code>
+                                <button type="button" class="btn-icon" @click="copyText(mcpUrl())" :title="t('copy')" :aria-label="t('copy') + ' ' + mcpUrl()">
+                                    <span class="material-icons" aria-hidden="true">content_copy</span>
+                                </button>
+                            </div>
                         </section>
 
                         <section class="trends-card">
@@ -1496,6 +1500,33 @@
             </div>
         </div>
 
+        <!-- OAuth consent: an AI agent asks to read the data of the household -->
+        <div v-if="oauthClient" class="modal-overlay">
+            <div class="modal modal-form" role="dialog" aria-modal="true" aria-labelledby="oauth-title">
+                <div class="modal-header">
+                    <span class="material-icons" aria-hidden="true">smart_toy</span>
+                    <h3 id="oauth-title">{{ t('oauthTitle', { name: oauthClient.name }) }}</h3>
+                </div>
+                <div class="modal-body">
+                    <p>{{ t('oauthIntro', { name: oauthClient.name }) }}</p>
+                    <p class="rules-help">{{ t('oauthRedirect', { host: oauthClient.redirect_host }) }}</p>
+                    <p class="rules-help">
+                        <span class="material-icons inline-icon" aria-hidden="true">privacy_tip</span>{{ t('oauthRevoke') }}
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" @click="answerOAuth(false)" :disabled="oauthBusy">
+                        <span class="material-icons" aria-hidden="true">block</span>
+                        {{ t('oauthDeny') }}
+                    </button>
+                    <button @click="answerOAuth(true)" :disabled="oauthBusy">
+                        <span class="material-icons" aria-hidden="true">check_circle</span>
+                        {{ t('oauthAllow') }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- Insight Modal -->
         <div v-if="insightForm" class="modal-overlay" @click.self="closeInsightModal">
             <div class="modal modal-form modal-insight" role="dialog" aria-modal="true" aria-labelledby="modal-title-1">
@@ -1701,7 +1732,7 @@
         <div v-if="showCategoryModal" class="modal-overlay" @click.self="showCategoryModal = false">
             <div class="modal modal-form modal-category" role="dialog" aria-modal="true" aria-labelledby="modal-title-4">
                 <div class="modal-header">
-                    <span class="budget-card-icon" :style="{ color: categoryColor(categoryForm), background: 'color-mix(in srgb, ' + categoryColor(categoryForm) + ' 14%, transparent)' }">
+                    <span class="budget-card-icon" :style="categoryBadgeStyle(categoryForm)">
                         <span class="material-icons" aria-hidden="true">{{ categoryIcon(categoryForm) }}</span>
                     </span>
                     <h3 id="modal-title-4">{{ categoryForm.id === null ? t('addCategory') : t('editCategory') }}</h3>
@@ -1923,7 +1954,7 @@
         </div>
 
         <!-- Budget Edit Modal -->
-        <div v-if="showBudgetModal" class="modal-overlay" @click.self="closeBudgetModal">
+        <div v-if="showBudgetModal && budgetToEdit" class="modal-overlay" @click.self="closeBudgetModal">
             <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title-7">
                 <div class="modal-header">
                     <span class="material-icons" aria-hidden="true">settings</span>
@@ -1933,15 +1964,23 @@
                     </button>
                 </div>
                 <div class="modal-body">
-                    <label>{{ t('budgetEditLabel') }}</label>
-                    <input type="number" step="0.01" min="0" v-model="budgetNewValue" />
+                    <p class="budget-edit-category">{{ budgetToEdit.name }}</p>
+                    <label v-if="Number(budgetToEdit.children) > 0" class="setup-checkbox">
+                        <input type="checkbox" v-model="budgetUseChildren" />
+                        {{ t('budgetUseChildren', { amount: formatAmount(budgetToEdit.children_budget) + ' ' + t('currencySymbol') }) }}
+                    </label>
+                    <template v-if="!budgetUseChildren">
+                        <label for="budget-edit-amount">{{ Number(budgetToEdit.children) > 0 ? t('budgetOverrideLabel') : t('budgetEditLabel') }}</label>
+                        <input id="budget-edit-amount" type="number" step="0.01" min="0" v-model="budgetNewValue" @keydown.enter="submitBudgetEdit" />
+                    </template>
+                    <p v-if="Number(budgetToEdit.children) > 0" class="rules-help">{{ t('budgetChildrenHelp') }}</p>
                 </div>
                 <div class="modal-footer">
                     <button class="btn-secondary" @click="closeBudgetModal">
                         <span class="material-icons" aria-hidden="true">cancel</span>
                         {{ t('cancel') }}
                     </button>
-                    <button @click="submitBudgetEdit">
+                    <button @click="submitBudgetEdit" :disabled="savingBudget">
                         <span class="material-icons" aria-hidden="true">check_circle</span>
                         {{ t('save') }}
                     </button>

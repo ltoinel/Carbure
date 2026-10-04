@@ -1,0 +1,45 @@
+// End-to-end tests of the portal, against the real API (src/api.php) and a MariaDB
+// database recreated before each test. See README.md.
+const { defineConfig, devices } = require('@playwright/test');
+
+const port = Number(process.env.E2E_PORT || 8091);
+const baseURL = process.env.E2E_BASE_URL || `http://127.0.0.1:${port}`;
+
+module.exports = defineConfig({
+    testDir: './specs',
+    // One database for all the tests: they run one after the other
+    workers: 1,
+    fullyParallel: false,
+    forbidOnly: !!process.env.CI,
+    retries: process.env.CI ? 1 : 0,
+    timeout: 30_000,
+    expect: { timeout: 5_000 },
+    // HTML report in playwright-report/ (npx playwright show-report)
+    reporter: [['list'], ['html', { open: 'never' }]],
+    use: {
+        baseURL,
+        locale: 'fr-FR',
+        timezoneId: 'Europe/Paris',
+        trace: 'retain-on-failure',
+        screenshot: 'only-on-failure',
+    },
+    projects: [
+        { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    ],
+    // PHP built-in server with the e2e router (PHP with mysqli, see README.md)
+    webServer: process.env.E2E_BASE_URL ? undefined : {
+        command: `${process.env.PHP_BIN || 'php'} -S 127.0.0.1:${port} -t ../.. server/router.php`,
+        url: `${baseURL}/portal/`,
+        reuseExistingServer: !process.env.CI,
+        timeout: 30_000,
+        env: {
+            APP_ENV: 'e2e',
+            // The bank synchronization streams its progress: several requests at a time
+            PHP_CLI_SERVER_WORKERS: '4',
+            E2E_DB_HOST: process.env.E2E_DB_HOST || '127.0.0.1',
+            E2E_DB_PORT: process.env.E2E_DB_PORT || '3306',
+            E2E_DB_USER: process.env.E2E_DB_USER || 'root',
+            E2E_DB_PASSWORD: process.env.E2E_DB_PASSWORD || '',
+        },
+    },
+});

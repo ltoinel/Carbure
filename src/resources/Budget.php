@@ -14,26 +14,20 @@ final class Budget {
     /**
      * Get the current budget consumption by category.
      *
+     * The budget of a category with sub-categories is its own amount when one is set
+     * (an override), otherwise the sum of the budgets of its sub-categories.
+     *
      * @param int|null $month    The month to get the budget
      * @param int|null $year     The year to get the budget
      * @param int      $category The parent category id
-     * @return array The list of budget items
+     * @return array The list of budget items; besides budget, consummed and progress:
+     *               budget_mode ('own' or 'children': sum of the sub-categories),
+     *               children (number of sub-categories) and children_budget (their sum)
      */
     #[ApiRoute('/budget', method: 'GET')]
     public static function get($month = null, $year = null, $category = 0)
     {
-        // If the date are not set we use the current month
-        if (empty($month)) {
-            $month = date('m');
-        }
-
-        if (empty($year)) {
-            $year = date('Y');
-        }
-
-        // Month as a date range (uses the index on the dates)
-        $from = sprintf('%04d-%02d-01', (int)$year, (int)$month);
-        $to = date('Y-m-d', strtotime("$from +1 month"));
+        [$from, $to] = Month::range($month, $year);
 
         // Total of the month for each category, in one pass
         $sql = "SELECT category, SUM(amount) AS total FROM bank_transaction
@@ -41,11 +35,10 @@ final class Budget {
         $totals = array_column(Db::execute($sql, "ss", $from, $to)->get_result()->fetch_all(MYSQLI_ASSOC), 'total', 'category');
 
         // Sub-categories of each category
-        $children = [];
-        $sql = "SELECT id, parent_category FROM bank_transaction_category WHERE parent_category <> 0 AND id <> parent_category";
-        foreach (Db::execute($sql, "")->get_result()->fetch_all(MYSQLI_ASSOC) as $row) {
-            $children[$row['parent_category']][] = $row['id'];
-        }
+        $children = self::children();
+
+        // Budgets of the month by category
+        $budgets = self::budgets($from, $to);
 
         // Categories of the requested level with their budget of the month
         $sql = "SELECT c.id, c.name, c.type, c.icon, c.color, IFNULL(b.amount, 0) AS budget
@@ -64,7 +57,17 @@ final class Budget {
                 }
             }
 
+            // Own budget, or the sum of the budgets of the sub-categories
+            $kids = $children[$row['id']] ?? [];
+            $childrenBudget = round(array_sum(array_map(fn($id) => $budgets[$id] ?? 0, $kids)), 2);
+            $mode = self::budgetMode((float)$row['budget'], count($kids));
+            if ($mode === 'children') {
+                $row['budget'] = number_format($childrenBudget, 2, '.', '');
+            }
             $amount = (float)$row['budget'];
+            $row['budget_mode'] = $mode;
+            $row['children'] = count($kids);
+            $row['children_budget'] = $childrenBudget;
             $row['consummed'] = $total === null ? 0 : round(abs($total), 2);
             $row['progress'] = ($total === null || $amount == 0) ? 0 : (int)abs(round($total / $amount * 100));
             $budget[] = $row;
@@ -77,7 +80,49 @@ final class Budget {
     }
 
     /**
-     * Set the budget for a category.
+     * Sub-categories of each category.
+     *
+     * @return array [parent id => [child ids]]
+     */
+    private static function children()
+    {
+        $children = [];
+        $sql = "SELECT id, parent_category FROM bank_transaction_category WHERE parent_category <> 0 AND id <> parent_category";
+        foreach (Db::execute($sql, "")->get_result()->fetch_all(MYSQLI_ASSOC) as $row) {
+            $children[$row['parent_category']][] = $row['id'];
+        }
+        return $children;
+    }
+
+    /**
+     * Budget amounts of a month by category.
+     *
+     * @param string $from First day of the month
+     * @param string $to   First day of the next month
+     * @return array [category id => amount]
+     */
+    private static function budgets($from, $to)
+    {
+        $sql = "SELECT category, amount FROM budget WHERE date >= ? AND date < ?";
+        return array_map('floatval', array_column(Db::execute($sql, "ss", $from, $to)->get_result()->fetch_all(MYSQLI_ASSOC), 'amount', 'category'));
+    }
+
+    /**
+     * How the budget of a category is computed: its own amount, or the sum of the
+     * budgets of its sub-categories when it has some and no amount of its own.
+     *
+     * @param float $amount   Own budget amount of the category (0 when not set)
+     * @param int   $children Number of sub-categories
+     * @return string 'own' or 'children'
+     */
+    private static function budgetMode($amount, $children)
+    {
+        return $children > 0 && $amount == 0 ? 'children' : 'own';
+    }
+
+    /**
+     * Set the budget for a category. For a category with sub-categories, the amount
+     * overrides the sum of their budgets; 0 goes back to that sum.
      *
      * @param int      $category The category to set the budget
      * @param float    $amount   The amount of the budget
@@ -88,17 +133,8 @@ final class Budget {
     #[ApiRoute('/budget', method: 'POST')]
     public static function create($category, $amount, $month = null, $year = null)
     {
-        // If the date are not set we use the current month
-        if (empty($month)) {
-            $month = date('m');
-        }
-
-        if (empty($year)) {
-            $year = date('Y');
-        }
-  
-        // Insert or update the budget for the given category and date
-        $date = $year . "-" . $month . "-01";
+        // Insert or update the budget for the given category and month
+        $date = Month::first($month, $year);
         $sql = "INSERT INTO budget (date, amount, category) VALUES (?, ?, ?)
             ON DUPLICATE KEY UPDATE amount=?";
 
@@ -115,7 +151,8 @@ final class Budget {
      * - debit:     expenses, off-budget categories excluded (positive amount)
      * - credit:    incomes, off-budget categories excluded
      * - offBudget: net amount of the off-budget categories (e.g. transfers to savings)
-     * - planned:   sum of the budgets of the top-level categories
+     * - planned:   sum of the budgets of the top-level categories (own amount, or
+     *              the sum of their sub-categories)
      * - savings:   money put aside: net amount moved to the savings category
      *              ("Epargne" by default, setting savings_category) and its
      *              sub-categories, positive when saved
@@ -157,13 +194,37 @@ final class Budget {
             }
         }
 
-        $sql = "SELECT DATE_FORMAT(b.date, '%Y-%m') AS month, SUM(b.amount) AS planned
-            FROM budget b
-            JOIN bank_transaction_category c ON c.id = b.category AND c.parent_category = 0 AND c.id <> 0
-            WHERE b.date >= ? AND b.date < ?
-            GROUP BY month";
+        // Budget of the top-level categories: their own amount, or the sum of their sub-categories
+        $top = [];
+        foreach (Db::execute("SELECT id, parent_category FROM bank_transaction_category WHERE id <> 0", "")->get_result()->fetch_all(MYSQLI_ASSOC) as $c) {
+            $parent = (int)$c['parent_category'];
+            $top[(int)$c['id']] = ($parent === 0 || $parent === (int)$c['id']) ? 0 : $parent;
+        }
+        $own = [];
+        $children = [];
+        $sql = "SELECT DATE_FORMAT(date, '%Y-%m') AS month, category, amount FROM budget WHERE date >= ? AND date < ?";
         foreach (Db::execute($sql, "ss", $from, $to)->get_result()->fetch_all(MYSQLI_ASSOC) as $row) {
-            $trends[$row['month']]['planned'] = round((float)$row['planned'], 2);
+            $id = (int)$row['category'];
+            if (!isset($top[$id])) {
+                continue;
+            }
+            if ($top[$id] === 0) {
+                $own[$row['month']][$id] = (float)$row['amount'];
+            } else {
+                $children[$row['month']][$top[$id]] = ($children[$row['month']][$top[$id]] ?? 0) + (float)$row['amount'];
+            }
+        }
+        $hasChildren = array_count_values(array_filter($top));
+        foreach (array_keys($trends) as $month) {
+            $planned = 0.0;
+            foreach ($top as $id => $parent) {
+                if ($parent !== 0) {
+                    continue;
+                }
+                $amount = $own[$month][$id] ?? 0.0;
+                $planned += self::budgetMode($amount, $hasChildren[$id] ?? 0) === 'children' ? ($children[$month][$id] ?? 0) : $amount;
+            }
+            $trends[$month]['planned'] = round($planned, 2);
         }
 
         return array_values($trends);
@@ -183,10 +244,8 @@ final class Budget {
     #[ApiRoute('/budget/flow', method: 'GET')]
     public static function flow($month = null, $year = null)
     {
-        $month = (int)($month ?: date('m'));
-        $year = (int)($year ?: date('Y'));
-        $from = sprintf('%04d-%02d-01', $year, $month);
-        $to = date('Y-m-d', strtotime("$from +1 month"));
+        [$month, $year] = Month::resolve($month, $year);
+        [$from, $to] = Month::range($month, $year);
 
         $savings = self::savingsCategories();
 
@@ -298,13 +357,7 @@ final class Budget {
     #[ApiRoute('/budget/insights', method: 'GET')]
     public static function getInsights($month = null, $year = null)
     {
-        // If the date are not set we use the current month
-        if (empty($month)) {
-            $month = date('m');
-        }
-        if (empty($year)) {
-            $year = date('Y');
-        }
+        [$month, $year] = Month::resolve($month, $year);
 
         // Each query runs in a read-only transaction; a failing query gives 0
         $insights = Db::execute("SELECT * FROM budget_insight ORDER BY id", "")->get_result()->fetch_all(MYSQLI_ASSOC);

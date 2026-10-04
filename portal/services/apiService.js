@@ -80,26 +80,7 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
      * @throws {Error} If request fails
      */
     async function fetchTransactions(month, year) {
-        if (controllers.transactions) {
-            controllers.transactions.abort();
-        }
-        
-        controllers.transactions = new AbortController();
-        
-        const url = `${baseUrl}/transaction?month=${month}&year=${year}`;
-        const response = await authFetch(url, { 
-            signal: controllers.transactions.signal,
-            headers: getHeaders()
-        });
-        
-        if (!response.ok) {
-            throw new Error(`Failed to fetch transactions (${response.status})`);
-        }
-        
-        const data = await response.json();
-        controllers.transactions = null;
-        
-        return Array.isArray(data) ? data : [];
+        return cancellable('transactions', `${baseUrl}/transaction?month=${month}&year=${year}`, 'Failed to fetch transactions');
     }
     
     /**
@@ -125,6 +106,29 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
         }
 
         return text ? JSON.parse(text) : null;
+    }
+
+    /**
+     * GET request of a list that cancels the previous one of the same kind
+     * (the user changed the month or the tab before the answer arrived)
+     * @param {string} key - Kind of request: transactions, budget or insights
+     * @param {string} url - Request URL
+     * @param {string} errorLabel - Error message prefix
+     * @returns {Promise<Array>} The list (empty if the answer is not one)
+     * @throws {Error} If request fails (AbortError when cancelled)
+     */
+    async function cancellable(key, url, errorLabel) {
+        controllers[key]?.abort();
+        const controller = new AbortController();
+        controllers[key] = controller;
+        try {
+            const data = await request(url, { signal: controller.signal }, errorLabel);
+            return Array.isArray(data) ? data : [];
+        } finally {
+            if (controllers[key] === controller) {
+                controllers[key] = null;
+            }
+        }
     }
 
     /**
@@ -234,14 +238,15 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
 
     /**
      * Creates or modifies an insight (the query is checked by the server)
-     * @param {Object} insight - {id (null for a new one), name, color, sql}
+     * @param {Object} insight - {id (null for a new one), name, color, icon ('' : chosen from the name), sql}
      * @returns {Promise<Object>} The insight with the amount of the current month
      */
     async function saveInsight(insight) {
         const { id, name, color, sql } = insight;
+        const icon = insight.icon || null;
         return id
-            ? request(`${baseUrl}/insight`, { method: 'PUT', body: JSON.stringify({ id, name, color, sql }) }, 'Failed to modify the insight')
-            : request(`${baseUrl}/insight`, { method: 'POST', body: JSON.stringify({ name, color, sql }) }, 'Failed to create the insight');
+            ? request(`${baseUrl}/insight`, { method: 'PUT', body: JSON.stringify({ id, name, color, sql, icon }) }, 'Failed to modify the insight')
+            : request(`${baseUrl}/insight`, { method: 'POST', body: JSON.stringify({ name, color, sql, icon }) }, 'Failed to create the insight');
     }
 
     /**
@@ -602,6 +607,28 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
     }
 
     /**
+     * Agent asking for an OAuth authorization (consent page)
+     * @param {string} oauthRequest - Authorization request (query string given to the portal)
+     * @returns {Promise<{name: string, redirect_host: string}>}
+     */
+    async function fetchOAuthClient(oauthRequest) {
+        return request(`${baseUrl}/oauth/client?request=${encodeURIComponent(oauthRequest)}`, {}, 'Invalid authorization request');
+    }
+
+    /**
+     * Answers an OAuth authorization request
+     * @param {string} oauthRequest - Authorization request
+     * @param {boolean} approved - True if the user allows the agent
+     * @returns {Promise<{redirect: string}>} Where the browser goes back to the agent
+     */
+    async function approveOAuth(oauthRequest, approved) {
+        return request(`${baseUrl}/oauth/approve`, {
+            method: 'POST',
+            body: JSON.stringify({ request: oauthRequest, approved })
+        }, 'Failed to answer the authorization request');
+    }
+
+    /**
      * Fetches budget data for a given month and year
      * @param {number} month - Month (1-12)
      * @param {number} year - Year
@@ -610,61 +637,24 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
      * @throws {Error} If request fails
      */
     async function fetchBudget(month, year, categoryId = null) {
-        if (controllers.budget) {
-            controllers.budget.abort();
-        }
-        
-        controllers.budget = new AbortController();
-        
-        let url = `${baseUrl}/budget?month=${month}&year=${year}`;
-        if (categoryId !== null) {
-            url += `&category=${categoryId}`;
-        }
-        
-        const response = await authFetch(url, { 
-            signal: controllers.budget.signal,
-            headers: getHeaders()
-        });
-        
-        const text = await response.text();
-        
-        if (!response.ok) {
-            throw new Error(`Failed to fetch budget (${response.status}) - ${text.slice(0, 200)}`);
-        }
-        
-        let data;
-        try {
-            data = JSON.parse(text);
-        } catch (e) {
-            throw new Error('Invalid JSON response for budget');
-        }
-        
-        controllers.budget = null;
-        
-        return Array.isArray(data) ? data : [];
+        const category = categoryId !== null ? `&category=${encodeURIComponent(categoryId)}` : '';
+        return cancellable('budget', `${baseUrl}/budget?month=${month}&year=${year}${category}`, 'Failed to fetch budget');
     }
     
     /**
-     * Updates a budget item
-     * @param {number} budgetId - Budget item ID
+     * Sets the budget of a category for a month (0 for a parent category: sum of its sub-categories)
+     * @param {number} categoryId - Category ID
      * @param {number} month - Month (1-12)
      * @param {number} year - Year
-     * @param {number} newBudget - New budget amount
+     * @param {number} amount - Budget amount
      * @returns {Promise<void>}
      * @throws {Error} If request fails
      */
-    async function updateBudget(budgetId, month, year, newBudget) {
-        const url = `${baseUrl}/budget/${budgetId}?month=${month}&year=${year}`;
-        const response = await authFetch(url, {
-            method: 'PUT',
-            headers: getHeaders(),
-            body: JSON.stringify({ budget: newBudget })
-        });
-        
-        if (!response.ok) {
-            const text = await response.text();
-            throw new Error(`Failed to update budget (${response.status}) - ${text.slice(0, 200)}`);
-        }
+    async function updateBudget(categoryId, month, year, amount) {
+        await request(`${baseUrl}/budget`, {
+            method: 'POST',
+            body: JSON.stringify({ category: categoryId, amount, month, year })
+        }, 'Failed to update budget');
     }
     
     /**
@@ -675,34 +665,7 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
      * @throws {Error} If request fails
      */
     async function fetchInsights(month, year) {
-        if (controllers.insights) {
-            controllers.insights.abort();
-        }
-        
-        controllers.insights = new AbortController();
-        
-        const url = `${baseUrl}/budget/insights?month=${month}&year=${year}`;
-        const response = await authFetch(url, { 
-            signal: controllers.insights.signal,
-            headers: getHeaders()
-        });
-        
-        const text = await response.text();
-        
-        if (!response.ok) {
-            throw new Error(`Failed to fetch insights (${response.status}) - ${text.slice(0, 200)}`);
-        }
-        
-        let data;
-        try {
-            data = JSON.parse(text);
-        } catch (e) {
-            throw new Error('Invalid JSON response for insights');
-        }
-        
-        controllers.insights = null;
-        
-        return Array.isArray(data) ? data : [];
+        return cancellable('insights', `${baseUrl}/budget/insights?month=${month}&year=${year}`, 'Failed to fetch insights');
     }
     
     /**
@@ -711,16 +674,7 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
      * @throws {Error} If request fails
      */
     async function fetchUsers() {
-        const url = `${baseUrl}/user`;
-        const response = await authFetch(url, {
-            headers: getHeaders()
-        });
-        
-        if (!response.ok) {
-            throw new Error(`Failed to fetch users (${response.status})`);
-        }
-        
-        const data = await response.json();
+        const data = await request(`${baseUrl}/user`, {}, 'Failed to fetch users');
         return Array.isArray(data) ? data : [];
     }
 
@@ -730,16 +684,7 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
      * @throws {Error} If request fails
      */
     async function fetchMe() {
-        const url = `${baseUrl}/user/me`;
-        const response = await authFetch(url, {
-            headers: getHeaders()
-        });
-        
-        if (!response.ok) {
-            throw new Error(`Failed to fetch profile (${response.status})`);
-        }
-        
-        return await response.json();
+        return request(`${baseUrl}/user/me`, {}, 'Failed to fetch profile');
     }
 
     /**
@@ -753,28 +698,10 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
      * @throws {Error} If request fails
      */
     async function createUser(username, password, email, firstname, lastname, isAdmin = false) {
-        const url = `${baseUrl}/user`;
-        const response = await authFetch(url, {
+        return request(`${baseUrl}/user`, {
             method: 'POST',
-            headers: getHeaders(),
             body: JSON.stringify({ username, password, email, firstname, lastname, is_admin: !!isAdmin })
-        });
-        
-        if (!response.ok) {
-            const text = await response.text();
-            let errorMessage = `Failed to create user (${response.status})`;
-            try {
-                const errorData = JSON.parse(text);
-                if (errorData.error) {
-                    errorMessage = errorData.error;
-                }
-            } catch (e) {
-                // Keep default error message
-            }
-            throw new Error(errorMessage);
-        }
-        
-        return await response.json();
+        }, 'Failed to create user');
     }
 
     /**
@@ -784,27 +711,7 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
      * @throws {Error} If request fails
      */
     async function deleteUser(userId) {
-        const url = `${baseUrl}/user?id=${userId}`;
-        const response = await authFetch(url, {
-            method: 'DELETE',
-            headers: getHeaders()
-        });
-        
-        if (!response.ok) {
-            const text = await response.text();
-            let errorMessage = `Failed to delete user (${response.status})`;
-            try {
-                const errorData = JSON.parse(text);
-                if (errorData.error) {
-                    errorMessage = errorData.error;
-                }
-            } catch (e) {
-                // Keep default error message
-            }
-            throw new Error(errorMessage);
-        }
-        
-        return await response.json();
+        return request(`${baseUrl}/user?id=${encodeURIComponent(userId)}`, { method: 'DELETE' }, 'Failed to delete user');
     }
 
     /**
@@ -839,34 +746,16 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
         if (password && password.trim() !== '') {
             body.password = password;
         }
-        
-        const response = await authFetch(url, {
-            method: 'PUT',
-            headers: getHeaders(),
-            body: JSON.stringify(body)
-        });
-        
-        if (!response.ok) {
-            const text = await response.text();
-            let errorMessage = `Failed to update user (${response.status})`;
-            try {
-                const errorData = JSON.parse(text);
-                if (errorData.error) {
-                    errorMessage = errorData.error;
-                }
-            } catch (e) {
-                // Keep default error message
-            }
-            throw new Error(errorMessage);
-        }
-        
-        return await response.json();
+
+        return request(`${baseUrl}/user?id=${encodeURIComponent(userId)}`, { method: 'PUT', body: JSON.stringify(body) }, 'Failed to update user');
     }
     
     return {
         abortAllExcept,
         fetchTransactions,
         fetchBudget,
+        fetchOAuthClient,
+        approveOAuth,
         updateBudget,
         fetchInsights,
         fetchUsers,

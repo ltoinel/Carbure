@@ -50,7 +50,12 @@ class ApiResolverTest extends TestCase
         sort($public);
 
         // Any new public route must be a deliberate decision
-        // The MCP routes authenticate with an API token themselves
-        $this->assertSame(['GET /bank/sync', 'GET /health', 'GET /mcp', 'POST /mcp', 'POST /user/login'], $public);
+        // The MCP routes authenticate with an API token themselves; the OAuth routes are
+        // the metadata, the registration, the authorization (sent to the portal) and the tokens
+        $this->assertSame([
+            'GET /.well-known/oauth-authorization-server', 'GET /.well-known/oauth-protected-resource',
+            'GET /.well-known/oauth-protected-resource/api/mcp', 'GET /bank/sync', 'GET /health', 'GET /mcp',
+            'GET /oauth/authorize', 'POST /mcp', 'POST /oauth/register', 'POST /oauth/token', 'POST /user/login',
+        ], $public);
     }
 }

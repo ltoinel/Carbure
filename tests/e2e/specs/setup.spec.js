@@ -1,0 +1,69 @@
+// Installation wizard. The e2e server is already installed: the answers of
+// /api/setup (src/lib/Setup.php) are simulated, the screens and their checks are tested.
+const { test, expect, tr } = require('../fixtures');
+
+/**
+ * Simulates a server that is not installed yet
+ * @param {import('@playwright/test').Page} page
+ * @returns {Promise<Array<Object>>} Bodies of the requests sent to the wizard
+ */
+async function notInstalled(page) {
+    const sent = [];
+    await page.route('**/api/setup', route => route.fulfill({
+        json: { setup: true, defaults: { db_host: 'db', db_port: 3306, db_name: 'carbure', db_user: 'carbure', admin_user: 'admin', language: 'fr' } },
+    }));
+    await page.route('**/api/setup/database', route => {
+        sent.push({ step: 'database', ...route.request().postDataJSON() });
+        return route.fulfill({ json: { state: 'none', version: null, pending: [], hasAdmin: false } });
+    });
+    await page.route('**/api/setup/install', route => {
+        sent.push({ step: 'install', ...route.request().postDataJSON() });
+        return route.fulfill({ json: { version: '2026-10-13_base', username: route.request().postDataJSON().admin_user } });
+    });
+    return sent;
+}
+
+test('installs Carbure in three steps', async ({ page }) => {
+    const sent = await notInstalled(page);
+    await page.goto('/portal/');
+
+    await expect(page.getByRole('heading', { name: tr('setupTitle') })).toBeVisible();
+    await expect(page.getByLabel(tr('setupDbHost'))).toHaveValue('db');
+    await page.getByLabel(tr('setupDbPassword')).fill('secret-db');
+    await page.getByRole('button', { name: tr('setupCheckDatabase') }).click();
+
+    await expect(page.getByText(tr('setupState_none'))).toBeVisible();
+    await expect(page.getByRole('heading', { name: tr('setupAdminTitle') })).toBeVisible();
+    await page.getByLabel(tr('password'), { exact: true }).fill('admin-password');
+    await page.getByLabel(tr('setupPasswordConfirm')).fill('admin-password');
+    await page.getByRole('button', { name: tr('setupInstall') }).click();
+
+    await expect(page.getByRole('heading', { name: tr('setupDoneTitle') })).toBeVisible();
+    expect(sent.map(s => s.step)).toEqual(['database', 'install']);
+    expect(sent[1]).toMatchObject({ db_host: 'db', db_password: 'secret-db', admin_user: 'admin', admin_password: 'admin-password' });
+
+    // Then the login screen, with the administrator filled in
+    await page.getByRole('button', { name: tr('loginButton') }).click();
+    await expect(page.locator('#loginUsername')).toHaveValue('admin');
+    await expect(page.locator('#loginPassword')).toBeFocused();
+});
+
+test('checks the password of the administrator before installing', async ({ page }) => {
+    const sent = await notInstalled(page);
+    await page.goto('/portal/');
+    await page.getByRole('button', { name: tr('setupCheckDatabase') }).click();
+
+    await page.getByLabel(tr('password'), { exact: true }).fill('admin-password');
+    await page.getByLabel(tr('setupPasswordConfirm')).fill('other-password');
+    await page.getByRole('button', { name: tr('setupInstall') }).click();
+
+    await expect(page.getByRole('alert')).toContainText(tr('setupPasswordMismatch'));
+    expect(sent.map(s => s.step)).toEqual(['database']);
+});
+
+test('shows the login screen once installed', async ({ page }) => {
+    await page.goto('/portal/');
+
+    await expect(page.getByRole('button', { name: tr('loginButton') })).toBeVisible();
+    await expect(page.getByRole('heading', { name: tr('setupTitle') })).toHaveCount(0);
+});

@@ -1,0 +1,12 @@
+{
+  "name": "carbure-e2e",
+  "private": true,
+  "description": "End-to-end tests of the Carbure portal (Playwright), against the real API and a test database",
+  "scripts": {
+    "test": "playwright test",
+    "report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.0"
+  }
+}

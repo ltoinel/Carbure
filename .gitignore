@@ -6,3 +6,8 @@ data/
 .phpunit.cache/
 CLAUDE.md
 
+# End-to-end tests of the portal (tests/e2e)
+tests/e2e/node_modules/
+tests/e2e/test-results/
+tests/e2e/playwright-report/
+tests/e2e/.data/

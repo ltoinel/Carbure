@@ -17,6 +17,8 @@ class MigratorTest extends DatabaseTestCase
         array_map('unlink', glob("$this->dir/*.sql"));
         rmdir($this->dir);
         Db::query("DROP TABLE IF EXISTS schema_migrations, migration_test");
+        // As in sql/carbure.sql: the real migrations are applied (the other tests rely on it)
+        (new Migrator(Db::getConnection()))->baseline();
         parent::tearDown();
     }
 

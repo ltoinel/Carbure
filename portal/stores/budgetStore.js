@@ -84,18 +84,14 @@ export function createBudgetStore(apiService) {
         state.error = null;
         
         try {
-            console.log('BudgetStore: Fetching budget for', month, year);
             const data = await apiService.fetchBudget(month, year);
-            console.log('BudgetStore: Received data:', data);
             state.budgets = data;
             
             // Reset to root when loading fresh data
             state.breadcrumbStack = [];
             state.currentList = filterBudgets(data);
-            console.log('BudgetStore: Filtered list:', state.currentList.length, 'items');
         } catch (error) {
             if (error.name === 'AbortError') {
-                console.log('Budget request aborted');
                 return;
             }
             console.error('Budget loading error:', error);
@@ -196,8 +192,13 @@ export function createBudgetStore(apiService) {
      */
     async function updateBudget(budgetId, month, year, newAmount) {
         await apiService.updateBudget(budgetId, month, year, newAmount);
-        // Reload budgets after update
+        // Reload the budgets (a parent depends on its sub-categories), staying on the displayed level
+        const stack = state.breadcrumbStack.slice();
+        state.childrenCache = {};
         await loadRootBudgets(month, year);
+        for (const crumb of stack) {
+            await navigateToChildren(crumb, month, year);
+        }
     }
     
     /**

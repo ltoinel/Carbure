@@ -161,7 +161,7 @@ export function createSyncModule(getApiService) {
                                 log.scrollTop = log.scrollHeight;
                             }
                         });
-                    });
+                    }, this.syncTarget);
 
                     const last = this.syncLog[this.syncLog.length - 1] || '';
                     if (last.includes('already in progress')) {

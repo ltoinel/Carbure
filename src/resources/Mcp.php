@@ -8,7 +8,8 @@
  * response per request, no session. The tools are read-only.
  *
  * Authentication: "Authorization: Bearer <API token>" (created in the AI agents
- * tab of the portal), the token in ?token= for the agents that cannot send a
+ * tab of the portal, or obtained with OAuth 2.1 by the agents that only take an
+ * URL, see OAuth.php), the token in ?token= for the agents that cannot send a
  * header, or a JWT. An administrator enables or disables the server.
  *
  * @author     Ludovic Toinel
@@ -26,6 +27,12 @@ final class Mcp {
      * Version of the server
      */
     private const SERVER_VERSION = '1.0.0';
+
+    /**
+     * Web sites allowed to call the server from a browser, besides the server itself:
+     * the web clients of Claude
+     */
+    private const ALLOWED_ORIGINS = ['claude.ai', 'claude.com'];
 
     /**
      * JSON-RPC error codes
@@ -136,7 +143,7 @@ final class Mcp {
 
     /**
      * Refuse the requests of another web site (DNS rebinding): an Origin header,
-     * sent by browsers, must be the host of the server.
+     * sent by browsers, must be the host of the server or a web client of Claude.
      *
      * @return void
      * @throws Error If the origin is another site
@@ -149,7 +156,8 @@ final class Mcp {
         }
         $originHost = parse_url($origin, PHP_URL_HOST);
         $host = parse_url('http://' . ($_SERVER['HTTP_HOST'] ?? ''), PHP_URL_HOST);
-        if (!$originHost || !$host || strcasecmp($originHost, $host) !== 0) {
+        $allowed = parse_url($origin, PHP_URL_SCHEME) === 'https' && in_array(strtolower((string)$originHost), self::ALLOWED_ORIGINS, true);
+        if (!$allowed && (!$originHost || !$host || strcasecmp($originHost, $host) !== 0)) {
             throw new Error("Forbidden origin", 403);
         }
     }
@@ -177,7 +185,8 @@ final class Mcp {
 
         if ($userId === null) {
             if (!headers_sent()) {
-                header('WWW-Authenticate: Bearer realm="Carbure"');
+                // Where the agents that only take an URL learn how to get a token (OAuth 2.1)
+                header('WWW-Authenticate: ' . OAuth::challenge());
             }
             throw new Error("Unauthorized - Invalid or missing API token", 401);
         }

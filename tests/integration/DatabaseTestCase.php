@@ -70,7 +70,7 @@ abstract class DatabaseTestCase extends TestCase
     {
         Db::query("SET FOREIGN_KEY_CHECKS=0");
         foreach (['bank_account', 'bank_transaction', 'bank_transaction_category', 'bank_transaction_category_keyword',
-                  'budget', 'budget_insight', 'devices', 'api_tokens', 'settings', 'users'] as $table) {
+                  'budget', 'budget_insight', 'devices', 'api_tokens', 'oauth_codes', 'oauth_clients', 'settings', 'users'] as $table) {
             Db::query("TRUNCATE TABLE `$table`");
         }
         Db::query("SET SESSION sql_mode = CONCAT(@@sql_mode, ',NO_AUTO_VALUE_ON_ZERO')");

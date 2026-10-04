@@ -36,17 +36,7 @@ final class Transaction {
     #[ApiRoute('/transaction', method: 'GET')]
     public static function get($month = null, $year = null, $category = null)
     {
-        // Default to the current month
-        if (empty($month)) {
-            $month = date('m');
-        }
-        if (empty($year)) {
-            $year = date('Y');
-        }
-
-        // Date range (uses the index on the date)
-        $from = sprintf('%04d-%02d-01', (int)$year, (int)$month);
-        $to = date('Y-m-d', strtotime("$from +1 month"));
+        [$from, $to] = Month::range($month, $year);
 
         if ($category === null || $category === '') {
             $sql = "SELECT * FROM bank_transaction WHERE date >= ? AND date < ? ORDER BY rdate DESC";
@@ -219,7 +209,7 @@ final class Transaction {
     {
         // Count the number of transactions with pointed=0 for the current month only
         $sql = "SELECT COUNT(*) as count FROM bank_transaction WHERE pointed=0 AND date >= ? AND date < ?";
-        $stmt = Db::execute($sql, "ss", date('Y-m-01'), date('Y-m-01', strtotime(date('Y-m-01') . ' +1 month')));
+        $stmt = Db::execute($sql, "ss", ...Month::range());
 
         $result = $stmt->get_result();
         $count = $result->fetch_assoc()['count'];

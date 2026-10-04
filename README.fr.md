@@ -95,6 +95,12 @@ base de données sont, elles aussi, automatiques. Sur un NAS Synology, suivez le
 Les contributions sont les bienvenues : lisez [AGENTS.md](AGENTS.md) (conventions, tests,
 définition de « terminé ») et la liste des tâches ouvertes dans [TODO.md](TODO.md).
 
+Pour développer, `./start.sh` démarre l'environnement de développement avec Docker : l'image
+de production et MariaDB, le code du dépôt monté en direct et un foyer d'exemple
+(`http://localhost:8000/portal/`, `admin` / `admin-password`). Les tests (PHPUnit, tests
+unitaires du portail, tests de bout en bout Playwright) sont décrits dans la
+[documentation développeur](https://ltoinel.github.io/Carbure/developpement/).
+
 ## Licence
 
 [MIT](LICENSE) © Ludovic Toinel

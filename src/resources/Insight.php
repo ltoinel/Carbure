@@ -109,7 +109,7 @@ final class Insight {
         User::requireAdmin();
         try {
             [, , $sql] = self::validate('check', 'red', $sql);
-            $amount = self::run($sql, (int)($month ?: date('m')), (int)($year ?: date('Y')));
+            $amount = self::run($sql, ...Month::resolve($month, $year));
             return ['valid' => true, 'amount' => $amount];
         } catch (Throwable $e) {
             // MariaDB messages end with the place of the error: keep them readable
@@ -224,7 +224,7 @@ final class Insight {
     private static function test($sql)
     {
         try {
-            return self::run($sql, (int)date('m'), (int)date('Y'));
+            return self::run($sql, ...Month::resolve());
         } catch (Throwable $e) {
             throw new Error("Invalid query: " . $e->getMessage(), 400);
         }

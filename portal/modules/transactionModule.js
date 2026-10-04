@@ -132,7 +132,6 @@ export function createTransactionModule(getApiService) {
                     this.ensureCategories();
                 } catch (err) {
                     if (err.name === 'AbortError') {
-                        console.log('Transactions request aborted');
                         return;
                     }
                     
@@ -179,18 +178,14 @@ export function createTransactionModule(getApiService) {
             },
 
             /**
-             * Icon of a transaction: the one of its category (or of the parent category),
+             * Icon of a transaction: the one of its category, as shown on the categories page,
              * the icon of the bank operation type when it has no category
              * @param {Object} transaction - Transaction
              * @returns {string}
              */
             transactionIcon(transaction) {
                 const category = this.transactionCategory(transaction);
-                if (!category) {
-                    return this.getTransactionIcon(transaction.type);
-                }
-                const parent = this.ruleCategories.find(c => Number(c.id) === Number(category.parent_category));
-                return this.categoryIcon(category.icon || !parent ? category : parent);
+                return category ? this.categoryIcon(category) : this.getTransactionIcon(transaction.type);
             },
 
             /**
@@ -200,12 +195,7 @@ export function createTransactionModule(getApiService) {
              */
             transactionIconStyle(transaction) {
                 const category = this.transactionCategory(transaction);
-                if (!category) {
-                    return null;
-                }
-                const parent = this.ruleCategories.find(c => Number(c.id) === Number(category.parent_category));
-                const color = this.categoryColor(category.color || !parent ? category : parent);
-                return { color, background: 'color-mix(in srgb, ' + color + ' 14%, transparent)' };
+                return category ? this.categoryBadgeStyle(category) : null;
             },
 
             /**

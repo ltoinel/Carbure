@@ -39,6 +39,9 @@ jobs:
             node --check /tmp/check.mjs || { echo "::error file=$file::JavaScript syntax error"; exit 1; }
           done
 
+      - name: Portal unit tests
+        run: node --test 'tests/portal/*.test.mjs'
+
       - name: CSS braces balanced
         run: |
           python3 - <<'PY'
@@ -100,6 +103,61 @@ jobs:
         with:
           name: coverage
           path: coverage.xml
+          if-no-files-found: ignore
+
+  e2e:
+    name: End-to-end tests (portal)
+    runs-on: ubuntu-latest
+    services:
+      mariadb:
+        image: mariadb:10.11
+        env:
+          MARIADB_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+    env:
+      E2E_DB_HOST: 127.0.0.1
+      E2E_DB_PORT: 3306
+      E2E_DB_USER: root
+      E2E_DB_PASSWORD: root
+    defaults:
+      run:
+        working-directory: tests/e2e
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mysqli, curl, openssl
+          coverage: none
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: tests/e2e/package-lock.json
+
+      - name: Install Playwright
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      # Playwright starts the PHP built-in server with the e2e router (tests/e2e/server)
+      - name: Portal tests
+        run: npx playwright test
+
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: playwright-report
+          path: |
+            tests/e2e/playwright-report/
+            tests/e2e/test-results/
+            tests/e2e/.data/logs/
           if-no-files-found: ignore
 
   secrets:

@@ -87,27 +87,6 @@ export function generateYears(count = 6) {
 }
 
 /**
- * Calculates transaction statistics
- * @param {Array} transactions - Array of transaction objects
- * @returns {Object} Statistics object with income, expense, and balance
- */
-export function calculateStats(transactions) {
-    const income = transactions
-        .filter(t => t.amount > 0)
-        .reduce((sum, t) => sum + parseFloat(t.amount), 0);
-    
-    const expense = transactions
-        .filter(t => t.amount < 0)
-        .reduce((sum, t) => sum + parseFloat(t.amount), 0);
-    
-    return {
-        income,
-        expense,
-        balance: income + expense
-    };
-}
-
-/**
  * Checks if debug mode is enabled via query string
  * @returns {boolean} True if debug=true in URL
  */

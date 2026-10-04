@@ -24,8 +24,11 @@ CREATE TABLE `api_tokens` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `last_used_at` datetime DEFAULT NULL,
   `expires_at` datetime DEFAULT NULL COMMENT 'NULL: never expires',
+  `client_id` varchar(64) DEFAULT NULL COMMENT 'OAuth client that got the token (NULL: created in the portal)',
+  `refresh_hash` char(64) DEFAULT NULL COMMENT 'SHA-256 of the OAuth refresh token',
   PRIMARY KEY (`id`),
   UNIQUE KEY `token_hash` (`token_hash`),
+  UNIQUE KEY `refresh_hash` (`refresh_hash`),
   KEY `fk_api_token_user` (`user_id`),
   CONSTRAINT `fk_api_token_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -176,6 +179,32 @@ CREATE TABLE `users` (
 -- Table `schema_migrations`: version of this schema (base of version 1.0, then the
 -- migrations included since)
 
+-- --------------------------------------------------------
+-- OAuth 2.1 of the MCP server (clients registered by the AI agents, authorization codes)
+
+CREATE TABLE `oauth_clients` (
+  `client_id` varchar(64) NOT NULL,
+  `client_secret_hash` char(64) DEFAULT NULL COMMENT 'SHA-256 of the secret, NULL for a public client (PKCE only)',
+  `name` varchar(100) NOT NULL,
+  `redirect_uris` varchar(2000) NOT NULL COMMENT 'JSON array',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`client_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `oauth_codes` (
+  `code_hash` char(64) NOT NULL COMMENT 'SHA-256 of the authorization code',
+  `client_id` varchar(64) NOT NULL,
+  `user_id` int(10) unsigned NOT NULL,
+  `redirect_uri` varchar(500) NOT NULL,
+  `code_challenge` varchar(128) NOT NULL COMMENT 'PKCE, S256',
+  `expires_at` datetime NOT NULL,
+  PRIMARY KEY (`code_hash`),
+  KEY `fk_oauth_code_client` (`client_id`),
+  KEY `fk_oauth_code_user` (`user_id`),
+  CONSTRAINT `fk_oauth_code_client` FOREIGN KEY (`client_id`) REFERENCES `oauth_clients` (`client_id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_oauth_code_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE `schema_migrations` (
   `version` varchar(100) NOT NULL,
   `applied_at` timestamp NOT NULL DEFAULT current_timestamp(),
@@ -183,7 +212,8 @@ CREATE TABLE `schema_migrations` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 INSERT IGNORE INTO `schema_migrations` (`version`) VALUES
-('2026-10-13_base');
+('2026-10-13_base'),
+('2026-10-14_oauth');
 
 SET FOREIGN_KEY_CHECKS = 1;
 COMMIT;

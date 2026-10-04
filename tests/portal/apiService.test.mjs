@@ -1,0 +1,127 @@
+// services/apiService.js, with a fake fetch
+import { mockFetch, json } from './setup.mjs';
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { createApiService } from '../../portal/services/apiService.js';
+
+const BASE = 'https://carbure.example.com/api';
+
+test('sends the token and decodes the JSON', async () => {
+    const calls = mockFetch(() => json([{ id: 1 }]));
+    const api = createApiService(BASE, 'jwt-token');
+
+    assert.deepEqual(await api.fetchCategories(), [{ id: 1 }]);
+    assert.equal(calls[0].url, `${BASE}/category`);
+    assert.equal(calls[0].options.headers.Authorization, 'Bearer jwt-token');
+    assert.equal(calls[0].options.headers['Content-Type'], 'application/json');
+});
+
+test('without token, no Authorization header', async () => {
+    const calls = mockFetch(() => json({}));
+    await createApiService(BASE).fetchMe();
+    assert.equal(calls[0].options.headers.Authorization, undefined);
+});
+
+test('the error message of the API is the one of the exception', async () => {
+    mockFetch(() => json({ error: 'The name must contain 1 to 50 characters', code: 400, uid: 'abc' }, 400));
+    await assert.rejects(createApiService(BASE, 't').createCategory({ name: '' }), { message: 'The name must contain 1 to 50 characters' });
+
+    mockFetch(() => new Response('<html>Bad gateway</html>', { status: 502 }));
+    await assert.rejects(createApiService(BASE, 't').fetchUsers(), { message: 'Failed to fetch users (502)' });
+});
+
+test('a 401 reports the expired session', async () => {
+    mockFetch(() => json({ error: 'Unauthorized' }, 401));
+    let expired = 0;
+    const api = createApiService(BASE, 'old-token', () => expired++);
+
+    await assert.rejects(api.fetchTransactions(1, 2026));
+    assert.equal(expired, 1);
+});
+
+test('the lists are always arrays', async () => {
+    mockFetch(() => json({ unexpected: true }));
+    const api = createApiService(BASE, 't');
+    assert.deepEqual(await api.fetchTransactions(10, 2026), []);
+    assert.deepEqual(await api.fetchBudget(10, 2026), []);
+    assert.deepEqual(await api.fetchInsights(10, 2026), []);
+    assert.deepEqual(await api.fetchUsers(), []);
+});
+
+test('a new list request cancels the previous one of the same kind', async () => {
+    let release;
+    const calls = mockFetch((url, options) => new Promise((resolve, reject) => {
+        options.signal.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')));
+        release = () => resolve(json([{ id: 2 }]));
+    }));
+    const api = createApiService(BASE, 't');
+
+    const first = api.fetchBudget(9, 2026);
+    const second = api.fetchBudget(10, 2026, 4);
+    await assert.rejects(first, { name: 'AbortError' });
+    release();
+    assert.deepEqual(await second, [{ id: 2 }]);
+    assert.equal(calls[1].url, `${BASE}/budget?month=10&year=2026&category=4`);
+});
+
+test('abortAllExcept cancels the other pending lists', async () => {
+    mockFetch((url, options) => new Promise((resolve, reject) => {
+        options.signal.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')));
+    }));
+    const api = createApiService(BASE, 't');
+    const insights = api.fetchInsights(10, 2026);
+    api.abortAllExcept('transactions');
+    await assert.rejects(insights, { name: 'AbortError' });
+});
+
+test('updateBudget sets the budget of a category with POST /budget', async () => {
+    const calls = mockFetch(() => json(true));
+    await createApiService(BASE, 't').updateBudget(4, 10, 2026, 350);
+
+    assert.equal(calls[0].url, `${BASE}/budget`);
+    assert.equal(calls[0].options.method, 'POST');
+    assert.deepEqual(JSON.parse(calls[0].options.body), { category: 4, amount: 350, month: 10, year: 2026 });
+});
+
+test('saveInsight sends the chosen icon, null for the default one', async () => {
+    const calls = mockFetch(() => json({ id: 3 }));
+    const api = createApiService(BASE, 't');
+
+    await api.saveInsight({ id: null, name: 'Loyer', color: 'blue', icon: 'home', sql: 'SELECT 1 AS amount' });
+    assert.equal(calls[0].options.method, 'POST');
+    assert.equal(JSON.parse(calls[0].options.body).icon, 'home');
+
+    await api.saveInsight({ id: 3, name: 'Loyer', color: 'blue', icon: '', sql: 'SELECT 1 AS amount' });
+    assert.equal(calls[1].options.method, 'PUT');
+    assert.deepEqual(JSON.parse(calls[1].options.body), { id: 3, name: 'Loyer', color: 'blue', sql: 'SELECT 1 AS amount', icon: null });
+});
+
+test('updateUser only sends the fields given', async () => {
+    const calls = mockFetch(() => json({ id: 2 }));
+    const api = createApiService(BASE, 't');
+
+    await api.updateUser(2, 'm@example.com', 'Marie', 'Martin', '   ', null, undefined);
+    assert.equal(calls[0].url, `${BASE}/user?id=2`);
+    assert.equal(calls[0].options.method, 'PUT');
+    assert.deepEqual(JSON.parse(calls[0].options.body), { email: 'm@example.com', firstname: 'Marie', lastname: 'Martin' });
+
+    await api.updateUser(2, 'm@example.com', 'Marie', 'Martin', 'secret-1', 'en', 150, 1);
+    assert.deepEqual(JSON.parse(calls[1].options.body), {
+        email: 'm@example.com', firstname: 'Marie', lastname: 'Martin', is_admin: true, language: 'en', alertThreshold: '150', password: 'secret-1',
+    });
+});
+
+test('syncBanks reads the progress events of one account', async () => {
+    const stream = 'data: Syncing 1@bnp (coming)...\n\n: heartbeat\n\ndata: Done 1@bnp (coming): 1 received, 1 new\n\ndata: Synchronization complete\n\n';
+    const calls = mockFetch(() => new Response(new Blob([stream]).stream(), { status: 200 }));
+    const messages = [];
+
+    await createApiService(BASE, 't').syncBanks(message => messages.push(message), '1@bnp');
+    assert.equal(calls[0].url, `${BASE}/bank/sync?account=1%40bnp`);
+    assert.deepEqual(messages, ['Syncing 1@bnp (coming)...', 'Done 1@bnp (coming): 1 received, 1 new', 'Synchronization complete']);
+});
+
+test('syncBanks reports a refused synchronization', async () => {
+    mockFetch(() => json({ error: 'Account not found' }, 404));
+    await assert.rejects(createApiService(BASE, 't').syncBanks(() => {}, 'x@y'), { message: 'Account not found' });
+});

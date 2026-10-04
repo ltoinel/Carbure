@@ -191,7 +191,9 @@ class SetupTest extends TestCase
         $this->assertTrue(password_verify('supersecret', $admin['password']));
         $this->assertEquals(1, $admin['is_admin']);
         $this->assertSame('en', $admin['language']);
-        $this->assertSame('2026-10-13_base', $body['version']);
+        // The schema of carbure.sql is at the level of the last migration
+        $migrations = (new Migrator($db))->available();
+        $this->assertSame($migrations ? end($migrations) : '2026-10-13_base', $body['version']);
         $this->assertSame($body['version'], (new Migrator($db))->version());
         $this->assertSame([], (new Migrator($db))->pending());
     }

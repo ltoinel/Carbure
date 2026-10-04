@@ -10,6 +10,8 @@
  *   :icon-for="categoryIcon" :color-for="categoryColor"></category-picker>
  */
 
+import { badgeStyle } from '../utils/categoryIcons.js';
+
 /** Display order of the category types */
 const TYPES = ['DEBIT', 'CREDIT', 'HORS-BUDGET'];
 
@@ -28,13 +30,20 @@ export default {
         /** CSS color of a category */
         colorFor: { type: Function, required: true },
         /** Offer the default category "uncategorized" (0) */
-        withDefault: { type: Boolean, default: false }
+        withDefault: { type: Boolean, default: false },
+        /** Text of the button when no category is chosen (default: "Choose a category") */
+        placeholder: { type: String, default: null },
+        /**
+         * Small button for a row of a list: the list floats over the page (it is not cut
+         * by a scrolling container) and closes when the page scrolls
+         */
+        compact: { type: Boolean, default: false }
     },
 
     emits: ['update:modelValue'],
 
     data() {
-        return { open: false, search: '' };
+        return { open: false, search: '', panelStyle: null };
     },
 
     computed: {
@@ -97,11 +106,23 @@ export default {
                 this.open = false;
             }
         };
+        // Compact: the floating list would no longer be next to its button
+        this.onViewportChange = event => {
+            if (this.open && !(event.target instanceof Node && this.$el.contains(event.target))) {
+                this.open = false;
+            }
+        };
         document.addEventListener('click', this.onDocumentClick);
+        if (this.compact) {
+            window.addEventListener('scroll', this.onViewportChange, true);
+            window.addEventListener('resize', this.onViewportChange);
+        }
     },
 
     beforeUnmount() {
         document.removeEventListener('click', this.onDocumentClick);
+        window.removeEventListener('scroll', this.onViewportChange, true);
+        window.removeEventListener('resize', this.onViewportChange);
     },
 
     methods: {
@@ -110,8 +131,29 @@ export default {
             this.open = !this.open;
             if (this.open) {
                 this.search = '';
+                this.panelStyle = this.compact ? this.floatingPosition() : null;
                 this.$nextTick(() => this.$refs.search?.focus());
             }
+        },
+
+        /**
+         * Position of the floating list of a compact picker: under its button (above when
+         * there is no room below), at least 300 px wide, inside the window
+         * @returns {Object} Style of the list
+         */
+        floatingPosition() {
+            const button = this.$refs.button.getBoundingClientRect();
+            const width = Math.min(Math.max(button.width, 300), window.innerWidth - 16);
+            const left = Math.max(8, Math.min(button.right - width, window.innerWidth - width - 8));
+            const below = window.innerHeight - button.bottom;
+            const style = { position: 'fixed', left: `${left}px`, right: 'auto', width: `${width}px` };
+            if (below < 340 && button.top > below) {
+                style.top = 'auto';
+                style.bottom = `${window.innerHeight - button.top + 4}px`;
+            } else {
+                style.top = `${button.bottom + 4}px`;
+            }
+            return style;
         },
 
         /**
@@ -130,13 +172,16 @@ export default {
          * @returns {Object}
          */
         badgeStyle(category) {
-            const color = this.colorFor(category);
-            return { color, background: `color-mix(in srgb, ${color} 14%, transparent)` };
+            return badgeStyle(this.colorFor(category));
         },
 
-        /** Closes the list (Escape) */
-        close() {
+        /**
+         * Closes the list (Escape); when it is closed, Escape is left to the modal
+         * @param {KeyboardEvent} event - Escape key
+         */
+        close(event) {
             if (this.open) {
+                event?.stopPropagation();
                 this.open = false;
                 this.$refs.button?.focus();
             }
@@ -144,10 +189,10 @@ export default {
     },
 
     template: `
-        <div class="category-picker" :class="{ open }" @keydown.esc.stop="close">
+        <div class="category-picker" :class="{ open, compact }" @keydown.esc="close">
             <button ref="button" type="button" class="category-picker-button" @click="toggle"
                     aria-haspopup="listbox" :aria-expanded="open ? 'true' : 'false'"
-                    :aria-label="t('categoryLabel') + ' : ' + (selected ? selected.name : t('ruleCategoryPlaceholder'))">
+                    :aria-label="t('categoryLabel') + ' : ' + (selected ? selected.name : (placeholder || t('ruleCategoryPlaceholder')))">
                 <template v-if="selected">
                     <span class="category-badge" :style="badgeStyle(selected)">
                         <span class="material-icons" aria-hidden="true">{{ iconFor(selected) }}</span>
@@ -158,10 +203,10 @@ export default {
                     </span>
                     <span class="category-type-chip" :class="'type-' + selected.type.toLowerCase()">{{ t('categoryType_' + selected.type) }}</span>
                 </template>
-                <span v-else class="category-picker-placeholder">{{ t('ruleCategoryPlaceholder') }}</span>
+                <span v-else class="category-picker-placeholder">{{ placeholder || t('ruleCategoryPlaceholder') }}</span>
                 <span class="material-icons category-picker-arrow" aria-hidden="true">expand_more</span>
             </button>
-            <div v-if="open" class="category-picker-panel">
+            <div v-if="open" class="category-picker-panel" :style="panelStyle">
                 <div class="category-picker-search">
                     <span class="material-icons" aria-hidden="true">search</span>
                     <input ref="search" type="search" v-model="search" :placeholder="t('searchCategory')" :aria-label="t('searchCategory')" />

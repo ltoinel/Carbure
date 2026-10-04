@@ -10,6 +10,8 @@
 | `swagger/` | Générateur OpenAPI et Swagger UI |
 | `sql/` | Schéma et migrations |
 | `tests/unit/`, `tests/integration/` | Tests PHPUnit |
+| `tests/portal/` | Tests unitaires du portail (`node:test`) |
+| `tests/e2e/` | Tests de bout en bout du portail (Playwright) |
 | `tools/migrate.php` | Migrations du schéma (`--status`, `--dry-run`, `--baseline`) |
 | `tools/phpunit.phar`, `tools/coverage-check.php` | PHPUnit 11 et contrôle du seuil de couverture |
 | `docker/` | `Dockerfile`, `docker-compose.yml` (avec MariaDB), configuration nginx et PHP-FPM, `entrypoint.sh` |
@@ -19,6 +21,49 @@
 
 Règles détaillées pour les contributeurs et agents de code : `AGENTS.md`.
 Tâches ouvertes : `TODO.md`.
+
+## Démarrer en local
+
+```bash
+./start.sh            # http://localhost:8000/portal/  (admin / admin-password, marie / marie-password)
+./start.sh --reset    # repartir des données d'exemple (aussi après une modification de sql/carbure.sql)
+./start.sh --build    # reconstruire l'image (modification de docker/ ou des extensions PHP)
+./start.sh --fake-woob  # woob bouchonné : synchronisation des comptes d'exemple sans banque
+./start.sh --stop     # arrêter (la base et /data sont conservés)
+./start.sh --clean    # arrêter et supprimer la base et /data
+./start.sh --help     # aide
+```
+
+`start.sh` reproduit l'architecture de production : il lance `docker/docker-compose.yml`
+(le compose de production) avec la surcharge `docker/docker-compose.dev.yml`. Mêmes
+conteneurs que la cible : l'**image Docker de Carbure** (`docker/Dockerfile` : nginx,
+PHP-FPM, woob, entrypoint qui applique les migrations) et **MariaDB 11**, avec un volume
+`/data` et un `/data/conf/prod.ini`, comme une instance installée. La surcharge ne change
+que :
+
+- le code (`src/`, `portal/`, `swagger/`, `sql/`, `tools/`), **monté** depuis le dépôt au
+  lieu d'être copié dans l'image : une modification est prise en compte à la requête
+  suivante, sans redémarrer ni reconstruire ;
+- les ports, qui n'écoutent que sur `127.0.0.1` ; la synchronisation planifiée, désactivée ;
+- la base, `carbure_dev`, et `/data`, un volume Docker (le dossier `data/` local n'est pas
+  monté).
+
+Il n'y a qu'une image applicative, celle de production : on développe sur ce qui sera
+livré. Reconstruire l'image (`--build`) n'est utile qu'après une modification de
+`docker/` (Dockerfile, nginx, PHP).
+
+- Au premier lancement, l'image est construite (quelques minutes pour woob) et la base
+  reçoit le jeu de données des tests de bout en bout (`tests/e2e/server/seed.php`) : un
+  foyer avec trois mois de transactions, des budgets, des règles et deux comptes.
+- `prod.ini` est réécrit à chaque démarrage (`log_level=debug`, base `carbure_dev`).
+  woob est le vrai par défaut ; `--fake-woob` le remplace par le faux woob des tests
+  (`tests/fixtures/fake-woob.php`), qui répond à la place des banques : les comptes
+  d'exemple se synchronisent (`fail@bank` échoue volontairement), l'ajout d'une banque et
+  la découverte des comptes fonctionnent sans identifiants. Les options se combinent
+  (`./start.sh --reset --fake-woob`).
+- `PORT` (8000) et `DB_PORT` (3308, accès à MariaDB depuis l'hôte : `carbure` / `dev`)
+  changent les ports, qui n'écoutent que sur `127.0.0.1`. Logs : onglet Logs du portail,
+  ou `docker compose -f docker/docker-compose.yml -f docker/docker-compose.dev.yml exec carbure ls /data/logs`.
 
 ## Ajouter une route
 
@@ -72,6 +117,48 @@ DB_HOST=127.0.0.1 DB_USER=root DB_PASSWORD=root php tools/phpunit.phar
 - Objectif : **≥ 90 % de couverture** du code de `src/`, mesurée en CI sur l'ensemble
   des suites.
 
+### Tests unitaires du portail
+
+```bash
+node --test 'tests/portal/*.test.mjs'
+```
+
+Les modules du portail qui ne dépendent pas du DOM (`utils/`, `services/apiService.js`
+avec un faux `fetch`, `stores/budgetStore.js`, les méthodes des mixins de `modules/`)
+sont testés avec le lanceur de tests de Node, sans dépendance. `tests/portal/setup.mjs`
+fournit les quelques objets du navigateur dont ils ont besoin (`window`, `CSS`, `Vue`).
+
+### Tests de bout en bout du portail
+
+Les tests Playwright de `tests/e2e/specs/` pilotent le portail dans Chromium, sur la
+**vraie API** et une base MariaDB `carbure_e2e` recréée avant chaque test : ils vérifient
+aussi que le portail et l'API s'accordent (routes, paramètres, réponses).
+
+```bash
+cd tests/e2e
+npm ci && npx playwright install chromium   # une seule fois
+E2E_DB_HOST=127.0.0.1 E2E_DB_PASSWORD=root npx playwright test
+npx playwright test specs/budget.spec.js     # un seul fichier
+npx playwright test --ui                     # mode interactif
+npx playwright show-report                   # rapport HTML de la dernière exécution
+```
+
+- Playwright démarre le serveur intégré de PHP (`php -S`) avec le routeur de test
+  `tests/e2e/server/router.php` (`APP_ENV=e2e`, `conf/e2e.ini`) : il sert le portail,
+  l'API, et `/api/__e2e/reset`, qui recrée la base avec le jeu de données de
+  `tests/e2e/server/seed.php` (foyer, catégories, budgets, règles, deux comptes). Ce
+  routeur n'est jamais servi par nginx et refuse de répondre hors `APP_ENV=e2e`.
+- Il faut un PHP avec `mysqli` (`PHP_BIN` pour en choisir un) et une base MariaDB/MySQL :
+  `E2E_DB_HOST`, `E2E_DB_PORT` (3306), `E2E_DB_USER` (root), `E2E_DB_PASSWORD`. Par exemple
+  `docker run -d -e MARIADB_ROOT_PASSWORD=root -p 3306:3306 mariadb:10.11`.
+- woob est remplacé par `tests/fixtures/fake-woob.php`, les logs vont dans
+  `tests/e2e/.data/logs/`.
+- Les tests s'exécutent l'un après l'autre (une seule base). Les textes attendus sont lus
+  dans `portal/i18n.js` (`tr()` de `tests/e2e/fixtures.js`) : modifier un libellé ne casse
+  pas les tests.
+- L'assistant d'installation et les bandeaux d'administration simulent les réponses de
+  l'API (`page.route`), le serveur de test étant déjà installé et à jour.
+
 ## Lint
 
 ```bash
@@ -90,13 +177,13 @@ git config core.hooksPath .githooks
 | Hook | Vérification |
 |---|---|
 | `pre-commit` | `php -l` et `node --check` sur les fichiers indexés |
-| `pre-push` | Tests unitaires |
+| `pre-push` | Tests unitaires PHP et du portail |
 
 ## Intégration et livraison continues
 
 | Workflow | Déclencheur | Étapes |
 |---|---|---|
-| CI | Pull request, push sur `main` | Lint PHP/JS/CSS, tests unitaires et d'intégration (MariaDB), couverture ≥ 90 %, scan de secrets (gitleaks) ; image Docker : hadolint, build, scan Trivy, démarrage avec `docker compose`, installation par l'assistant et test de fumée |
+| CI | Pull request, push sur `main` | Lint PHP/JS/CSS, tests unitaires du portail, tests unitaires et d'intégration (MariaDB), couverture ≥ 90 %, tests de bout en bout du portail (Playwright, rapport en artefact en cas d'échec), scan de secrets (gitleaks) ; image Docker : hadolint, build, scan Trivy, démarrage avec `docker compose`, installation par l'assistant et test de fumée |
 | Release | Release publiée sur GitHub (tag `1.2.0` ou `v1.2.0`), ou lancement manuel avec le tag | CI, archive de l'application (`src`, `portal`, `swagger`, `sql`, `tools/migrate.php`, `VERSION` écrit depuis le tag) jointe à la release ; image Docker `amd64`/`arm64` publiée sur Docker Hub (`ltoinel/carbure`) (version passée par `CARBURE_VERSION`), avec SBOM et provenance |
 | Docs | Push sur `main` | Construction MkDocs et déploiement GitHub Pages |
 

@@ -49,11 +49,10 @@ export function createUserModule(getApiService) {
 
                 try {
                     this.users = await apiService.fetchUsers();
-                    console.log('Users loaded:', this.users.length);
                 } catch (error) {
                     console.error('Error loading users:', error);
                     this.userError = error.message;
-                    this.error = this.t('errorLoadingUsers') || 'Erreur lors du chargement des utilisateurs';
+                    this.error = this.t('errorLoadingUsers');
                 } finally {
                     this.loadingUsers = false;
                 }
@@ -114,31 +113,31 @@ export function createUserModule(getApiService) {
              */
             validateUserForm() {
                 if (!this.userFormData.username || this.userFormData.username.trim() === '') {
-                    this.showToast(this.t('usernameRequired') || 'Le nom d\'utilisateur est requis');
+                    this.showToast(this.t('usernameRequired'));
                     return false;
                 }
 
                 if (!this.userFormData.email || this.userFormData.email.trim() === '') {
-                    this.showToast(this.t('emailRequired') || 'L\'email est requis');
+                    this.showToast(this.t('emailRequired'));
                     return false;
                 }
 
                 // Email validation
                 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
                 if (!emailRegex.test(this.userFormData.email)) {
-                    this.showToast(this.t('emailInvalid') || 'L\'email est invalide');
+                    this.showToast(this.t('emailInvalid'));
                     return false;
                 }
 
                 // Password required only for new users
                 if (!this.userToEdit && (!this.userFormData.password || this.userFormData.password.trim() === '')) {
-                    this.showToast(this.t('passwordRequired') || 'Le mot de passe est requis');
+                    this.showToast(this.t('passwordRequired'));
                     return false;
                 }
 
                 // Password strength check (minimum 6 characters)
                 if (this.userFormData.password && this.userFormData.password.length < 6) {
-                    this.showToast(this.t('passwordTooShort') || 'Le mot de passe doit contenir au moins 6 caractères');
+                    this.showToast(this.t('passwordTooShort'));
                     return false;
                 }
 
@@ -173,7 +172,7 @@ export function createUserModule(getApiService) {
                             null,
                             this.userFormData.is_admin
                         );
-                        this.showToast(this.t('userUpdated') || 'Utilisateur modifié avec succès');
+                        this.showToast(this.t('userUpdated'));
                         await this.loadUsers(); // Reload user list
                     } else {
                         // Create new user
@@ -185,13 +184,13 @@ export function createUserModule(getApiService) {
                             this.userFormData.lastname,
                             this.userFormData.is_admin
                         );
-                        this.showToast(this.t('userCreated') || 'Utilisateur créé avec succès');
+                        this.showToast(this.t('userCreated'));
                         await this.loadUsers(); // Reload user list
                     }
                     this.closeUserModal();
                 } catch (error) {
                     console.error('Error submitting user form:', error);
-                    this.showToast(error.message || (this.t('errorSavingUser') || 'Erreur lors de l\'enregistrement'));
+                    this.showToast(error.message || (this.t('errorSavingUser')));
                 }
             },
 
@@ -238,11 +237,11 @@ export function createUserModule(getApiService) {
 
                 try {
                     await apiService.deleteUser(user.id);
-                    this.showToast(this.t('userDeleted') || 'Utilisateur supprimé avec succès');
+                    this.showToast(this.t('userDeleted'));
                     await this.loadUsers(); // Reload user list
                 } catch (error) {
                     console.error('Error deleting user:', error);
-                    this.showToast(error.message || (this.t('errorDeletingUser') || 'Erreur lors de la suppression'));
+                    this.showToast(error.message || (this.t('errorDeletingUser')));
                 }
             }
         }
