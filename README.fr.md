@@ -37,34 +37,16 @@
   <tr>
     <td width="50%" valign="top">
       <img src="docs/assets/screenshot-budget.png" alt="Budgets par catégorie, les sous-catégories s'additionnent dans leur parent">
-      <br><sub><b>Budgets</b> — dépensé, restant et dépassement par catégorie ; un parent additionne ses sous-catégories</sub>
+      <br><sub><b>Budgets</b> — dépensé, restant et dépassement par catégorie</sub>
     </td>
     <td width="50%" valign="top">
       <img src="docs/assets/screenshot-flow.png" alt="Flux du mois">
-      <br><sub><b>Flux du mois</b> — où partent les revenus du mois : dépenses, épargne, reste</sub>
-    </td>
-  </tr>
-  <tr>
-    <td width="50%" valign="top">
-      <img src="docs/assets/screenshot-trends.png" alt="Tendances sur 3, 6 ou 12 mois">
-      <br><sub><b>Tendances</b> — revenus, dépenses et épargne sur 3, 6 ou 12 mois, avec comparaisons</sub>
-    </td>
-    <td width="50%" valign="top">
-      <img src="docs/assets/screenshot-insights.png" alt="Insights du mois">
-      <br><sub><b>Insights</b> — vos propres indicateurs du mois, définis par une requête</sub>
-    </td>
-  </tr>
-  <tr>
-    <td width="50%" valign="top">
-      <img src="docs/assets/screenshot-categories.png" alt="Catégories avec leurs icônes et couleurs">
-      <br><sub><b>Catégories</b> — deux niveaux, icônes et couleurs partagées avec l'app iPhone</sub>
-    </td>
-    <td width="50%" valign="top">
-      <img src="docs/assets/screenshot-agents.png" alt="Onglet Agent IA : serveur MCP et connecteur Claude">
-      <br><sub><b>Agent IA</b> — connectez Claude, ChatGPT et d'autres à vos données, en lecture seule</sub>
+      <br><sub><b>Flux du mois</b> — où partent les revenus du mois</sub>
     </td>
   </tr>
 </table>
+
+<p align="center">👉 <a href="https://ltoinel.github.io/Carbure/fonctionnalites/"><b>Toutes les fonctionnalités</b></a>, avec chaque écran</p>
 
 ## Pourquoi Carbure ?
 

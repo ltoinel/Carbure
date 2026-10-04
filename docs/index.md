@@ -25,16 +25,17 @@ Tous s'appuient sur la même **API REST PHP** (`src/`).
 | Synchronisation | Opérations à venir et historique via woob, de tous les comptes ou d'un seul, progression en temps réel (SSE), date et résultat de la dernière synchronisation de chaque compte, synchronisation quotidienne planifiable |
 | Comptes | Comptes du foyer, recherche des comptes dans woob et suivi en un clic, liste des banques supportées par woob |
 | Transactions | Liste mensuelle, recherche par libellé avec total, pointage (vérifiée / non vérifiée), catégorisation manuelle avec proposition de règle |
-| Budgets | Flux du mois (diagramme de Sankey revenus → dépenses, épargne, reste), synthèse du mois, budget par catégorie avec reste ou dépassement, sous-catégories, transactions d'une catégorie |
+| Budgets | Flux du mois (diagramme de Sankey revenus → dépenses, épargne, reste), synthèse du mois, budget par catégorie avec reste ou dépassement, catégorie parente égale à la somme de ses sous-catégories ou à son propre montant, transactions d'une catégorie |
 | Tendances | Débit, crédit, hors budget, budget planifié et épargne (catégorie « Epargne ») sur 3, 6 ou 12 mois, comparaison avec une autre période |
 | Catégorisation | Catégories hiérarchiques (icône, couleur), règles par mots-clés appliquées à chaque synchronisation ou à la demande |
 | Insights | Indicateurs mensuels définis par une requête SQL encadrée, historique annuel |
 | Notifications | Push APNs après chaque synchronisation, et alerte pour toute nouvelle dépense au-dessus du seuil de l'utilisateur |
-| Agents IA | Serveur MCP en lecture seule, activable par un administrateur, jetons d'accès à durée de validité, configurations prêtes pour six agents |
+| Agents IA | Serveur MCP en lecture seule, activable par un administrateur ; Claude (web, Desktop, mobile) connecté par OAuth sans jeton, les autres agents avec un jeton d'accès à durée de validité |
 | Utilisateurs | Profils utilisateur et administrateur, langue fr/en, seuil d'alerte, appareils, dernière connexion, blocage après 5 échecs de connexion |
 
 ## Par où commencer ?
 
+- Découvrir tout ce que fait Carbure : [Fonctionnalités](fonctionnalites.md)
 - Installer Carbure : [Installation](installation.md) ou le [tutoriel NAS Synology](synology.md)
 - Utiliser le portail : [Portail web](portail.md)
 - Connecter un agent IA : [Agents IA (MCP)](mcp.md)

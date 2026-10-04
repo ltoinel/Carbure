@@ -60,6 +60,7 @@ markdown_extensions:
 
 nav:
   - Accueil: index.md
+  - Fonctionnalités: fonctionnalites.md
   - Comparatif: comparatif.md
   - Architecture: architecture.md
   - Mise en route:

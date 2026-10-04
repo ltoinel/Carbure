@@ -37,34 +37,16 @@
   <tr>
     <td width="50%" valign="top">
       <img src="docs/assets/en/screenshot-budget.png" alt="Budgets by category, sub-categories adding up to their parent">
-      <br><sub><b>Budgets</b> — spent, remaining and overspent per category; a parent adds up its sub-categories</sub>
+      <br><sub><b>Budgets</b> — spent, remaining and overspent per category</sub>
     </td>
     <td width="50%" valign="top">
       <img src="docs/assets/en/screenshot-flow.png" alt="Money flow of the month">
-      <br><sub><b>Money flow</b> — where the month's income goes: expenses, savings, remainder</sub>
-    </td>
-  </tr>
-  <tr>
-    <td width="50%" valign="top">
-      <img src="docs/assets/en/screenshot-trends.png" alt="Trends over 3, 6 or 12 months">
-      <br><sub><b>Trends</b> — income, spending and savings over 3, 6 or 12 months, with comparisons</sub>
-    </td>
-    <td width="50%" valign="top">
-      <img src="docs/assets/en/screenshot-insights.png" alt="Insights of the month">
-      <br><sub><b>Insights</b> — your own monthly indicators, defined by a query</sub>
-    </td>
-  </tr>
-  <tr>
-    <td width="50%" valign="top">
-      <img src="docs/assets/en/screenshot-categories.png" alt="Categories with their icons and colors">
-      <br><sub><b>Categories</b> — two levels, icons and colors shared with the iPhone app</sub>
-    </td>
-    <td width="50%" valign="top">
-      <img src="docs/assets/en/screenshot-agents.png" alt="AI agent tab: MCP server and Claude connector">
-      <br><sub><b>AI agent</b> — connect Claude, ChatGPT and others to your data, read-only</sub>
+      <br><sub><b>Money flow</b> — where the month's income goes</sub>
     </td>
   </tr>
 </table>
+
+<p align="center">👉 <a href="https://ltoinel.github.io/Carbure/fonctionnalites/"><b>All the features</b></a>, with every screen (in French)</p>
 
 ## Why Carbure?
 

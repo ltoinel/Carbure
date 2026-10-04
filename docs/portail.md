@@ -2,7 +2,8 @@
 
 Le portail (`portal/`) est une application Vue 3 servie en fichiers statiques, sous
 `https://<serveur>/portal/` (l'adresse racine y redirige). Il utilise la même API que
-l'app iOS.
+l'app iOS. Cette page décrit les écrans ; les règles de fonctionnement (calculs, règles,
+notifications, droits) sont dans [Fonctionnalités](fonctionnalites.md).
 
 ## Installation
 
@@ -31,18 +32,20 @@ Deux profils existent :
 
 | Profil | Onglets |
 |---|---|
-| **Utilisateur** | Transactions, Budget, Insights, Tendances, Agents IA, et son profil |
-| **Administrateur** | En plus : Règles, Catégories, Comptes et Utilisateurs ; ajout et modification des insights ; activation du serveur MCP ; mise à jour de la base de données |
+| **Utilisateur** | Transactions, Budget, Insights, Tendances ; **Agent IA** et **Mon profil** dans le menu utilisateur |
+| **Administrateur** | En plus : Règles, Catégories, Comptes, et le menu **Administration** (Utilisateurs, Logs, Agent IA) ; ajout et modification des insights ; activation du serveur MCP ; mise à jour de la base de données |
 
 Les pages d'administration (Règles, Catégories, Comptes, Utilisateurs) et les onglets
-Insights et Agents IA suivent la même présentation : un bouton rond **+** en haut à droite
-ouvre le formulaire dans une fenêtre modale, qui sert aussi à la modification.
+Insights et Agent IA suivent la même présentation : un en-tête avec le titre et l'aide, et
+un bouton rond **+** qui ouvre le formulaire dans une fenêtre modale, qui sert aussi à la
+modification.
 
 ## En-tête
 
 - Le titre **Carbure** ramène à l'accueil : transactions du mois en cours.
 - En haut à droite, le bouton affiche le **login** de l'utilisateur connecté ; son menu
-  donne accès à **Mon profil** et **Déconnexion**.
+  donne accès à **Mon profil**, à **Agent IA** (utilisateurs non administrateurs) et à
+  **Déconnexion**.
 - Le sélecteur de **mois** et d'**année** et le bouton rond **Actualiser** (icône seule) s'appliquent aux
   onglets Transactions, Budget et Insights. Les onglets Tendances et Règles ont leurs
   propres réglages.
@@ -59,7 +62,8 @@ ouvre le formulaire dans une fenêtre modale, qui sert aussi à la modification.
 ![Transactions](assets/screenshot-transactions.png)
 
 - Statistiques du mois : revenus, dépenses, solde.
-- Liste compacte des transactions avec icône du type, libellé, date et montant.
+- Liste compacte des transactions avec l'icône et la couleur de leur catégorie (celles du
+  type d'opération si elles ne sont pas catégorisées), libellé, date et montant.
 - **Pointage** : le bouton rond à gauche de chaque transaction la marque comme vérifiée
   (coche verte) ou non vérifiée. Les transactions non vérifiées sont en gras.
 - **Filtre** : à côté du nombre de transactions, un interrupteur limite la liste aux
@@ -68,7 +72,7 @@ ouvre le formulaire dans une fenêtre modale, qui sert aussi à la modification.
   `GET /transaction/search` sur tous les mois et affiche le **total** des transactions
   trouvées ; le filtre s'applique aussi aux résultats. La croix efface la recherche.
 - **Catégorisation manuelle** : une transaction sans catégorie propose un sélecteur
-  « Catégoriser… » ; la transaction est aussi pointée. Pour un administrateur, un bandeau
+  « Catégoriser… » (icônes, couleurs, recherche) ; la transaction est aussi pointée. Pour un administrateur, un bandeau
   propose ensuite de **créer une règle** pour classer automatiquement ce libellé : il ouvre
   l'onglet Règles avec le libellé et la catégorie pré-remplis, le mot-clé pouvant être
   raccourci (dates, numéros de carte…).
@@ -91,14 +95,17 @@ Deux sous-onglets : **Flux** (affiché par défaut) et **Budgets**.
   dépenses budgétées.
 - **Cartes par catégorie** avec l'icône et la couleur de la catégorie, le montant
   dépensé sur le budget, le reste ou le dépassement ; le fond de la carte se remplit de
-  gauche à droite à mesure que le budget est consommé (vert en bonne voie, orange à partir
-  de 80 %, rouge au-delà de 100 %).
+  gauche à droite à mesure que le budget est consommé (vert jusqu'à 105 % du budget, rouge
+  au-delà). Le budget d'une catégorie parente précédé de « Σ » est la somme de ses
+  sous-catégories.
 - Sections séparées : **dépenses budgétées**, **revenus**, **hors budget et sans
   activité**.
 - **Clic sur une catégorie** : liste de ses transactions du mois (sous-catégories
   comprises) avec leur total et le pointage ; si elle a des sous-catégories, leurs
   cartes s'affichent, avec un fil d'Ariane pour remonter.
-- Bouton de réglage d'une carte : modification du montant budgété pour le mois.
+- Bouton de réglage d'une carte : modification du montant budgété pour le mois. Pour une
+  catégorie parente, la case **Somme des sous-catégories** utilise leur somme ; décochée,
+  le montant saisi la remplace.
 
 ## Insights
 
@@ -184,20 +191,24 @@ protégée.
 La synchronisation de tous les comptes est planifiée côté serveur (`SYNC_INTERVAL` avec
 Docker, ou une tâche cron).
 
-## Agent (agents IA)
+## Agent IA
 
 Connexion d'un agent IA (Claude, ChatGPT, Cursor, Copilot, Gemini…) au serveur MCP de
-Carbure, en lecture seule. Voir [Agents IA (MCP)](mcp.md).
+Carbure, en lecture seule. Voir [Agents IA (MCP)](mcp.md). L'onglet est dans le menu
+**Administration** pour un administrateur, dans le menu utilisateur sinon.
 
 - **Serveur MCP activé** : interrupteur réservé aux administrateurs (désactivé par
   défaut) ; les utilisateurs voient seulement son état.
+- **Connecter Claude (web, Desktop, mobile)** : l'URL du serveur MCP à coller dans Claude
+  (Paramètres → Connecteurs → Ajouter un connecteur personnalisé), sans jeton : Claude
+  ramène au portail, qui demande d'**autoriser** l'accès.
 - **+** : création d'un jeton d'accès (nom et durée de validité : 30 jours, 90 jours, 1 an
   ou sans expiration), possible seulement quand le serveur est activé. Le jeton et la
   configuration prête à copier pour chaque agent ne sont affichés qu'une fois.
 - **Mes jetons d'accès** : date de création, dernière utilisation, expiration (ou
   « Expiré ») ; la corbeille révoque un jeton.
 
-## Utilisateurs (administrateurs)
+## Utilisateurs (menu Administration)
 
 Liste des utilisateurs avec leur **profil** (Utilisateur ou Administrateur) et leur
 **dernière connexion** ; un compte bloqué après trop d'échecs de connexion affiche
@@ -206,7 +217,7 @@ modifie (dont son profil) ; la corbeille le supprime. Le dernier administrateur 
 pas perdre son rôle, et un utilisateur propriétaire de transactions ne peut pas être
 supprimé.
 
-## Logs (administrateurs)
+## Logs (menu Administration)
 
 Les entrées des fichiers de log du serveur (`data/logs/carbure_AAAAMMJJ.log`), les plus
 récentes d'abord : choix du fichier, niveau minimal (DEBUG, INFO, WARN, ERROR) et recherche
@@ -259,10 +270,10 @@ des logs dans la console du navigateur.
 |---|---|
 | `index.html` | Gabarit Vue (tous les écrans, dont l'assistant d'installation) |
 | `app.js` | Application racine : authentification, onglets (onglets d'administration réservés), initialisation |
-| `modules/*.js` | Mixins par domaine : `setup` (assistant), `transaction`, `budget`, `insights`, `trends`, `rules`, `categories`, `accounts`, `sync`, `agents`, `user`, `profile` (profil, appareils, mise à jour de la base) |
+| `modules/*.js` | Mixins par domaine : `setup` (assistant), `transaction`, `budget`, `insights`, `trends`, `rules`, `categories`, `accounts`, `sync`, `agents`, `oauth` (consentement des agents IA), `logs`, `user`, `profile` (profil, appareils, mise à jour de la base) |
 | `services/apiService.js` | Appels HTTP vers l'API |
 | `stores/budgetStore.js` | Navigation dans l'arborescence des budgets |
-| `components/*.js` | Composants : fil d'Ariane et élément de budget, modale de budget, diagramme de flux (`FlowChart`), sélecteur de catégorie (`CategoryPicker`), éditeur SQL (`SqlEditor`) |
+| `components/*.js` | Composants : diagramme de flux (`FlowChart`), sélecteur de catégorie (`CategoryPicker`, compact dans les listes), éditeur SQL (`SqlEditor`) |
 | `i18n.js` | Traductions `fr` et `en` |
 | `utils/formatters.js`, `utils/categoryIcons.js` | Formatage des montants, dates, icônes ; icônes et couleurs des catégories |
 | `vendor/` | Vue, CodeMirror (éditeur SQL) et polices, servis localement |
