@@ -98,63 +98,18 @@
 
 ## How does it compare?
 
-Carbure focuses on a household that banks in France and wants its data at home, with an
-iPhone app and an AI agent. The other open source tools below are excellent too, with other
-strengths: a richer accounting model (Firefly III), envelope budgeting and a local-first app
-(Actual Budget), or the same woob connection for a single user (Kresus).
-
-✅ yes · ⚠️ partly · ➖ no
-
-#### Hosting
-
 | | **Carbure** | **Firefly III** | **Actual Budget** | **Kresus** |
 |---|---|---|---|---|
-| Self-hosted, open source | ✅ MIT | ✅ AGPL-3.0 | ✅ MIT | ✅ AGPL-3.0 |
-| Stack | PHP, MariaDB/MySQL | PHP (Laravel), SQL database | Node.js, local-first | Node.js, SQL database |
-| Docker image | ✅ nginx, PHP and woob included | ✅ | ✅ | ✅ |
-| Web setup wizard, automatic database upgrades | ✅ | ➖ | ⚠️ | ➖ |
+| Bank connection | Direct, via woob | Third-party aggregators | Third-party aggregators | Direct, via woob |
+| Sub-categories adding up to their parent | ✅ | ➖ | ⚠️ | ➖ |
+| Several users sharing the same data | ✅ | ⚠️ | ✅ | ➖ |
+| Native iPhone app and push notifications | ✅ | ➖ | ➖ | ➖ |
+| Built-in MCP server for AI agents | ✅ | ➖ | ➖ | ➖ |
+| File import, several currencies | ➖ | ✅ | ⚠️ | ⚠️ |
 
-#### Bank data
-
-| | **Carbure** | **Firefly III** | **Actual Budget** | **Kresus** |
-|---|---|---|---|---|
-| Bank connection | Direct, via woob | Data importer: GoCardless, Enable Banking, SimpleFIN, Salt Edge | GoCardless, Enable Banking, SimpleFIN and others | Direct, via woob |
-| Without a third-party aggregator | ✅ | ➖ | ➖ | ✅ |
-| Banks covered | Mostly French | Worldwide, through providers | Europe and Americas, through providers | Mostly French |
-| File import (CSV, OFX…) | ➖ | ✅ | ✅ | ⚠️ |
-| Several currencies | ➖ euros | ✅ | ➖ | ⚠️ |
-
-#### Budget and analysis
-
-| | **Carbure** | **Firefly III** | **Actual Budget** | **Kresus** |
-|---|---|---|---|---|
-| Monthly budgets per category | ✅ | ✅ | ✅ envelopes | ✅ |
-| Sub-categories adding up to their parent | ✅ | ➖ flat categories, tags | ⚠️ category groups | ➖ |
-| Automatic categorization rules | ✅ keywords, suggested after a manual choice | ✅ rich rule engine | ✅ | ✅ |
-| Transaction check-off | ✅ | ✅ reconciliation | ✅ reconciliation | ➖ |
-| Charts and trends | ✅ trends, comparisons, money flow | ✅ reports | ✅ custom reports | ✅ |
-| Custom indicators | ✅ SQL insights | ➖ | ⚠️ custom reports | ➖ |
-| Recurring transactions, bills | ➖ | ✅ | ✅ schedules | ✅ |
-| Savings goals | ➖ | ✅ piggy banks | ✅ goal templates | ➖ |
-
-#### Household and devices
-
-| | **Carbure** | **Firefly III** | **Actual Budget** | **Kresus** |
-|---|---|---|---|---|
-| Several users sharing the same data | ✅ administrator and users | ⚠️ separate users | ✅ | ➖ |
-| iPhone | ✅ native app | ⚠️ third-party apps | ⚠️ web app (PWA) | ⚠️ web interface |
-| Android | ⚠️ web portal | ⚠️ third-party apps | ⚠️ web app (PWA) | ⚠️ web interface |
-| Alerts | ✅ iPhone push: sync, large expense, rule | ⚠️ email, webhooks | ➖ | ⚠️ email: amount, balance |
-
-#### Open and extensible
-
-| | **Carbure** | **Firefly III** | **Actual Budget** | **Kresus** |
-|---|---|---|---|---|
-| REST API | ✅ JWT, OpenAPI | ✅ OAuth2 | ⚠️ JavaScript API | ⚠️ internal |
-| Built-in MCP server for AI agents | ✅ read-only, OAuth for Claude | ➖ community servers | ➖ | ➖ |
-
-<sub>From each project's documentation, as of October 2026 — corrections welcome via an
-[issue](https://github.com/ltoinel/Carbure/issues).</sub>
+✅ yes · ⚠️ partly · ➖ no — 👉 **[Full comparison](https://ltoinel.github.io/Carbure/comparatif/)** (in French):
+23 criteria (hosting, bank data, budget, household and devices, API), with the strengths of
+each tool.
 
 ## How it works
 

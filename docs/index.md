@@ -38,6 +38,7 @@ Tous s'appuient sur la même **API REST PHP** (`src/`).
 - Installer Carbure : [Installation](installation.md) ou le [tutoriel NAS Synology](synology.md)
 - Utiliser le portail : [Portail web](portail.md)
 - Connecter un agent IA : [Agents IA (MCP)](mcp.md)
+- Comparer avec Firefly III, Actual Budget et Kresus : [Comparatif](comparatif.md)
 - Comprendre le fonctionnement : [Architecture](architecture.md)
 - Intégrer un client : [Référence de l'API](api.md)
 - Contribuer : [Développement](developpement.md)
