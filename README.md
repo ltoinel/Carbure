@@ -143,3 +143,17 @@ unit tests, Playwright end-to-end tests) are described in the
 ## License
 
 [MIT](LICENSE) © Ludovic Toinel
+
+### Third-party components
+
+The Docker image bundles third-party software, unmodified, under its own license:
+
+| Component | License | Source |
+|---|---|---|
+| [woob](https://woob.tech) (bank synchronization) | LGPL-3.0-or-later | [gitlab.com/woob/woob](https://gitlab.com/woob/woob) (version set by `WOOB_VERSION` in `docker/Dockerfile`) |
+| [curl_cffi](https://github.com/lexiforest/curl_cffi) | MIT | [github.com/lexiforest/curl_cffi](https://github.com/lexiforest/curl_cffi) |
+| PHP, nginx, Alpine Linux | PHP License, BSD-2-Clause, various (BusyBox: GPL-2.0) | Official images `php:8.3-fpm-alpine` |
+| Vue.js, CodeMirror, Roboto, Material Icons (portal) | MIT, MIT, OFL-1.1, Apache-2.0 | [`portal/vendor/`](portal/vendor/README.md) |
+
+Carbure calls woob as a separate program; it can be replaced by another woob version
+(virtual environment `/opt/woob`).
