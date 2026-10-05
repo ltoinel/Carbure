@@ -4778,6 +4778,12 @@ a.footer-brand:hover {
 
 .flow-transactions-title .transaction-icon {
     flex: 0 0 auto;
+    width: 36px;
+    height: 36px;
+}
+
+.flow-transactions-title .transaction-icon .material-icons {
+    font-size: 20px;
 }
 
 .flow-table-toggle {

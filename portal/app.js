@@ -96,6 +96,7 @@ createApp({
             flowSelection: null,
             flowTransactions: [],
             loadingFlowTransactions: false,
+            flowRequest: 0,
             // Budget tab: 'flow' (money flow) or 'budgets' (budget of each category)
             budgetView: 'flow',
             // Tabs of the Administration menu, and the last one opened
@@ -240,6 +241,9 @@ createApp({
          * @returns {Promise<void>}
          */
         async selectFlowNode(node) {
+            // Number of this request: an answer arriving after another click is ignored
+            // (flowSelection holds a reactive proxy: it is never === node)
+            const request = ++this.flowRequest;
             this.flowSelection = node;
             this.flowTransactions = [];
             if (!node) {
@@ -249,8 +253,7 @@ createApp({
             this.loadingFlowTransactions = true;
             try {
                 const transactions = await apiService.fetchFlowTransactions(this.selectedMonth, this.selectedYear, node.kind, node.categories);
-                // A later click may have selected another node meanwhile
-                if (this.flowSelection === node) {
+                if (request === this.flowRequest) {
                     this.flowTransactions = transactions;
                     // Icons of the rows: the categories of the transactions
                     this.ensureCategories();
@@ -258,7 +261,7 @@ createApp({
             } catch (err) {
                 this.showToast(err.message);
             } finally {
-                if (this.flowSelection === node) {
+                if (request === this.flowRequest) {
                     this.loadingFlowTransactions = false;
                 }
             }
