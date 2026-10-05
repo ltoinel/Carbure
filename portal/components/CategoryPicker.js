@@ -2,7 +2,8 @@
  * CategoryPicker Component
  *
  * Category selector showing each category with its icon, color, parent and
- * type, grouped by type (expenses, income, off-budget), with a search field.
+ * type, grouped by type (expenses, income, off-budget), with a search field: the
+ * matching text is highlighted, the arrow keys move in the list and Enter chooses.
  *
  * @component
  * @example
@@ -14,6 +15,9 @@ import { badgeStyle } from '../utils/categoryIcons.js';
 
 /** Display order of the category types */
 const TYPES = ['DEBIT', 'CREDIT', 'HORS-BUDGET'];
+
+/** Number of pickers created, for unique DOM ids */
+let instances = 0;
 
 export default {
     name: 'CategoryPicker',
@@ -43,7 +47,7 @@ export default {
     emits: ['update:modelValue'],
 
     data() {
-        return { open: false, search: '', panelStyle: null };
+        return { open: false, search: '', panelStyle: null, active: -1, uid: ++instances };
     },
 
     computed: {
@@ -97,6 +101,24 @@ export default {
                     });
                 return { type, items };
             }).filter(group => group.items.length);
+        },
+
+        /** Categories of the list in display order (keyboard navigation) */
+        options() {
+            return this.groups.flatMap(group => group.items.map(item => item.category));
+        },
+
+        /** Id of the option highlighted with the keyboard (aria-activedescendant) */
+        activeId() {
+            const category = this.options[this.active];
+            return category ? this.optionId(category) : null;
+        }
+    },
+
+    watch: {
+        /** While searching, the first match is ready to be chosen with Enter */
+        search(value) {
+            this.active = value.trim() && this.options.length ? 0 : -1;
         }
     },
 
@@ -131,6 +153,7 @@ export default {
             this.open = !this.open;
             if (this.open) {
                 this.search = '';
+                this.active = -1;
                 this.panelStyle = this.compact ? this.floatingPosition() : null;
                 this.$nextTick(() => this.$refs.search?.focus());
             }
@@ -154,6 +177,60 @@ export default {
                 style.top = `${button.bottom + 4}px`;
             }
             return style;
+        },
+
+        /**
+         * Moves the keyboard highlight in the list
+         * @param {number} step - 1 (down) or -1 (up)
+         */
+        move(step) {
+            const count = this.options.length;
+            if (!count) {
+                return;
+            }
+            this.active = this.active < 0 ? (step > 0 ? 0 : count - 1) : (this.active + step + count) % count;
+            this.$nextTick(() => document.getElementById(this.activeId)?.scrollIntoView({ block: 'nearest' }));
+        },
+
+        /** Chooses the highlighted category (Enter) */
+        chooseActive() {
+            const category = this.options[this.active];
+            if (category) {
+                this.choose(category);
+            }
+        },
+
+        /** Empties the search and gives the focus back to the field */
+        clearSearch() {
+            this.search = '';
+            this.$refs.search?.focus();
+        },
+
+        /**
+         * Name split around the searched text, to highlight it
+         * @param {string} name - Category name
+         * @returns {Array<{text: string, match: boolean}>}
+         */
+        parts(name) {
+            const search = this.search.trim().toLowerCase();
+            const index = search ? name.toLowerCase().indexOf(search) : -1;
+            if (index < 0) {
+                return [{ text: name, match: false }];
+            }
+            return [
+                { text: name.slice(0, index), match: false },
+                { text: name.slice(index, index + search.length), match: true },
+                { text: name.slice(index + search.length), match: false }
+            ].filter(part => part.text);
+        },
+
+        /**
+         * DOM id of an option
+         * @param {Object} category - Category
+         * @returns {string}
+         */
+        optionId(category) {
+            return `category-picker-${this.uid}-${category.id}`;
         },
 
         /**
@@ -209,25 +286,33 @@ export default {
             <div v-if="open" class="category-picker-panel" :style="panelStyle">
                 <div class="category-picker-search">
                     <span class="material-icons" aria-hidden="true">search</span>
-                    <input ref="search" type="search" v-model="search" :placeholder="t('searchCategory')" :aria-label="t('searchCategory')" />
+                    <input ref="search" type="text" v-model="search" :placeholder="t('searchCategory')" :aria-label="t('searchCategory')"
+                           role="combobox" aria-autocomplete="list" aria-expanded="true" :aria-controls="'category-picker-list-' + uid"
+                           :aria-activedescendant="activeId" autocomplete="off" spellcheck="false"
+                           @keydown.down.prevent="move(1)" @keydown.up.prevent="move(-1)" @keydown.enter.prevent="chooseActive" />
+                    <button v-if="search" type="button" class="category-picker-clear" @click="clearSearch" :aria-label="t('clearSearch')" :title="t('clearSearch')">
+                        <span class="material-icons" aria-hidden="true">close</span>
+                    </button>
                 </div>
-                <div class="category-picker-list" role="listbox">
+                <div class="category-picker-list" role="listbox" :id="'category-picker-list-' + uid">
                     <div v-for="group in groups" :key="group.type" class="category-picker-group">
                         <div class="category-picker-group-title" :class="'type-' + group.type.toLowerCase()">{{ t('categoryTypes_' + group.type) }}</div>
-                        <button v-for="item in group.items" :key="item.category.id" type="button" role="option"
-                                class="category-picker-option" :class="{ child: item.parent, selected: selected && Number(selected.id) === Number(item.category.id) }"
+                        <button v-for="item in group.items" :key="item.category.id" type="button" role="option" :id="optionId(item.category)"
+                                class="category-picker-option" :class="{ child: item.parent, active: activeId === optionId(item.category), selected: selected && Number(selected.id) === Number(item.category.id) }"
                                 :aria-selected="selected && Number(selected.id) === Number(item.category.id) ? 'true' : 'false'"
-                                @click="choose(item.category)">
+                                @click="choose(item.category)" @mousemove="active = options.indexOf(item.category)">
                             <span class="category-badge" :style="badgeStyle(item.category)">
                                 <span class="material-icons" aria-hidden="true">{{ iconFor(item.category) }}</span>
                             </span>
                             <span class="category-picker-name">
-                                <small v-if="item.parent">{{ item.parent.name }} ›</small>
-                                {{ item.category.name }}
+                                <small v-if="item.parent">{{ item.parent.name }} ›</small> <template v-for="(part, i) in parts(item.category.name)" :key="i"><mark v-if="part.match">{{ part.text }}</mark><template v-else>{{ part.text }}</template></template>
                             </span>
+                            <span v-if="selected && Number(selected.id) === Number(item.category.id)" class="material-icons category-picker-check" aria-hidden="true">check</span>
                         </button>
                     </div>
-                    <div v-if="!groups.length" class="category-picker-empty">{{ t('noCategoryFound') }}</div>
+                    <div v-if="!groups.length" class="category-picker-empty">
+                        <span class="material-icons" aria-hidden="true">search_off</span>{{ t('noCategoryFound') }}
+                    </div>
                 </div>
             </div>
         </div>
