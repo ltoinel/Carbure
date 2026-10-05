@@ -3,34 +3,32 @@
 Tâches restant à réaliser sur Carbure. Une tâche terminée est retirée de cette liste
 (l'historique Git garde la trace de ce qui a été fait).
 
-- [ ] **Production, avant de déployer le code OAuth** : appliquer la migration
-      `sql/migrations/2026-10-14_oauth.sql` (bouton **Mettre à jour** du bandeau
-      administrateur, phpMyAdmin, ou automatique avec l'image Docker). Sans elle, seuls
-      l'enregistrement et l'autorisation OAuth échouent, le reste fonctionne.
-- [ ] **Production** : dans le nginx du NAS, router `/.well-known/oauth-*` vers
-      `src/api.php` comme `docker/nginx.conf`, renseigner `public_url` dans `prod.ini` si le
-      proxy HTTPS n'envoie pas `X-Forwarded-Proto`, puis tester la connexion depuis claude.ai
-      (Paramètres → Connecteurs → Ajouter un connecteur personnalisé).
+- [ ] **Production** : tester la connexion de Claude au serveur MCP depuis claude.ai
+      (Paramètres → Connecteurs → Ajouter un connecteur personnalisé). L'image Docker applique
+      la migration OAuth au démarrage et route `/.well-known/oauth-*` ; renseigner `public_url`
+      (onglet **Administration → Paramètres**) si le proxy HTTPS du NAS n'envoie pas
+      `X-Forwarded-Proto`.
 
-- [ ] **Production** : vérifier que `data/conf/prod.ini` est modifiable par l'utilisateur du
-      serveur web du NAS, sinon l'onglet **Administration → Config** reste en lecture seule
-      (il écrit aussi `prod.ini.bak` dans le même dossier).
-- [ ] **Production** : l'import de relevés envoie jusqu'à ~1,4 Mo (fichier de 1 Mo en
-      base64) ; vérifier la taille maximale des requêtes du serveur web du NAS
-      (`client_max_body_size` 2m dans l'image Docker).
+- [ ] Connexion MySQL en `utf8mb4` (`Db` n'appelle pas `set_charset` : la connexion prend le
+      jeu de caractères par défaut du serveur). Avant de l'ajouter, vérifier en production ce
+      que reçoit PHP et comment les accents sont stockés :
 
-- [x] Image Docker sur Alpine (`php:8.3-fpm-alpine`, woob construit à part) : plus de
-      chaîne de compilation dans l'image, plus aucune alerte Trivy ouverte.
-- [x] Publier une release (1.0.1) pour que l'image Alpine arrive sur Docker Hub, puis
-      tester l'ajout d'une banque (BNP, `curl_cffi` sous musl) avec cette image.
+      ```bash
+      docker compose exec carbure php -r '$c = parse_ini_file("/data/conf/prod.ini");
+        $m = new mysqli($c["db_hostname"], $c["db_username"], $c["db_password"], $c["db_name"], (int)($c["db_port"] ?? 3306));
+        echo $m->character_set_name(), "\n";
+        foreach ($m->query("SELECT name, HEX(name) AS h FROM bank_transaction_category WHERE name LIKE \"%pargne%\"") as $r) echo $r["name"], " ", $r["h"], "\n";'
+      ```
 
-- [ ] Connexion MySQL en `utf8mb4` (`Db` n'appelle pas `set_charset`) : vérifier d'abord
-      comment les accents sont stockés en production pour ne pas les corrompre. Constaté en
-      local : avec un serveur MariaDB en latin1 par défaut, les noms accentués reviennent mal
-      encodés et `json_encode()` échoue — l'API répond alors **200 avec un corps vide**
-      (`/budget`, `/budget/flow`…), ce qui fait échouer les e2e Budget et Transactions.
-- [ ] `Webservice::callService` : quand `json_encode()` renvoie `false`, répondre 500 avec
-      `json_last_error_msg()` dans les logs plutôt qu'un 200 vide.
+      `utf8mb4` (et `É` = `C389`) : `set_charset('utf8mb4')` ne change rien, l'ajouter.
+      `latin1` avec `É` = `C383E280B0` : les accents sont stockés doublement encodés ; il faut
+      d'abord une migration de conversion, sinon le portail afficherait « Ã‰pargne ».
+      Symptôme d'un serveur en latin1 : l'API répond 500 (« cannot be encoded in JSON » dans
+      les logs) dès qu'un texte accentué a été écrit par une connexion utf8mb4.
 - [ ] Regex `PRLV SEPA` gourmande (`ECH/…` n'est pas retiré du libellé) et `addslashes()`
       appliqué avant une requête préparée (double échappement). Les corriger change les libellés
-      donc les UUID : prévoir une migration qui recalcule les UUID existants.
+      donc les UUID : prévoir une migration SQL qui recalcule libellés et UUID à l'identique
+      de PHP (montant au format float PHP `-42.5`, 24 premiers **octets** du libellé pour les
+      cartes, uniquement les lignes dont l'UUID actuel correspond à la formule), et gérer les
+      collisions d'UUID. La regex est dans le `prod.ini` de chaque instance : la corriger dans
+      `prod.sample.ini` ne suffit pas.

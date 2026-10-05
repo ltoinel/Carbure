@@ -31,6 +31,14 @@ class WebserviceTest extends TestCase
         $this->assertSame(Logger::getUID(), $output['uid']);
     }
 
+    public function testInvalidUtf8IsAnErrorNotAnEmptyAnswer()
+    {
+        // "Épargne" read in latin1 (database connection in the wrong charset)
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessage('cannot be encoded in JSON');
+        Webservice::callService('EchoResource', 'echo', ['first' => "\xC9pargne"]);
+    }
+
     public function testCallServiceUsesNamedParameters()
     {
         $response = json_decode(Webservice::callService('EchoResource', 'echo', ['second' => 'b', 'first' => 'a']), true);

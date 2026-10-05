@@ -222,6 +222,7 @@ final class Webservice {
      * @param array  $data     The request data
      * @param bool   $raw      True if the method returns the response body itself
      * @return string The JSON encoded response
+     * @throws Exception If the response cannot be encoded in JSON (invalid UTF-8...)
      */
     public static function callService($resource, $method, $data, $raw = false)
     {
@@ -248,7 +249,14 @@ final class Webservice {
 
         // Return JSON response with pretty print in debug mode
         $flags = Config::get('log_level') === 'debug' ? JSON_PRETTY_PRINT : 0;
-        return json_encode(self::normalizeNumbers($response), $flags);
+        $json = json_encode(self::normalizeNumbers($response), $flags);
+        if ($json === false) {
+            // E.g. text that is not UTF-8 (charset of the database connection): an error,
+            // not an empty answer that the clients would take for no data
+            Logger::error("The response of $resource.$method cannot be encoded in JSON: " . json_last_error_msg());
+            throw new Exception("The response cannot be encoded in JSON");
+        }
+        return $json;
     }
 
     /**
