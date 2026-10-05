@@ -6,3 +6,131 @@
   --md-primary-fg-color--dark: #D63752;
   --md-accent-fg-color: #D63752;
 }
+
+/* ===== Navigation (left menu) ===== */
+
+/* Icons of the sections: the Material icons, as masks so that they take the color of the text.
+   A section is found by any of its pages (the link of the current page is "./"). */
+:root {
+  --carbure-icon-mise-en-route: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='m13.13 22.19-1.63-3.83c1.57-.58 3.04-1.36 4.4-2.27zM5.64 12.5l-3.83-1.63 6.1-2.77C7 9.46 6.22 10.93 5.64 12.5M19.22 4c.28 0 .53 0 .74.05.17 1.39-.02 4.25-3.3 7.53-1.7 1.71-3.73 3.02-6.01 3.89l-2.15-2.1c.92-2.31 2.23-4.34 3.92-6.03C15.18 4.58 17.64 4 19.22 4m0-2c-1.98 0-4.98.69-8.22 3.93-2.19 2.19-3.5 4.6-4.35 6.71-.28.75-.09 1.57.46 2.13l2.13 2.12c.38.38.89.61 1.42.61.23 0 .47-.06.7-.15A19.1 19.1 0 0 0 18.07 13c5.66-5.66 3.54-10.61 3.54-10.61S20.7 2 19.22 2m-4.68 7.46c-.78-.78-.78-2.05 0-2.83s2.05-.78 2.83 0c.77.78.78 2.05 0 2.83s-2.05.78-2.83 0m-5.66 7.07-1.41-1.41zM6.24 22l3.64-3.64c-.34-.09-.67-.24-.97-.45L4.83 22zM2 22h1.41l4.77-4.76-1.42-1.41L2 20.59zm0-2.83 4.09-4.08c-.21-.3-.36-.62-.45-.97L2 17.76z'/%3E%3C/svg%3E");
+  --carbure-icon-utilisation: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='m19 1-5 5v11l5-4.5zm2 4v13.5c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V6c-1.45-1.1-3.55-1.5-5.5-1.5S2.45 4.9 1 6v14.65c0 .25.25.5.5.5.1 0 .15-.05.25-.05C3.1 20.45 5.05 20 6.5 20c1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.3 4.75 1.05.1.05.15.05.25.05.25 0 .5-.25.5-.5V6c-.6-.45-1.25-.75-2-1M10 18.41C8.75 18.09 7.5 18 6.5 18c-1.06 0-2.32.19-3.5.5V7.13c.91-.4 2.14-.63 3.5-.63s2.59.23 3.5.63z'/%3E%3C/svg%3E");
+  --carbure-icon-technique: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='m22.61 19-9.08-9.09c.93-2.34.47-5.1-1.44-7C9.79.61 6.21.4 3.66 2.26L7.5 6.11 6.08 7.5 2.25 3.69C.39 6.23.6 9.82 2.9 12.11c1.86 1.86 4.57 2.35 6.89 1.48l9.11 9.11c.39.39 1.02.39 1.41 0l2.3-2.3c.39-.4.39-1.01 0-1.4m-3 1.59-9.46-9.46c-.61.45-1.29.72-2 .82-1.36.2-2.79-.21-3.83-1.25C3.37 9.76 2.93 8.5 3 7.26l3.09 3.09 4.24-4.24L7.24 3c1.26-.05 2.49.39 3.44 1.33a4.47 4.47 0 0 1 1.24 3.96 4.35 4.35 0 0 1-.88 1.96l9.46 9.45z'/%3E%3C/svg%3E");
+}
+
+/* Main titles of the menu: small capitals with their icon and a separator */
+.md-nav--primary > .md-nav__list > .md-nav__item--section {
+  margin-top: 1.1em;
+  padding-top: 0.9em;
+  border-top: 1px solid var(--md-default-fg-color--lightest);
+}
+
+.md-nav--primary > .md-nav__list > .md-nav__item--section > .md-nav__link {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  color: var(--md-primary-fg-color);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.md-nav--primary > .md-nav__list > .md-nav__item--section > .md-nav__link::before {
+  content: "";
+  flex: 0 0 auto;
+  width: 1.1rem;
+  height: 1.1rem;
+  border-radius: 0.3rem;
+  background-color: currentColor;
+  -webkit-mask: var(--carbure-section-icon) center / 0.85rem no-repeat;
+  mask: var(--carbure-section-icon) center / 0.85rem no-repeat;
+}
+
+/* Mise en route */
+.md-nav__item--section:has(a[href$="installation/"], a[href$="synology/"], a[href$="configuration/"]) {
+  --carbure-section-icon: var(--carbure-icon-mise-en-route);
+}
+
+/* Utilisation */
+.md-nav__item--section:has(a[href$="api/"], a[href$="portail/"], a[href$="mcp/"]) {
+  --carbure-section-icon: var(--carbure-icon-utilisation);
+}
+
+/* Technique */
+.md-nav__item--section:has(a[href$="modele-donnees/"], a[href$="developpement/"], a[href$="securite/"]) {
+  --carbure-section-icon: var(--carbure-icon-technique);
+}
+
+/* Pages: the icon in the accent color, a rounded highlight on hover and on the current page */
+.md-nav--primary .md-nav__link {
+  border-radius: 0.4rem;
+  transition: background-color 125ms, color 125ms;
+}
+
+.md-nav--primary .md-nav__item:not(.md-nav__item--section) > .md-nav__link {
+  margin-top: 0.15em;
+  padding: 0.3em 0.5em;
+  color: var(--md-default-fg-color);
+}
+
+.md-nav--primary .md-nav__item:not(.md-nav__item--section) > .md-nav__link--active {
+  color: var(--md-primary-fg-color);
+}
+
+.md-nav--primary .md-nav__item:not(.md-nav__item--section) > .md-nav__link:hover {
+  background-color: color-mix(in srgb, var(--md-primary-fg-color) 7%, transparent);
+}
+
+.md-nav--primary .md-nav__link .md-icon svg {
+  color: var(--md-primary-fg-color);
+  opacity: 0.85;
+}
+
+.md-nav--primary .md-nav__link--active {
+  background-color: color-mix(in srgb, var(--md-primary-fg-color) 11%, transparent);
+  font-weight: 600;
+}
+
+/* ===== Table of contents of the page (right) ===== */
+.md-nav--secondary > .md-nav__title {
+  color: var(--md-primary-fg-color);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.md-nav--secondary > .md-nav__list {
+  border-left: 2px solid var(--md-default-fg-color--lightest);
+}
+
+.md-nav--secondary .md-nav__link {
+  margin-left: -2px;
+  padding-left: 0.6em;
+  border-left: 2px solid transparent;
+}
+
+.md-nav--secondary .md-nav .md-nav__link {
+  margin-left: 0;
+  border-left: none;
+}
+
+.md-nav--secondary .md-nav__link--active,
+.md-nav--secondary .md-nav__link:hover {
+  border-left-color: var(--md-primary-fg-color);
+}
+
+.md-nav--secondary .md-nav__link--active {
+  font-weight: 600;
+}
+
+/* ===== Footer: links of the author and of the license ===== */
+.md-copyright__highlight a {
+  color: var(--md-primary-fg-color--light);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--md-primary-fg-color--light) 45%, transparent);
+  text-underline-offset: 0.2em;
+}
+
+.md-copyright__highlight a:hover {
+  text-decoration-color: currentColor;
+}

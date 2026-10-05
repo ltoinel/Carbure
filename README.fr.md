@@ -51,12 +51,15 @@
 ## Pourquoi Carbure ?
 
 - 🔄 **Zéro saisie** : vos opérations arrivent toutes seules depuis votre banque, chaque jour,
-  grâce à [woob](https://woob.tech/) — une connexion directe, sans agrégateur tiers.
+  grâce à [woob](https://woob.tech/) — une connexion directe, sans agrégateur tiers. Ou
+  importez les relevés de votre banque (OFX, QIF, CSV, CAMT.053) : Carbure repère d'abord les
+  doublons.
 - 🏷️ **Catégorisation automatique** : des règles simples (« CARREFOUR → Supermarché ») classent
   chaque transaction. Une nouvelle ? Choisissez sa catégorie, Carbure vous propose la règle.
 - 🎯 **Budgets mensuels** : dépensé, restant, dépassement, catégorie par catégorie, d'un coup
   d'œil. Budgétez les sous-catégories et leur parent les additionne — ou fixez-lui son propre
-  montant. Le **flux du mois** montre d'où vient l'argent et où il part.
+  montant. Le **flux du mois** montre d'où vient l'argent et où il part : un clic sur une
+  catégorie affiche ses transactions.
 - 📈 **Tendances** : revenus, dépenses et épargne sur 3, 6 ou 12 mois, comparés à la période
   précédente ou à la même période l'an dernier.
 - ✅ **Pointage** : vérifiez vos transactions en un clic, filtrez celles qui restent à contrôler.
@@ -64,8 +67,8 @@
   le seuil que vous avez choisi, ou quand une règle que vous avez désignée s'applique.
 - 📊 **Insights** : vos propres indicateurs du mois (courses, carburant, abonnements…).
 - 👨‍👩‍👧 **Pensé pour le foyer** : plusieurs utilisateurs, des comptes et des données partagés,
-  chacun sa langue et ses appareils ; un administrateur gère comptes, catégories, règles et
-  utilisateurs.
+  chacun sa langue et ses appareils ; un administrateur gère comptes, catégories, règles,
+  utilisateurs et configuration, et copie la commande toute prête qui planifie la synchro.
 - 🤖 **Interrogez vos comptes avec votre agent IA** : un serveur MCP intégré, en lecture seule
   et désactivable, répond à « combien en restaurants cette année ? » ou « où dépasse-t-on le
   budget ? ». Claude (web, Desktop, mobile) se connecte avec la seule URL du serveur, après
@@ -91,7 +94,8 @@
 | Plusieurs utilisateurs sur les mêmes données | ✅ | ⚠️ | ✅ | ➖ |
 | App iPhone native et notifications push | ✅ | ➖ | ➖ | ➖ |
 | Serveur MCP intégré pour les agents IA | ✅ | ➖ | ➖ | ➖ |
-| Import de fichiers, plusieurs devises | ➖ | ✅ | ⚠️ | ⚠️ |
+| Import de fichiers (OFX, QIF, CSV, CAMT.053) | ✅ | ✅ | ✅ | ⚠️ |
+| Plusieurs devises | ➖ | ✅ | ➖ | ⚠️ |
 
 ✅ oui · ⚠️ en partie · ➖ non — 👉 **[Comparatif complet](https://ltoinel.github.io/Carbure/comparatif/)** :
 23 critères (hébergement, données bancaires, budget, foyer et appareils, API), avec les points

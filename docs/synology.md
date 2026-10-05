@@ -1,3 +1,7 @@
+---
+icon: material/nas
+---
+
 # Tutoriel : Carbure sur un NAS Synology
 
 Ce tutoriel installe Carbure sur un NAS Synology (DSM 7.2 ou plus) avec **Container

@@ -1,3 +1,7 @@
+---
+icon: material/star-shooting-outline
+---
+
 # Fonctionnalités
 
 Cette page décrit **ce que fait Carbure** et **selon quelles règles** : d'où viennent les
@@ -77,7 +81,12 @@ Puis, une fois tous les comptes traités, les **règles de catégorisation** cla
 transactions du dernier mois restées sans catégorie.
 
 - **Quand** : chaque jour avec Docker (`SYNC_INTERVAL`), par une tâche planifiée (cron avec
-  le `sync_token`), ou à la demande depuis l'onglet Comptes, pour un compte à la fois.
+  le `sync_token` : l'onglet **Administration → Synchro** donne la commande `curl` et
+  la ligne crontab toutes prêtes), ou à la demande depuis l'onglet Comptes, pour un compte à
+  la fois.
+- **Sans synchronisation** (banque non couverte par woob, reprise de l'historique) : les
+  relevés téléchargés depuis la banque s'**importent** depuis l'onglet Transactions (voir
+  plus bas).
 - **Suivi en direct** : étapes par compte (à venir, historique, notifications), nombre
   d'opérations reçues et nouvelles, journal détaillé ; en cas d'erreur woob, lien vers les
   tickets du module concerné.
@@ -100,6 +109,12 @@ transactions du dernier mois restées sans catégorie.
 - **Catégoriser à la main** une transaction sans catégorie : un sélecteur avec recherche,
   icônes et couleurs. Pour un administrateur, Carbure propose ensuite de **créer la règle**
   correspondante, pour que les prochaines soient classées toutes seules.
+- **Import de relevés bancaires** : sans synchronisation woob, ou pour reprendre
+  l'historique, les fichiers proposés par les banques (OFX/QFX, QIF, CSV, CAMT.053) s'importent
+  depuis l'onglet Transactions. Les colonnes d'un CSV sont reconnues d'après leur en-tête
+  (formats français : `;`, `1 234,56`, Windows-1252). Un aperçu montre les nouvelles
+  transactions, celles déjà présentes et les doublons probables avant d'importer ; les règles
+  classent ensuite les transactions importées.
 
 ## Catégories
 
@@ -175,6 +190,12 @@ Un diagramme (Sankey) montre **d'où vient l'argent du mois et où il part** :
 - à droite, les **dépenses** par catégorie principale (les huit plus importantes, les autres
   regroupées), l'**épargne** et ce qui **reste** (ou le **déficit** quand les dépenses
   dépassent les revenus).
+
+Au-dessus, quatre **chiffres clés** : revenus, dépenses, épargne (avec la part des revenus
+épargnée) et reste. Chaque flux prend la couleur de sa catégorie ; un **clic sur une
+catégorie** (ou sur son flux, aussi au clavier) la met en avant et affiche ses
+**transactions** sous le diagramme, avec leur total — « Autres » liste celles des
+catégories regroupées.
 
 Les virements internes (catégories hors budget) sont écartés, sauf l'épargne ; les
 transactions non catégorisées restent visibles. Les mêmes flux existent en tableau.
@@ -266,7 +287,7 @@ dépassent leur budget ce mois-ci ? », « Comment évolue notre épargne ? ».
 ## Administration
 
 Les onglets **Règles**, **Catégories** et **Comptes**, et le menu **Administration**
-(**Utilisateurs**, **Logs**, **Agent IA**) sont réservés aux administrateurs ; les autres
+(**Utilisateurs**, **Logs**, **Paramètres**, **Synchro**, **Agent IA**) sont réservés aux administrateurs ; les autres
 utilisateurs ouvrent **Agent IA** depuis leur menu.
 
 - **Utilisateurs** : création, modification (dont le profil), suppression, dernière
@@ -275,6 +296,14 @@ utilisateurs ouvrent **Agent IA** depuis leur menu.
 - **Logs** : les journaux du serveur, filtrés par niveau ou par texte ; un clic sur
   l'identifiant d'une requête affiche toutes ses lignes. Les secrets (mots de passe, jetons)
   y sont masqués.
+- **Paramètres** : le fichier de configuration du serveur, section par section, les secrets
+  masqués. Les réglages sans risque (niveau de log, catégorie d'épargne, adresse publique,
+  options de woob, notifications iOS) se modifient dans le portail, chaque valeur étant
+  vérifiée ; la base, les secrets, la commande woob et le nettoyage des libellés restent en
+  lecture seule.
+- **Synchro** : la commande `curl` (pour tous les comptes ou un seul) et la ligne crontab qui
+  lancent la synchronisation, avec le jeton masqué jusqu'à « Afficher » ; l'onglet crée ou
+  renouvelle ce jeton.
 - **Mise à jour de la base** : quand une nouvelle version modifie la base, un bandeau le
   signale et l'applique en un clic (automatique avec Docker).
 - **Clé des sessions** : un bandeau signale une clé trop faible et la renouvelle en un clic

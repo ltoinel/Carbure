@@ -1,3 +1,7 @@
+---
+icon: material/download-outline
+---
+
 # Installation
 
 Carbure s'installe **entièrement depuis le navigateur** : au premier lancement, le portail
@@ -187,7 +191,9 @@ l'utilisateur du serveur web.
 
 ### 5. Planifier la synchronisation
 
-La clé `sync_token` de `data/conf/prod.ini` permet d'appeler la synchronisation sans compte :
+La clé `sync_token` de `data/conf/prod.ini` permet d'appeler la synchronisation sans compte.
+L'onglet **Administration → Synchro** du portail donne la commande complète à copier
+(et crée le jeton s'il manque) :
 
 ```bash
 # crontab : tous les jours à 7h

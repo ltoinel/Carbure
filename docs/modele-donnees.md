@@ -1,3 +1,7 @@
+---
+icon: material/database-outline
+---
+
 # Modèle de données
 
 Schéma complet : `sql/carbure.sql` (MariaDB/MySQL, InnoDB, `utf8mb4`). Les évolutions

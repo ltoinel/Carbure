@@ -3,6 +3,10 @@ site_description: Portail web de suivi du budget et des transactions bancaires d
 site_url: https://ltoinel.github.io/Carbure/
 repo_url: https://github.com/ltoinel/Carbure
 repo_name: ltoinel/Carbure
+# Footer: author and license (the years of LICENSE)
+copyright: >-
+  Copyright &copy; 2023-2026 <a href="https://ludovic.toinel.com">Ludovic Toinel</a>
+  · Logiciel libre sous <a href="https://github.com/ltoinel/Carbure/blob/main/LICENSE">licence MIT</a>
 edit_uri: edit/main/docs/
 
 theme:

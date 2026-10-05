@@ -1,3 +1,7 @@
+---
+icon: material/home-outline
+---
+
 # Carbure
 
 **Carbure** est un portail web de suivi du budget et des transactions bancaires du foyer,

@@ -1,3 +1,7 @@
+---
+icon: material/monitor-dashboard
+---
+
 # Portail web
 
 Le portail (`portal/`) est une application Vue 3 servie en fichiers statiques, sous
@@ -79,6 +83,14 @@ modification.
 - **Détail d'une transaction** : un clic (ou Entrée) sur le libellé ouvre une fenêtre avec
   le montant, le libellé complet, les dates, le type, la carte et la date d'import ; la
   catégorie s'y change avec le sélecteur visuel et la transaction s'y pointe.
+- **Importer un relevé** : le bouton « Importer » ouvre une fenêtre où déposer le fichier
+  téléchargé depuis l'espace client de la banque (OFX/QFX, QIF, CSV ou CAMT.053, 1 Mo au
+  plus). Un aperçu classe chaque transaction : **nouvelle** (cochée), **doublon probable**
+  (même montant qu'une transaction existante à 3 jours près, souvent la même synchronisée
+  avec un autre libellé : non cochée) ou **déjà présente** (même identifiant : ignorée).
+  Les transactions importées appartiennent à l'utilisateur connecté et passent par les
+  règles de catégorisation ; la liste s'ouvre ensuite sur le dernier mois importé
+  (`POST /transaction/import/preview`, `POST /transaction/import`).
 
 ## Budget
 
@@ -86,7 +98,8 @@ modification.
 
 Deux sous-onglets : **Flux** (affiché par défaut) et **Budgets**.
 
-- **Flux du mois** (sous-onglet Flux) : diagramme de Sankey qui
+- **Flux du mois** (sous-onglet Flux) : chiffres clés (revenus, dépenses, épargne et part
+  des revenus épargnée, reste) puis diagramme de Sankey qui
   montre d'où vient l'argent du mois et où il va — revenus par catégorie → revenus du mois
   → dépenses par catégorie principale (les 8 plus importantes, le reste regroupé dans
   « Autres »), épargne et **Reste** (ou **Déficit**). Les virements internes (hors budget)
@@ -225,6 +238,25 @@ Les entrées des fichiers de log du serveur (`data/logs/carbure_AAAAMMJJ.log`), 
 récentes d'abord : choix du fichier, niveau minimal (DEBUG, INFO, WARN, ERROR) et recherche
 de texte. Un clic sur l'identifiant d'une requête affiche toutes ses entrées. Seule la fin
 d'un gros fichier (2 Mo) est lue ; les jetons de session et des agents IA sont masqués.
+
+## Paramètres (menu Administration)
+
+Le fichier de configuration (`data/conf/prod.ini`) section par section,
+avec une description de chaque réglage. Les secrets (`db_password`, `jwtsecret`,
+`password_salt`, `sync_token`…) ne sont jamais affichés. Seuls les réglages sans risque
+sont modifiables — `log_level`, `savings_category`, `public_url`, `woob_transactions`,
+`woob_logging`, `woob_debug`, `woob_auto_update` et les identifiants APNs — avec des
+listes, des interrupteurs et des champs vérifiés par le serveur ; les autres portent un
+cadenas. Les réglages modifiés sont surlignés ; la barre du bas les enregistre ou les
+annule. Le fichier précédent est gardé en `prod.ini.bak` (`GET`/`PUT /system/config`).
+
+## Synchro (menu Administration)
+
+La commande `curl` qui lance la synchronisation de tous les comptes (ou d'un seul) et la
+ligne crontab correspondante, à copier pour une tâche planifiée (cron, tâche planifiée
+Synology). Le `sync_token` y est masqué jusqu'à **Afficher** ; le bouton copier copie
+toujours la commande complète. **Créer un jeton** / **Renouveler** en écrit un nouveau dans
+la configuration (`GET /system/sync`, `POST /system/sync-token`).
 
 ## Mon profil
 

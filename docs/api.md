@@ -1,3 +1,7 @@
+---
+icon: material/api
+---
+
 # Référence de l'API
 
 - **Base** : `https://<serveur>/api`
@@ -236,6 +240,49 @@ Types : 1 virement, 2 prélèvement, 3 chèque, 4 remise de chèque, 5 rembourse
 
 ```bash
 curl "https://exemple.fr/api/transaction/search?query=amazon" -H "Authorization: Bearer $TOKEN"
+```
+
+### `POST /transaction/import/preview`
+
+Lit un relevé bancaire sans rien enregistrer.
+
+| Paramètre | Requis | Description |
+|---|---|---|
+| `file` | oui | Contenu du fichier encodé en base64 (1 Mo au plus avant encodage) ; jamais écrit dans les logs |
+| `filename` | non | Nom du fichier (son extension aide à reconnaître le format) |
+
+Formats : OFX/QFX (1.x SGML et 2.x XML), QIF, CAMT.053 (ISO 20022) et CSV (séparateur
+détecté, colonnes trouvées d'après l'en-tête : date ou date d'opération, libellé, montant ou
+débit et crédit). L'ordre jour/mois des dates est déduit du fichier ; le type d'opération,
+du libellé (`CB`, `PRLV`, `VIR`, `RETRAIT`…) ou à défaut du fichier.
+
+Renvoie `format` (`ofx`, `qif`, `camt`, `csv`), `account` (numéro de compte ou IBAN lu dans
+le fichier, sinon `null`), `from`, `to`, `counts` (`new`, `known`, `duplicate`) et `rows` :
+`index`, `date`, `rdate`, `amount`, `label` (nettoyé comme à la synchronisation), `type`,
+`status` et, pour un doublon probable, `match` (`id`, `date`, `label` de la transaction
+existante).
+
+| Statut | Signification |
+|---|---|
+| `new` | Nouvelle transaction |
+| `known` | Même UUID qu'une transaction existante (ou qu'une ligne précédente du fichier) : elle serait fusionnée |
+| `duplicate` | Même montant qu'une transaction existante à 3 jours près (date ou date réelle) : probablement la même, synchronisée avec un autre libellé |
+
+Erreurs : `400` (base64 invalide, fichier vide), `413` (fichier trop gros, plus de 5 000
+transactions), `422` (format non reconnu, colonnes CSV introuvables, XML invalide).
+
+### `POST /transaction/import`
+
+Mêmes paramètres, plus `selected` (facultatif) : les `index` des lignes à importer ; par
+défaut, les lignes `new`. Les lignes `known` ne sont jamais importées. Les transactions
+appartiennent à l'utilisateur connecté, puis les règles de catégorisation s'appliquent
+quelle que soit leur date. Renvoie `imported`, `categorized`, `from` et `to` (période des
+lignes choisies).
+
+```bash
+curl -X POST https://exemple.fr/api/transaction/import -H "Authorization: Bearer $TOKEN" \
+     -H "Content-Type: application/json" \
+     -d "{\"file\": \"$(base64 -w0 releve.ofx)\", \"filename\": \"releve.ofx\"}"
 ```
 
 ### `PUT /transaction/category`
@@ -506,6 +553,35 @@ Remplace le `jwtsecret` de la configuration par une valeur aléatoire : toutes l
 (portail et application iOS) prennent fin. `GET /system/schema` indique `weakJwtSecret`
 quand le secret est celui de l'exemple (ou trop court) : le portail propose alors de le
 renouveler.
+
+### `GET /system/config` — administrateur
+
+Le fichier de configuration, par section : `file` (chemin dans l'instance), `writable`, et
+`sections` (`name`, `settings`). Chaque réglage : `key`, `value` (masquée pour les secrets ;
+`true`/`false` pour un interrupteur ; une liste pour `regex_label`), `set`, `secret`,
+`editable`, `kind` (`select`, `bool`, `number`, `text`, `url`, `list`) et, selon le type,
+`options`, `min`, `max`. Les réglages modifiables absents du fichier sont listés avec
+`set: false`.
+
+### `PUT /system/config` — administrateur
+
+`values` : les nouvelles valeurs par clé, uniquement parmi les réglages modifiables
+(`log_level`, `savings_category`, `public_url`, `woob_transactions`, `woob_logging`,
+`woob_debug`, `woob_auto_update`, `apns_environment`, `apns_auth_method`, `apns_bundle_id`,
+`apns_key_id`, `apns_team_id`). Toutes les valeurs sont vérifiées avant d'écrire quoi que
+ce soit (`400` sinon, fichier inchangé) ; l'ancien fichier est gardé en `.bak`. Renvoie la
+configuration comme `GET`.
+
+### `GET /system/sync` — administrateur
+
+`reveal` (facultatif, `false` par défaut) : `url` de `/api/bank/sync`, `token` (le
+`sync_token`, masqué sauf avec `reveal=true` ; `null` s'il n'y en a pas), `masked` et
+`accounts` (les comptes suivis, pour `?account=`).
+
+### `POST /system/sync-token` — administrateur
+
+Écrit un nouveau `sync_token` aléatoire dans la configuration et le renvoie : `{"token": "…"}`.
+Les tâches planifiées doivent utiliser le nouveau.
 
 ## Assistant d'installation
 

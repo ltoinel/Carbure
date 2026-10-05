@@ -1,3 +1,7 @@
+---
+icon: material/code-braces
+---
+
 # Développement
 
 ## Organisation du dépôt

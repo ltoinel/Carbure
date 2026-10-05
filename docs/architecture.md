@@ -1,3 +1,7 @@
+---
+icon: material/sitemap-outline
+---
+
 # Architecture
 
 ## Vue d'ensemble

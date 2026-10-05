@@ -1,3 +1,7 @@
+---
+icon: material/cog-outline
+---
+
 # Configuration
 
 La configuration est lue dans `conf/<env>.ini`, où `<env>` vaut la variable
@@ -10,6 +14,16 @@ commentaires commencent par `;` (le `#` n'est pas accepté par PHP).
 `/data/conf/prod.ini`. Il contient des secrets : il est ignoré par Git et ne doit jamais
 être publié. Après une modification à la main, rien n'est à redémarrer (le fichier est
 relu à chaque requête), sauf le conteneur Docker pour `SYNC_INTERVAL`.
+
+Un administrateur voit ce fichier dans le portail (**Administration → Paramètres**), les secrets
+masqués, et peut y changer les réglages sans risque : `log_level`, `savings_category`,
+`public_url`, `woob_transactions`, `woob_logging`, `woob_debug`, `woob_auto_update`,
+`apns_environment`, `apns_auth_method`, `apns_bundle_id`, `apns_key_id` et `apns_team_id`.
+Chaque valeur est vérifiée (liste de valeurs, nombre borné, format) avant l'écriture, et le
+fichier précédent est gardé en `prod.ini.bak`. Les autres réglages — base de données,
+secrets, `woob_path` (commande exécutée par le serveur), `regex_label` (qui change les
+identifiants des transactions), chemins de fichiers — ne se changent que sur le serveur.
+Le serveur web doit pouvoir écrire le fichier ; sinon la vue est en lecture seule.
 
 Les réglages modifiés depuis le portail sont, eux, enregistrés en base (voir
 [Réglages en base](#reglages-en-base)).

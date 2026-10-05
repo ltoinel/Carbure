@@ -1,3 +1,7 @@
+---
+icon: material/scale-balance
+---
+
 # Comparatif
 
 Carbure face aux autres gestionnaires de budget open source à héberger soi-même : Firefly III,
@@ -19,6 +23,7 @@ seul utilisateur (Kresus).
 | Technologies | PHP, MariaDB/MySQL | PHP (Laravel), base SQL | Node.js, local-first | Node.js, base SQL |
 | Image Docker | ✅ nginx, PHP et woob inclus | ✅ | ✅ | ✅ |
 | Assistant d'installation web, mises à jour de la base automatiques | ✅ | ➖ | ⚠️ | ➖ |
+| Configuration et synchronisation planifiée depuis le portail | ✅ réglages sûrs, commande curl prête à copier | ➖ | ➖ | ➖ |
 
 ## Données bancaires
 
@@ -27,7 +32,7 @@ seul utilisateur (Kresus).
 | Connexion bancaire | Directe, via woob | Importeur : GoCardless, Enable Banking, SimpleFIN, Salt Edge | GoCardless, Enable Banking, SimpleFIN et d'autres | Directe, via woob |
 | Sans agrégateur tiers | ✅ | ➖ | ➖ | ✅ |
 | Banques couvertes | Surtout françaises | Monde entier, via les fournisseurs | Europe et Amériques, via les fournisseurs | Surtout françaises |
-| Import de fichiers (CSV, OFX…) | ➖ | ✅ | ✅ | ⚠️ |
+| Import de fichiers (CSV, OFX…) | ✅ OFX, QIF, CSV, CAMT.053, doublons détectés | ✅ | ✅ | ⚠️ |
 | Plusieurs devises | ➖ euros | ✅ | ➖ | ⚠️ |
 
 ## Budget et analyse
@@ -38,7 +43,7 @@ seul utilisateur (Kresus).
 | Sous-catégories additionnées dans leur parent | ✅ | ➖ catégories à plat, étiquettes | ⚠️ groupes de catégories | ➖ |
 | Règles de catégorisation automatique | ✅ mots-clés, proposées après un choix manuel | ✅ moteur de règles riche | ✅ | ✅ |
 | Pointage des transactions | ✅ | ✅ rapprochement | ✅ rapprochement | ➖ |
-| Graphiques et tendances | ✅ tendances, comparaisons, flux du mois | ✅ rapports | ✅ rapports personnalisés | ✅ |
+| Graphiques et tendances | ✅ tendances, comparaisons, flux du mois avec ses transactions | ✅ rapports | ✅ rapports personnalisés | ✅ |
 | Indicateurs personnalisés | ✅ insights SQL | ➖ | ⚠️ rapports personnalisés | ➖ |
 | Opérations récurrentes, factures | ➖ | ✅ | ✅ échéances | ✅ |
 | Objectifs d'épargne | ➖ | ✅ tirelires | ✅ modèles d'objectifs | ➖ |

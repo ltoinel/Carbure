@@ -51,12 +51,14 @@
 ## Why Carbure?
 
 - 🔄 **No manual entry**: transactions arrive on their own from your bank every day, through
-  [woob](https://woob.tech/) — a direct connection, no third-party aggregator.
+  [woob](https://woob.tech/) — a direct connection, no third-party aggregator. Or import the
+  statements of your bank (OFX, QIF, CSV, CAMT.053): Carbure spots the duplicates first.
 - 🏷️ **Automatic categorization**: simple rules ("CARREFOUR → Groceries") sort every
   transaction. A new one? Pick its category and Carbure suggests the rule.
 - 🎯 **Monthly budgets**: spent, remaining and overspent, category by category, at a glance.
   Budget the sub-categories and their parent adds them up — or set its own amount. The
-  **monthly flow** shows where the money comes from and where it goes.
+  **monthly flow** shows where the money comes from and where it goes: click a category to
+  see its transactions.
 - 📈 **Trends**: income, spending and savings over 3, 6 or 12 months, compared with the
   previous period or the same period last year.
 - ✅ **Check-off**: verify transactions in one click and filter those still to review.
@@ -64,7 +66,8 @@
   you set, or when a rule you chose matches.
 - 📊 **Insights**: your own monthly indicators (groceries, fuel, subscriptions…).
 - 👨‍👩‍👧 **Built for households**: several users, shared accounts and data, each with their own
-  language and devices; an administrator manages accounts, categories, rules and users.
+  language and devices; an administrator manages accounts, categories, rules, users and the
+  configuration, and copies the ready-made command that schedules the sync.
 - 🤖 **Ask your AI agent about your money**: a built-in, read-only MCP server — which you can
   turn off — answers questions like "how much did we spend on restaurants this year?" or
   "which budgets are we over?". Claude (web, Desktop, mobile) connects from the server URL
@@ -89,7 +92,8 @@
 | Several users sharing the same data | ✅ | ⚠️ | ✅ | ➖ |
 | Native iPhone app and push notifications | ✅ | ➖ | ➖ | ➖ |
 | Built-in MCP server for AI agents | ✅ | ➖ | ➖ | ➖ |
-| File import, several currencies | ➖ | ✅ | ⚠️ | ⚠️ |
+| File import (OFX, QIF, CSV, CAMT.053) | ✅ | ✅ | ✅ | ⚠️ |
+| Several currencies | ➖ | ✅ | ➖ | ⚠️ |
 
 ✅ yes · ⚠️ partly · ➖ no — 👉 **[Full comparison](https://ltoinel.github.io/Carbure/comparatif/)** (in French):
 23 criteria (hosting, bank data, budget, household and devices, API), with the strengths of

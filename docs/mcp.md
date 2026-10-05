@@ -1,3 +1,7 @@
+---
+icon: material/robot-outline
+---
+
 # Agents IA (MCP)
 
 Carbure embarque un **serveur MCP** ([Model Context Protocol](https://modelcontextprotocol.io/))
