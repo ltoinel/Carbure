@@ -91,6 +91,8 @@ Deux sous-onglets : **Flux** (affiché par défaut) et **Budgets**.
   → dépenses par catégorie principale (les 8 plus importantes, le reste regroupé dans
   « Autres »), épargne et **Reste** (ou **Déficit**). Les virements internes (hors budget)
   sont exclus. « Voir le tableau » affiche les mêmes flux en tableau (`GET /budget/flow`).
+  Un clic sur une catégorie (ou sur son flux) affiche ses transactions sous le diagramme
+  (`GET /budget/flow/transactions`) ; un second clic les masque.
 - **Synthèse du mois** (sous-onglet Budgets) : dépensé, budgété, reste (ou dépassement) et jauge globale des
   dépenses budgétées.
 - **Cartes par catégorie** avec l'icône et la couleur de la catégorie, le montant

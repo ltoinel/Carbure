@@ -334,6 +334,23 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
     }
 
     /**
+     * Transactions behind a node of the money flow diagram
+     * @param {number} month - Month (1-12)
+     * @param {number} year - Year
+     * @param {string} kind - income, expense or savings
+     * @param {Array<number>} categories - Top-level category ids (empty: all)
+     * @returns {Promise<Array>} Transactions, most recent first
+     */
+    async function fetchFlowTransactions(month, year, kind, categories = []) {
+        const params = new URLSearchParams({ month, year, kind });
+        if (categories.length) {
+            params.set('categories', categories.join(','));
+        }
+        const data = await request(`${baseUrl}/budget/flow/transactions?${params}`, {}, 'Failed to fetch the transactions');
+        return Array.isArray(data) ? data : [];
+    }
+
+    /**
      * Fetches the monthly trends of the household
      * @param {number} months - Number of months
      * @param {number} offset - Months between the current month and the end of the period
@@ -763,6 +780,7 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
         fetchDevices,
         fetchApiTokens,
         fetchBudgetFlow,
+        fetchFlowTransactions,
         unlockUser,
         fetchMcpSettings,
         updateMcpSettings,

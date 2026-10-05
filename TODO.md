@@ -17,6 +17,9 @@ Tâches restant à réaliser sur Carbure. Une tâche terminée est retirée de c
 - [x] Publier une release (1.0.1) pour que l'image Alpine arrive sur Docker Hub, puis
       tester l'ajout d'une banque (BNP, `curl_cffi` sous musl) avec cette image.
 
+- [ ] Lancer les tests d'intégration (`BudgetTest::testFlowTransactions`) et e2e (clic sur le
+      flux du mois, `budget.spec.js`) : non exécutés en local faute de MariaDB.
+
 - [ ] Connexion MySQL en `utf8mb4` (`Db` n'appelle pas `set_charset`) : vérifier d'abord
       comment les accents sont stockés en production pour ne pas les corrompre.
 - [ ] Regex `PRLV SEPA` gourmande (`ECH/…` n'est pas retiré du libellé) et `addslashes()`

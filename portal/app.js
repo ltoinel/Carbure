@@ -40,6 +40,7 @@ const ADMINISTRATION_TABS = [
     { key: 'agents', icon: 'smart_toy', label: 'tabAgents' }
 ];
 import * as formatters from './utils/formatters.js';
+import { badgeStyle } from './utils/categoryIcons.js';
 
 const { createApp } = Vue;
 
@@ -91,6 +92,10 @@ createApp({
             appVersion: null,
             // Money flow of the selected month (Budget tab)
             budgetFlow: null,
+            // Node of the flow diagram whose transactions are shown, and these transactions
+            flowSelection: null,
+            flowTransactions: [],
+            loadingFlowTransactions: false,
             // Budget tab: 'flow' (money flow) or 'budgets' (budget of each category)
             budgetView: 'flow',
             // Tabs of the Administration menu, and the last one opened
@@ -124,6 +129,14 @@ createApp({
     },
 
     computed: {
+        /**
+         * Sum of the transactions of the node selected in the flow diagram
+         * @returns {number}
+         */
+        flowTransactionsTotal() {
+            return this.flowTransactions.reduce((sum, t) => sum + Number(t.amount), 0);
+        },
+
         /**
          * Generates array of month options with localized labels
          * @returns {Array<{value: number, label: string}>}
@@ -212,11 +225,55 @@ createApp({
          * @returns {Promise<void>}
          */
         async loadBudgetFlow() {
+            // The nodes depend on the month
+            this.selectFlowNode(null);
             try {
                 this.budgetFlow = await apiService.fetchBudgetFlow(this.selectedMonth, this.selectedYear);
             } catch (error) {
                 this.budgetFlow = null;
             }
+        },
+
+        /**
+         * Shows the transactions of a node of the flow diagram (null: hides them)
+         * @param {Object|null} node - {key, name, color, icon, kind, categories}
+         * @returns {Promise<void>}
+         */
+        async selectFlowNode(node) {
+            this.flowSelection = node;
+            this.flowTransactions = [];
+            if (!node) {
+                this.loadingFlowTransactions = false;
+                return;
+            }
+            this.loadingFlowTransactions = true;
+            try {
+                const transactions = await apiService.fetchFlowTransactions(this.selectedMonth, this.selectedYear, node.kind, node.categories);
+                // A later click may have selected another node meanwhile
+                if (this.flowSelection === node) {
+                    this.flowTransactions = transactions;
+                    // Icons of the rows: the categories of the transactions
+                    this.ensureCategories();
+                }
+            } catch (err) {
+                this.showToast(err.message);
+            } finally {
+                if (this.flowSelection === node) {
+                    this.loadingFlowTransactions = false;
+                }
+            }
+            this.$nextTick(() => {
+                document.querySelector('.flow-transactions')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            });
+        },
+
+        /**
+         * Colors of an icon badge
+         * @param {string} color - CSS color
+         * @returns {{color: string, background: string}}
+         */
+        badgeStyleFor(color) {
+            return badgeStyle(color);
         },
 
         // === Tab Navigation Methods ===

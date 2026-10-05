@@ -278,6 +278,19 @@ catégories `HORS-BUDGET` (virements internes) sont exclues, sauf la catégorie 
 | `totalIncome`, `totalExpenses` | Totaux des revenus et des dépenses |
 | `balance` | Reste : revenus − dépenses − épargne (si elle est positive) ; négatif en cas de déficit |
 
+### `GET /budget/flow/transactions`
+
+Transactions d'un nœud du diagramme de flux, de la plus récente à la plus ancienne, avec
+le même classement que `GET /budget/flow`.
+
+| Paramètre | Requis | Description |
+|---|---|---|
+| `kind` | oui | `income` (revenus), `expense` (dépenses) ou `savings` (épargne) |
+| `categories` | non | Identifiants des catégories de premier niveau, séparés par des virgules (`0` = non catégorisées) ; toutes par défaut. Ignoré pour `savings` |
+| `month`, `year` | non | Mois courant par défaut |
+
+Renvoie les colonnes de `bank_transaction` et `top` (catégorie de premier niveau).
+
 ### `POST /budget`
 
 `category`, `amount` (requis), `month`, `year` (mois courant par défaut) : crée ou met à

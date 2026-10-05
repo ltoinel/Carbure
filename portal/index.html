@@ -546,7 +546,53 @@
                                     <p class="rules-help">{{ t('flowHelp') }}</p>
                                 </div>
                             </div>
-                            <flow-chart :flow="budgetFlow" :t="t" :color-for="categoryColor" :format-amount="formatAmount"></flow-chart>
+                            <flow-chart :flow="budgetFlow" :t="t" :color-for="categoryColor" :icon-for="categoryIcon" :format-amount="formatAmount"
+                                        :selected="flowSelection && flowSelection.key" @select="selectFlowNode"></flow-chart>
+                        </section>
+
+                        <!-- Transactions of the node selected in the diagram -->
+                        <section v-if="flowSelection" class="trends-card budget-transactions flow-transactions" :style="{ '--flow-color': flowSelection.color }">
+                            <div class="trends-chart-head">
+                                <h3 class="flow-transactions-title">
+                                    <span class="transaction-icon" :style="badgeStyleFor(flowSelection.color)">
+                                        <span class="material-icons" aria-hidden="true">{{ flowSelection.icon }}</span>
+                                    </span>
+                                    {{ t('flowTransactions', { name: flowSelection.name }) }}
+                                </h3>
+                                <button class="btn-secondary" @click="selectFlowNode(null)" :aria-label="t('close')">
+                                    <span class="material-icons" aria-hidden="true">close</span>
+                                </button>
+                            </div>
+                            <div v-if="loadingFlowTransactions" class="transactions-hint">{{ t('loadingMessage') }}</div>
+                            <div v-else-if="flowTransactions.length === 0" class="transactions-hint">{{ t('emptyMessage') }}</div>
+                            <template v-else>
+                                <div class="search-total">
+                                    <span>{{ t('searchTotal', { count: flowTransactions.length }) }}</span>
+                                    <strong :class="flowTransactionsTotal >= 0 ? 'positive' : 'negative'">
+                                        {{ formatAmount(flowTransactionsTotal) }} {{ t('currencySymbol') }}
+                                    </strong>
+                                </div>
+                                <div class="transactions-list">
+                                    <div v-for="transaction in flowTransactions" :key="transaction.id" class="transaction-item"
+                                         :class="{ unchecked: !Number(transaction.pointed) }">
+                                        <button class="transaction-check" @click="toggleTransactionPointed(transaction)"
+                                                :class="{ checked: Number(transaction.pointed) }"
+                                                :title="Number(transaction.pointed) ? t('uncheckTransaction') : t('checkTransaction')" :aria-label="Number(transaction.pointed) ? t('uncheckTransaction') : t('checkTransaction')">
+                                            <span class="material-icons" aria-hidden="true">{{ Number(transaction.pointed) ? 'check_circle' : 'radio_button_unchecked' }}</span>
+                                        </button>
+                                        <div class="transaction-icon" :class="transactionCategory(transaction) ? '' : 'type-' + transaction.type" :style="transactionIconStyle(transaction)">
+                                            <span class="material-icons" aria-hidden="true">{{ transactionIcon(transaction) }}</span>
+                                        </div>
+                                        <div class="transaction-details">
+                                            <div class="transaction-label">{{ transaction.label }}</div>
+                                            <div class="transaction-date">{{ formatDate(transaction.rdate || transaction.date) }}<template v-if="transactionCategory(transaction)"> · {{ transactionCategory(transaction).name }}</template></div>
+                                        </div>
+                                        <div class="transaction-amount" :class="transaction.amount >= 0 ? 'positive' : 'negative'">
+                                            {{ formatAmount(transaction.amount) }} {{ t('currencySymbol') }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
                         </section>
                         <div v-else class="empty-state-container">
                             <div class="empty-state">

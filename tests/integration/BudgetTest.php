@@ -126,6 +126,28 @@ class BudgetTest extends DatabaseTestCase
         $this->assertEquals(0, $empty['balance']);
     }
 
+    public function testFlowTransactions()
+    {
+        // The transactions behind each node add up to its amount
+        $flow = Budget::flow();
+        foreach ($flow['expenses'] as $node) {
+            $rows = Budget::flowTransactions('expense', (string)$node['id']);
+            $this->assertEquals($node['amount'], -array_sum(array_column($rows, 'amount')), $node['name'] ?? 'uncategorized');
+            $this->assertSame([$node['id']], array_values(array_unique(array_column($rows, 'top'))));
+        }
+        $income = Budget::flowTransactions('income');
+        $this->assertEquals($flow['totalIncome'], array_sum(array_column($income, 'amount')));
+
+        // Several categories at once ("Others" of the diagram)
+        $ids = implode(',', array_column($flow['expenses'], 'id'));
+        $this->assertEquals($flow['totalExpenses'], -array_sum(array_column(Budget::flowTransactions('expense', $ids), 'amount')));
+
+        $this->assertSame([], Budget::flowTransactions('expense', null, 1, 2001));
+
+        $this->expectException(Error::class);
+        Budget::flowTransactions('balance');
+    }
+
     public function testTrendsWithOffset()
     {
         // The 3 months before the last 3 months

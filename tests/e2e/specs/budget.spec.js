@@ -61,6 +61,23 @@ test('shows the money flow of the month', async ({ adminPage: page }) => {
     await expect(table.getByRole('row').filter({ hasText: 'Alimentation' })).toContainText(euros(127.4).replace(' €', ''));
 });
 
+test('a click on a category of the money flow shows its transactions', async ({ adminPage: page }) => {
+    await openTab(page, tr('tabBudget'));
+
+    const node = page.locator('.flow-node[role="button"]').filter({ hasText: 'Alimentation' });
+    await node.click();
+    await expect(node).toHaveAttribute('aria-pressed', 'true');
+
+    // Supermarché and Restaurant are grouped under Alimentation
+    const list = page.locator('.flow-transactions');
+    await expect(list.getByRole('heading')).toContainText('Alimentation');
+    await expect(list.locator('.search-total strong')).toContainText('127,40');
+
+    // A second click hides them
+    await node.click();
+    await expect(list).toHaveCount(0);
+});
+
 test('shows the budgets of the month by category', async ({ adminPage: page }) => {
     await openBudgets(page);
 

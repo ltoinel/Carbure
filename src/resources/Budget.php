@@ -245,22 +245,7 @@ final class Budget {
     public static function flow($month = null, $year = null)
     {
         [$month, $year] = Month::resolve($month, $year);
-        [$from, $to] = Month::range($month, $year);
-
-        $savings = self::savingsCategories();
-
-        // Top-level category of each transaction (the category itself, or its parent)
-        $sql = "SELECT IF(c.parent_category IS NULL OR c.parent_category = 0 OR c.parent_category = c.id, IFNULL(c.id, 0), c.parent_category) AS top,
-                       t.category, t.amount
-                FROM bank_transaction t
-                LEFT JOIN bank_transaction_category c ON c.id = t.category
-                WHERE t.date >= ? AND t.date < ?";
-        $rows = Db::execute($sql, "ss", $from, $to)->get_result()->fetch_all(MYSQLI_ASSOC);
-
-        $categories = [];
-        foreach (Db::execute("SELECT id, name, type, icon, color FROM bank_transaction_category", "")->get_result()->fetch_all(MYSQLI_ASSOC) as $c) {
-            $categories[(int)$c['id']] = $c;
-        }
+        [$categories, $rows] = self::flowRows($month, $year);
 
         $income = [];
         $expenses = [];
@@ -268,16 +253,9 @@ final class Budget {
         foreach ($rows as $row) {
             $amount = (float)$row['amount'];
             $top = (int)$row['top'];
-            if (in_array((int)$row['category'], $savings, true) || in_array($top, $savings, true)) {
+            if ($row['kind'] === 'savings') {
                 $saved -= $amount;
-                continue;
-            }
-            $type = $categories[$top]['type'] ?? 'HORS-BUDGET';
-            // Internal transfers are neither income nor expenses; uncategorized ones are shown
-            if ($type === 'HORS-BUDGET' && $top !== 0) {
-                continue;
-            }
-            if ($amount > 0) {
+            } elseif ($row['kind'] === 'income') {
                 $income[$top] = ($income[$top] ?? 0) + $amount;
             } else {
                 $expenses[$top] = ($expenses[$top] ?? 0) - $amount;
@@ -313,6 +291,87 @@ final class Budget {
             // What is left once the expenses are paid and the savings put aside
             'balance' => round($totalIncome - $totalExpenses - max($saved, 0), 2),
         ];
+    }
+
+    /**
+     * Transactions behind a node of the money flow diagram, most recent first.
+     *
+     * @param string      $kind       income, expense or savings
+     * @param string|null $categories Top-level category ids, comma separated (all by default)
+     * @param int|null    $month      The month (current month by default)
+     * @param int|null    $year       The year (current year by default)
+     * @return array The transactions, with their top-level category (top)
+     * @throws Error If the kind is unknown
+     */
+    #[ApiRoute('/budget/flow/transactions', method: 'GET')]
+    public static function flowTransactions($kind, $categories = null, $month = null, $year = null)
+    {
+        if (!in_array($kind, ['income', 'expense', 'savings'], true)) {
+            throw new Error("Unknown kind: expected income, expense or savings", 400);
+        }
+        $ids = null;
+        if ($categories !== null && trim((string)$categories) !== '') {
+            $ids = array_map('intval', explode(',', (string)$categories));
+        }
+
+        [$month, $year] = Month::resolve($month, $year);
+        [, $rows] = self::flowRows($month, $year);
+
+        $transactions = [];
+        foreach ($rows as $row) {
+            if ($row['kind'] !== $kind || ($ids !== null && $kind !== 'savings' && !in_array((int)$row['top'], $ids, true))) {
+                continue;
+            }
+            unset($row['kind']);
+            $row['top'] = (int)$row['top'];
+            $transactions[] = $row;
+        }
+        return $transactions;
+    }
+
+    /**
+     * Transactions of a month classified as in the money flow: income, expense or
+     * savings, with their top-level category. Internal transfers (off-budget
+     * categories other than the savings) are left out.
+     *
+     * @param int $month The month
+     * @param int $year  The year
+     * @return array [categories by id, rows (bank_transaction columns + top + kind)]
+     */
+    private static function flowRows($month, $year)
+    {
+        [$from, $to] = Month::range($month, $year);
+        $savings = self::savingsCategories();
+
+        // Top-level category of each transaction (the category itself, or its parent)
+        $sql = "SELECT t.*, IF(c.parent_category IS NULL OR c.parent_category = 0 OR c.parent_category = c.id, IFNULL(c.id, 0), c.parent_category) AS top
+                FROM bank_transaction t
+                LEFT JOIN bank_transaction_category c ON c.id = t.category
+                WHERE t.date >= ? AND t.date < ?
+                ORDER BY t.rdate DESC, t.id DESC";
+        $rows = Db::execute($sql, "ss", $from, $to)->get_result()->fetch_all(MYSQLI_ASSOC);
+
+        $categories = [];
+        foreach (Db::execute("SELECT id, name, type, icon, color FROM bank_transaction_category", "")->get_result()->fetch_all(MYSQLI_ASSOC) as $c) {
+            $categories[(int)$c['id']] = $c;
+        }
+
+        $classified = [];
+        foreach ($rows as $row) {
+            $top = (int)$row['top'];
+            if (in_array((int)$row['category'], $savings, true) || in_array($top, $savings, true)) {
+                $row['kind'] = 'savings';
+            } else {
+                $type = $categories[$top]['type'] ?? 'HORS-BUDGET';
+                // Internal transfers are neither income nor expenses; uncategorized ones are shown
+                if ($type === 'HORS-BUDGET' && $top !== 0) {
+                    continue;
+                }
+                $row['kind'] = (float)$row['amount'] > 0 ? 'income' : 'expense';
+            }
+            $classified[] = $row;
+        }
+        return [$categories, $classified];
     }
 
     /**
