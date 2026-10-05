@@ -132,3 +132,41 @@ test('closes the detail modal with Escape', async ({ adminPage: page }) => {
     await page.keyboard.press('Escape');
     await expect(page.getByRole('dialog')).toHaveCount(0);
 });
+
+test('imports a bank statement file', async ({ adminPage: page }) => {
+    const day = d => {
+        const date = new Date();
+        date.setDate(d);
+        return date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    };
+    const csv = 'Date;Libellé;Montant\n'
+        // Same transaction as the data set: already there
+        + `${day(1)};VIR SALAIRE ACME;3 200,00\n`
+        // Same amount as CB SUPERMARCHE CASINO, one day later: probable duplicate
+        + `${day(3)};CARTE SUPERMARCHE CASINO;-82,40\n`
+        + `${day(7)};CB FLEURISTE ROSE;-25,00\n`;
+
+    await page.getByRole('button', { name: tr('importButton') }).click();
+    const modal = page.getByRole('dialog', { name: tr('importTitle') });
+    await modal.locator('input[type="file"]').setInputFiles({ name: 'releve.csv', mimeType: 'text/csv', buffer: Buffer.from(csv) });
+
+    await expect(modal.locator('.import-count.status-new strong')).toHaveText('1');
+    await expect(modal.locator('.import-count.status-duplicate strong')).toHaveText('1');
+    await expect(modal.locator('.import-count.status-known strong')).toHaveText('1');
+    await expect(modal.locator('.import-row.status-duplicate')).toContainText('CB SUPERMARCHE CASINO');
+    // Only the new transaction is checked
+    await expect(modal.locator('.import-row.status-duplicate input')).not.toBeChecked();
+    await expect(modal.locator('.import-row.status-known input')).toBeDisabled();
+
+    await modal.getByRole('button', { name: tr('importConfirm', { count: 1 }) }).click();
+    await expect(modal).toHaveCount(0);
+    await expect(row(page, 'CB FLEURISTE ROSE').locator('.transaction-amount')).toHaveText(euros(-25));
+    await expect(page.locator('.transaction-item')).toHaveCount(7);
+});
+
+test('explains why a file cannot be imported', async ({ adminPage: page }) => {
+    await page.getByRole('button', { name: tr('importButton') }).click();
+    const modal = page.getByRole('dialog', { name: tr('importTitle') });
+    await modal.locator('input[type="file"]').setInputFiles({ name: 'notes.csv', mimeType: 'text/csv', buffer: Buffer.from('a;b\n1;2\n') });
+    await expect(modal.getByRole('alert')).toContainText('Columns not found');
+});

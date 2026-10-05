@@ -26,9 +26,11 @@ import { createSetupModule } from './modules/setupModule.js';
 import { createAgentsModule } from './modules/agentsModule.js';
 import { createLogsModule } from './modules/logsModule.js';
 import { createOAuthModule } from './modules/oauthModule.js';
+import { createImportModule } from './modules/importModule.js';
+import { createConfigModule } from './modules/configModule.js';
 
 /** Tabs reserved to administrators */
-const ADMIN_TABS = ['rules', 'categories', 'accounts', 'users', 'logs'];
+const ADMIN_TABS = ['rules', 'categories', 'accounts', 'users', 'logs', 'config', 'sync'];
 
 /**
  * Tabs grouped under "Administration" in the navigation of the administrators (the
@@ -37,6 +39,8 @@ const ADMIN_TABS = ['rules', 'categories', 'accounts', 'users', 'logs'];
 const ADMINISTRATION_TABS = [
     { key: 'users', icon: 'people', label: 'tabUsers' },
     { key: 'logs', icon: 'receipt_long', label: 'tabLogs' },
+    { key: 'config', icon: 'tune', label: 'tabSettings' },
+    { key: 'sync', icon: 'sync', label: 'tabSync' },
     { key: 'agents', icon: 'smart_toy', label: 'tabAgents' }
 ];
 import * as formatters from './utils/formatters.js';
@@ -77,7 +81,9 @@ createApp({
         createSetupModule(),
         createAgentsModule(() => apiService),
         createLogsModule(() => apiService),
-        createOAuthModule(() => apiService)
+        createOAuthModule(() => apiService),
+        createImportModule(() => apiService),
+        createConfigModule(() => apiService)
     ],
 
     data() {
@@ -344,6 +350,12 @@ createApp({
                     break;
                 case 'logs':
                     this.loadLogs();
+                    break;
+                case 'config':
+                    this.loadConfig();
+                    break;
+                case 'sync':
+                    this.loadSyncInfo();
                     break;
                 case 'agents':
                     this.loadAgents();

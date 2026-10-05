@@ -40,3 +40,56 @@ test('the up-to-date e2e database shows no banner', async ({ adminPage: page }) 
     await expect(page.locator('.transaction-item').first()).toBeVisible();
     await expect(page.locator('.schema-banner')).toHaveCount(0);
 });
+
+/**
+ * Opens a tab of the Administration menu
+ * @param {import('@playwright/test').Page} page
+ * @param {string} tab - Translation key of the tab
+ */
+async function openAdministration(page, tab) {
+    await page.getByRole('button', { name: tr('tabAdministration') }).click();
+    await page.getByRole('tab', { name: tr(tab) }).click();
+}
+
+test('an administrator sees the configuration and changes the safe settings', async ({ adminPage: page }) => {
+    await openAdministration(page, 'tabSettings');
+    await expect(page.getByRole('heading', { name: tr('configTitle') })).toBeVisible();
+
+    // Secrets masked, the woob command read-only
+    await expect(page.locator('.tab-panel')).not.toContainText('e2e-tests-only');
+    const woobPath = page.locator('.config-row').filter({ has: page.locator('code', { hasText: /^woob_path$/ }) });
+    await expect(woobPath.locator('.config-readonly')).toHaveText('woob');
+    await expect(woobPath.locator('input, select')).toHaveCount(0);
+
+    await page.locator('#config-log_level').selectOption('info');
+    await page.locator('#config-woob_transactions').fill('250');
+    await expect(page.locator('.config-actions')).toContainText(tr('configChanges', { count: 2 }));
+    await page.getByRole('button', { name: tr('save') }).click();
+    await expect(page.locator('.toast')).toHaveText(tr('configSaved'));
+    await expect(page.locator('.config-actions')).toContainText(tr('configNoChange'));
+
+    // Saved in the file
+    await page.getByRole('tab', { name: tr('tabLogs') }).click();
+    await page.getByRole('tab', { name: tr('tabSettings') }).click();
+    await expect(page.locator('#config-log_level')).toHaveValue('info');
+    await expect(page.locator('#config-woob_transactions')).toHaveValue('250');
+});
+
+test('an administrator gets the request that starts the synchronization', async ({ adminPage: page }) => {
+    await openAdministration(page, 'tabSync');
+    await expect(page.getByRole('heading', { name: tr('syncCommandTitle') })).toBeVisible();
+
+    // No token in the e2e configuration: one is created (the fixture accepts the confirmation)
+    await expect(page.getByRole('alert')).toHaveText(tr('syncTokenMissing'));
+    await page.getByRole('button', { name: tr('syncTokenCreate') }).click();
+    await expect(page.locator('.toast')).toHaveText(tr('syncTokenRenewed'));
+
+    const curl = page.locator('.copy-field code').first();
+    await expect(curl).toContainText(/curl -sN -H "X-Sync-Token: [0-9a-f]{48}" "http:\/\/127\.0\.0\.1:\d+\/api\/bank\/sync"/);
+
+    // Masked again, one account
+    await page.getByRole('button', { name: tr('syncTokenHide') }).click();
+    await expect(curl).toContainText('X-Sync-Token: ••••');
+    await page.locator('#sync-account').selectOption('00012345678@bnp');
+    await expect(curl).toContainText('/api/bank/sync?account=00012345678%40bnp');
+});

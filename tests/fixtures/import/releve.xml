@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.053.001.02">
+ <BkToCstmrStmt><Stmt><Id>1</Id>
+  <Acct><Id><IBAN>FR7630004000010001234567890</IBAN></Id></Acct>
+  <Ntry><Amt Ccy="EUR">23.40</Amt><CdtDbtInd>DBIT</CdtDbtInd><BookgDt><Dt>2026-01-12</Dt></BookgDt><ValDt><Dt>2026-01-12</Dt></ValDt>
+   <BkTxCd><Domn><Cd>PMNT</Cd><Fmly><Cd>CCRD</Cd><SubFmlyCd>POSD</SubFmlyCd></Fmly></Domn></BkTxCd>
+   <NtryDtls><TxDtls><RltdDts><AccptncDtTm>2026-01-11T10:00:00</AccptncDtTm></RltdDts></TxDtls></NtryDtls>
+   <AddtlNtryInf>CB PHARMACIE CENTRALE</AddtlNtryInf></Ntry>
+  <Ntry><Amt Ccy="EUR">150.00</Amt><CdtDbtInd>CRDT</CdtDbtInd><BookgDt><Dt>2026-01-20</Dt></BookgDt>
+   <BkTxCd><Domn><Cd>PMNT</Cd><Fmly><Cd>RCDT</Cd><SubFmlyCd>ESCT</SubFmlyCd></Fmly></Domn></BkTxCd>
+   <NtryDtls><TxDtls><RmtInf><Ustrd>REMBOURSEMENT MUTUELLE</Ustrd></RmtInf></TxDtls></NtryDtls></Ntry>
+ </Stmt></BkToCstmrStmt>
+</Document>

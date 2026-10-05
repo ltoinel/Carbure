@@ -466,6 +466,9 @@
                                         <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
                                         <span class="toggle-label">{{ t('uncheckedCount', { count: (isSearching ? searchResults : transactions).filter(t => !Number(t.pointed)).length }) }}</span>
                                     </label>
+                                    <button type="button" class="btn-secondary btn-import" @click="openImport" :title="t('importTitle')">
+                                        <span class="material-icons" aria-hidden="true">upload_file</span>{{ t('importButton') }}
+                                    </button>
                                 </div>
                             </div>
                             <div v-if="isSearching && !searching && displayedTransactions.length > 0" class="search-total">
@@ -1221,6 +1224,124 @@
                 </div>
 
                 <!-- AI Agents Tab: MCP server and access tokens -->
+                <div v-else-if="activeTab === 'config'" key="config" class="tab-panel">
+                    <div v-if="loadingConfig && !configData" class="loading">
+                        <div class="material-icons spin" aria-hidden="true">refresh</div>
+                        <p>{{ t('loadingMessage') }}</p>
+                    </div>
+
+                    <!-- Configuration file -->
+                    <section v-else-if="configData" class="trends-card config-card">
+                        <div class="panel-header">
+                            <div>
+                                <h2>{{ t('configTitle') }}</h2>
+                                <p class="rules-help">{{ t('configIntro', { file: configData.file }) }}</p>
+                            </div>
+                        </div>
+                        <div v-if="!configData.writable" class="sync-step-error" role="alert">{{ t('configNotWritable') }}</div>
+
+                        <form @submit.prevent="saveConfig">
+                            <fieldset v-for="section in configData.sections" :key="section.name" class="config-section">
+                                <legend>{{ configSectionLabel(section.name) }} <code>[{{ section.name }}]</code></legend>
+                                <div v-for="setting in section.settings" :key="setting.key" class="config-row" :class="{ changed: setting.key in configChanges, locked: !setting.editable }">
+                                    <div class="config-label">
+                                        <label :for="'config-' + setting.key"><code>{{ setting.key }}</code></label>
+                                        <span v-if="configHelp(setting.key)" class="config-help">{{ configHelp(setting.key) }}</span>
+                                    </div>
+                                    <div class="config-value">
+                                        <template v-if="setting.editable && configData.writable">
+                                            <select v-if="setting.kind === 'select'" :id="'config-' + setting.key" v-model="configDraft[setting.key]">
+                                                <option v-if="!setting.set" value="">—</option>
+                                                <option v-for="option in setting.options" :key="option" :value="option">{{ option }}</option>
+                                            </select>
+                                            <label v-else-if="setting.kind === 'bool'" class="toggle-switch" :class="{ on: configDraft[setting.key] }">
+                                                <input type="checkbox" role="switch" :id="'config-' + setting.key" v-model="configDraft[setting.key]" />
+                                                <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
+                                                <span class="toggle-label">{{ configDraft[setting.key] ? t('configOn') : t('configOff') }}</span>
+                                            </label>
+                                            <input v-else-if="setting.kind === 'number'" type="number" :id="'config-' + setting.key" v-model="configDraft[setting.key]" :min="setting.min" :max="setting.max" />
+                                            <input v-else :type="setting.kind === 'url' ? 'url' : 'text'" :id="'config-' + setting.key" v-model.trim="configDraft[setting.key]"
+                                                   :placeholder="setting.kind === 'url' ? 'https://carbure.example.fr' : ''" autocomplete="off" spellcheck="false" />
+                                        </template>
+                                        <template v-else>
+                                            <ul v-if="setting.kind === 'list'" class="config-list"><li v-for="line in setting.value" :key="line"><code>{{ line }}</code></li></ul>
+                                            <code v-else class="config-readonly" :class="{ secret: setting.secret, unset: !setting.set }">{{ setting.set ? (setting.kind === 'bool' ? String(setting.value) : setting.value) : t('configUnset') }}</code>
+                                            <span class="material-icons config-lock" :title="t(setting.secret ? 'configLockedSecret' : 'configLocked')" :aria-label="t(setting.secret ? 'configLockedSecret' : 'configLocked')">{{ setting.secret ? 'key' : 'lock' }}</span>
+                                        </template>
+                                    </div>
+                                </div>
+                            </fieldset>
+
+                            <div v-if="configError" class="sync-step-error" role="alert">{{ configError }}</div>
+                            <div v-if="configData.writable" class="config-actions" :class="{ dirty: configChangeCount }">
+                                <span>{{ configChangeCount ? t('configChanges', { count: configChangeCount }) : t('configNoChange') }}</span>
+                                <button type="button" class="btn-secondary" @click="resetConfigDraft" :disabled="!configChangeCount || savingConfig">{{ t('cancel') }}</button>
+                                <button type="submit" :disabled="!configChangeCount || savingConfig">
+                                    <span class="material-icons" :class="{ spin: savingConfig }" aria-hidden="true">{{ savingConfig ? 'autorenew' : 'save' }}</span>{{ t('save') }}
+                                </button>
+                            </div>
+                        </form>
+                    </section>
+
+                    <div v-else-if="configError" class="sync-step-error" role="alert">{{ configError }}</div>
+                </div>
+
+                <div v-else-if="activeTab === 'sync'" key="sync" class="tab-panel">
+                    <!-- Request of the synchronization -->
+                    <section v-if="syncInfo" class="trends-card config-card">
+                        <div class="panel-header">
+                            <div>
+                                <h2>{{ t('syncCommandTitle') }}</h2>
+                                <p class="rules-help">{{ t('syncCommandHelp') }}</p>
+                            </div>
+                        </div>
+
+                        <div class="sync-token-row">
+                            <span class="material-icons" aria-hidden="true">key</span>
+                            <div>
+                                <strong>sync_token</strong>
+                                <code class="device-token">{{ syncInfo.token || t('configUnset') }}</code>
+                            </div>
+                            <button v-if="syncInfo.token" type="button" class="btn-secondary" @click="toggleSyncToken">
+                                <span class="material-icons" aria-hidden="true">{{ syncInfo.masked ? 'visibility' : 'visibility_off' }}</span>{{ syncInfo.masked ? t('syncTokenShow') : t('syncTokenHide') }}
+                            </button>
+                            <button type="button" class="btn-secondary" @click="renewSyncToken" :disabled="renewingSyncToken">
+                                <span class="material-icons" :class="{ spin: renewingSyncToken }" aria-hidden="true">autorenew</span>{{ syncInfo.token ? t('syncTokenRenew') : t('syncTokenCreate') }}
+                            </button>
+                        </div>
+                        <p v-if="!syncInfo.token" class="sync-step-error" role="alert">{{ t('syncTokenMissing') }}</p>
+
+                        <div class="form-group" v-if="syncInfo.accounts.length > 1">
+                            <label for="sync-account">{{ t('syncCommandAccount') }}</label>
+                            <select id="sync-account" v-model="syncAccount">
+                                <option value="">{{ t('syncCommandAllAccounts') }}</option>
+                                <option v-for="account in syncInfo.accounts" :key="account" :value="account">{{ account }}</option>
+                            </select>
+                        </div>
+
+                        <h3 class="config-subtitle">{{ t('syncCommandCurl') }}</h3>
+                        <div class="copy-field">
+                            <pre><code>{{ syncCurl }}</code></pre>
+                            <button type="button" class="btn-icon" @click="copySyncCommand(false)" :disabled="!syncInfo.token" :title="t('copy')" :aria-label="t('copy') + ' curl'">
+                                <span class="material-icons" aria-hidden="true">content_copy</span>
+                            </button>
+                        </div>
+
+                        <h3 class="config-subtitle">{{ t('syncCommandCron') }}</h3>
+                        <div class="copy-field">
+                            <pre><code>{{ syncCron }}</code></pre>
+                            <button type="button" class="btn-icon" @click="copySyncCommand(true)" :disabled="!syncInfo.token" :title="t('copy')" :aria-label="t('copy') + ' cron'">
+                                <span class="material-icons" aria-hidden="true">content_copy</span>
+                            </button>
+                        </div>
+                        <p class="rules-help">
+                            <span class="material-icons inline-icon" aria-hidden="true">info</span>{{ t('syncCommandNotes') }}
+                        </p>
+                    </section>
+
+                    <div v-else-if="configError" class="sync-step-error" role="alert">{{ configError }}</div>
+                </div>
+
                 <div v-else-if="activeTab === 'agents'" key="agents" class="tab-panel">
                     <div class="trends-view">
                         <section class="trends-card">
@@ -1495,6 +1616,96 @@
                     </div>
                 </div>
             </transition>
+        </div>
+
+        <!-- Import of a bank statement file -->
+        <div v-if="showImport" class="modal-overlay" @click.self="closeImport" @keydown.esc="closeImport">
+            <div class="modal modal-form modal-import" role="dialog" aria-modal="true" aria-labelledby="import-modal-title">
+                <div class="modal-header">
+                    <span class="material-icons" aria-hidden="true">upload_file</span>
+                    <h3 id="import-modal-title">{{ t('importTitle') }}</h3>
+                    <button class="modal-close" @click="closeImport" :aria-label="t('close')">
+                        <span class="material-icons" aria-hidden="true">close</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <!-- Choice of the file -->
+                    <template v-if="!importPreview">
+                        <label class="import-drop" :class="{ over: importDragOver, loading: importLoading }"
+                               @dragover.prevent="importDragOver = true" @dragleave.prevent="importDragOver = false" @drop.prevent="onImportDrop">
+                            <input type="file" class="visually-hidden" :accept="importAccept" @change="onImportPick" :disabled="importLoading" />
+                            <span class="material-icons import-drop-icon" :class="{ spin: importLoading }" aria-hidden="true">{{ importLoading ? 'autorenew' : 'cloud_upload' }}</span>
+                            <strong>{{ importLoading ? t('importReading') : t('importDrop') }}</strong>
+                            <span class="import-drop-hint">{{ t('importDropHint') }}</span>
+                            <span class="import-formats">
+                                <span class="import-format">OFX / QFX</span><span class="import-format">QIF</span><span class="import-format">CSV</span><span class="import-format">CAMT.053</span>
+                            </span>
+                        </label>
+                        <p class="rules-help">
+                            <span class="material-icons inline-icon" aria-hidden="true">info</span>{{ t('importHelp') }}
+                        </p>
+                    </template>
+
+                    <!-- Preview -->
+                    <template v-else>
+                        <div class="import-summary">
+                            <div class="import-file">
+                                <span class="material-icons" aria-hidden="true">description</span>
+                                <div>
+                                    <strong>{{ importFile.name }}</strong>
+                                    <span>{{ importFormatLabel(importPreview.format) }}<template v-if="importPreview.account"> · {{ t('importAccount', { account: importPreview.account }) }}</template>
+                                        · {{ formatDate(importPreview.from) }} → {{ formatDate(importPreview.to) }}</span>
+                                </div>
+                                <button type="button" class="btn-secondary" @click="resetImport" :disabled="importing">{{ t('importOtherFile') }}</button>
+                            </div>
+                            <ul class="import-counts">
+                                <li class="import-count status-new"><strong>{{ importPreview.counts.new }}</strong>{{ t('importStatus_new') }}</li>
+                                <li class="import-count status-duplicate"><strong>{{ importPreview.counts.duplicate }}</strong>{{ t('importStatus_duplicate') }}</li>
+                                <li class="import-count status-known"><strong>{{ importPreview.counts.known }}</strong>{{ t('importStatus_known') }}</li>
+                            </ul>
+                            <p v-if="importPreview.counts.duplicate" class="rules-help">
+                                <span class="material-icons inline-icon" aria-hidden="true">content_copy</span>{{ t('importDuplicateHelp') }}
+                            </p>
+                        </div>
+
+                        <div class="import-list-head">
+                            <label class="setup-checkbox">
+                                <input type="checkbox" :checked="importAllSelected" :disabled="!importSelectableRows.length" @change="toggleImportAll" />
+                                {{ t('importSelectAll') }}
+                            </label>
+                            <span>{{ t('importSelectedCount', { count: importSelectedCount }) }}</span>
+                        </div>
+                        <ul class="import-list">
+                            <li v-for="row in importRows" :key="row.index" class="import-row" :class="['status-' + row.status, { selected: importSelection[row.index] }]">
+                                <label>
+                                    <input type="checkbox" :checked="!!importSelection[row.index]" :disabled="row.status === 'known'" @change="toggleImportRow(row)" />
+                                    <span class="transaction-icon" :class="'type-' + row.type">
+                                        <span class="material-icons" aria-hidden="true">{{ getTransactionIcon(row.type) }}</span>
+                                    </span>
+                                    <span class="import-row-text">
+                                        <span class="import-row-label">{{ row.label }}</span>
+                                        <span class="import-row-meta">
+                                            {{ formatDate(row.date) }}
+                                            <span v-if="row.status !== 'new'" class="import-badge" :class="'status-' + row.status">{{ t('importBadge_' + row.status) }}</span>
+                                            <span v-if="row.match" class="import-match">{{ t('importMatch', { label: row.match.label, date: formatDate(row.match.date) }) }}</span>
+                                        </span>
+                                    </span>
+                                    <span class="import-row-amount" :class="row.amount >= 0 ? 'positive' : 'negative'">{{ formatAmount(row.amount) }} {{ t('currencySymbol') }}</span>
+                                </label>
+                            </li>
+                        </ul>
+                    </template>
+
+                    <div v-if="importError" class="sync-step-error" role="alert">{{ importError }}</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" @click="closeImport" :disabled="importing">{{ t('cancel') }}</button>
+                    <button v-if="importPreview" type="button" @click="confirmImport" :disabled="importing || !importSelectedCount">
+                        <span class="material-icons" :class="{ spin: importing }" aria-hidden="true">{{ importing ? 'autorenew' : 'download_done' }}</span>
+                        {{ t('importConfirm', { count: importSelectedCount }) }}
+                    </button>
+                </div>
+            </div>
         </div>
 
         <!-- Transaction Modal: detail and category -->

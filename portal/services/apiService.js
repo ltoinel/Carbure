@@ -157,6 +157,33 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
     }
 
     /**
+     * Reads a bank statement file and tells which transactions are new
+     * @param {string} file - Content of the file, base64 encoded
+     * @param {string} filename - Name of the file
+     * @returns {Promise<Object>} {format, account, from, to, counts, rows}
+     */
+    async function previewImport(file, filename) {
+        return request(`${baseUrl}/transaction/import/preview`, {
+            method: 'POST',
+            body: JSON.stringify({ file, filename })
+        }, 'Failed to read the file');
+    }
+
+    /**
+     * Imports transactions of a bank statement file
+     * @param {string} file - Content of the file, base64 encoded
+     * @param {string} filename - Name of the file
+     * @param {Array<number>} selected - Indexes of the rows to import
+     * @returns {Promise<Object>} {imported, categorized, from, to}
+     */
+    async function importTransactions(file, filename, selected) {
+        return request(`${baseUrl}/transaction/import`, {
+            method: 'POST',
+            body: JSON.stringify({ file, filename, selected })
+        }, 'Failed to import the file');
+    }
+
+    /**
      * Points (checks) or unpoints a transaction
      * @param {number} id - Transaction ID
      * @param {boolean} pointed - New pointed status
@@ -321,6 +348,40 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
      */
     async function deleteApiToken(id) {
         await request(`${baseUrl}/token?id=${encodeURIComponent(id)}`, { method: 'DELETE' }, 'Failed to revoke the API token');
+    }
+
+    /**
+     * Configuration file of the instance, by section (administrators)
+     * @returns {Promise<Object>} {file, writable, sections}
+     */
+    async function fetchConfig() {
+        return request(`${baseUrl}/system/config`, {}, 'Failed to read the configuration');
+    }
+
+    /**
+     * Changes settings of the configuration file (administrators)
+     * @param {Object} values - New values by key
+     * @returns {Promise<Object>} The configuration
+     */
+    async function updateConfig(values) {
+        return request(`${baseUrl}/system/config`, { method: 'PUT', body: JSON.stringify({ values }) }, 'Failed to save the configuration');
+    }
+
+    /**
+     * Request that starts the bank synchronization (administrators)
+     * @param {boolean} reveal - Return the token itself
+     * @returns {Promise<Object>} {url, token, masked, accounts}
+     */
+    async function fetchSyncInfo(reveal = false) {
+        return request(`${baseUrl}/system/sync?reveal=${reveal ? 'true' : 'false'}`, {}, 'Failed to read the synchronization settings');
+    }
+
+    /**
+     * Replaces the synchronization token (administrators)
+     * @returns {Promise<Object>} {token}
+     */
+    async function renewSyncToken() {
+        return request(`${baseUrl}/system/sync-token`, { method: 'POST' }, 'Failed to renew the token');
     }
 
     /**
@@ -780,6 +841,10 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
         fetchDevices,
         fetchApiTokens,
         fetchBudgetFlow,
+        fetchConfig,
+        updateConfig,
+        fetchSyncInfo,
+        renewSyncToken,
         fetchFlowTransactions,
         unlockUser,
         fetchMcpSettings,
@@ -821,6 +886,8 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
         searchTransactions,
         fetchCategoryTransactions,
         setTransactionPointed,
+        previewImport,
+        importTransactions,
         createUser,
         updateUser,
         deleteUser

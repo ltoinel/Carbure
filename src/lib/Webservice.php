@@ -279,9 +279,10 @@ final class Webservice {
     public static function maskSensitive($data)
     {
         foreach ($data as $key => $value) {
-            // settings: the bank credentials sent to woob, whatever their names
+            // settings: the bank credentials sent to woob, whatever their names;
+            // file: an imported bank statement (household data, large)
             if (in_array(strtolower((string)$key), ['password', 'token', 'settings', 'admin_password', 'db_password',
-                    'code', 'code_verifier', 'refresh_token', 'access_token', 'client_secret'], true)) {
+                    'code', 'code_verifier', 'refresh_token', 'access_token', 'client_secret', 'file'], true)) {
                 $data[$key] = '***';
             } elseif (is_array($value)) {
                 $data[$key] = self::maskSensitive($value);

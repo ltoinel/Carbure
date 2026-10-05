@@ -1,0 +1,289 @@
+<?php
+
+/**
+ * Settings.php
+ *
+ * Configuration file of the instance in the portal (administrators): every
+ * setting is shown, the secrets masked; only the settings that cannot run a
+ * command, break the database connection nor change the transaction UUIDs can
+ * be changed, each one checked against a strict rule. Also the request that
+ * starts the bank synchronization (for a scheduler) and its token.
+ *
+ * @author     Ludovic Toinel
+ * @copyright  2026 Carbure App
+ */
+
+final class Settings {
+
+    /** Settings whose value is never sent to the portal */
+    const SECRETS = ['db_password', 'jwtsecret', 'password_salt', 'sync_token', 'apns_certificate_password'];
+
+    /**
+     * Settings the portal can change: kind (select, bool, number, text, url),
+     * options or limits, and for the texts the pattern of a valid value.
+     * woob_logging and woob_transactions are put in the woob command line: only
+     * known values are accepted.
+     */
+    const EDITABLE = [
+        'log_level' => ['kind' => 'select', 'options' => ['debug', 'info', 'warning', 'error']],
+        'savings_category' => ['kind' => 'text', 'pattern' => '/^[\p{L}\p{N} \'\-]{1,50}$/u'],
+        'public_url' => ['kind' => 'url', 'empty' => true],
+        'woob_transactions' => ['kind' => 'number', 'min' => 1, 'max' => 5000],
+        'woob_logging' => ['kind' => 'select', 'options' => ['debug', 'info', 'warning', 'error', 'critical']],
+        'woob_debug' => ['kind' => 'bool'],
+        'woob_auto_update' => ['kind' => 'bool'],
+        'apns_environment' => ['kind' => 'select', 'options' => ['production', 'sandbox']],
+        'apns_auth_method' => ['kind' => 'select', 'options' => ['token', 'certificate']],
+        'apns_bundle_id' => ['kind' => 'text', 'pattern' => '/^[A-Za-z0-9.\-]{1,100}$/'],
+        'apns_key_id' => ['kind' => 'text', 'pattern' => '/^[A-Z0-9]{10}$/', 'empty' => true],
+        'apns_team_id' => ['kind' => 'text', 'pattern' => '/^[A-Z0-9]{10}$/', 'empty' => true],
+    ];
+
+    /** Section of the settings that the file may not have yet */
+    const SECTIONS = [
+        'log_level' => 'global', 'savings_category' => 'global', 'public_url' => 'global',
+        'woob_transactions' => 'woob', 'woob_logging' => 'woob', 'woob_debug' => 'woob', 'woob_auto_update' => 'woob',
+        'apns_environment' => 'apns', 'apns_auth_method' => 'apns', 'apns_bundle_id' => 'apns',
+        'apns_key_id' => 'apns', 'apns_team_id' => 'apns',
+    ];
+
+    /**
+     * The configuration file, by section (administrators).
+     *
+     * @return array file (path in the instance), writable, sections [{name, settings:
+     *               [{key, value, set, secret, editable, kind, options?, min?, max?}]}]
+     * @throws Exception If the file cannot be read
+     */
+    #[ApiRoute('/system/config', method: 'GET')]
+    public static function get()
+    {
+        User::requireAdmin();
+        $file = self::file();
+        $ini = @parse_ini_file($file, true, INI_SCANNER_RAW);
+        if ($ini === false) {
+            throw new Exception("The configuration file cannot be read");
+        }
+
+        $sections = [];
+        $seen = [];
+        foreach ($ini as $name => $settings) {
+            $list = [];
+            foreach ((array)$settings as $key => $value) {
+                $list[] = self::describe($key, $value);
+                $seen[$key] = true;
+            }
+            $sections[$name] = $list;
+        }
+        // Editable settings missing from the file: shown as not set
+        foreach (self::EDITABLE as $key => $rule) {
+            if (!isset($seen[$key])) {
+                $sections[self::SECTIONS[$key]][] = self::describe($key, null);
+            }
+        }
+
+        $result = [];
+        foreach ($sections as $name => $list) {
+            $result[] = ['name' => $name, 'settings' => $list];
+        }
+        $root = Config::get('install_dir') . '/';
+        return [
+            'file' => str_starts_with($file, $root) ? substr($file, strlen($root)) : basename($file),
+            'writable' => is_writable($file),
+            'sections' => $result,
+        ];
+    }
+
+    /**
+     * Change settings of the configuration file (administrators). Every value is
+     * checked before anything is written; the previous file is kept as <file>.bak.
+     *
+     * @param array $values The new values, by key (editable settings only)
+     * @return array The configuration, as GET /system/config
+     * @throws Error If a setting cannot be changed or a value is not valid (400)
+     * @throws Exception If the file cannot be written
+     */
+    #[ApiRoute('/system/config', method: 'PUT')]
+    public static function update($values)
+    {
+        User::requireAdmin();
+        if (!is_array($values) || !$values) {
+            throw new Error("No setting to change", 400);
+        }
+
+        $checked = [];
+        foreach ($values as $key => $value) {
+            $checked[$key] = self::check((string)$key, $value);
+        }
+
+        $file = self::file();
+        $ini = self::read($file);
+        foreach ($checked as $key => $value) {
+            $ini = Installer::setIni($ini, $key, $value);
+        }
+        self::write($file, $ini);
+        Logger::warn("Configuration changed by user " . Jwt::getUserIdFromToken() . ": " . implode(', ', array_keys($checked)));
+
+        return self::get();
+    }
+
+    /**
+     * The request that starts the bank synchronization, for a scheduler (administrators).
+     *
+     * @param bool $reveal Return the token itself (masked by default)
+     * @return array url, token (null if there is none), masked, accounts (the bank
+     *               accounts, for ?account=)
+     */
+    #[ApiRoute('/system/sync', method: 'GET')]
+    public static function sync($reveal = false)
+    {
+        User::requireAdmin();
+        // From the file: the token may have been renewed since the configuration was loaded
+        $ini = @parse_ini_file(self::file());
+        $token = !empty($ini['sync_token']) ? (string)$ini['sync_token'] : null;
+        $masked = !filter_var($reveal, FILTER_VALIDATE_BOOLEAN);
+        $accounts = Db::execute("SELECT DISTINCT CONCAT(account_number, '@', bank_name) AS id FROM bank_account ORDER BY id", "")
+            ->get_result()->fetch_all(MYSQLI_ASSOC);
+
+        return [
+            'url' => OAuth::baseUrl() . '/api/bank/sync',
+            'token' => $token === null ? null : ($masked ? str_repeat('•', 12) : $token),
+            'masked' => $masked && $token !== null,
+            'accounts' => array_column($accounts, 'id'),
+        ];
+    }
+
+    /**
+     * Replace the synchronization token by a new random one (administrators): the
+     * scheduler must use the new one.
+     *
+     * @return array token (the new one)
+     * @throws Exception If the file cannot be written
+     */
+    #[ApiRoute('/system/sync-token', method: 'POST')]
+    public static function renewSyncToken()
+    {
+        User::requireAdmin();
+        $token = bin2hex(random_bytes(24));
+        $file = self::file();
+        self::write($file, Installer::setIni(self::read($file), 'sync_token', $token));
+        Config::set('sync_token', $token);
+        Logger::warn("sync_token renewed by user " . Jwt::getUserIdFromToken());
+        return ['token' => $token];
+    }
+
+    /**
+     * A setting as shown in the portal.
+     *
+     * @param string            $key   The key
+     * @param string|array|null $value The raw value (null: not in the file)
+     * @return array
+     */
+    private static function describe($key, $value)
+    {
+        $rule = self::EDITABLE[$key] ?? null;
+        $secret = in_array($key, self::SECRETS, true);
+        if (is_array($value)) {
+            // regex_label[...]: the pattern and its replacement
+            $value = array_map(fn($k, $v) => "$k => \"$v\"", array_keys($value), $value);
+        } elseif ($value !== null && $rule && $rule['kind'] === 'bool') {
+            $value = in_array(strtolower(trim($value)), ['1', 'true', 'on', 'yes'], true);
+        }
+        $setting = [
+            'key' => $key,
+            'value' => $secret ? ($value === null || $value === '' ? '' : str_repeat('•', 12)) : $value,
+            'set' => $value !== null && $value !== '',
+            'secret' => $secret,
+            'editable' => $rule !== null,
+            'kind' => $rule['kind'] ?? (is_array($value) ? 'list' : 'text'),
+        ];
+        foreach (['options', 'min', 'max'] as $option) {
+            if (isset($rule[$option])) {
+                $setting[$option] = $rule[$option];
+            }
+        }
+        return $setting;
+    }
+
+    /**
+     * Check a new value against the rule of its setting.
+     *
+     * @param string $key   The key
+     * @param mixed  $value The value
+     * @return string The value to write
+     * @throws Error If the setting cannot be changed or the value is not valid (400)
+     */
+    private static function check($key, $value)
+    {
+        $rule = self::EDITABLE[$key] ?? null;
+        if ($rule === null) {
+            throw new Error("The setting $key cannot be changed from the portal", 400);
+        }
+        if (is_array($value) || is_object($value)) {
+            throw new Error("Invalid value for $key", 400);
+        }
+        $value = trim((string)$value);
+        $valid = match ($rule['kind']) {
+            'select' => in_array($value, $rule['options'], true),
+            'bool' => in_array($value, ['1', '0', 'true', 'false', ''], true),
+            'number' => ctype_digit($value) && (int)$value >= $rule['min'] && (int)$value <= $rule['max'],
+            'url' => ($value === '' && !empty($rule['empty']))
+                || (preg_match('#^https?://[A-Za-z0-9.\-]+(:\d{1,5})?(/[A-Za-z0-9._~/\-]*)?$#', $value) === 1),
+            default => ($value === '' && !empty($rule['empty'])) || preg_match($rule['pattern'], $value) === 1,
+        };
+        if (!$valid) {
+            throw new Error("Invalid value for $key", 400);
+        }
+        if ($rule['kind'] === 'bool') {
+            return in_array($value, ['1', 'true'], true) ? 'true' : 'false';
+        }
+        return $rule['kind'] === 'url' ? rtrim($value, '/') : $value;
+    }
+
+    /**
+     * The configuration file (tests use a copy, see System::$configFile).
+     *
+     * @return string
+     */
+    private static function file()
+    {
+        return System::$configFile ?? Config::get('config_file');
+    }
+
+    /**
+     * Content of the configuration file.
+     *
+     * @param string $file The file
+     * @return string
+     * @throws Exception If it cannot be read
+     */
+    private static function read($file)
+    {
+        $ini = @file_get_contents($file);
+        if ($ini === false) {
+            throw new Exception("The configuration file cannot be read");
+        }
+        return $ini;
+    }
+
+    /**
+     * Write the configuration file, the previous one kept as <file>.bak.
+     *
+     * @param string $file The file
+     * @param string $ini  The new content
+     * @return void
+     * @throws Exception If it cannot be written, or the new content is not valid INI
+     */
+    private static function write($file, $ini)
+    {
+        if (@parse_ini_string($ini, true, INI_SCANNER_RAW) === false) {
+            throw new Exception("The new configuration would not be valid");
+        }
+        if (!is_writable($file)) {
+            throw new Exception("The configuration file cannot be written by the web server");
+        }
+        @copy($file, "$file.bak");
+        if (@file_put_contents($file, $ini, LOCK_EX) === false) {
+            throw new Exception("The configuration file cannot be written by the web server");
+        }
+    }
+}

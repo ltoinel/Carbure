@@ -127,3 +127,18 @@ test('agentConfigurations: the MCP URL and the token in each configuration', () 
     }
     assert.deepEqual(JSON.parse(configs.find(c => c.id === 'cursor').code), { mcpServers: { carbure: { url, headers: { Authorization: 'Bearer tok-123' } } } });
 });
+
+test('import: base64 of a file, by chunks', async () => {
+    const { toBase64 } = await import('../../portal/modules/importModule.js');
+    const text = 'Date;Libellé;Montant\n'.repeat(5000);
+    const bytes = new TextEncoder().encode(text);
+    assert.equal(toBase64(bytes.buffer), Buffer.from(bytes).toString('base64'));
+    assert.equal(toBase64(new ArrayBuffer(0)), '');
+});
+
+test('config: curl command of the synchronization', async () => {
+    const { syncCommand } = await import('../../portal/modules/configModule.js');
+    assert.equal(syncCommand('https://x.fr/api/bank/sync', 'abc'), 'curl -sN -H "X-Sync-Token: abc" "https://x.fr/api/bank/sync"');
+    assert.equal(syncCommand('https://x.fr/api/bank/sync', 'abc', '123@bnp'), 'curl -sN -H "X-Sync-Token: abc" "https://x.fr/api/bank/sync?account=123%40bnp"');
+    assert.equal(syncCommand('https://x.fr/api/bank/sync', null), 'curl -sN "https://x.fr/api/bank/sync"');
+});

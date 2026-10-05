@@ -48,15 +48,15 @@ test('shows every tab to an administrator', async ({ adminPage: page }) => {
     }
 });
 
-test('groups the users, the logs and the AI agent under Administration', async ({ adminPage: page }) => {
+test('groups the users, the logs, the settings, the sync and the AI agent under Administration', async ({ adminPage: page }) => {
     const tabs = page.locator('.tabs');
-    for (const key of ['tabUsers', 'tabLogs', 'tabAgents']) {
+    for (const key of ['tabUsers', 'tabLogs', 'tabSettings', 'tabSync', 'tabAgents']) {
         await expect(tabs.getByRole('button', { name: tr(key), exact: true })).toHaveCount(0);
     }
 
     await tabs.getByRole('button', { name: tr('tabAdministration'), exact: true }).click();
     const sections = page.getByRole('tablist', { name: tr('tabAdministration') });
-    await expect(sections.getByRole('tab')).toHaveText([tr('tabUsers'), tr('tabLogs'), tr('tabAgents')].map(label => new RegExp(`${label}$`)));
+    await expect(sections.getByRole('tab')).toHaveText([tr('tabUsers'), tr('tabLogs'), tr('tabSettings'), tr('tabSync'), tr('tabAgents')].map(label => new RegExp(`${label}$`)));
     await expect(sections.getByRole('tab', { name: tr('tabUsers') })).toHaveAttribute('aria-selected', 'true');
     await expect(page.getByRole('heading', { name: tr('usersTitle') })).toBeVisible();
 

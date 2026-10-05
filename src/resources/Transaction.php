@@ -24,6 +24,9 @@
 require_once "Category.php";
 
 final class Transaction {
+
+    /** Days between a transaction of a file and one of the database for a probable duplicate */
+    const DUPLICATE_DAYS = 3;
     
     /**
      * Return the transactions of a month, optionally of one category.
@@ -90,43 +93,66 @@ final class Transaction {
     /**
      * Load transactions from an array.
      *
-     * @param array $data   The array of transactions
-     * @param int   $userId The user owning the synchronized bank account
-     * @return array The transactions that were not known yet (with their cleaned label)
+     * @param array $data     The array of transactions
+     * @param int   $userId   The user owning the synchronized bank account
+     * @param bool  $progress Send each label as a progress event (synchronization)
+     * @return array The transactions that were not known yet (label cleaned, amount, uuid)
      */
-    public static function save($data, $userId)
+    public static function save($data, $userId, $progress = true)
     {
         $created = [];
 
         // Insert each transaction (duplicates are merged on their UUID)
         foreach ($data as $transaction) {
-            Webservice::sendProgress($transaction['raw']);
-            if (self::create($transaction, $userId)) {
-                $created[] = ['label' => self::cleanLabel($transaction['raw']), 'amount' => (float)$transaction['amount']];
+            if ($progress) {
+                Webservice::sendProgress($transaction['raw']);
+            }
+            $row = self::prepare($transaction);
+            if (self::create($row, $userId)) {
+                $created[] = ['label' => $row['label'], 'amount' => (float)$transaction['amount'], 'uuid' => $row['uuid']];
             }
         }
 
         return $created;
     }
 
-
     /**
-     * Save a transaction in the database.
+     * Columns of a transaction as it is stored: cleaned label, date of the salaries
+     * moved to the next month, UUID.
      *
-     * @param array $transaction The transaction to save
-     * @param int   $userId      The user owning the transaction
-     * @return bool True if the transaction is new, false if it was already known
+     * @param array $transaction The transaction {type, raw, amount, date, rdate?, card?}
+     * @return array uuid, date, rdate, amount, label, type, card
      */
-    private static function create($transaction, $userId)
+    public static function prepare($transaction)
     {
         $type = $transaction['type'];
         $label = self::cleanLabel($transaction['raw']);
         $amount = $transaction['amount'];
         $rdate = $transaction['rdate'] ?? $transaction['date'];
-        $card = $transaction['card'] ?? '';
-        
-        $date = self::fixPrelevementDate($type, $amount, $transaction['date']);
-        $uuid = self::generateTransactionUuid($type, $rdate, $label, $amount);
+
+        return [
+            'uuid' => self::generateTransactionUuid($type, $rdate, $label, $amount),
+            'date' => self::fixPrelevementDate($type, $amount, $transaction['date']),
+            'rdate' => $rdate,
+            'amount' => $amount,
+            'label' => $label,
+            'type' => $type,
+            'card' => $transaction['card'] ?? '',
+        ];
+    }
+
+
+    /**
+     * Save a transaction in the database.
+     *
+     * @param array $row    The transaction, as returned by prepare()
+     * @param int   $userId The user owning the transaction
+     * @return bool True if the transaction is new, false if it was already known
+     */
+    private static function create($row, $userId)
+    {
+        ['uuid' => $uuid, 'date' => $date, 'rdate' => $rdate, 'amount' => $amount,
+         'label' => $label, 'type' => $type, 'card' => $card] = $row;
 
         $sql = "INSERT INTO bank_transaction (uuid, date, rdate, amount, label, type, card, user)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -136,6 +162,172 @@ final class Transaction {
 
         // MySQL reports 1 affected row for an insert, 2 or 0 for an update of a known UUID
         return $stmt->affected_rows === 1;
+    }
+
+    /**
+     * Read a statement file downloaded from a bank (OFX/QFX, QIF, CAMT.053, CSV) and
+     * tell, for each transaction, whether it would be new: "known" (same UUID, it would
+     * be merged), "duplicate" (a transaction of the same amount a few days apart, most
+     * likely the same one synchronized with another label) or "new".
+     *
+     * @param string      $file     The content of the file, base64 encoded
+     * @param string|null $filename The name of the file (helps to tell the format)
+     * @return array format, account, from, to, counts {new, known, duplicate} and rows
+     *               [{index, date, rdate, amount, label, type, status, match?}]
+     * @throws Error If the file is not understood
+     */
+    #[ApiRoute('/transaction/import/preview', method: 'POST')]
+    public static function previewImport($file, $filename = null)
+    {
+        [$parsed, $rows] = self::analyzeImport($file, $filename);
+        $counts = ['new' => 0, 'known' => 0, 'duplicate' => 0];
+        foreach ($rows as $row) {
+            $counts[$row['status']]++;
+        }
+        $dates = array_column($rows, 'date');
+
+        return [
+            'format' => $parsed['format'],
+            'account' => $parsed['account'],
+            'from' => min($dates),
+            'to' => max($dates),
+            'counts' => $counts,
+            'rows' => $rows,
+        ];
+    }
+
+    /**
+     * Import a statement file: its transactions are saved for the current user, then
+     * categorized with the rules. The known ones are skipped; the probable duplicates
+     * only when they are not selected.
+     *
+     * @param string      $file     The content of the file, base64 encoded
+     * @param string|null $filename The name of the file
+     * @param array|null  $selected Indexes of the rows to import (by default: the new ones)
+     * @return array imported (number of new transactions), categorized, from, to
+     * @throws Error If the file is not understood
+     */
+    #[ApiRoute('/transaction/import', method: 'POST')]
+    public static function import($file, $filename = null, $selected = null)
+    {
+        [$parsed, $rows] = self::analyzeImport($file, $filename);
+        $selected = $selected === null ? null : array_map('intval', (array)$selected);
+
+        $data = [];
+        foreach ($rows as $row) {
+            $wanted = $selected === null ? $row['status'] === 'new' : in_array($row['index'], $selected, true);
+            if ($wanted && $row['status'] !== 'known') {
+                $data[] = $parsed['transactions'][$row['index']];
+            }
+        }
+
+        $created = self::save($data, (int)Jwt::getUserIdFromToken(), false);
+
+        // The rules categorize the new transactions, whatever their date
+        $categorized = 0;
+        $keywords = Category::loadKeywords();
+        foreach ($created as $transaction) {
+            $category = Category::find($transaction['label'], $keywords);
+            if ($category !== null) {
+                Db::execute("UPDATE bank_transaction SET category = ? WHERE uuid = ? AND category = 0", "is", $category, $transaction['uuid']);
+                $categorized++;
+            }
+        }
+        Logger::info("Import of a " . $parsed['format'] . " file: " . count($created) . " new transaction(s), $categorized categorized");
+
+        $dates = array_column($data, 'date');
+        return [
+            'imported' => count($created),
+            'categorized' => $categorized,
+            'from' => $dates ? min($dates) : null,
+            'to' => $dates ? max($dates) : null,
+        ];
+    }
+
+    /**
+     * Parse a statement file and compare its transactions with the database.
+     *
+     * @param string      $file     The content of the file, base64 encoded
+     * @param string|null $filename The name of the file
+     * @return array [parsed file (BankFile::parse), rows with their status]
+     * @throws Error If the file is not understood
+     */
+    private static function analyzeImport($file, $filename)
+    {
+        $content = base64_decode((string)$file, true);
+        if ($content === false) {
+            throw new Error("The file must be base64 encoded", 400);
+        }
+        $parsed = BankFile::parse($content, $filename);
+
+        $rows = [];
+        foreach ($parsed['transactions'] as $index => $transaction) {
+            $row = self::prepare($transaction);
+            $rows[] = ['index' => $index, 'date' => $row['date'], 'rdate' => $row['rdate'], 'amount' => $row['amount'],
+                       'label' => stripslashes($row['label']), 'type' => $row['type'], 'uuid' => $row['uuid'], 'status' => 'new'];
+        }
+
+        // Transactions of the period of the file (and a few days around)
+        $dates = array_merge(array_column($rows, 'date'), array_column($rows, 'rdate'));
+        $from = date('Y-m-d', strtotime(min($dates) . ' -' . self::DUPLICATE_DAYS . ' days'));
+        $to = date('Y-m-d', strtotime(max($dates) . ' +' . self::DUPLICATE_DAYS . ' days'));
+        $existing = Db::execute("SELECT id, uuid, date, rdate, amount, label FROM bank_transaction WHERE date BETWEEN ? AND ? OR rdate BETWEEN ? AND ?",
+            "ssss", $from, $to, $from, $to)->get_result()->fetch_all(MYSQLI_ASSOC);
+        $uuids = array_flip(array_column($existing, 'uuid'));
+
+        $seen = [];
+        $matched = [];
+        foreach ($rows as &$row) {
+            // Same UUID: in the database, or twice in the file
+            if (isset($uuids[$row['uuid']]) || isset($seen[$row['uuid']])) {
+                $row['status'] = 'known';
+                if (isset($uuids[$row['uuid']])) {
+                    $matched[$existing[$uuids[$row['uuid']]]['id']] = true;
+                }
+            }
+            $seen[$row['uuid']] = true;
+        }
+        unset($row);
+        foreach ($rows as &$row) {
+            if ($row['status'] !== 'new') {
+                continue;
+            }
+            // Same amount, a few days apart: each transaction of the database matches one row at most
+            foreach ($existing as $transaction) {
+                if (isset($matched[$transaction['id']]) || abs((float)$transaction['amount'] - (float)$row['amount']) >= 0.005) {
+                    continue;
+                }
+                $gap = min(self::daysBetween($transaction['date'], $row['date']), self::daysBetween($transaction['rdate'], $row['rdate']));
+                if ($gap <= self::DUPLICATE_DAYS) {
+                    $row['status'] = 'duplicate';
+                    $row['match'] = ['id' => (int)$transaction['id'], 'date' => $transaction['date'], 'label' => $transaction['label']];
+                    $matched[$transaction['id']] = true;
+                    break;
+                }
+            }
+        }
+        unset($row);
+
+        foreach ($rows as &$row) {
+            unset($row['uuid']);
+        }
+        unset($row);
+        return [$parsed, $rows];
+    }
+
+    /**
+     * Number of days between two dates.
+     *
+     * @param string|null $a A date (Y-m-d)
+     * @param string|null $b Another date
+     * @return int The number of days (a large number if a date is missing)
+     */
+    private static function daysBetween($a, $b)
+    {
+        if (!$a || !$b) {
+            return PHP_INT_MAX;
+        }
+        return (int)abs((strtotime($a) - strtotime($b)) / 86400);
     }
 
     /**

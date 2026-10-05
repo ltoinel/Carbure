@@ -15,7 +15,8 @@
  * The database comes from E2E_DB_HOST, E2E_DB_PORT, E2E_DB_USER, E2E_DB_PASSWORD
  * (127.0.0.1:3306, root, no password by default) and E2E_DB_NAME (carbure_e2e by
  * default; the name must end with _e2e or _dev: the reset drops it). The logs and the files
- * of the instance go to tests/e2e/.data, the woob CLI is the fake one of the tests.
+ * of the instance go to tests/e2e/.data (with a copy of conf/e2e.ini, the configuration
+ * file changed by the Config tab), the woob CLI is the fake one of the tests.
  *
  * @author     Ludovic Toinel
  * @copyright  2026 Carbure App
@@ -62,6 +63,14 @@ if (getenv('E2E_DB_NAME')) {
     Config::set('db_name', getenv('E2E_DB_NAME'));
 }
 Config::set('woob_path', escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($root . '/tests/fixtures/fake-woob.php'));
+
+// The Config tab writes a copy of the configuration, never conf/e2e.ini
+$configCopy = $dataDir . '/conf/e2e.ini';
+if ($path === '/api/__e2e/reset' || !is_file($configCopy)) {
+    @mkdir($dataDir . '/conf', 0700, true);
+    copy($root . '/conf/e2e.ini', $configCopy);
+}
+System::$configFile = realpath($configCopy);
 
 if ($path === '/api/__e2e/reset') {
     header('Content-Type: application/json');
