@@ -22,8 +22,13 @@ en trois étapes :
    vide, conserver une base Carbure à jour, ou mettre à jour une base Carbure existante
    (après avoir coché « J'ai une sauvegarde de ma base de données »). Il demande
    l'identifiant, le mot de passe (8 caractères minimum), l'e-mail et la langue du
-   **compte administrateur** s'il n'en existe pas encore.
+   **compte administrateur** s'il n'en existe pas encore. Sur une base vide, il propose
+   aussi, **pour bien démarrer**, des catégories courantes avec leurs règles et des insights
+   (deux cases cochées par défaut ; noms dans la langue choisie ; tout reste modifiable).
 3. **Terminé** : connexion avec ce compte.
+
+Si le navigateur garde la session d'une installation précédente à la même adresse (Carbure
+réinstallé de zéro), elle est fermée et l'assistant s'affiche.
 
 ## Connexion et profils
 
@@ -37,7 +42,7 @@ Deux profils existent :
 | Profil | Onglets |
 |---|---|
 | **Utilisateur** | Transactions, Budget, Insights, Tendances ; **Agent IA** et **Mon profil** dans le menu utilisateur |
-| **Administrateur** | En plus : Règles, Catégories, Comptes, et le menu **Administration** (Utilisateurs, Logs, Agent IA) ; ajout et modification des insights ; activation du serveur MCP ; mise à jour de la base de données |
+| **Administrateur** | En plus : Règles, Catégories, Comptes, et le menu **Administration** (Utilisateurs, Synchro, Agent IA, Logs, Paramètres) ; ajout et modification des insights ; activation du serveur MCP ; mise à jour de la base de données |
 
 Les pages d'administration (Règles, Catégories, Comptes, Utilisateurs) et les onglets
 Insights et Agent IA suivent la même présentation : un en-tête avec le titre et l'aide, et
@@ -50,8 +55,10 @@ modification.
 - En haut à droite, le bouton affiche le **login** de l'utilisateur connecté ; son menu
   donne accès à **Mon profil**, à **Agent IA** (utilisateurs non administrateurs) et à
   **Déconnexion**.
-- Le sélecteur de **mois** et d'**année** et le bouton rond **Actualiser** (icône seule) s'appliquent aux
-  onglets Transactions, Budget et Insights. Les onglets Tendances et Règles ont leurs
+- Dans la barre du haut, le sélecteur de **mois** et d'**année** et le bouton rond
+  **Actualiser** (icône seule) s'appliquent aux onglets Transactions, Budget et Insights.
+  Ils ne proposent que les mois qui ont des transactions, plus le mois en cours ; une autre
+  année sélectionne son dernier mois disponible. Les onglets Tendances et Règles ont leurs
   propres réglages.
 
 !!! note "Mise à jour de la base de données"
@@ -81,7 +88,8 @@ modification.
   l'onglet Règles avec le libellé et la catégorie pré-remplis, le mot-clé pouvant être
   raccourci (dates, numéros de carte…).
 - **Détail d'une transaction** : un clic (ou Entrée) sur le libellé ouvre une fenêtre avec
-  le montant, le libellé complet, les dates, le type, la carte et la date d'import ; la
+  le montant, le libellé complet, les dates, le type, la carte, la banque (compte synchronisé
+  ou relevé importé) et la date d'import ; la
   catégorie s'y change avec le sélecteur visuel et la transaction s'y pointe.
 - **Importer un relevé** : le bouton « Importer » ouvre une fenêtre où déposer le fichier
   téléchargé depuis l'espace client de la banque (OFX/QFX, QIF, CSV ou CAMT.053, 1 Mo au
@@ -236,15 +244,17 @@ supprimé.
 
 Les entrées des fichiers de log du serveur (`data/logs/carbure_AAAAMMJJ.log`), les plus
 récentes d'abord : choix du fichier, niveau minimal (DEBUG, INFO, WARN, ERROR) et recherche
-de texte. Un clic sur l'identifiant d'une requête affiche toutes ses entrées. Seule la fin
-d'un gros fichier (2 Mo) est lue ; les jetons de session et des agents IA sont masqués.
+de texte. Chaque entrée indique l'adresse IP du client et l'utilisateur connecté ; un clic sur
+l'identifiant d'une requête affiche toutes ses entrées, jusqu'à la ligne de fin (statut HTTP
+et durée). Seule la fin d'un gros fichier (2 Mo) est lue ; les jetons de session et des
+agents IA sont masqués. La durée de conservation des fichiers est rappelée en haut de page.
 
 ## Paramètres (menu Administration)
 
 Le fichier de configuration (`data/conf/prod.ini`) section par section,
 avec une description de chaque réglage. Les secrets (`db_password`, `jwtsecret`,
 `password_salt`, `sync_token`…) ne sont jamais affichés. Seuls les réglages sans risque
-sont modifiables — `log_level`, `savings_category`, `public_url`, `woob_transactions`,
+sont modifiables — `log_level`, `log_retention_days`, `savings_category`, `public_url`, `woob_transactions`,
 `woob_logging`, `woob_debug`, `woob_auto_update` et les identifiants APNs — avec des
 listes, des interrupteurs et des champs vérifiés par le serveur ; les autres portent un
 cadenas. Les réglages modifiés sont surlignés ; la barre du bas les enregistre ou les

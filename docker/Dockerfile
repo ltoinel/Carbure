@@ -75,7 +75,8 @@ ENV CARBURE_WOOB_PATH="env HOME=/data/woob woob"
 VOLUME /data
 EXPOSE 80
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
+# Every 5 minutes; every 10 s while the container starts (Docker 25+, ignored before)
+HEALTHCHECK --interval=5m --timeout=5s --start-period=2m --start-interval=10s --retries=3 \
     CMD ["curl", "-fsS", "-o", "/dev/null", "http://localhost/api/health"]
 
 ENTRYPOINT ["/var/www/carbure/docker/entrypoint.sh"]

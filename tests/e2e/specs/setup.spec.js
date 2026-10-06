@@ -40,7 +40,8 @@ test('installs Carbure in three steps', async ({ page }) => {
 
     await expect(page.getByRole('heading', { name: tr('setupDoneTitle') })).toBeVisible();
     expect(sent.map(s => s.step)).toEqual(['database', 'install']);
-    expect(sent[1]).toMatchObject({ db_host: 'db', db_password: 'secret-db', admin_user: 'admin', admin_password: 'admin-password' });
+    expect(sent[1]).toMatchObject({ db_host: 'db', db_password: 'secret-db', admin_user: 'admin', admin_password: 'admin-password',
+        starter_categories: true, starter_insights: true });
 
     // Then the login screen, with the administrator filled in
     await page.getByRole('button', { name: tr('loginButton') }).click();
@@ -53,12 +54,53 @@ test('checks the password of the administrator before installing', async ({ page
     await page.goto('/portal/');
     await page.getByRole('button', { name: tr('setupCheckDatabase') }).click();
 
+    // The password of the database has the same label: wait for the second step
+    await expect(page.getByRole('heading', { name: tr('setupAdminTitle') })).toBeVisible();
     await page.getByLabel(tr('password'), { exact: true }).fill('admin-password');
     await page.getByLabel(tr('setupPasswordConfirm')).fill('other-password');
     await page.getByRole('button', { name: tr('setupInstall') }).click();
 
     await expect(page.getByRole('alert')).toContainText(tr('setupPasswordMismatch'));
     expect(sent.map(s => s.step)).toEqual(['database']);
+});
+
+test('offers the starter data on a new database', async ({ page }) => {
+    const sent = await notInstalled(page);
+    await page.goto('/portal/');
+    await page.getByRole('button', { name: tr('setupCheckDatabase') }).click();
+
+    const group = page.getByRole('group', { name: tr('setupStarterTitle') });
+    const categories = group.getByLabel(tr('setupStarterCategories'));
+    const insights = group.getByLabel(tr('setupStarterInsights'));
+    await expect(categories).toBeChecked();
+    await expect(insights).toBeChecked();
+
+    // The insights use the starter categories
+    await categories.uncheck();
+    await expect(insights).toBeDisabled();
+
+    await page.getByLabel(tr('password'), { exact: true }).fill('admin-password');
+    await page.getByLabel(tr('setupPasswordConfirm')).fill('admin-password');
+    await page.getByRole('button', { name: tr('setupInstall') }).click();
+    await expect(page.getByRole('heading', { name: tr('setupDoneTitle') })).toBeVisible();
+    expect(sent[1]).toMatchObject({ starter_categories: false });
+});
+
+test('shows the wizard even with the session of a previous installation', async ({ page, baseURL }) => {
+    // The API of a server not installed (the routes of the wizard are added after: they win)
+    await page.route('**/api/**', route => route.fulfill({ status: 503, json: { error: 'Carbure is not installed yet', code: 503, setup: true } }));
+    await notInstalled(page);
+    // Same address, token of an instance that was since reinstalled from scratch
+    await page.addInitScript(origin => {
+        localStorage.setItem('authToken', 'token-of-a-previous-installation');
+        localStorage.setItem('apiUrl', origin);
+        localStorage.setItem('username', 'admin');
+    }, new URL(baseURL).origin);
+    await page.goto('/portal/');
+
+    await expect(page.getByRole('heading', { name: tr('setupTitle') })).toBeVisible();
+    await expect(page.locator('.user-menu-name')).toHaveCount(0);
+    expect(await page.evaluate(() => localStorage.getItem('authToken'))).toBeNull();
 });
 
 test('shows the login screen once installed', async ({ page }) => {

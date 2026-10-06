@@ -64,6 +64,8 @@ CREATE TABLE `bank_transaction` (
   `category` tinyint(3) unsigned NOT NULL DEFAULT 0 COMMENT 'Category of the transaction',
   `amount` decimal(10,2) NOT NULL COMMENT 'Amount in currency for this transaction',
   `card` varchar(19) DEFAULT NULL COMMENT 'Card number used for this transaction',
+  `bank_name` varchar(50) DEFAULT NULL COMMENT 'Bank (woob backend) of the synchronized account',
+  `account_number` varchar(100) DEFAULT NULL COMMENT 'Number of the synchronized or imported account',
   `pointed` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Pointed status for thjs transaction',
   `user` int(10) unsigned NOT NULL COMMENT 'The user of this transaction',
   PRIMARY KEY (`id`),
@@ -213,7 +215,8 @@ CREATE TABLE `schema_migrations` (
 
 INSERT IGNORE INTO `schema_migrations` (`version`) VALUES
 ('2026-10-13_base'),
-('2026-10-14_oauth');
+('2026-10-14_oauth'),
+('2026-10-15_transaction_bank');
 
 SET FOREIGN_KEY_CHECKS = 1;
 COMMIT;

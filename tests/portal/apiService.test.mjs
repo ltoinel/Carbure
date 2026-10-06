@@ -39,6 +39,18 @@ test('a 401 reports the expired session', async () => {
     assert.equal(expired, 1);
 });
 
+test('a 503 of a Carbure not installed reports it, not another 503', async () => {
+    let setup = 0;
+    mockFetch(() => json({ error: 'Carbure is not installed yet', code: 503, setup: true }, 503));
+    await assert.rejects(createApiService(BASE, 'old-token', null, () => setup++).fetchTransactions(1, 2026));
+    assert.equal(setup, 1);
+
+    // A proxy answering while the server restarts
+    mockFetch(() => new Response('<html>Service unavailable</html>', { status: 503 }));
+    await assert.rejects(createApiService(BASE, 'old-token', null, () => setup++).fetchTransactions(1, 2026));
+    assert.equal(setup, 1);
+});
+
 test('the lists are always arrays', async () => {
     mockFetch(() => json({ unexpected: true }));
     const api = createApiService(BASE, 't');

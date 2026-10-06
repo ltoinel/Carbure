@@ -207,6 +207,7 @@ export function createImportModule(getApiService) {
                         this.selectedYear = year;
                         this.selectedMonth = month;
                     }
+                    this.loadPeriods();
                     this.loadTransactions(this.selectedMonth, this.selectedYear);
                 } catch (err) {
                     this.importError = err.message;

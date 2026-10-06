@@ -172,7 +172,9 @@ final class Setup {
      * administrator if none, configuration file; the setup code is then deleted.
      *
      * @param array $data Database fields, admin_user, admin_password, admin_email,
-     *                    language, backup_confirmed (to apply migrations)
+     *                    language, backup_confirmed (to apply migrations), and for a new
+     *                    database starter_categories (categories and rules of
+     *                    sql/starter.json) and starter_insights (its insights too)
      * @return array done, version, username
      * @throws SetupError If a migration is not confirmed or the configuration cannot be written
      */
@@ -195,6 +197,9 @@ final class Setup {
 
         if ($state['state'] === 'none') {
             Installer::installSchema($db, $this->root);
+            if (!empty($data['starter_categories'])) {
+                Installer::starter($db, $this->root, $data['language'] ?? 'fr', !empty($data['starter_insights']));
+            }
         } elseif ($state['state'] === 'outdated') {
             Installer::migrate($db, $this->root);
         } else {

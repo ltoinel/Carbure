@@ -26,6 +26,7 @@ final class Settings {
      */
     const EDITABLE = [
         'log_level' => ['kind' => 'select', 'options' => ['debug', 'info', 'warning', 'error']],
+        'log_retention_days' => ['kind' => 'number', 'min' => 0, 'max' => 3650],
         'savings_category' => ['kind' => 'text', 'pattern' => '/^[\p{L}\p{N} \'\-]{1,50}$/u'],
         'public_url' => ['kind' => 'url', 'empty' => true],
         'woob_transactions' => ['kind' => 'number', 'min' => 1, 'max' => 5000],
@@ -41,7 +42,7 @@ final class Settings {
 
     /** Section of the settings that the file may not have yet */
     const SECTIONS = [
-        'log_level' => 'global', 'savings_category' => 'global', 'public_url' => 'global',
+        'log_level' => 'global', 'log_retention_days' => 'global', 'savings_category' => 'global', 'public_url' => 'global',
         'woob_transactions' => 'woob', 'woob_logging' => 'woob', 'woob_debug' => 'woob', 'woob_auto_update' => 'woob',
         'apns_environment' => 'apns', 'apns_auth_method' => 'apns', 'apns_bundle_id' => 'apns',
         'apns_key_id' => 'apns', 'apns_team_id' => 'apns',

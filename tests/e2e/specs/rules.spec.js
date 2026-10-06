@@ -9,8 +9,9 @@ test('lists the rules grouped by category, with a filter', async ({ adminPage: p
 
     await expect(page.getByRole('heading', { name: tr('rulesCount', { count: 4 }) })).toBeVisible();
     await expect(page.locator('.rules-group')).toHaveCount(4);
-    // LOYER notifies the household
+    // LOYER notifies the household: bell and light red background
     await expect(rule(page, 'LOYER').locator('.rule-notify')).toBeVisible();
+    await expect(rule(page, 'LOYER')).toHaveClass(/rule-chip-notify/);
 
     await page.getByRole('searchbox', { name: tr('ruleFilterPlaceholder') }).fill('super');
     await expect(page.locator('.rule-chip')).toHaveCount(1);
@@ -55,6 +56,7 @@ test('modifies a rule, showing the transactions it matches', async ({ adminPage:
     await modal.getByRole('button', { name: tr('save') }).click();
     await expect(modal).toHaveCount(0);
     await expect(rule(page, 'LOYER').locator('.rule-notify')).toHaveCount(0);
+    await expect(rule(page, 'LOYER')).not.toHaveClass(/rule-chip-notify/);
 });
 
 test('deletes a rule', async ({ adminPage: page }) => {

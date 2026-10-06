@@ -88,11 +88,24 @@ final class System {
     {
         User::requireAdmin();
         $files = [];
-        foreach (glob(Config::get('data_dir') . '/logs/carbure_*.log') ?: [] as $file) {
-            $files[] = ['name' => basename($file), 'size' => filesize($file), 'modified' => date('Y-m-d H:i:s', filemtime($file))];
+        foreach (Logger::files() as $name => $file) {
+            $files[] = ['name' => $name, 'size' => filesize($file), 'modified' => date('Y-m-d H:i:s', filemtime($file))];
         }
         usort($files, fn($a, $b) => strcmp($b['modified'], $a['modified']) ?: strcmp($b['name'], $a['name']));
         return $files;
+    }
+
+    /**
+     * How long the log files are kept (administrators): they are deleted at the end
+     * of the bank synchronization.
+     *
+     * @return array days (0: kept forever)
+     */
+    #[ApiRoute('/system/logs/retention', method: 'GET')]
+    public static function logRetention()
+    {
+        User::requireAdmin();
+        return ['days' => Logger::retentionDays()];
     }
 
     /**
@@ -111,15 +124,16 @@ final class System {
     {
         User::requireAdmin();
         // A file of the logs directory only: no path
-        if (!preg_match('/^carbure_[a-z0-9_]*\d{8}\.log$/', (string)$file)) {
+        if (!preg_match(Logger::FILE_PATTERN, (string)$file)) {
             throw new Error("Invalid log file", 400);
         }
-        $path = Config::get('data_dir') . '/logs/' . $file;
+        $path = Logger::dir() . '/' . $file;
         if (!is_file($path)) {
             throw new Error("Log file not found", 404);
         }
         $limit = max(1, min(1000, (int)$limit));
-        $levels = ['DEBUG' => 0, 'INFO' => 1, 'WARN' => 2, 'ERROR' => 3];
+        // WARN: the level of the filter of the portal, WARNING: the one written
+        $levels = ['DEBUG' => 0, 'INFO' => 1, 'WARN' => 2, 'WARNING' => 2, 'ERROR' => 3];
         $minimum = $levels[strtoupper((string)$level)] ?? 0;
 
         // The last 2 MB at most
@@ -130,28 +144,65 @@ final class System {
         $content = (string)fread($handle, $read);
         fclose($handle);
 
-        // An entry starts with "yy:mm:dd HH:MM:SS : LEVEL : uid : caller : message"
-        $parts = preg_split('/^(?=\d{2}:\d{2}:\d{2} \d{2}:\d{2}:\d{2} : [A-Z]+ : )/m', $content);
+        // An entry is a JSON line, or, in the files written before, a text starting with
+        // "yy:mm:dd HH:MM:SS : LEVEL : uid : caller : message" (on several lines)
+        $parts = preg_split('/^(?=\{"time"|\d{2}:\d{2}:\d{2} \d{2}:\d{2}:\d{2} : [A-Z]+ : )/m', $content);
         $entries = [];
         foreach (array_reverse($parts) as $part) {
-            if (!preg_match('/^(\d{2}):(\d{2}):(\d{2}) (\d{2}:\d{2}:\d{2}) : ([A-Z]+) : ([^ ]*) : ([^ ]*) : (.*)$/s', $part, $m)) {
+            $entry = self::logEntry($part);
+            if ($entry === null || ($levels[$entry['level']] ?? 0) < $minimum) {
                 continue;
             }
-            if (($levels[$m[5]] ?? 0) < $minimum) {
-                continue;
-            }
-            // Session (JWT) and agent tokens are never shown, even in the debug entries
-            $message = preg_replace(['/eyJ[\w-]+\.[\w-]+\.[\w-]+/', '/cbt_\w+/'], ['eyJ***', 'cbt_***'], rtrim($m[8]));
             if ($search !== null && $search !== '' && stripos($part, (string)$search) === false) {
                 continue;
             }
-            $entries[] = ['time' => "20{$m[1]}-{$m[2]}-{$m[3]} {$m[4]}", 'level' => $m[5], 'uid' => $m[6], 'caller' => $m[7], 'message' => $message];
+            // Session (JWT) and agent tokens are never shown, even in the debug entries
+            $entry['message'] = preg_replace(['/eyJ[\w-]+\.[\w-]+\.[\w-]+/', '/cbt_\w+/'], ['eyJ***', 'cbt_***'], $entry['message']);
+            $entries[] = $entry;
             if (count($entries) >= $limit) {
                 break;
             }
         }
 
         return ['file' => $file, 'entries' => $entries, 'truncated' => $read < $size];
+    }
+
+    /**
+     * An entry of a log file as shown in the portal.
+     *
+     * @param string $part A JSON line, or a text entry of the files written before
+     * @return array|null time (Y-m-d H:i:s), level, uid, caller, message (with its
+     *                    context), and for a JSON entry ip, user, method, path
+     */
+    private static function logEntry($part)
+    {
+        $part = rtrim($part);
+        if (str_starts_with($part, '{')) {
+            $json = json_decode($part, true);
+            if (!is_array($json) || !isset($json['time'], $json['level'])) {
+                return null;
+            }
+            $message = (string)($json['message'] ?? '');
+            if (array_key_exists('context', $json)) {
+                $message .= "\n" . json_encode($json['context'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            }
+            $time = strtotime($json['time']);
+            return [
+                'time' => $time ? date('Y-m-d H:i:s', $time) : (string)$json['time'],
+                'level' => (string)$json['level'],
+                'uid' => (string)($json['uid'] ?? ''),
+                'caller' => (string)($json['caller'] ?? ''),
+                'message' => $message,
+                'ip' => $json['ip'] ?? null,
+                'user' => $json['user'] ?? null,
+                'method' => $json['method'] ?? null,
+                'path' => $json['path'] ?? null,
+            ];
+        }
+        if (!preg_match('/^(\d{2}):(\d{2}):(\d{2}) (\d{2}:\d{2}:\d{2}) : ([A-Z]+) : ([^ ]*) : ([^ ]*) : (.*)$/s', $part, $m)) {
+            return null;
+        }
+        return ['time' => "20{$m[1]}-{$m[2]}-{$m[3]} {$m[4]}", 'level' => $m[5], 'uid' => $m[6], 'caller' => $m[7], 'message' => $m[8]];
     }
 
     /**

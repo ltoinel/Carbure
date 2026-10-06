@@ -20,9 +20,9 @@ try {
     $requestPath = (string)parse_url($_SERVER["REQUEST_URI"], PHP_URL_PATH);
     if (strpos($requestPath, ".") === false || str_starts_with($requestPath, '/.well-known/')) {
 
-        // Log the request
-        // Tokens given in the URL (sync, MCP) are not written in the logs
-        Logger::info("Request : " . preg_replace('/([?&]token=)[^&]*/i', '$1***', $_SERVER["REQUEST_URI"]));
+        // Access log: method, path (tokens masked), status and duration, at the end of
+        // the request (registered first: written before the buffer is flushed)
+        register_shutdown_function([Logger::class, 'access']);
 
         // We execute the webservice
         echo Webservice::exec();

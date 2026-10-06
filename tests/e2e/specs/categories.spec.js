@@ -15,7 +15,7 @@ async function apiCategories(api) {
 test('lists the categories by type, with their sub-categories', async ({ adminPage: page }) => {
     await openTab(page, tr('tabCategories'));
 
-    await expect(page.getByRole('heading', { name: tr('categoriesTitle', { count: 8 }) })).toBeVisible();
+    await expect(page.getByRole('heading', { name: tr('categoriesTitle') })).toBeVisible();
     const expenses = page.locator('section').filter({ has: page.getByRole('heading', { name: tr('categoryTypes_DEBIT') }) });
     await expect(expenses.locator('li.category-row.child')).toHaveCount(2);
     await expect(category(page, 'Supermarché')).toBeVisible();

@@ -127,6 +127,20 @@ Seules ces routes ne demandent pas de JWT (un test unitaire le vérifie) :
   d'OAuth n'est pas journalisé.
 - Les messages d'erreur ne renvoient ni hachage ni secret ; l'`uid` permet de retrouver
   le détail dans les logs serveur.
+- **Format des logs** : une entrée par ligne JSON (JSON Lines), avec l'heure ISO 8601
+  (millisecondes, fuseau), le niveau, l'identifiant de la requête (`uid`, repris d'un en-tête
+  `X-Request-Id` valide), l'**adresse IP du client**, l'utilisateur, la méthode et le chemin
+  (jetons de l'URL masqués), l'appelant, le message et son contexte. Chaque requête se
+  termine par une ligne avec son statut HTTP et sa durée (INFO, WARNING pour 4xx, ERROR
+  pour 5xx). Un message ne peut pas simuler une autre entrée : ses retours à la ligne
+  sont échappés.
+- **Adresse du client** : derrière un proxy de confiance (adresse privée ou locale : nginx
+  de l'image, proxy inversé du NAS), c'est la dernière adresse publique de
+  `X-Forwarded-For` (ou `X-Real-IP`) ; sinon l'adresse de connexion, car ces en-têtes
+  peuvent alors être forgés.
+- Une adresse IP est une **donnée personnelle** : les fichiers de log sont supprimés après
+  `log_retention_days` jours (90 dans une nouvelle installation, voir
+  [Configuration](configuration.md)).
 - `data/` : `conf/prod.ini`, `conf/certs/*.p8`, `logs/`, `woob/` (identifiants bancaires woob)
   sont exclus du dépôt Git.
 
@@ -146,7 +160,7 @@ Seules ces routes ne demandent pas de JWT (un test unitaire le vérifie) :
 - Générer un `sync_token` long et le passer en en-tête plutôt qu'en query string (les
   URL peuvent être journalisées).
 - Restreindre l'utilisateur MySQL à la base `carbure`.
-- Surveiller `data/logs/carbure_AAAAMMJJ.log` (erreurs de synchronisation, accès refusés).
+- Surveiller `data/logs/carbure_AAAAMMJJ.log` (erreurs de synchronisation, accès refusés : les lignes WARNING de fin de requête en 401 ou 403, avec l'IP du client). Au format JSON Lines, le fichier se lit aussi avec `jq` ou un collecteur de logs.
 
 ## Sécurité de l'image Docker
 

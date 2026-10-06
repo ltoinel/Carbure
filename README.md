@@ -124,7 +124,8 @@ docker compose up -d
 ```
 
 Open `http://localhost:8080/`: **the setup wizard** handles everything (database,
-administrator account) in three clicks, with no command to run. Database upgrades are
+administrator account, and optional starter categories, rules and insights) in three
+clicks, with no command to run. Database upgrades are
 automatic too. On a Synology NAS, follow the
 [tutorial](https://ltoinel.github.io/Carbure/synology/).
 

@@ -3,7 +3,9 @@
 /**
  * Logger.php
  *
- * A Simple PHP Logger.
+ * Logger of Carbure: one JSON object per line (JSON Lines) with the time (ISO 8601,
+ * milliseconds and time zone), the level, the id of the request, the address of the
+ * client, the user, the HTTP method and path, the caller, the message and its context.
  *
  * @author     Ludovic Toinel
  * @copyright  2026 Carbure App
@@ -11,8 +13,14 @@
 
 final class Logger {
 
-    // Static Unique ID for the execution of the script
+    // Unique ID of the request (or of the script)
     private static $UID;
+
+    // Context of the entries: user once authenticated
+    private static $context = [];
+
+    // Request of the entries: ip, method, path (built once)
+    private static $request = null;
     
     // Log buffer for batched writes
     private static $buffer = [];
@@ -37,6 +45,9 @@ final class Logger {
     // Cached minimum log level
     private static $minLevel = null;
 
+    /** Name of a log file: carbure_[scope_]YYYYMMDD.log (the date is captured) */
+    public const FILE_PATTERN = '/^carbure_[a-z0-9_]*?(\d{8})\.log$/';
+
     /**
      * Get the unique ID of the log.
      *
@@ -44,9 +55,110 @@ final class Logger {
      */
     public static function getUID(){
         if (self::$UID === null){
-            self::$UID = uniqid();
+            // The id given by a proxy (X-Request-Id) follows the request, if it is safe
+            $given = $_SERVER['HTTP_X_REQUEST_ID'] ?? '';
+            self::$UID = preg_match('/^[A-Za-z0-9._-]{8,64}$/', $given) ? $given : bin2hex(random_bytes(8));
         }
         return self::$UID;
+    }
+
+    /**
+     * Add a field to the following entries of the request (e.g. the user).
+     *
+     * @param string $key   The field
+     * @param mixed  $value The value (null removes it)
+     * @return void
+     */
+    public static function setContext($key, $value)
+    {
+        if ($value === null) {
+            unset(self::$context[$key]);
+        } else {
+            self::$context[$key] = $value;
+        }
+    }
+
+    /**
+     * Address of the client. Behind a trusted proxy (a private or local address: the
+     * nginx of the image, the reverse proxy of the NAS), the client given by
+     * X-Forwarded-For (the last public address) or X-Real-IP; otherwise the peer, as
+     * these headers can then be forged.
+     *
+     * @return string|null The address, null outside of an HTTP request
+     */
+    public static function clientIp()
+    {
+        $peer = $_SERVER['REMOTE_ADDR'] ?? null;
+        if ($peer === null || !self::isPrivate($peer)) {
+            return $peer;
+        }
+        $forwarded = array_filter(array_map('trim', explode(',', $_SERVER['HTTP_X_FORWARDED_FOR'] ?? '')),
+            fn($ip) => filter_var($ip, FILTER_VALIDATE_IP) !== false);
+        foreach (array_reverse($forwarded) as $ip) {
+            if (!self::isPrivate($ip)) {
+                return $ip;
+            }
+        }
+        $real = trim($_SERVER['HTTP_X_REAL_IP'] ?? '');
+        if (filter_var($real, FILTER_VALIDATE_IP) !== false) {
+            return $real;
+        }
+        return $forwarded ? reset($forwarded) : $peer;
+    }
+
+    /**
+     * Whether an address is private, local or reserved (a proxy of the installation).
+     *
+     * @param string $ip The address
+     * @return bool
+     */
+    private static function isPrivate($ip)
+    {
+        return filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false;
+    }
+
+    /**
+     * Fields of the current HTTP request: ip, method and path (tokens of the URL masked).
+     *
+     * @return array
+     */
+    private static function request()
+    {
+        if (self::$request === null) {
+            self::$request = isset($_SERVER['REQUEST_METHOD']) ? [
+                'ip' => self::clientIp(),
+                'method' => $_SERVER['REQUEST_METHOD'],
+                'path' => self::maskUrl($_SERVER['REQUEST_URI'] ?? ''),
+            ] : [];
+        }
+        return self::$request;
+    }
+
+    /**
+     * URL without its tokens (synchronization, MCP), which are never written.
+     *
+     * @param string $url The URL
+     * @return string
+     */
+    public static function maskUrl($url)
+    {
+        return preg_replace('/([?&](?:token|access_token|code)=)[^&]*/i', '$1***', (string)$url);
+    }
+
+    /**
+     * Write the end of the request: method, path, status and duration. Level INFO, or
+     * WARNING for a client error (4xx) and ERROR for a server error (5xx).
+     *
+     * @return void
+     */
+    public static function access()
+    {
+        $status = (int)(http_response_code() ?: 200);
+        $start = $_SERVER['REQUEST_TIME_FLOAT'] ?? microtime(true);
+        $duration = (int)round((microtime(true) - $start) * 1000);
+        $request = self::request();
+        $level = $status >= 500 ? 'ERROR' : ($status >= 400 ? 'WARNING' : 'INFO');
+        self::log(($request['method'] ?? '') . ' ' . ($request['path'] ?? '') . " $status", ['status' => $status, 'duration_ms' => $duration], $level);
     }
 
     /**
@@ -122,18 +234,15 @@ final class Logger {
             return;
         }
 
-        // Build log entry
-        $timestamp = date("y:m:d H:i:s");
-        $caller = self::getCaller();
-        
-        // Add the data to the message if any
-        if ($data !== null){
-            $msg = $msg . " : " . print_r($data, true);
+        // One JSON object per line: the newlines of a message cannot fake another entry
+        $entry = ['time' => (new DateTimeImmutable())->format('Y-m-d\TH:i:s.vP'), 'level' => $level, 'uid' => self::getUID()]
+            + self::request() + self::$context
+            + ['caller' => self::getCaller(), 'message' => (string)$msg];
+        if ($data !== null) {
+            $entry['context'] = $data;
         }
+        $logLine = json_encode($entry, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE | JSON_PARTIAL_OUTPUT_ON_ERROR) . "\n";
 
-        // Format log line
-        $logLine = $timestamp . " : " . $level . " : " . self::getUID() . " : " . $caller . " : " . $msg . "\n";
-        
         // Add to buffer
         self::$buffer[] = $logLine;
         
@@ -189,6 +298,69 @@ final class Logger {
     }
 
     /**
+     * Number of days the log files are kept (log_retention_days; 0 or absent: forever).
+     *
+     * @return int The number of days
+     */
+    public static function retentionDays()
+    {
+        return Config::has('log_retention_days') ? max(0, (int)Config::get('log_retention_days')) : 0;
+    }
+
+    /**
+     * Directory of the log files.
+     *
+     * @return string The directory (data/logs)
+     */
+    public static function dir()
+    {
+        return Config::get('data_dir') . '/logs';
+    }
+
+    /**
+     * The log files of the instance.
+     *
+     * @return array Path of each file, by name
+     */
+    public static function files()
+    {
+        $files = [];
+        foreach (glob(self::dir() . '/carbure_*.log') ?: [] as $path) {
+            if (preg_match(self::FILE_PATTERN, basename($path))) {
+                $files[basename($path)] = $path;
+            }
+        }
+        return $files;
+    }
+
+    /**
+     * Delete the log files older than the retention (log_retention_days), by the date
+     * in their name (carbure_[scope_]YYYYMMDD.log).
+     *
+     * @param int|null $days Days to keep (default: the configuration); 0 keeps everything
+     * @return array The names of the deleted files
+     */
+    public static function purge($days = null)
+    {
+        $days ??= self::retentionDays();
+        if ($days <= 0) {
+            return [];
+        }
+        $limit = date('Ymd', strtotime("-$days days"));
+        $deleted = [];
+        foreach (self::files() as $name => $path) {
+            preg_match(self::FILE_PATTERN, $name, $match);
+            if ($match[1] < $limit && @unlink($path)) {
+                $deleted[] = $name;
+            }
+        }
+        if ($deleted) {
+            self::info(count($deleted) . " log file(s) older than $days days deleted");
+        }
+        return $deleted;
+    }
+
+    /**
      * Get the log file path, building and caching it on first call.
      *
      * @return string The log file path
@@ -200,8 +372,7 @@ final class Logger {
             if (isset($GLOBALS['SCOPE'])) {
                 $postfix = $GLOBALS['SCOPE'] . "_" . $postfix;
             }
-            $log_dir = Config::get('data_dir') . "/logs";
-            self::$logFilePath = $log_dir . "/carbure_$postfix.log";
+            self::$logFilePath = self::dir() . "/carbure_$postfix.log";
         }
 
         return self::$logFilePath;

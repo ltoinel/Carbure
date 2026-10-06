@@ -454,33 +454,16 @@ body {
     background: var(--primary-dark);
 }
 
-/* Controls Section */
-.controls {
-    background: var(--surface);
-    border-radius: var(--border-radius-xl);
-    padding: 24px;
-    margin-bottom: 24px;
-    box-shadow: var(--shadow-2);
+/* Period of the tabs (month, year, refresh), in the header */
+.header-period {
     display: flex;
-    gap: 16px;
-    flex-wrap: wrap;
-    align-items: flex-end;
-}
-
-.control-group {
-    display: flex;
-    flex-direction: column;
+    align-items: center;
     gap: 8px;
-    flex: 1;
-    min-width: 180px;
 }
 
-.control-group label {
-    font-size: 14px;
-    color: var(--text-secondary);
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+.header-period select {
+    padding: 8px 12px;
+    font-size: 15px;
 }
 
 select {
@@ -1792,19 +1775,23 @@ button .material-icons {
 }
 
 @media (max-width: 768px) {
-    .controls {
-        flex-direction: column;
-        padding: 20px;
+    /* Title and user menu on the first line, the period on its own line under them */
+    .header-actions {
+        display: contents;
     }
 
-    .control-group {
-        width: 100%;
-        min-width: auto;
+    .header .user-menu {
+        order: 1;
     }
 
-    .controls button {
-        width: 100%;
-        justify-content: center;
+    .header-period {
+        order: 2;
+        flex: 1 1 100%;
+    }
+
+    .header-period select {
+        flex: 1;
+        min-width: 0;
     }
 
     .stats {
@@ -4276,6 +4263,33 @@ a.footer-brand:hover {
     accent-color: var(--primary-color);
 }
 
+/* Starter data of a new database (setup wizard) */
+.setup-starter {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    border: none;
+}
+
+.setup-starter legend {
+    padding: 0;
+    margin-bottom: 4px;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.setup-starter .setup-help {
+    margin: 0;
+}
+
+.setup-checkbox.disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
 /* Checkbox and its label in a form: side by side, centered (not a field label) */
 .modal-body label.setup-checkbox {
     display: flex;
@@ -4540,9 +4554,8 @@ a.footer-brand:hover {
 /* Refresh: the icon alone (the label is in the tooltip) */
 .btn-refresh {
     justify-content: center;
-    min-width: 48px;
-    padding-left: 12px;
-    padding-right: 12px;
+    min-width: 40px;
+    padding: 8px;
 }
 
 /* ===== Money flow (Budget tab) ===== */
@@ -4964,6 +4977,22 @@ button.rule-chip:focus-visible {
     color: var(--primary-color);
 }
 
+/* Rule with a notification: light red background */
+button.rule-chip.rule-chip-notify {
+    background: color-mix(in srgb, var(--error-color) 10%, var(--background));
+    border-color: color-mix(in srgb, var(--error-color) 35%, transparent);
+}
+
+button.rule-chip.rule-chip-notify:hover,
+button.rule-chip.rule-chip-notify:focus-visible {
+    background: color-mix(in srgb, var(--error-color) 18%, var(--background));
+    color: var(--error-color);
+}
+
+.rule-chip-notify .rule-notify {
+    color: var(--error-color);
+}
+
 .rule-count {
     display: flex;
     align-items: center;
@@ -5092,7 +5121,7 @@ textarea:focus-visible,
     border-left-color: var(--error-color);
 }
 
-.log-entry.log-warn {
+.log-entry.log-warning {
     border-left-color: var(--warning-color);
 }
 
@@ -5118,7 +5147,7 @@ textarea:focus-visible,
     color: var(--error-color);
 }
 
-.log-warn .log-level {
+.log-warning .log-level {
     color: var(--warning-color);
 }
 
@@ -5139,8 +5168,21 @@ textarea:focus-visible,
     cursor: pointer;
 }
 
-.log-caller {
+.log-caller,
+.log-ip {
     font-family: ui-monospace, monospace;
+}
+
+.log-ip,
+.log-user {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.log-ip .material-icons,
+.log-user .material-icons {
+    font-size: 14px;
 }
 
 .log-message {
@@ -5156,10 +5198,20 @@ textarea:focus-visible,
 }
 
 /* ===== Import of a bank statement file (Transactions tab) ===== */
+/* Compact, the size of the transaction count next to it */
 .btn-import {
     display: inline-flex;
     align-items: center;
     gap: 6px;
+    padding: 6px 14px;
+    font-size: 14px;
+    text-transform: none;
+    letter-spacing: normal;
+    border-radius: 20px;
+}
+
+.btn-import .material-icons {
+    font-size: 18px;
 }
 
 .modal-import {
@@ -5695,4 +5747,9 @@ textarea:focus-visible,
 
 .config-card .sync-step-error {
     margin: 0 0 16px;
+}
+
+/* Retention of the log files (Logs tab), a .flow-hint under the help */
+.logs-retention {
+    margin-top: 6px;
 }

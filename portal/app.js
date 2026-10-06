@@ -38,10 +38,10 @@ const ADMIN_TABS = ['rules', 'categories', 'accounts', 'users', 'logs', 'config'
  */
 const ADMINISTRATION_TABS = [
     { key: 'users', icon: 'people', label: 'tabUsers' },
-    { key: 'logs', icon: 'receipt_long', label: 'tabLogs' },
-    { key: 'config', icon: 'tune', label: 'tabSettings' },
     { key: 'sync', icon: 'sync', label: 'tabSync' },
-    { key: 'agents', icon: 'smart_toy', label: 'tabAgents' }
+    { key: 'agents', icon: 'smart_toy', label: 'tabAgents' },
+    { key: 'logs', icon: 'receipt_long', label: 'tabLogs' },
+    { key: 'config', icon: 'tune', label: 'tabSettings' }
 ];
 import * as formatters from './utils/formatters.js';
 import { badgeStyle } from './utils/categoryIcons.js';
@@ -92,6 +92,8 @@ createApp({
             activeTab: 'transactions',
             selectedMonth: new Date().getMonth() + 1,
             selectedYear: new Date().getFullYear(),
+            // Months that have transactions, newest first: [{year, month}]
+            periods: [],
             locale: localStorage.getItem('locale') || defaultLocale(),
             apiBaseUrl: null,
             // Version of Carbure (GET /api/health), shown in the footer
@@ -145,22 +147,32 @@ createApp({
         },
 
         /**
-         * Generates array of month options with localized labels
-         * @returns {Array<{value: number, label: string}>}
+         * Periods offered, as year * 100 + month, newest first: the months that have
+         * transactions, and the current month (where the new ones arrive)
+         * @returns {Array<number>}
          */
-        months() {
-            return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(value => ({
-                value,
-                label: t(`months.${value}`)
-            }));
+        periodKeys() {
+            const now = new Date();
+            const keys = [now.getFullYear() * 100 + now.getMonth() + 1, ...this.periods.map(p => p.year * 100 + Number(p.month))];
+            return [...new Set(keys)].sort((a, b) => b - a);
         },
 
         /**
-         * Generates array of year options (current year - 5 years)
+         * Months of the selected year that have transactions, with localized labels
+         * @returns {Array<{value: number, label: string}>}
+         */
+        months() {
+            return this.periodKeys.filter(key => Math.floor(key / 100) === Number(this.selectedYear))
+                .map(key => key % 100).reverse()
+                .map(value => ({ value, label: t(`months.${value}`) }));
+        },
+
+        /**
+         * Years that have transactions, newest first
          * @returns {Array<number>}
          */
         years() {
-            return formatters.generateYears(6);
+            return [...new Set(this.periodKeys.map(key => Math.floor(key / 100)))];
         },
 
         /**
@@ -286,6 +298,30 @@ createApp({
         },
 
         // === Tab Navigation Methods ===
+
+        /**
+         * Another year: its last month that has transactions if the selected month has none
+         */
+        changeYear() {
+            const months = this.months.map(m => m.value);
+            if (!months.includes(Number(this.selectedMonth)) && months.length) {
+                this.selectedMonth = months[months.length - 1];
+            }
+            this.refreshCurrentTab();
+        },
+
+        /**
+         * Loads the months that have transactions (period selector)
+         * @returns {Promise<void>}
+         */
+        async loadPeriods() {
+            try {
+                this.periods = await apiService.fetchPeriods();
+            } catch (error) {
+                // The current month stays available
+                this.periods = [];
+            }
+        },
 
         /**
          * Back to the home page: transactions of the current month
@@ -499,18 +535,10 @@ createApp({
                 localStorage.setItem('username', this.loginForm.username);
                 this.username = this.loginForm.username;
                 
-                // Reinitialize services with new API URL and token
-                apiService = createApiService(this.apiBaseUrl, this.authToken, () => this.sessionExpired());
-                budgetStore = createBudgetStore(apiService);
-                
                 // Clear password
                 this.loginForm.password = '';
 
-                // Load the user profile (name in header, language, admin rights)
-                await this.loadCurrentUser();
-                
-                // Load initial data
-                this.refreshCurrentTab();
+                await this.startSession();
                 
             } catch (error) {
                 console.error('Login error:', error);
@@ -550,6 +578,32 @@ createApp({
                 apiService = createApiService(this.apiBaseUrl, null);
                 budgetStore = createBudgetStore(apiService);
             }
+        },
+
+        /**
+         * Starts the session of the logged-in user: API services, profile, periods and data
+         * @returns {Promise<void>}
+         */
+        async startSession() {
+            apiService = createApiService(this.apiBaseUrl, this.authToken, () => this.sessionExpired(), () => this.setupRequired());
+            budgetStore = createBudgetStore(apiService);
+
+            this.loadPeriods();
+            this.refreshCurrentTab();
+            // Name in header, language, admin rights
+            await this.loadCurrentUser();
+        },
+
+        /**
+         * Carbure is not installed (any more) at this address: the session of a previous
+         * installation is closed and the installation wizard is shown
+         */
+        setupRequired() {
+            if (!this.isAuthenticated) {
+                return;
+            }
+            this.logout();
+            this.checkSetup();
         },
 
         /**
@@ -607,7 +661,8 @@ createApp({
         // Check if already authenticated
         this.checkAuthentication();
 
-        // Not installed yet: the installation wizard replaces the login screen
+        // Not installed yet: the installation wizard replaces the login screen (a session
+        // kept from a previous installation is closed by the API answer, see startSession)
         if (!this.isAuthenticated) {
             this.checkSetup();
         }
@@ -633,23 +688,8 @@ createApp({
             console.log('isAuthenticated =', this.isAuthenticated);
         }
 
-        // Only initialize services if authenticated
         if (this.isAuthenticated && this.apiBaseUrl) {
-            // Initialize API service with token
-            apiService = createApiService(this.apiBaseUrl, this.authToken, () => this.sessionExpired());
-
-            // Initialize budget store
-            budgetStore = createBudgetStore(apiService);
-
-            // Load the user profile (name in header, language, admin rights)
-            this.loadCurrentUser();
-
-            // Load initial data based on active tab
-            if (this.activeTab === 'transactions') {
-                this.loadTransactions(this.selectedMonth, this.selectedYear);
-            } else {
-                this.refreshCurrentTab();
-            }
+            this.startSession();
         }
     }
 }).mount('#app');

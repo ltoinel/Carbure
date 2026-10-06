@@ -72,6 +72,12 @@ class SetupTest extends TestCase
         ];
     }
 
+    /** Number of rows of a table */
+    private function rows(mysqli $db, $table)
+    {
+        return (int)$db->query("SELECT COUNT(*) FROM $table")->fetch_row()[0];
+    }
+
     private function db()
     {
         $ini = parse_ini_file($this->configFile);
@@ -196,6 +202,59 @@ class SetupTest extends TestCase
         $this->assertSame($migrations ? end($migrations) : '2026-10-13_base', $body['version']);
         $this->assertSame($body['version'], (new Migrator($db))->version());
         $this->assertSame([], (new Migrator($db))->pending());
+
+        // No starter data unless asked
+        $this->assertSame(1, $this->rows($db, 'bank_transaction_category'));
+        $this->assertSame(0, $this->rows($db, 'budget_insight'));
+    }
+
+    public function testInstallWithTheStarterData()
+    {
+        $starter = json_decode(file_get_contents("$this->root/sql/starter.json"), true);
+        [$status, $body] = $this->setup->handle('POST', '/setup/install', $this->fields(['starter_categories' => true, 'starter_insights' => true]));
+        $this->assertSame(200, $status, json_encode($body));
+
+        // Categories in the language of the administrator, with their rules
+        $db = $this->db();
+        $this->assertSame(count($starter['categories']) + 1, $this->rows($db, 'bank_transaction_category'));
+        $this->assertSame('Groceries', $db->query("SELECT name FROM bank_transaction_category WHERE id = 2")->fetch_row()[0]);
+        $this->assertSame(count($starter['rules']), $this->rows($db, 'bank_transaction_category_keyword'));
+
+        // Some transactions and a budget, then every insight runs on them
+        $month = (int)date('n');
+        $year = (int)date('Y');
+        $day = date('Y-m-02');
+        $db->query("INSERT INTO bank_transaction (uuid, date, rdate, type, label, category, amount, user) VALUES
+            ('s1', '$day', '$day', 7, 'CB CARREFOUR', 2, -80.00, 1),
+            ('s2', '$day', '$day', 1, 'VIR SALAIRE', 28, 2000.00, 1),
+            ('s3', '$day', '$day', 1, 'VIR LIVRET A', 32, -300.00, 1),
+            ('s4', '$day', '$day', 6, 'RETRAIT DAB', 0, -40.00, 1)");
+        $db->query("INSERT INTO budget (category, amount, date) VALUES (1, 50, '" . date('Y-m-01') . "')");
+
+        $amounts = [];
+        foreach ($db->query("SELECT name, `sql` FROM budget_insight ORDER BY id")->fetch_all(MYSQLI_ASSOC) as $insight) {
+            $sql = str_replace(['{month}', '{year}'], [$month, $year], $insight['sql']);
+            $amounts[$insight['name']] = $db->query($sql)->fetch_assoc()['amount'];
+        }
+        $this->assertSame(array_column($starter['insights'], 'en'), array_keys($amounts));
+        $this->assertEquals(-120, $amounts['Expenses']);
+        $this->assertEquals(2000, $amounts['Income']);
+        $this->assertEquals(1880, $amounts['Left this month']);
+        $this->assertEquals(300, $amounts['Savings']);
+        $this->assertEquals(-40, $amounts['Uncategorized']);
+        $this->assertEquals(-30, $amounts['Over budget']);
+        $this->assertEquals(-80, $amounts['Largest expense']);
+        $this->assertEquals(-40, $amounts['Cash withdrawals']);
+    }
+
+    public function testInstallWithTheStarterCategoriesOnly()
+    {
+        [$status] = $this->setup->handle('POST', '/setup/install', $this->fields(['starter_categories' => true, 'starter_insights' => false, 'language' => 'fr']));
+        $this->assertSame(200, $status);
+
+        $db = $this->db();
+        $this->assertSame('Courses', $db->query("SELECT name FROM bank_transaction_category WHERE id = 2")->fetch_row()[0]);
+        $this->assertSame(0, $this->rows($db, 'budget_insight'));
     }
 
     public function testExistingDatabaseToMigrate()
@@ -231,7 +290,7 @@ class SetupTest extends TestCase
             $this->assertNull($body['username']);
             $this->assertSame('2099-01-01_setup_test', $body['version']);
             $this->assertSame(1, $db->query("SHOW TABLES LIKE 'setup_test'")->num_rows);
-            $this->assertSame(1, (int)$db->query("SELECT COUNT(*) FROM users")->fetch_row()[0]);
+            $this->assertSame(1, $this->rows($db, 'users'));
         } finally {
             $db->query("DROP TABLE IF EXISTS setup_test");
             unlink("$root/sql/migrations/2099-01-01_setup_test.sql");

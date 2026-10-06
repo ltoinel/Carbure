@@ -12,19 +12,28 @@
  * @param {string} baseUrl - Base URL for API endpoints
  * @param {string} authToken - JWT authentication token
  * @param {Function} onUnauthorized - Called when the API answers 401 (expired or invalid token)
+ * @param {Function} onSetupRequired - Called when the API answers that Carbure is not
+ *   installed (503 {setup: true}, e.g. reinstalled from scratch at the same address)
  * @returns {Object} API service methods
  */
-export function createApiService(baseUrl, authToken = null, onUnauthorized = null) {
+export function createApiService(baseUrl, authToken = null, onUnauthorized = null, onSetupRequired = null) {
     /**
-     * fetch() that reports an expired session (HTTP 401)
+     * fetch() that reports a session that cannot be used: expired (HTTP 401), or
+     * Carbure not installed (HTTP 503 {setup: true})
      * @param {string} url - Request URL
      * @param {Object} options - fetch options
      * @returns {Promise<Response>}
      */
     async function authFetch(url, options) {
         const response = await window.fetch(url, options);
-        if (response.status === 401 && authToken && onUnauthorized) {
+        if (!authToken) {
+            return response;
+        }
+        if (response.status === 401 && onUnauthorized) {
             onUnauthorized();
+        } else if (response.status === 503 && onSetupRequired
+            && (await response.clone().json().catch(() => ({}))).setup === true) {
+            onSetupRequired();
         }
         return response;
     }
@@ -225,12 +234,29 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
     }
 
     /**
+     * Months that have transactions, newest first
+     * @returns {Promise<Array>} Array of {year, month}
+     */
+    async function fetchPeriods() {
+        const data = await request(`${baseUrl}/transaction/periods`, {}, 'Failed to load the periods');
+        return Array.isArray(data) ? data : [];
+    }
+
+    /**
      * Log files of the instance (administrators)
      * @returns {Promise<Array>} Array of {name, size, modified}
      */
     async function fetchLogFiles() {
         const data = await request(`${baseUrl}/system/logs`, {}, 'Failed to list the log files');
         return Array.isArray(data) ? data : [];
+    }
+
+    /**
+     * How long the log files are kept (administrators)
+     * @returns {Promise<Object>} {days} (0: kept forever)
+     */
+    async function fetchLogRetention() {
+        return request(`${baseUrl}/system/logs/retention`, {}, 'Failed to read the retention of the logs');
     }
 
     /**
@@ -851,7 +877,9 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
         updateMcpSettings,
         fetchSchemaStatus,
         migrateSchema,
+        fetchPeriods,
         fetchLogFiles,
+        fetchLogRetention,
         fetchLogEntries,
         rotateJwtSecret,
         fetchInsightDefinitions,

@@ -6,6 +6,8 @@ test('shows the entries of the log of the day, filtered', async ({ adminPage: pa
 
     // Requests of the tests are logged in carbure_e2e_YYYYMMDD.log
     await expect(page.getByLabel(tr('logsFile'))).toHaveValue(/carbure_e2e_\d{8}\.log/);
+    // No log_retention_days in the configuration of the tests: kept forever
+    await expect(page.locator('.logs-retention')).toContainText(tr('logsRetentionForever'));
     await expect(page.locator('.log-entry').first()).toBeVisible();
 
     await page.getByLabel(tr('logsLevel')).selectOption('ERROR');

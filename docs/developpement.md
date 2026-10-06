@@ -31,6 +31,7 @@ Tâches ouvertes : `TODO.md`.
 ```bash
 ./start.sh            # http://localhost:8000/portal/  (admin / admin-password, marie / marie-password)
 ./start.sh --reset    # repartir des données d'exemple (aussi après une modification de sql/carbure.sql)
+./start.sh --fresh    # repartir d'une base et d'une configuration vides : assistant d'installation
 ./start.sh --build    # reconstruire l'image (modification de docker/ ou des extensions PHP)
 ./start.sh --fake-woob  # woob bouchonné : synchronisation des comptes d'exemple sans banque
 ./start.sh --stop     # arrêter (la base et /data sont conservés)
@@ -65,6 +66,11 @@ livré. Reconstruire l'image (`--build`) n'est utile qu'après une modification 
   d'exemple se synchronisent (`fail@bank` échoue volontairement), l'ajout d'une banque et
   la découverte des comptes fonctionnent sans identifiants. Les options se combinent
   (`./start.sh --reset --fake-woob`).
+- `--fresh` reproduit une première installation : la base et `/data` sont vidés, aucun
+  `prod.ini` n'est écrit et aucune donnée d'exemple n'est chargée ; le portail affiche
+  l'**assistant d'installation**, pré-rempli avec la base de dev (pack de départ
+  compris). Les démarrages suivants gardent la configuration et les données créées par
+  l'assistant (marqueur `/data/conf/.wizard`), jusqu'à `--reset` ou `--clean`.
 - `PORT` (8000) et `DB_PORT` (3308, accès à MariaDB depuis l'hôte : `carbure` / `dev`)
   changent les ports, qui n'écoutent que sur `127.0.0.1`. Logs : onglet Logs du portail,
   ou `docker compose -f docker/docker-compose.yml -f docker/docker-compose.dev.yml exec carbure ls /data/logs`.

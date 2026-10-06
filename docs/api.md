@@ -221,8 +221,9 @@ envoie une notification « Dépense importante à vérifier » (dans sa langue).
 | `category` | non | Limite aux transactions de cette catégorie **et de ses sous-catégories** |
 
 Les transactions sont triées par date réelle décroissante. Champs : `id`, `uuid`,
-`imported`, `date`, `rdate`, `type`, `label`, `category`, `amount`, `card`, `pointed`,
-`user`.
+`imported`, `date`, `rdate`, `type`, `label`, `category`, `amount`, `card`, `bank_name`
+et `account_number` (compte d'origine ; `null` pour les transactions antérieures à leur
+ajout), `pointed`, `user`.
 
 ```bash
 curl "https://exemple.fr/api/transaction?month=9&year=2026&category=1" -H "Authorization: Bearer $TOKEN"
@@ -230,6 +231,11 @@ curl "https://exemple.fr/api/transaction?month=9&year=2026&category=1" -H "Autho
 
 Types : 1 virement, 2 prélèvement, 3 chèque, 4 remise de chèque, 5 remboursement,
 6 retrait DAB, 7 facture carte, 8 dépense, 9 commissions, 12 carte en cours.
+
+### `GET /transaction/periods`
+
+Mois qui ont des transactions, du plus récent au plus ancien : `[{"year": 2026, "month": 10}, …]`.
+Le portail en tire les listes de mois et d'années.
 
 ### `GET /transaction/search`
 
@@ -527,12 +533,20 @@ pas installé. `version` est la version de Carbure (fichier `VERSION`, `dev` hor
 
 Fichiers de log de l'instance, les plus récents d'abord : `[{name, size, modified}]`.
 
+### `GET /system/logs/retention` — administrateur
+
+Durée de conservation des fichiers de log : `{"days": 90}` (`0` : conservés indéfiniment).
+Les fichiers plus anciens sont supprimés à la fin de la synchronisation bancaire
+(paramètre `log_retention_days`).
+
 ### `GET /system/logs/entries` — administrateur
 
 Entrées d'un fichier, les plus récentes d'abord. Paramètres : `file` (nom renvoyé par
 `/system/logs`), `level` facultatif (niveau minimal : `DEBUG`, `INFO`, `WARN`, `ERROR`),
 `search` facultatif (texte ou identifiant de requête), `limit` (1 à 1000, 200 par défaut).
-Réponse : `{file, entries: [{time, level, uid, caller, message}], truncated}` ; seuls les
+Réponse : `{file, entries: [{time, level, uid, caller, message, ip, user, method, path}], truncated}`
+(`ip`, `user`, `method` et `path` : entrées au format JSON, absents des fichiers plus
+anciens ; le contexte d'une entrée suit son message) ; seuls les
 2 derniers Mo sont lus (`truncated`) et les jetons sont masqués. 400 pour un nom de fichier
 invalide, 404 s'il n'existe pas.
 
@@ -566,7 +580,7 @@ Le fichier de configuration, par section : `file` (chemin dans l'instance), `wri
 ### `PUT /system/config` — administrateur
 
 `values` : les nouvelles valeurs par clé, uniquement parmi les réglages modifiables
-(`log_level`, `savings_category`, `public_url`, `woob_transactions`, `woob_logging`,
+(`log_level`, `log_retention_days`, `savings_category`, `public_url`, `woob_transactions`, `woob_logging`,
 `woob_debug`, `woob_auto_update`, `apns_environment`, `apns_auth_method`, `apns_bundle_id`,
 `apns_key_id`, `apns_team_id`). Toutes les valeurs sont vérifiées avant d'écrire quoi que
 ce soit (`400` sinon, fichier inchangé) ; l'ancien fichier est gardé en `.bak`. Renvoie la
@@ -592,7 +606,7 @@ renvoient `503` avec `"setup": true`) :
 |---|---|
 | `GET /setup` | État de l'assistant : `codeRequired`, `dbPasswordFromEnvironment` et valeurs par défaut (`db_host`, `db_port`, `db_name`, `db_user`, `admin_user`, `language`) issues de l'environnement Docker |
 | `POST /setup/database` | Teste la connexion (`db_host`, `db_port`, `db_name`, `db_user`, `db_password`) et décrit l'installation : `state` (`none` = base vide, `current` = à jour, `outdated` = migrations à appliquer), `version`, `pending`, `hasAdmin` |
-| `POST /setup/install` | Crée ou migre le schéma, crée le premier administrateur s'il n'y en a pas (`admin_user`, `admin_password` de 8 caractères minimum, `admin_email`, `language`) et écrit la configuration ; `409` sans `backup_confirmed` quand des migrations sont à appliquer |
+| `POST /setup/install` | Crée ou migre le schéma, crée le premier administrateur s'il n'y en a pas (`admin_user`, `admin_password` de 8 caractères minimum, `admin_email`, `language`) et écrit la configuration ; `409` sans `backup_confirmed` quand des migrations sont à appliquer. Sur une base vide, `starter_categories` (facultatif) ajoute les catégories et règles de `sql/starter.json`, et `starter_insights` ses insights |
 | `GET /health` | `{"status":"setup"}` |
 
 Depuis Internet, ou si `data/conf/setup.code` existe, les requêtes `POST` exigent le paramètre

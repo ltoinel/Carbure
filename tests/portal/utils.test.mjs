@@ -2,7 +2,7 @@
 import './setup.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { formatAmount, formatDate, getTransactionIcon, getInsightIcon, generateYears, isDebugMode } from '../../portal/utils/formatters.js';
+import { formatAmount, formatDate, getTransactionIcon, getInsightIcon, isDebugMode } from '../../portal/utils/formatters.js';
 import { materialIconFor, cssColorFor, badgeStyle, CATEGORY_ICONS, CATEGORY_COLORS } from '../../portal/utils/categoryIcons.js';
 
 const spaces = text => text.replace(/\s/g, ' ');
@@ -28,11 +28,6 @@ test('getTransactionIcon: icon of the type of operation', () => {
 test('getInsightIcon: icon from the name, a default one otherwise', () => {
     assert.equal(getInsightIcon('EPARGNE'), 'savings');
     assert.equal(getInsightIcon('Loyer'), 'insights');
-});
-
-test('generateYears: the current year first', () => {
-    const year = new Date().getFullYear();
-    assert.deepEqual(generateYears(3), [year, year - 1, year - 2]);
 });
 
 test('isDebugMode: ?debug=true', () => {

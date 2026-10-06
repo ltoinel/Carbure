@@ -128,9 +128,14 @@ export default {
                 this.open = false;
             }
         };
-        // Compact: the floating list would no longer be next to its button
+        // Compact: the floating list would no longer be next to its button. A scroll that
+        // does not move the button is ignored: the scroll event comes a frame later, so the
+        // end of a scroll bringing the button into view would close the list just opened
         this.onViewportChange = event => {
-            if (this.open && !(event.target instanceof Node && this.$el.contains(event.target))) {
+            if (!this.open || (event.target instanceof Node && this.$el.contains(event.target))) {
+                return;
+            }
+            if (event.type !== 'scroll' || this.buttonAnchor() !== this.anchor) {
                 this.open = false;
             }
         };
@@ -155,8 +160,18 @@ export default {
                 this.search = '';
                 this.active = -1;
                 this.panelStyle = this.compact ? this.floatingPosition() : null;
+                this.anchor = this.buttonAnchor();
                 this.$nextTick(() => this.$refs.search?.focus());
             }
+        },
+
+        /**
+         * Position of the button in the window, to tell whether a scroll moved it
+         * @returns {string} "top,left"
+         */
+        buttonAnchor() {
+            const { top, left } = this.$refs.button.getBoundingClientRect();
+            return `${top},${left}`;
         },
 
         /**

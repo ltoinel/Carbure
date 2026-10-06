@@ -126,7 +126,8 @@ docker compose up -d
 ```
 
 Ouvrez `http://localhost:8080/` : **l'assistant d'installation** s'occupe de tout (base de
-données, compte administrateur) en trois clics, sans aucune commande. Les mises à jour de la
+données, compte administrateur, et en option des catégories, règles et insights de
+départ) en trois clics, sans aucune commande. Les mises à jour de la
 base de données sont, elles aussi, automatiques. Sur un NAS Synology, suivez le
 [tutoriel](https://ltoinel.github.io/Carbure/synology/).
 

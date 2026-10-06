@@ -150,10 +150,16 @@ function euros(value) {
     return new Intl.NumberFormat('fr', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value) + ' €';
 }
 
-/** Month and year of the current month, as the API expects them */
-function currentMonth() {
-    const now = new Date();
-    return { month: now.getMonth() + 1, year: now.getFullYear() };
+/**
+ * Month and year of the current month, or of a previous one, as the API expects them
+ * @param {number} ago - Number of months before the current one
+ * @returns {{month: number, year: number}}
+ */
+function currentMonth(ago = 0) {
+    const date = new Date();
+    date.setDate(1);
+    date.setMonth(date.getMonth() - ago);
+    return { month: date.getMonth() + 1, year: date.getFullYear() };
 }
 
 module.exports = { test, expect: base.expect, USERS, openTab, tr, pickCategory, euros, currentMonth };

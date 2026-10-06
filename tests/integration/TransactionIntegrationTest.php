@@ -111,4 +111,32 @@ class TransactionIntegrationTest extends DatabaseTestCase
         $this->assertSame(date('Y-m-01', strtotime($this->day(27) . ' first day of next month')), $salary['date']);
         $this->assertSame($this->day(27), $salary['rdate']);
     }
+
+    public function testPeriods()
+    {
+        $periods = Transaction::periods();
+        $this->assertNotEmpty($periods);
+        $keys = array_map(fn($p) => $p['year'] * 100 + $p['month'], $periods);
+        // Newest first, once each
+        $sorted = $keys;
+        rsort($sorted);
+        $this->assertSame($sorted, $keys);
+        $this->assertSame($keys, array_values(array_unique($keys)));
+        $count = Db::queryOne("SELECT COUNT(DISTINCT YEAR(date), MONTH(date)) AS n FROM bank_transaction", "")['n'];
+        $this->assertCount((int)$count, $periods);
+    }
+
+    public function testSaveKeepsTheOriginOfTheTransaction()
+    {
+        $transaction = [['date' => $this->day(5), 'amount' => -12.5, 'raw' => 'PRLV SEPA ORIGINE', 'type' => 2]];
+
+        // Saved before the origin was stored: a synchronization fills it, not a later one
+        Transaction::save($transaction, self::USER, false);
+        $this->assertNull(Db::queryOne("SELECT bank_name FROM bank_transaction WHERE label='PRLV SEPA ORIGINE'", "")['bank_name']);
+        Transaction::save($transaction, self::USER, false, ['bank_name' => 'bnp', 'account_number' => '00012345678']);
+        Transaction::save($transaction, self::USER, false, ['bank_name' => 'other', 'account_number' => '999']);
+
+        $saved = Db::queryOne("SELECT bank_name, account_number FROM bank_transaction WHERE label='PRLV SEPA ORIGINE'", "");
+        $this->assertSame(['bank_name' => 'bnp', 'account_number' => '00012345678'], $saved);
+    }
 }

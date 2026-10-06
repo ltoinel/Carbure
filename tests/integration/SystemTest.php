@@ -54,17 +54,28 @@ class SystemTest extends DatabaseTestCase
         $file = 'carbure_unittest_' . date('Ymd') . '.log';
         file_put_contents("$dir/$file", "26:10:04 10:00:00 : INFO : aaa111 : Test.php->a : First\n"
             . "26:10:04 10:00:01 : ERROR : bbb222 : Test.php->b : Failure : Array\n(\n    [x] => 1\n)\n\n"
-            . "26:10:04 10:00:02 : DEBUG : ccc333 : Test.php->c : Detail : eyJhbGc.eyJzdWIi.sig-1 cbt_abc123\n");
+            . "26:10:04 10:00:02 : DEBUG : ccc333 : Test.php->c : Detail : eyJhbGc.eyJzdWIi.sig-1 cbt_abc123\n"
+            // Format of now: one JSON object per line
+            . '{"time":"2026-10-04T10:00:03.250+02:00","level":"WARNING","uid":"ddd444","ip":"203.0.113.9","method":"GET",'
+            . '"path":"/api/x","user":2,"caller":"Test.php->d","message":"Slow","context":{"duration_ms":1200}}' . "\n");
         try {
             $this->assertContains($file, array_column(System::logs(), 'name'));
 
             $all = System::logEntries($file);
-            $this->assertSame(['DEBUG', 'ERROR', 'INFO'], array_column($all['entries'], 'level'));
-            $this->assertSame('2026-10-04 10:00:02', $all['entries'][0]['time']);
-            $this->assertStringContainsString('[x] => 1', $all['entries'][1]['message']);
-            $this->assertSame('Detail : eyJ*** cbt_***', $all['entries'][0]['message']);
+            $this->assertSame(['WARNING', 'DEBUG', 'ERROR', 'INFO'], array_column($all['entries'], 'level'));
+            $this->assertSame('2026-10-04 10:00:02', $all['entries'][1]['time']);
+            $this->assertStringContainsString('[x] => 1', $all['entries'][2]['message']);
+            $this->assertSame('Detail : eyJ*** cbt_***', $all['entries'][1]['message']);
+
+            // A JSON entry: its client, user and request, its context after the message
+            $json = $all['entries'][0];
+            $this->assertSame(['203.0.113.9', 2, 'GET', '/api/x', 'ddd444'], [$json['ip'], $json['user'], $json['method'], $json['path'], $json['uid']]);
+            $this->assertStringStartsWith("Slow\n{", $json['message']);
+            $this->assertStringContainsString('"duration_ms": 1200', $json['message']);
 
             $this->assertSame(['ERROR'], array_column(System::logEntries($file, 'ERROR')['entries'], 'level'));
+            // The WARN filter of the portal keeps the WARNING entries
+            $this->assertSame(['WARNING', 'ERROR'], array_column(System::logEntries($file, 'WARN')['entries'], 'level'));
             $this->assertSame(['aaa111'], array_column(System::logEntries($file, null, 'aaa111')['entries'], 'uid'));
             $this->assertCount(1, System::logEntries($file, null, null, 1)['entries']);
 

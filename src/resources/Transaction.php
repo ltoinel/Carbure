@@ -91,14 +91,28 @@ final class Transaction {
     }
 
     /**
+     * Months that have transactions, newest first: the periods offered by the portal.
+     *
+     * @return array The periods: [{year, month}]
+     */
+    #[ApiRoute('/transaction/periods', method: 'GET')]
+    public static function periods()
+    {
+        return Db::query("SELECT DISTINCT YEAR(date) AS year, MONTH(date) AS month FROM bank_transaction ORDER BY year DESC, month DESC")
+            ->fetch_all(MYSQLI_ASSOC);
+    }
+
+    /**
      * Load transactions from an array.
      *
      * @param array $data     The array of transactions
      * @param int   $userId   The user owning the synchronized bank account
      * @param bool  $progress Send each label as a progress event (synchronization)
+     * @param array $origin   Account the transactions come from: bank_name (woob backend of
+     *                        a synchronized account), account_number (synchronized or imported)
      * @return array The transactions that were not known yet (label cleaned, amount, uuid)
      */
-    public static function save($data, $userId, $progress = true)
+    public static function save($data, $userId, $progress = true, $origin = [])
     {
         $created = [];
 
@@ -108,7 +122,7 @@ final class Transaction {
                 Webservice::sendProgress($transaction['raw']);
             }
             $row = self::prepare($transaction);
-            if (self::create($row, $userId)) {
+            if (self::create($row, $userId, $origin)) {
                 $created[] = ['label' => $row['label'], 'amount' => (float)$transaction['amount'], 'uuid' => $row['uuid']];
             }
         }
@@ -147,18 +161,23 @@ final class Transaction {
      *
      * @param array $row    The transaction, as returned by prepare()
      * @param int   $userId The user owning the transaction
+     * @param array $origin bank_name and account_number of the account it comes from
      * @return bool True if the transaction is new, false if it was already known
      */
-    private static function create($row, $userId)
+    private static function create($row, $userId, $origin = [])
     {
         ['uuid' => $uuid, 'date' => $date, 'rdate' => $rdate, 'amount' => $amount,
          'label' => $label, 'type' => $type, 'card' => $card] = $row;
 
-        $sql = "INSERT INTO bank_transaction (uuid, date, rdate, amount, label, type, card, user)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                ON DUPLICATE KEY UPDATE type=?, label=?";
+        // A known transaction keeps its origin; one saved before it was stored gets it
+        $sql = "INSERT INTO bank_transaction (uuid, date, rdate, amount, label, type, card, bank_name, account_number, user)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON DUPLICATE KEY UPDATE type=?, label=?,
+                    bank_name = IFNULL(bank_name, VALUES(bank_name)),
+                    account_number = IFNULL(account_number, VALUES(account_number))";
 
-        $stmt = Db::execute($sql, "sssdsisiis", $uuid, $date, $rdate, $amount, $label, $type, $card, $userId, $type, $label);
+        $stmt = Db::execute($sql, "sssdsisssiis", $uuid, $date, $rdate, $amount, $label, $type, $card,
+            $origin['bank_name'] ?? null, $origin['account_number'] ?? null, $userId, $type, $label);
 
         // MySQL reports 1 affected row for an insert, 2 or 0 for an update of a known UUID
         return $stmt->affected_rows === 1;
@@ -221,7 +240,7 @@ final class Transaction {
             }
         }
 
-        $created = self::save($data, (int)Jwt::getUserIdFromToken(), false);
+        $created = self::save($data, (int)Jwt::getUserIdFromToken(), false, ['account_number' => $parsed['account']]);
 
         // The rules categorize the new transactions, whatever their date
         $categorized = 0;

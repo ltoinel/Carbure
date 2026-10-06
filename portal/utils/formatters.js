@@ -73,20 +73,6 @@ export function getInsightIcon(name) {
 }
 
 /**
- * Generates an array of year values for selection
- * @param {number} count - Number of years to include
- * @returns {Array<number>} Array of year values
- */
-export function generateYears(count = 6) {
-    const currentYear = new Date().getFullYear();
-    const years = [];
-    for (let i = 0; i < count; i++) {
-        years.push(currentYear - i);
-    }
-    return years;
-}
-
-/**
  * Checks if debug mode is enabled via query string
  * @returns {boolean} True if debug=true in URL
  */

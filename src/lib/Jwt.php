@@ -26,6 +26,7 @@ final class Jwt {
     public static function actAs($userId)
     {
         self::$actingUser = $userId === null ? null : (int)$userId;
+        Logger::setContext('user', self::$actingUser);
     }
 
     /**
@@ -209,7 +210,7 @@ final class Jwt {
             return false;
         }
 
-        Logger::debug("Valid JWT token for user: " . $payload->sub);
+        Logger::setContext('user', (int)$payload->sub);
         return true;
     }
 }

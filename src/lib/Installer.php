@@ -111,6 +111,59 @@ final class Installer {
     }
 
     /**
+     * Add the starter data of sql/starter.json to a new database: categories, their
+     * categorization rules and, optionally, the insights (they refer to the categories).
+     *
+     * @param mysqli $db       The connection
+     * @param string $root     Root of the project
+     * @param string $language Language of the names: fr or en
+     * @param bool   $insights Also add the insights
+     * @return array Numbers added: categories, rules, insights
+     */
+    public static function starter(mysqli $db, $root, $language = 'fr', $insights = true)
+    {
+        $starter = json_decode(file_get_contents("$root/sql/starter.json"), true, 512, JSON_THROW_ON_ERROR);
+        $language = self::language($language);
+
+        $db->begin_transaction();
+        try {
+            $stmt = $db->prepare("INSERT INTO bank_transaction_category (id, name, parent_category, type, icon, color) VALUES (?, ?, ?, ?, ?, ?)");
+            foreach ($starter['categories'] as $category) {
+                $stmt->bind_param('isisss', $category['id'], $category[$language], $category['parent'], $category['type'], $category['icon'], $category['color']);
+                $stmt->execute();
+            }
+            $stmt = $db->prepare("INSERT INTO bank_transaction_category_keyword (keyword, category, notify) VALUES (?, ?, 0)");
+            foreach ($starter['rules'] as [$keyword, $category]) {
+                $stmt->bind_param('si', $keyword, $category);
+                $stmt->execute();
+            }
+            $added = $insights ? $starter['insights'] : [];
+            $stmt = $db->prepare("INSERT INTO budget_insight (name, color, icon, `sql`) VALUES (?, ?, ?, ?)");
+            foreach ($added as $insight) {
+                $stmt->bind_param('ssss', $insight[$language], $insight['color'], $insight['icon'], $insight['sql']);
+                $stmt->execute();
+            }
+            $db->commit();
+        } catch (Throwable $e) {
+            $db->rollback();
+            throw $e;
+        }
+
+        return ['categories' => count($starter['categories']), 'rules' => count($starter['rules']), 'insights' => count($added)];
+    }
+
+    /**
+     * A language of Carbure: fr or en (fr by default).
+     *
+     * @param string|null $language The language asked
+     * @return string fr or en
+     */
+    private static function language($language)
+    {
+        return in_array($language, ['fr', 'en'], true) ? $language : 'fr';
+    }
+
+    /**
      * Check if an administrator exists.
      *
      * @param mysqli $db The connection
@@ -143,7 +196,7 @@ final class Installer {
         }
         $hash = password_hash($password, PASSWORD_DEFAULT);
         $email = $email === '' ? null : $email;
-        $language = in_array($language, ['fr', 'en'], true) ? $language : 'fr';
+        $language = self::language($language);
         $stmt = $db->prepare("INSERT INTO users (username, password, email, is_admin, language) VALUES (?, ?, ?, 1, ?)");
         $stmt->bind_param('ssss', $username, $hash, $email, $language);
         $stmt->execute();

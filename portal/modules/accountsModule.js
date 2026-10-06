@@ -152,12 +152,15 @@ export function createAccountsModule(getApiService) {
             },
 
             /**
-             * Short display of an account: "BNP ···5678"
-             * @param {Object} account - Account
+             * Short display of an account: "BNP ···5678" ("···5678" without bank: imported file)
+             * @param {Object} account - Account, or transaction: {bank_name, account_number}
              * @returns {string}
              */
             accountName(account) {
-                return `${String(account.bank_name).toUpperCase()} ···${String(account.account_number).slice(-4)}`;
+                return [
+                    account.bank_name ? String(account.bank_name).toUpperCase() : null,
+                    account.account_number ? `···${String(account.account_number).slice(-4)}` : null
+                ].filter(Boolean).join(' ');
             },
 
             /**

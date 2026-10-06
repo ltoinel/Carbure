@@ -176,6 +176,8 @@ export function createSyncModule(getApiService) {
                     this.syncStatus = 'error';
                 } finally {
                     this.syncDuration = Math.round((Date.now() - this.syncStartedAt) / 1000);
+                    // New months may have transactions now
+                    this.loadPeriods();
                     // Date and result of the last synchronization of each account
                     if (this.isAdmin) {
                         this.loadBankAccounts();

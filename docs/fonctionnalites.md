@@ -105,7 +105,8 @@ transactions du dernier mois restées sans catégorie.
 - **Recherche** sur tous les mois, à partir de deux caractères, avec le total des
   transactions trouvées.
 - **Détail** : montant, libellé complet, date et date réelle, type (carte, virement,
-  prélèvement…), carte, date d'import ; la catégorie et le pointage s'y modifient.
+  prélèvement…), carte, banque d'origine, date d'import ; la catégorie et le pointage s'y
+  modifient.
 - **Catégoriser à la main** une transaction sans catégorie : un sélecteur avec recherche,
   icônes et couleurs. Pour un administrateur, Carbure propose ensuite de **créer la règle**
   correspondante, pour que les prochaines soient classées toutes seules.
@@ -312,7 +313,10 @@ utilisateurs ouvrent **Agent IA** depuis leur menu.
 ## Installation et mises à jour
 
 - **Assistant d'installation** dans le navigateur : connexion à la base, création des
-  tables (ou mise à jour d'une base existante), compte administrateur, langue. Exposé sur
+  tables (ou mise à jour d'une base existante), compte administrateur, langue. Sur une base
+  neuve, il propose un **pack de départ** : une trentaine de catégories, une centaine de
+  règles (enseignes, fournisseurs d'énergie, opérateurs…) et des insights (dépenses,
+  revenus, reste du mois, épargne, dépassement du budget, frais bancaires…). Exposé sur
   Internet, il demande en plus un code d'installation.
 - **Image Docker** tout compris (nginx, PHP, woob), avec MariaDB : voir
   [Installation](installation.md) et le [tutoriel Synology](synology.md).

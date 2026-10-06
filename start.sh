@@ -6,6 +6,9 @@
 #
 #   ./start.sh            start (sample data the first time), then show the logs
 #   ./start.sh --reset    start with fresh sample data (also after a change of sql/carbure.sql)
+#   ./start.sh --fresh    start like a new installation: empty database and /data, no
+#                         configuration, the installation wizard is shown (the following
+#                         starts keep its configuration, until --reset or --clean)
 #   ./start.sh --build    rebuild the image first (change of docker/ or of the PHP extensions)
 #   ./start.sh --fake-woob  stub woob: the fake woob of the tests answers for the banks,
 #                         so that the sample accounts can be synchronized (WOOB=fake)
@@ -38,17 +41,21 @@ done
 command -v docker >/dev/null 2>&1 || fail "Docker is required"
 
 RESET=false
+FRESH=false
 BUILD=()
 for option in "$@"; do
     case "$option" in
         --stop) compose down; exit 0 ;;
         --clean) compose down --volumes; exit 0 ;;
         --reset) RESET=true ;;
+        --fresh) FRESH=true ;;
         --build) BUILD=(--build) ;;
         --fake-woob) WOOB=fake ;;
         *) usage >&2; fail "unknown option $option" ;;
     esac
 done
+
+$FRESH && $RESET && fail "--fresh and --reset cannot be combined"
 
 # Image of production (built once: woob takes a few minutes)
 if [ ${#BUILD[@]} -gt 0 ] || [ -z "$(docker images -q carbure:dev)" ]; then
@@ -56,17 +63,27 @@ if [ ${#BUILD[@]} -gt 0 ] || [ -z "$(docker images -q carbure:dev)" ]; then
     compose build carbure
 fi
 
+if $FRESH; then
+    log "Deleting the database and /data of the development instance"
+    compose down --volumes
+fi
+
 log "Starting MariaDB"
 compose up -d --wait db
 
-# Configuration of the instance, as written by the installation wizard in production
-case "$WOOB" in
-    fake) WOOB_PATH="php /var/www/carbure/tests/fixtures/fake-woob.php" ;;
-    real) WOOB_PATH="env HOME=/data/woob woob" ;;
-    *) fail "WOOB must be real or fake (or use --fake-woob)" ;;
-esac
-log "Writing /data/conf/prod.ini (woob: $WOOB)"
-compose run --rm --no-deps -T --entrypoint sh carbure -c 'mkdir -p /data/conf && cat > /data/conf/prod.ini' <<INI
+# Runs a shell command in a container of the image, with the /data volume
+in_data() { compose run --rm --no-deps -T --entrypoint sh carbure -c "$1"; }
+
+# Configuration of the instance, as written by the installation wizard in production,
+# and sample data the first time (or with --reset)
+configure_dev_instance() {
+    case "$WOOB" in
+        fake) WOOB_PATH="php /var/www/carbure/tests/fixtures/fake-woob.php" ;;
+        real) WOOB_PATH="env HOME=/data/woob woob" ;;
+        *) fail "WOOB must be real or fake (or use --fake-woob)" ;;
+    esac
+    log "Writing /data/conf/prod.ini (woob: $WOOB)"
+    in_data 'mkdir -p /data/conf && cat > /data/conf/prod.ini' <<INI
 ; Development instance written by start.sh at each start: do not edit
 [global]
 log_level=debug
@@ -98,14 +115,29 @@ woob_debug=false
 woob_auto_update=false
 INI
 
-# Sample data the first time (or with --reset), before the start of Carbure: its
-# entrypoint then applies the migrations, as on an existing instance
-if ! $RESET && ! compose exec -T db mariadb -ucarbure -pdev carbure_dev -N -e "SHOW TABLES LIKE 'users'" | grep -q .; then
-    RESET=true
+    # Sample data the first time (or with --reset), before the start of Carbure: its
+    # entrypoint then applies the migrations, as on an existing instance
+    if ! $RESET && ! compose exec -T db mariadb -ucarbure -pdev carbure_dev -N -e "SHOW TABLES LIKE 'users'" | grep -q .; then
+        RESET=true
+    fi
+    if $RESET; then
+        log "Loading the sample data"
+        compose run --rm --no-deps -T --entrypoint php carbure tests/e2e/server/seed.php --demo
+    fi
+}
+
+# An instance installed with the wizard (--fresh) keeps its configuration and its data:
+# marker /data/conf/.wizard, removed by --reset (and --clean, with the volume)
+if $FRESH; then
+    in_data 'mkdir -p /data/conf && touch /data/conf/.wizard'
+elif $RESET; then
+    in_data 'rm -f /data/conf/.wizard'
 fi
-if $RESET; then
-    log "Loading the sample data"
-    compose run --rm --no-deps -T --entrypoint php carbure tests/e2e/server/seed.php --demo
+WIZARD=false
+if $FRESH || { ! $RESET && in_data 'test -f /data/conf/.wizard'; }; then
+    WIZARD=true
+else
+    configure_dev_instance
 fi
 
 log "Starting Carbure"
@@ -114,6 +146,10 @@ if ! compose up -d --wait carbure; then
     fail "Carbure did not start (logs above)"
 fi
 
-log "Carbure: http://localhost:$PORT/portal/  (admin / admin-password, marie / marie-password)"
+if $WIZARD; then
+    log "Carbure: http://localhost:$PORT/portal/  (installation wizard, or the accounts it created)"
+else
+    log "Carbure: http://localhost:$PORT/portal/  (admin / admin-password, marie / marie-password)"
+fi
 log "Logs below; Ctrl+C leaves the stack running, ./start.sh --stop stops it"
 compose logs -f carbure

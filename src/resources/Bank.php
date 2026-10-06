@@ -305,49 +305,29 @@ final class Bank {
     }
 
     /**
-     * Get the list of coming transactions from a bank.
+     * Save the transactions of a bank account: coming (card transactions not debited
+     * yet, type 12) or history.
      *
-     * @param string $bankId The bank id to sync
+     * @param string $kind   "coming" or "history"
+     * @param string $bankId The bank id to sync (account_number@bank_name)
      * @return array The new transactions
      */
-    private static function syncBankComing($bankId)
+    private static function syncBankData($kind, $bankId)
     {
-        $transactions = self::getBankData("coming", $bankId);
-
+        $transactions = self::getBankData($kind, $bankId);
         if (empty($transactions)) {
-            Logger::warn("No coming transactions for $bankId");
-            Webservice::sendProgress("Done $bankId (coming): 0 received, 0 new");
+            Logger::warn("No $kind transactions for $bankId");
+            Webservice::sendProgress("Done $bankId ($kind): 0 received, 0 new");
             return [];
         }
-
-        // We remove all the transactions with a type != 12
-        $transactions = array_filter($transactions, function ($transaction) {
-            return $transaction['type'] == 12;
-        });
-
-        $created = Transaction::save($transactions, self::getBankOwner($bankId));
-        Webservice::sendProgress("Done $bankId (coming): " . count($transactions) . " received, " . count($created) . " new");
-        return $created;
-    }
-
-    /**
-     * Get the list of history transactions from a bank.
-     *
-     * @param string $bankId The bank id to sync
-     * @return array The new transactions
-     */
-    private static function syncBankHistory($bankId)
-    {
-        $transactions = self::getBankData("history", $bankId);
-
-        if (empty($transactions)) {
-            Logger::warn("No history transactions for $bankId");
-            Webservice::sendProgress("Done $bankId (history): 0 received, 0 new");
-            return [];
+        if ($kind === 'coming') {
+            $transactions = array_filter($transactions, fn($transaction) => $transaction['type'] == 12);
         }
 
-        $created = Transaction::save($transactions, self::getBankOwner($bankId));
-        Webservice::sendProgress("Done $bankId (history): " . count($transactions) . " received, " . count($created) . " new");
+        [$accountNumber, $bankName] = explode('@', $bankId, 2);
+        $created = Transaction::save($transactions, self::getBankOwner($bankId), true,
+            ['bank_name' => $bankName, 'account_number' => $accountNumber]);
+        Webservice::sendProgress("Done $bankId ($kind): " . count($transactions) . " received, " . count($created) . " new");
         return $created;
     }
 
@@ -416,10 +396,10 @@ final class Bank {
 
                 try {
                     Webservice::sendProgress("Syncing $bankId (coming)...");
-                    $created = self::syncBankComing($bankId);
+                    $created = self::syncBankData('coming', $bankId);
 
                     Webservice::sendProgress("Syncing $bankId (history)...");
-                    $created = array_merge($created, self::syncBankHistory($bankId));
+                    $created = array_merge($created, self::syncBankData('history', $bankId));
 
                 } catch (Exception $e) {
                     Logger::error("Error syncing $bankId: " . $e->getMessage());
@@ -439,7 +419,17 @@ final class Bank {
             // Update missing categories
             Webservice::sendProgress("Updating missing categories...");
             Transaction::updateMissingCategories();
-            
+
+            // Delete the log files older than the retention: a cleanup must not fail the sync
+            try {
+                $deleted = Logger::purge();
+                if ($deleted) {
+                    Webservice::sendProgress(count($deleted) . " old log file(s) deleted");
+                }
+            } catch (Throwable $e) {
+                Logger::error("Cleanup of the logs failed: " . $e->getMessage());
+            }
+
             // Send final completion event
             Webservice::sendProgress("Synchronization complete");
         } finally {

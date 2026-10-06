@@ -24,10 +24,20 @@ Ouvrez `http://<hôte>:8080/` : l'assistant d'installation s'affiche, déjà rem
 base de données de `docker/docker-compose.yml`. Cliquez sur **Continuer**, choisissez le mot de
 passe administrateur, puis **Installer**. C'est tout.
 
+Sur une base neuve, l'assistant propose aussi, pour bien démarrer, des **catégories** courantes
+avec leurs **règles** de catégorisation (enseignes, fournisseurs d'énergie, opérateurs…) et des
+**insights** (dépenses, revenus, reste du mois, épargne, dépassement du budget…). Ces options
+sont cochées par défaut ; tout reste modifiable ensuite. Leur contenu est dans
+`sql/starter.json`.
+
 Ajoutez ensuite vos banques depuis l'onglet **Comptes** du portail (bouton **+**) :
 choisissez la banque, saisissez les identifiants demandés, puis les comptes à suivre. Les
 identifiants sont confiés à woob, qui les conserve sur votre serveur ; Carbure ne les
 enregistre pas.
+
+Les réglages de l'instance (niveau et conservation des logs, woob, notifications iOS…) se
+consultent et se modifient ensuite dans le portail, onglet **Administration →
+Paramètres** : voir [Configuration](configuration.md).
 
 Pour choisir vous-même le mot de passe de la base, créez un fichier `docker/.env` à côté de
 `docker/docker-compose.yml` **avant** le premier démarrage :
@@ -51,8 +61,9 @@ la base de données. Aucun mot de passe administrateur n'est passé par
 l'environnement : il est choisi dans l'assistant.
 
 L'image contient nginx (portail, Swagger et API sur le port 80), PHP-FPM et woob. Son
-`HEALTHCHECK` interroge `GET /api/health` toutes les 30 secondes : `docker ps` affiche
-`healthy` quand la base répond.
+`HEALTHCHECK` interroge `GET /api/health` toutes les 5 minutes (toutes les 10 secondes
+pendant les 2 premières minutes, avec Docker 25 ou plus) : `docker ps` affiche `healthy`
+quand la base répond.
 
 !!! note "Accès depuis Internet"
     Depuis votre réseau local, l'assistant est directement accessible. Si Carbure est
@@ -174,7 +185,8 @@ location ~ ^/(data|conf|sql|tests|tools|docker)/ { deny all; }
 
 Ouvrez le portail (`https://<votre-serveur>/portal/`) : l'assistant demande la base de
 données, crée ses tables (ou met à jour une base Carbure existante, après confirmation
-d'une sauvegarde) et le compte administrateur, puis écrit `data/conf/prod.ini` avec des
+d'une sauvegarde), le compte administrateur et, sur une base neuve, le pack de départ
+facultatif (catégories, règles, insights), puis écrit `data/conf/prod.ini` avec des
 secrets aléatoires (`jwtsecret`, `sync_token`…). La commande woob y est `woob` : adaptez
 `woob_path` si woob est installé ailleurs (voir [Configuration](configuration.md#woob)).
 

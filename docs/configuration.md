@@ -15,27 +15,35 @@ commentaires commencent par `;` (le `#` n'est pas accepté par PHP).
 être publié. Après une modification à la main, rien n'est à redémarrer (le fichier est
 relu à chaque requête), sauf le conteneur Docker pour `SYNC_INTERVAL`.
 
-Un administrateur voit ce fichier dans le portail (**Administration → Paramètres**), les secrets
-masqués, et peut y changer les réglages sans risque : `log_level`, `savings_category`,
-`public_url`, `woob_transactions`, `woob_logging`, `woob_debug`, `woob_auto_update`,
-`apns_environment`, `apns_auth_method`, `apns_bundle_id`, `apns_key_id` et `apns_team_id`.
-Chaque valeur est vérifiée (liste de valeurs, nombre borné, format) avant l'écriture, et le
-fichier précédent est gardé en `prod.ini.bak`. Les autres réglages — base de données,
-secrets, `woob_path` (commande exécutée par le serveur), `regex_label` (qui change les
-identifiants des transactions), chemins de fichiers — ne se changent que sur le serveur.
-Le serveur web doit pouvoir écrire le fichier ; sinon la vue est en lecture seule.
+!!! tip "Voir et modifier les réglages depuis le portail"
+    Inutile d'ouvrir le fichier : un administrateur le consulte dans le portail, onglet
+    **Administration → Paramètres**. Les réglages y sont présentés par section, avec leur
+    valeur actuelle et une aide, les secrets masqués.
 
-Les réglages modifiés depuis le portail sont, eux, enregistrés en base (voir
-[Réglages en base](#reglages-en-base)).
+    Les clés marquées ✏️ dans les tableaux ci-dessous s'y modifient directement : `log_level`,
+    `log_retention_days`, `savings_category`, `public_url`, `woob_transactions`,
+    `woob_logging`, `woob_debug`, `woob_auto_update`, `apns_environment`,
+    `apns_auth_method`, `apns_bundle_id`, `apns_key_id` et `apns_team_id`. Chaque valeur est
+    vérifiée (liste de valeurs, nombre borné, format) avant l'écriture, et le fichier
+    précédent est gardé en `prod.ini.bak`. Le serveur web doit pouvoir écrire le fichier ;
+    sinon la page est en lecture seule.
+
+    Les autres réglages — base de données, secrets, `woob_path` (commande exécutée par le
+    serveur), `regex_label` (qui change les identifiants des transactions), chemins de
+    fichiers — sont affichés mais ne se changent que sur le serveur.
+
+D'autres réglages, comme l'activation du serveur MCP, sont enregistrés en base et non dans
+ce fichier (voir [Réglages en base](#reglages-en-base)).
 
 ## `[global]`
 
 | Clé | Valeurs | Description |
 |---|---|---|
-| `log_level` | `debug`, `info`, `warning`, `error` | Niveau minimal des logs (`data/logs/carbure_AAAAMMJJ.log`). En `debug`, les erreurs PHP sont affichées et les réponses JSON indentées. |
+| `log_level` ✏️ | `debug`, `info`, `warning`, `error` | Niveau minimal des logs (`data/logs/carbure_AAAAMMJJ.log`). En `debug`, les erreurs PHP sont affichées et les réponses JSON indentées. |
+| `log_retention_days` ✏️ | `0` à `3650` | Nombre de jours de conservation des fichiers de log ; les plus anciens sont supprimés à la fin de la synchronisation bancaire. `0` (ou absent) : conservés indéfiniment. `90` dans une nouvelle installation. |
 | `development` | `true` / `false` | Indicateur de mode développement, écrit à `false` par l'assistant (sans effet actuellement) |
-| `savings_category` | nom | Catégorie dont les transactions (avec ses sous-catégories) constituent l'épargne de l'onglet Tendances ; `Epargne` par défaut, casse et accents ignorés |
-| `public_url` | URL | Facultatif : adresse publique de Carbure (`https://carbure.exemple.fr`), annoncée aux agents IA qui se connectent par OAuth. Par défaut, déduite de la requête : à renseigner si le proxy HTTPS n'envoie pas `X-Forwarded-Proto` |
+| `savings_category` ✏️ | nom | Catégorie dont les transactions (avec ses sous-catégories) constituent l'épargne de l'onglet Tendances ; `Epargne` par défaut, casse et accents ignorés |
+| `public_url` ✏️ | URL | Facultatif : adresse publique de Carbure (`https://carbure.exemple.fr`), annoncée aux agents IA qui se connectent par OAuth. Par défaut, déduite de la requête : à renseigner si le proxy HTTPS n'envoie pas `X-Forwarded-Proto` |
 
 ## `[database]`
 
@@ -74,28 +82,28 @@ transaction importée.
 | Clé | Description |
 |---|---|
 | `woob_path` | Commande woob : binaire local (`/usr/bin/woob`), conteneur (`docker run -v …:/root/ ltoinel/woob:3.7 woob`) ou, dans l'image Docker, `env HOME=/data/woob woob` (variable `CARBURE_WOOB_PATH`) |
-| `woob_transactions` | Nombre d'opérations demandées par appel (`--count`) |
-| `woob_logging` | Niveau de log de woob |
-| `woob_debug` | `true` pour journaliser la sortie complète de woob |
-| `woob_auto_update` | `true` pour laisser woob mettre à jour ses modules |
+| `woob_transactions` ✏️ | Nombre d'opérations demandées par appel (`--count`) |
+| `woob_logging` ✏️ | Niveau de log de woob |
+| `woob_debug` ✏️ | `true` pour journaliser la sortie complète de woob |
+| `woob_auto_update` ✏️ | `true` pour laisser woob mettre à jour ses modules |
 
 ## `[apns]`
 
 | Clé | Description |
 |---|---|
-| `apns_bundle_id` | Bundle ID de l'app iOS (sujet APNs) |
-| `apns_auth_method` | `token` (clé `.p8`, recommandé) ou `certificate` |
+| `apns_bundle_id` ✏️ | Bundle ID de l'app iOS (sujet APNs) |
+| `apns_auth_method` ✏️ | `token` (clé `.p8`, recommandé) ou `certificate` |
 | `apns_key_path` | Chemin de la clé `.p8`, absolu ou relatif au dossier `data/` (ex. `conf/certs/AuthKey_XXXX.p8`, soit `data/conf/certs/AuthKey_XXXX.p8`) |
-| `apns_key_id`, `apns_team_id` | Identifiants Apple Developer |
+| `apns_key_id`, `apns_team_id` ✏️ | Identifiants Apple Developer |
 | `apns_certificate_path`, `apns_certificate_password` | Pour l'authentification par certificat |
-| `apns_environment` | `production` ou `sandbox` |
+| `apns_environment` ✏️ | `production` ou `sandbox` |
 | `apns_endpoint` | Facultatif : URL APNs imposée (tests), à la place de celle déduite de `apns_environment` |
 
 Les clés `.p8` placées dans `data/conf/certs/` sont ignorées par Git.
 
 ## Réglages en base
 
-Les réglages modifiés depuis le portail sont enregistrés dans la table `settings`
+Ces réglages, modifiés depuis le portail, sont enregistrés dans la table `settings`
 (`name`, `value`) et non dans le fichier :
 
 | Réglage | Valeurs | Modifié dans |

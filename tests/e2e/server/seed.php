@@ -113,7 +113,8 @@ function carbure_e2e_seed($demo = false)
     ];
     foreach ($transactions as [$ago, $day, $type, $label, $category, $amount, $pointed]) {
         $date = date('Y-m-d', strtotime(date('Y-m-01') . " -$ago months +" . ($day - 1) . ' days'));
-        $exec("INSERT INTO bank_transaction (uuid, date, rdate, type, label, category, amount, card, pointed, user) VALUES (?, ?, ?, ?, ?, ?, ?, '', ?, 1)",
+        // Synchronized from the account of the household (see bank_account)
+        $exec("INSERT INTO bank_transaction (uuid, date, rdate, type, label, category, amount, card, bank_name, account_number, pointed, user) VALUES (?, ?, ?, ?, ?, ?, ?, '', 'bnp', '00012345678', ?, 1)",
             "sssisidi", md5($date . $label . $amount), $date, $date, $type, $label, $category, $amount, $pointed);
     }
 

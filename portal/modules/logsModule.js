@@ -22,7 +22,9 @@ export function createLogsModule(getApiService) {
                 logSearch: '',
                 logEntries: [],
                 logTruncated: false,
-                loadingLogs: false
+                loadingLogs: false,
+                // Days the log files are kept (0: forever), null until loaded
+                logRetention: null
             };
         },
 
@@ -32,6 +34,13 @@ export function createLogsModule(getApiService) {
              * @returns {Promise<void>}
              */
             async loadLogs() {
+                // Names of the users of the entries
+                if (!this.users.length) {
+                    this.loadUsers();
+                }
+                getApiService().fetchLogRetention()
+                    .then(result => { this.logRetention = Number(result.days) || 0; })
+                    .catch(() => { this.logRetention = null; });
                 try {
                     this.logFiles = await getApiService().fetchLogFiles();
                     if (!this.logFiles.some(f => f.name === this.logFile)) {
@@ -64,6 +73,16 @@ export function createLogsModule(getApiService) {
                 } finally {
                     this.loadingLogs = false;
                 }
+            },
+
+            /**
+             * Name of the user of an entry (its id if unknown)
+             * @param {number} id - User id
+             * @returns {string}
+             */
+            logUserName(id) {
+                const user = this.users.find(u => Number(u.id) === Number(id));
+                return user ? user.username : `#${id}`;
             },
 
             /**

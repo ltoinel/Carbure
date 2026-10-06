@@ -34,7 +34,10 @@ export function createSetupModule() {
                     admin_password_confirm: '',
                     admin_email: '',
                     language: 'fr',
-                    backup_confirmed: false
+                    backup_confirmed: false,
+                    // New database: categories and rules, and insights, to start with
+                    starter_categories: true,
+                    starter_insights: true
                 },
                 // Answer of /setup/database: {state, version, pending, hasAdmin}
                 setupDatabase: null,

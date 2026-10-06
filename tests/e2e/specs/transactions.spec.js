@@ -31,14 +31,24 @@ test('shows the icon and the color of the category of each transaction', async (
 });
 
 test('shows another month', async ({ adminPage: page }) => {
-    const previous = new Date();
-    previous.setDate(1);
-    previous.setMonth(previous.getMonth() - 1);
-    await page.locator('#year').selectOption(String(previous.getFullYear()));
-    await page.locator('#month').selectOption(String(previous.getMonth() + 1));
+    const previous = currentMonth(1);
+    await page.locator('#year').selectOption(String(previous.year));
+    await page.locator('#month').selectOption(String(previous.month));
 
     await expect(page.locator('.transaction-item')).toHaveCount(3);
     await expect(row(page, 'CB SUPERMARCHE CARREFOUR')).toBeVisible();
+});
+
+test('offers only the months that have transactions', async ({ adminPage: page }) => {
+    // The data set: the current month and the two previous ones
+    const periods = [0, 1, 2].map(ago => currentMonth(ago));
+    const years = [...new Set(periods.map(p => String(p.year)))];
+    await expect(page.locator('#year option')).toHaveText(years);
+
+    const { year } = currentMonth();
+    const months = periods.filter(p => p.year === year).map(p => p.month).sort((a, b) => a - b);
+    await expect(page.locator('#month option')).toHaveCount(months.length);
+    await expect(page.locator('#month option').first()).toHaveAttribute('value', String(months[0]));
 });
 
 test('searches the transactions of every month by label', async ({ adminPage: page }) => {
@@ -105,11 +115,28 @@ test('a user categorizes without being offered a rule', async ({ userPage: page 
     await expect(page.locator('.rule-suggestion')).toHaveCount(0);
 });
 
+test('the category list of a row closes when the page scrolls, not on a late scroll event', async ({ userPage: page }) => {
+    await page.setViewportSize({ width: 1280, height: 500 });
+    const transaction = row(page, 'CB BOULANGERIE PAUL');
+    await transaction.locator('.category-picker-button').click();
+    const search = transaction.locator('.category-picker-search input');
+    await expect(search).toBeVisible();
+
+    // A scroll event that did not move the button (end of the scroll bringing it into view)
+    await page.evaluate(() => window.dispatchEvent(new Event('scroll')));
+    await expect(search).toBeVisible();
+
+    await page.evaluate(() => window.scrollBy(0, 100));
+    await expect(search).toHaveCount(0);
+});
+
 test('changes the category and the checked state in the detail modal', async ({ adminPage: page, api }) => {
     await row(page, 'CB RESTAURANT LE PETIT ZINC').getByRole('button', { name: new RegExp(tr('transactionDetail')) }).click();
 
     const modal = page.getByRole('dialog', { name: tr('transactionDetail') });
     await expect(modal.locator('.transaction-detail-amount')).toHaveText(euros(-45));
+    // Bank at the origin of the transaction
+    await expect(modal.locator('.transaction-detail-bank')).toHaveText('BNP ···5678');
     await pickCategory(modal, 'Supermarché');
     await modal.getByLabel(tr('transactionChecked')).check();
     await modal.getByRole('button', { name: tr('save') }).click();
