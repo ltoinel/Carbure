@@ -126,7 +126,8 @@ test('the category list of a row closes when the page scrolls, not on a late scr
     await page.evaluate(() => window.dispatchEvent(new Event('scroll')));
     await expect(search).toBeVisible();
 
-    await page.evaluate(() => window.scrollBy(0, 100));
+    // Towards where the page can scroll: the click may have scrolled it to the bottom
+    await page.evaluate(() => window.scrollBy(0, window.scrollY > 0 ? -100 : 100));
     await expect(search).toHaveCount(0);
 });
 
