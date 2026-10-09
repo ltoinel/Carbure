@@ -28,7 +28,7 @@ services:
     restart: unless-stopped
 
   db:
-    image: mariadb:11
+    image: mariadb:13
     environment:
       MARIADB_DATABASE: carbure
       MARIADB_USER: carbure
