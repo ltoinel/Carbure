@@ -6,6 +6,8 @@ const USER_TABS = ['tabTransactions', 'tabBudget', 'tabInsights', 'tabTrends'];
 
 test('logs in and out from the login screen', async ({ page }) => {
     await page.goto('/portal/');
+    // The API is found from the address of the portal: no field to type it
+    await expect(page.locator('#apiUrl')).toHaveCount(0);
 
     await page.getByLabel(tr('username')).fill('admin');
     await page.getByLabel(tr('password')).fill('admin-password');
@@ -31,15 +33,17 @@ test('refuses a wrong password', async ({ page }) => {
     await expect(page.locator('.user-menu-name')).toHaveCount(0);
 });
 
-test('goes back to the login screen when the session has expired', async ({ page, baseURL }) => {
-    await page.addInitScript(origin => {
+test('goes back to the login screen when the session has expired', async ({ page }) => {
+    await page.addInitScript(() => {
         localStorage.setItem('authToken', 'expired.token.value');
-        localStorage.setItem('apiUrl', origin);
-    }, new URL(baseURL).origin);
+        // Left by an older version of the login screen: ignored and removed
+        localStorage.setItem('apiUrl', 'https://elsewhere.invalid');
+    });
     await page.goto('/portal/');
 
     await expect(page.getByRole('alert')).toContainText(tr('sessionExpired'));
     await expect(page.getByRole('button', { name: tr('loginButton') })).toBeVisible();
+    expect(await page.evaluate(() => localStorage.getItem('apiUrl'))).toBeNull();
 });
 
 test('shows every tab to an administrator', async ({ adminPage: page }) => {

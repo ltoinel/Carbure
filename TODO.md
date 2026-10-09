@@ -36,4 +36,10 @@ Tâches restant à réaliser sur Carbure. Une tâche terminée est retirée de c
       de PHP (montant au format float PHP `-42.5`, 24 premiers **octets** du libellé pour les
       cartes, uniquement les lignes dont l'UUID actuel correspond à la formule), et gérer les
       collisions d'UUID. La regex est dans le `prod.ini` de chaque instance : la corriger dans
-      `prod.sample.ini` ne suffit pas.
+      `prod.sample.ini` ne suffit pas. Les répétitions d'une transaction identique ont
+      l'UUID `md5(uuid . '#n')` (`Transaction::prepareAll()`) : la migration doit les
+      recalculer à partir de l'UUID de base, rang par rang.
+- [ ] Le compte n'entre pas dans l'UUID : une même opération (date réelle, libellé,
+      montant) sur deux comptes synchronisés n'est enregistrée qu'une fois. L'ajouter change
+      tous les UUID (migration, ou clé unique `(account_number, uuid)`) ; à faire seulement
+      si des comptes du foyer peuvent avoir des opérations identiques.

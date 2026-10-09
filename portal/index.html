@@ -197,20 +197,6 @@
 
                 <form @submit.prevent="login" class="login-form">
                     <div class="form-group">
-                        <label for="apiUrl">
-                            <span class="material-icons" aria-hidden="true">dns</span>
-                            {{ t('apiUrlLabel') }}
-                        </label>
-                        <input 
-                            type="url" 
-                            id="apiUrl" 
-                            v-model="loginForm.apiUrl" 
-                            required 
-                            placeholder="https://carbure.example.com"
-                        />
-                    </div>
-
-                    <div class="form-group">
                         <label for="loginUsername">
                             <span class="material-icons" aria-hidden="true">person</span>
                             {{ t('username') }}

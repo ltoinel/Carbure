@@ -121,20 +121,66 @@ final class Transaction {
      */
     public static function save($data, $userId, $progress = true, $origin = [])
     {
-        $created = [];
-
-        // Insert each transaction (duplicates are merged on their UUID)
-        foreach ($data as $transaction) {
-            if ($progress) {
-                Webservice::sendProgress($transaction['raw']);
+        $rows = self::prepareAll($data);
+        if ($progress) {
+            foreach ($data as $index => $transaction) {
+                $rows[$index]['raw'] = $transaction['raw'];
             }
-            $row = self::prepare($transaction);
+        }
+        return self::store($rows, $userId, $origin);
+    }
+
+    /**
+     * Save prepared transactions (duplicates are merged on their UUID).
+     *
+     * @param array $rows   The transactions, as returned by prepareAll(), with their raw
+     *                      label to send it as a progress event
+     * @param int   $userId The user owning the transactions
+     * @param array $origin bank_name and account_number of the account they come from
+     * @return array The transactions that were not known yet (label cleaned, amount, uuid)
+     */
+    private static function store($rows, $userId, $origin = [])
+    {
+        $created = [];
+        foreach ($rows as $row) {
+            if (isset($row['raw'])) {
+                Webservice::sendProgress($row['raw']);
+            }
             if (self::create($row, $userId, $origin)) {
-                $created[] = ['label' => $row['label'], 'amount' => (float)$transaction['amount'], 'uuid' => $row['uuid']];
+                $created[] = ['label' => $row['label'], 'amount' => (float)$row['amount'], 'uuid' => $row['uuid']];
             }
         }
 
         return $created;
+    }
+
+    /**
+     * Prepare the transactions received together from one account (a synchronization or
+     * a file), so that each one has its own UUID: identical transactions (same date,
+     * label and amount, such as two coffees) are told apart by their occurrence. The
+     * first one keeps the UUID of prepare(), the next ones get md5(uuid#n).
+     *
+     * @param array $data The transactions [{type, raw, amount, date, rdate?, card?}]
+     * @return array The prepared transactions, with the keys of $data
+     */
+    public static function prepareAll($data)
+    {
+        $rows = array_map([self::class, 'prepare'], $data);
+
+        $groups = [];
+        foreach ($rows as $index => $row) {
+            $groups[$row['uuid']][] = $index;
+        }
+        foreach ($groups as $uuid => $indexes) {
+            // Card labels truncated in the UUID: the order of the full labels is stable
+            // from a synchronization to the next one, unlike the order of the bank
+            usort($indexes, fn($a, $b) => strcmp($rows[$a]['label'], $rows[$b]['label']) ?: $a <=> $b);
+            foreach (array_slice($indexes, 1) as $occurrence => $index) {
+                $rows[$index]['uuid'] = md5($uuid . '#' . ($occurrence + 1));
+            }
+        }
+
+        return $rows;
     }
 
     /**
@@ -236,18 +282,19 @@ final class Transaction {
     #[ApiRoute('/transaction/import', method: 'POST')]
     public static function import($file, $filename = null, $selected = null)
     {
-        [$parsed, $rows] = self::analyzeImport($file, $filename);
+        [$parsed, $rows, $prepared] = self::analyzeImport($file, $filename);
         $selected = $selected === null ? null : array_map('intval', (array)$selected);
 
+        // Prepared with the whole file: a selected row keeps the UUID of its occurrence
         $data = [];
         foreach ($rows as $row) {
             $wanted = $selected === null ? $row['status'] === 'new' : in_array($row['index'], $selected, true);
             if ($wanted && $row['status'] !== 'known') {
-                $data[] = $parsed['transactions'][$row['index']];
+                $data[] = $prepared[$row['index']];
             }
         }
 
-        $created = self::save($data, (int)Jwt::getUserIdFromToken(), false, ['account_number' => $parsed['account']]);
+        $created = self::store($data, (int)Jwt::getUserIdFromToken(), ['account_number' => $parsed['account']]);
 
         // The rules categorize the new transactions, whatever their date
         $categorized = 0;
@@ -275,7 +322,8 @@ final class Transaction {
      *
      * @param string      $file     The content of the file, base64 encoded
      * @param string|null $filename The name of the file
-     * @return array [parsed file (BankFile::parse), rows with their status]
+     * @return array [parsed file (BankFile::parse), rows with their status, transactions
+     *               as prepared by prepareAll()]
      * @throws Error If the file is not understood
      */
     private static function analyzeImport($file, $filename)
@@ -286,9 +334,9 @@ final class Transaction {
         }
         $parsed = BankFile::parse($content, $filename);
 
+        $prepared = self::prepareAll($parsed['transactions']);
         $rows = [];
-        foreach ($parsed['transactions'] as $index => $transaction) {
-            $row = self::prepare($transaction);
+        foreach ($prepared as $index => $row) {
             $rows[] = ['index' => $index, 'date' => $row['date'], 'rdate' => $row['rdate'], 'amount' => $row['amount'],
                        'label' => stripslashes($row['label']), 'type' => $row['type'], 'uuid' => $row['uuid'], 'status' => 'new'];
         }
@@ -301,17 +349,13 @@ final class Transaction {
             "ssss", $from, $to, $from, $to)->get_result()->fetch_all(MYSQLI_ASSOC);
         $uuids = array_flip(array_column($existing, 'uuid'));
 
-        $seen = [];
         $matched = [];
         foreach ($rows as &$row) {
-            // Same UUID: in the database, or twice in the file
-            if (isset($uuids[$row['uuid']]) || isset($seen[$row['uuid']])) {
+            // Same UUID in the database (identical rows of the file have their own UUID)
+            if (isset($uuids[$row['uuid']])) {
                 $row['status'] = 'known';
-                if (isset($uuids[$row['uuid']])) {
-                    $matched[$existing[$uuids[$row['uuid']]]['id']] = true;
-                }
+                $matched[$existing[$uuids[$row['uuid']]]['id']] = true;
             }
-            $seen[$row['uuid']] = true;
         }
         unset($row);
         foreach ($rows as &$row) {
@@ -338,7 +382,7 @@ final class Transaction {
             unset($row['uuid']);
         }
         unset($row);
-        return [$parsed, $rows];
+        return [$parsed, $rows, $prepared];
     }
 
     /**

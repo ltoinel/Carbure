@@ -32,9 +32,9 @@ réinstallé de zéro), elle est fermée et l'assistant s'affiche.
 
 ## Connexion et profils
 
-L'écran de connexion demande l'URL de l'API, l'identifiant et le mot de passe. Le JWT et
-l'URL sont conservés dans le navigateur (`localStorage`) jusqu'à la déconnexion ou
-l'expiration de la session (30 jours). Après **5 échecs de connexion** d'affilée, le
+L'écran de connexion demande l'identifiant et le mot de passe : l'API est celle du serveur
+qui sert le portail (`/api`, à côté de `/portal/`). Le JWT est conservé dans le navigateur
+(`localStorage`) jusqu'à la déconnexion ou l'expiration de la session (30 jours). Après **5 échecs de connexion** d'affilée, le
 compte est bloqué 24 heures ; un administrateur peut le débloquer.
 
 Deux profils existent :

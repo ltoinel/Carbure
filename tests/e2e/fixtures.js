@@ -53,20 +53,17 @@ async function apiLogin(request, user) {
 /**
  * Opens the portal as a logged-in user (token stored like the login screen does)
  * @param {import('@playwright/test').Page} page
- * @param {string} baseURL - URL of the server
  * @param {string} token
  * @param {string} username
  */
-async function openPortal(page, baseURL, token, username) {
-    const origin = new URL(baseURL).origin;
-    await page.addInitScript(([token, origin, username]) => {
+async function openPortal(page, token, username) {
+    await page.addInitScript(([token, username]) => {
         if (!sessionStorage.getItem('e2e-init')) {
             sessionStorage.setItem('e2e-init', '1');
             localStorage.setItem('authToken', token);
-            localStorage.setItem('apiUrl', origin);
             localStorage.setItem('username', username);
         }
-    }, [token, origin, username]);
+    }, [token, username]);
     await page.goto('/portal/');
     await base.expect(page.locator('.user-menu-name')).toHaveText(username);
 }
@@ -86,13 +83,13 @@ const test = base.test.extend({
         base.expect(errors, 'Uncaught errors in the page').toEqual([]);
     },
 
-    adminPage: async ({ page, request, baseURL }, use) => {
-        await openPortal(page, baseURL, await apiLogin(request, 'admin'), 'admin');
+    adminPage: async ({ page, request }, use) => {
+        await openPortal(page, await apiLogin(request, 'admin'), 'admin');
         await use(page);
     },
 
-    userPage: async ({ page, request, baseURL }, use) => {
-        await openPortal(page, baseURL, await apiLogin(request, 'marie'), 'marie');
+    userPage: async ({ page, request }, use) => {
+        await openPortal(page, await apiLogin(request, 'marie'), 'marie');
         await use(page);
     },
 

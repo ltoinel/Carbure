@@ -29,6 +29,12 @@ import { createOAuthModule } from './modules/oauthModule.js';
 import { createImportModule } from './modules/importModule.js';
 import { createConfigModule } from './modules/configModule.js';
 
+/**
+ * Base URL of the API: the portal is served at <server>/portal/ and the API at
+ * <server>/api, so it comes from the address of the page (also under a sub-path)
+ */
+const API_BASE_URL = new URL('../api', new URL('.', window.location.href)).href;
+
 /** Tabs reserved to administrators */
 const ADMIN_TABS = ['rules', 'categories', 'accounts', 'users', 'logs', 'config', 'sync'];
 
@@ -95,7 +101,7 @@ createApp({
             // Months that have transactions, newest first: [{year, month}]
             periods: [],
             locale: localStorage.getItem('locale') || defaultLocale(),
-            apiBaseUrl: null,
+            apiBaseUrl: API_BASE_URL,
             // Version of Carbure (GET /api/health), shown in the footer
             appVersion: null,
             // Money flow of the selected month (Budget tab)
@@ -116,7 +122,6 @@ createApp({
             authToken: null,
             username: localStorage.getItem('username'),
             loginForm: {
-                apiUrl: localStorage.getItem('apiUrl') || window.location.origin,
                 username: '',
                 password: ''
             },
@@ -359,14 +364,6 @@ createApp({
          * Refreshes data for the currently active tab
          */
         refreshCurrentTab() {
-            if (!this.apiBaseUrl) {
-                this.error = 'apiBaseUrl not configured on #app (data-api-base)';
-                if (this.isDebugMode) {
-                    console.error('apiBaseUrl missing, cannot refresh current tab');
-                }
-                return;
-            }
-
             switch (this.activeTab) {
                 case 'transactions':
                     this.loadTransactions(this.selectedMonth, this.selectedYear);
@@ -503,7 +500,7 @@ createApp({
             this.loginError = null;
 
             try {
-                const url = `${this.loginForm.apiUrl}/api/user/login`;
+                const url = `${this.apiBaseUrl}/user/login`;
                 const response = await fetch(url, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -527,11 +524,9 @@ createApp({
                 // Store authentication data
                 this.authToken = data.token;
                 this.isAuthenticated = true;
-                this.apiBaseUrl = this.loginForm.apiUrl + '/api';
                 
                 // Save to localStorage
                 localStorage.setItem('authToken', data.token);
-                localStorage.setItem('apiUrl', this.loginForm.apiUrl);
                 localStorage.setItem('username', this.loginForm.username);
                 this.username = this.loginForm.username;
                 
@@ -574,10 +569,8 @@ createApp({
             this.username = null;
             
             // Reinitialize services without token
-            if (this.apiBaseUrl) {
-                apiService = createApiService(this.apiBaseUrl, null);
-                budgetStore = createBudgetStore(apiService);
-            }
+            apiService = createApiService(this.apiBaseUrl, null);
+            budgetStore = createBudgetStore(apiService);
         },
 
         /**
@@ -610,14 +603,13 @@ createApp({
          * Checks if user is already authenticated from localStorage
          */
         checkAuthentication() {
+            // URL of the API typed by older versions of the login screen
+            localStorage.removeItem('apiUrl');
+
             const token = localStorage.getItem('authToken');
-            const apiUrl = localStorage.getItem('apiUrl');
-            
-            if (token && apiUrl) {
+            if (token) {
                 this.authToken = token;
                 this.isAuthenticated = true;
-                this.apiBaseUrl = apiUrl + '/api';
-                this.loginForm.apiUrl = apiUrl;
             }
         },
 
@@ -668,27 +660,17 @@ createApp({
         }
 
         // Version of the server for the footer
-        fetch(`${(this.loginForm.apiUrl || window.location.origin).replace(/\/$/, '')}/api/health`)
+        fetch(`${this.apiBaseUrl}/health`)
             .then(response => response.ok ? response.json() : null)
             .then(health => { this.appVersion = health && health.version ? health.version : null; })
             .catch(() => { this.appVersion = null; });
-
-        // Read API base URL from DOM attribute (legacy support)
-        try {
-            const el = document.getElementById('app');
-            if (el && el.dataset && el.dataset.apiBase && !this.apiBaseUrl) {
-                this.apiBaseUrl = el.dataset.apiBase;
-            }
-        } catch (e) {
-            console.warn('Unable to read apiBaseUrl from DOM, using default', e);
-        }
 
         if (this.isDebugMode) {
             console.log('apiBaseUrl =', this.apiBaseUrl);
             console.log('isAuthenticated =', this.isAuthenticated);
         }
 
-        if (this.isAuthenticated && this.apiBaseUrl) {
+        if (this.isAuthenticated) {
             this.startSession();
         }
     }
