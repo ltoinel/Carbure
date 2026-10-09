@@ -162,9 +162,26 @@ Seules ces routes ne demandent pas de JWT (un test unitaire le vérifie) :
 - Restreindre l'utilisateur MySQL à la base `carbure`.
 - Surveiller `data/logs/carbure_AAAAMMJJ.log` (erreurs de synchronisation, accès refusés : les lignes WARNING de fin de requête en 401 ou 403, avec l'IP du client). Au format JSON Lines, le fichier se lit aussi avec `jq` ou un collecteur de logs.
 
+## Analyses de sécurité
+
+Le workflow **Security** (badge du README) regroupe les analyses de sécurité :
+
+- **gitleaks** cherche des secrets (mots de passe, jetons, clés) dans tout l'historique
+  git, à chaque pull request et à chaque push sur `main` ;
+- **Trivy** analyse les dépendances du dépôt (fichiers de verrouillage npm et pip) aux
+  mêmes moments ;
+- **Trivy** analyse **chaque lundi** l'image publiée sur Docker Hub
+  (`ltoinel/carbure:latest`) : de nouvelles vulnérabilités sont publiées sans que Carbure
+  change. Un échec signale qu'une nouvelle release (image reconstruite) est nécessaire.
+  L'analyse se lance aussi à la main (**Actions → Security → Run workflow**).
+
+Une vulnérabilité **critique pour laquelle un correctif existe** fait échouer l'analyse ;
+les rapports complets (critique, haute, moyenne) sont publiés dans l'onglet **Security**
+du dépôt.
+
 ## Sécurité de l'image Docker
 
-Chaque build de la CI analyse l'image :
+Chaque build de la CI analyse aussi l'image construite :
 
 - **hadolint** vérifie les bonnes pratiques du `docker/Dockerfile` ;
 - **Trivy** recherche les vulnérabilités connues des paquets Alpine et des dépendances PHP

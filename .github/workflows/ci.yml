@@ -59,7 +59,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php: ['8.2', '8.3', '8.4']
+        php: ['8.2', '8.3', '8.4', '8.5']
     services:
       mariadb:
         image: mariadb:10.11
@@ -159,23 +159,6 @@ jobs:
             tests/e2e/test-results/
             tests/e2e/.data/logs/
           if-no-files-found: ignore
-
-  secrets:
-    name: Secret scan
-    # gitleaks does not support the release event; the released commit was scanned on main
-    if: github.event_name != 'release'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: read
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-
-      - uses: gitleaks/gitleaks-action@v3
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   docker:
     name: Docker image

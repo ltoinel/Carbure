@@ -26,10 +26,10 @@ jobs:
   ci:
     uses: ./.github/workflows/ci.yml
     # A reused workflow gets at most the permissions of its caller: those of the CI
-    # (secret scan, publication of the image scan in the Security tab)
+    # (publication of the image scan in the Security tab). The secret scan is in the
+    # Security workflow: the released commit was scanned on main
     permissions:
       contents: read
-      pull-requests: read
       security-events: write
 
   release:
