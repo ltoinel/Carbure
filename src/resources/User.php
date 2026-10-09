@@ -1,5 +1,4 @@
 <?php
-
 /**
  * User.php
  *
@@ -8,6 +7,12 @@
  * @author     Ludovic Toinel
  * @copyright  2026 Carbure App
  */
+
+namespace ltoinel\resources;
+
+use ltoinel\lib\ApiRoute;
+use ltoinel\lib\Db;
+use ltoinel\lib\Jwt;
 
 final class User {
 

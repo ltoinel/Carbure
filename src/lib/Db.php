@@ -1,5 +1,9 @@
 <?php
 
+namespace ltoinel\lib;
+
+use mysqli;
+
 /**
  * Db.php
  *
