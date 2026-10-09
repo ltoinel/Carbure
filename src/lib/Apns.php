@@ -220,14 +220,12 @@ final class Apns {
 
         if ($response === false) {
             $error = curl_error($ch);
-            curl_close($ch);
             Logger::error("APNs cURL error: $error");
             throw new Error("Failed to send APNs notification: $error", 500);
         }
 
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $body = $response;
-        curl_close($ch);
         
         // Parse response
         $result = [
