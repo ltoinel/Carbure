@@ -42,7 +42,7 @@ Tâches ouvertes : `TODO.md`.
 `start.sh` reproduit l'architecture de production : il lance `docker/docker-compose.yml`
 (le compose de production) avec la surcharge `docker/docker-compose.dev.yml`. Mêmes
 conteneurs que la cible : l'**image Docker de Carbure** (`docker/Dockerfile` : nginx,
-PHP-FPM, woob, entrypoint qui applique les migrations) et **MariaDB 11**, avec un volume
+PHP-FPM, woob, entrypoint qui applique les migrations) et **MariaDB 13**, avec un volume
 `/data` et un `/data/conf/prod.ini`, comme une instance installée. La surcharge ne change
 que :
 

@@ -111,6 +111,12 @@ jour automatiquement (les migrations de la nouvelle version sont appliquées) et
 avec un message explicite si l'une d'elles échoue. Pensez à sauvegarder la base avant une
 mise à jour.
 
+Quand `docker compose pull` apporte une nouvelle version majeure de MariaDB (par exemple de
+11 à 13), le conteneur `db` met à niveau la base existante à son démarrage
+(`MARIADB_AUTO_UPGRADE`). Ce passage est sans retour : la base ne peut plus être ouverte par
+l'ancienne version, d'où l'importance de la sauvegarde. Pour garder une version donnée,
+fixez-la dans `docker/docker-compose.yml` (`image: mariadb:11`).
+
 ### Notifications iOS (APNs)
 
 Copiez la clé `.p8` dans le volume, puis complétez la section `[apns]` de
