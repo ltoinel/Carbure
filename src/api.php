@@ -1,5 +1,10 @@
 <?php
 
+use ltoinel\lib\Logger;
+use ltoinel\lib\Webservice;
+
+ini_set("display_errors", true);
+
 // Not installed yet: only the installation wizard of the portal answers (/api/setup)
 $env = preg_replace('/[^a-z0-9_-]/i', '', getenv('APP_ENV') ?: 'prod');
 if (!is_file(dirname(__DIR__) . "/data/conf/$env.ini") && !is_file(dirname(__DIR__) . "/conf/$env.ini")) {

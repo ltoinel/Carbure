@@ -1,5 +1,11 @@
 <?php
 
+namespace ltoinel\lib;
+
+use ReflectionClass;
+use ReflectionMethod;
+use ReflectionException;
+
 /**
  * ApiResolver.php
  *
@@ -62,12 +68,13 @@ final class ApiResolver {
      */
     private static function loadRouteCache()
     {
+
         // Try to load from APCu if available
-        if (self::isApcuAvailable() && self::loadFromApcu()) {
+        if (false && self::isApcuAvailable() && self::loadFromApcu()) {
             Logger::debug("Routes loaded from APCu cache (" . count(self::$routeCache) . " routes)");
             return;
         }
-        
+
         // Build from scratch (APCu not available or cache miss)
         self::buildRouteCache();
     }
@@ -79,26 +86,28 @@ final class ApiResolver {
      */
     private static function buildRouteCache()
     {
+
         Logger::info("Building route cache from resource files...");
         self::$routeCache = [];
         
         // Load all resource files
         $resourcesDir = Config::get('install_dir') . '/src/resources';
         $resourceFiles = glob($resourcesDir . '/*.php');
-        
+
         foreach ($resourceFiles as $file) {
             require_once $file;
-            $className = basename($file, '.php');
+            $className = "ltoinel\\resources\\" . basename($file, '.php');
             
             // Get all methods of the class
             try {
+
                 $reflection = new ReflectionClass($className);
                 $methods = $reflection->getMethods(ReflectionMethod::IS_PUBLIC | ReflectionMethod::IS_STATIC);
-                
+
                 foreach ($methods as $method) {
                     // Check if method has ApiRoute attribute
                     $attributes = $method->getAttributes(ApiRoute::class);
-                    
+
                     if (!empty($attributes)) {
                         $apiRoute = $attributes[0]->newInstance();
                         
@@ -117,9 +126,9 @@ final class ApiResolver {
                 Logger::warn("Cannot reflect class $className: " . $e->getMessage());
             }
         }
-        
+
         Logger::info("Route cache built with " . count(self::$routeCache) . " routes");
-        
+
         // Save to APCu if available
         if (self::isApcuAvailable()) {
             self::saveToApcu();

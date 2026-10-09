@@ -1,5 +1,7 @@
 <?php
 
+namespace ltoinel\lib;
+
 /**
  * Config.php
  *
