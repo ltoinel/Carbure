@@ -1,5 +1,7 @@
 <?php
 
+use ltoinel\lib\Config;
+
 /**
  * autoload.php
  *
@@ -9,14 +11,11 @@
  * @copyright  2026 Carbure App
  */
 
-// Load all the PHP files in the lib directory
-foreach (glob(__DIR__ . '/lib/*.php') as $filename) {
-    require_once $filename;
-}
-
-// Load all resource classes
-foreach (glob(__DIR__ . '/resources/*.php') as $filename) {
-    require_once $filename;
-}
+spl_autoload_register(
+    function ($className) {
+        $file = str_replace(["ltoinel\\", "\\"], ["/", "/"], $className) . ".php";
+        require_once __DIR__ . $file;      
+    }
+);
 
 Config::load(getenv('APP_ENV') ?: 'prod');

@@ -1,5 +1,10 @@
 <?php
 
+namespace ltoinel\resources;
+
+use ltoinel\lib\ApiRoute;
+use ltoinel\lib\Db;
+
 /**
  * Category.php
  * *
