@@ -193,8 +193,9 @@ git config core.hooksPath .githooks
 
 | Workflow | Déclencheur | Étapes |
 |---|---|---|
-| CI | Pull request, push sur `main` | Lint PHP/JS/CSS, tests unitaires du portail, tests unitaires et d'intégration (MariaDB), couverture ≥ 90 %, tests de bout en bout du portail (Playwright, rapport en artefact en cas d'échec), scan de secrets (gitleaks) ; image Docker : hadolint, build, scan Trivy, démarrage avec `docker compose`, installation par l'assistant et test de fumée |
+| CI | Pull request, push sur `main` | Lint PHP/JS/CSS, tests unitaires du portail, tests unitaires et d'intégration (MariaDB), couverture ≥ 90 %, tests de bout en bout du portail (Playwright, rapport en artefact en cas d'échec) ; image Docker : hadolint, build, scan Trivy, démarrage avec `docker compose`, installation par l'assistant et test de fumée |
 | Release | Release publiée sur GitHub (tag `1.2.0` ou `v1.2.0`), ou lancement manuel avec le tag | CI, archive de l'application (`src`, `portal`, `swagger`, `sql`, `tools/migrate.php`, `VERSION` écrit depuis le tag) jointe à la release ; image Docker `amd64`/`arm64` publiée sur Docker Hub (`ltoinel/carbure`) (version passée par `CARBURE_VERSION`), avec SBOM et provenance |
+| Security | Pull request, push sur `main`, chaque lundi, lancement manuel | Scan de secrets de l'historique (gitleaks), vulnérabilités des dépendances du dépôt (Trivy) ; chaque lundi et à la demande, vulnérabilités de l'image publiée sur Docker Hub (Trivy). Rapports dans l'onglet Security |
 | Docs | Push sur `main` | Construction MkDocs et déploiement GitHub Pages |
 
 Publier une version : sur GitHub, **Releases → Draft a new release**, créer le tag (par
