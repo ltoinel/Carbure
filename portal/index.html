@@ -459,6 +459,11 @@
                                         <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
                                         <span class="toggle-label">{{ t('uncheckedCount', { count: (isSearching ? searchResults : transactions).filter(t => !Number(t.pointed)).length }) }}</span>
                                     </label>
+                                    <label v-if="!isSearching && recurring.length > 0" class="toggle-switch toggle-recurring" :class="{ on: recurringOnly }">
+                                        <input type="checkbox" role="switch" v-model="recurringOnly" />
+                                        <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
+                                        <span class="toggle-label">{{ t('recurringCount', { count: recurring.length }) }}</span>
+                                    </label>
                                     <button type="button" class="btn-secondary btn-import" @click="openImport" :title="t('importTitle')">
                                         <span class="material-icons" aria-hidden="true">upload_file</span>{{ t('importButton') }}
                                     </button>
@@ -476,9 +481,24 @@
                                 <button @click="createSuggestedRule">{{ t('createRule') }}</button>
                                 <button class="btn-secondary" @click="ruleSuggestion = null">{{ t('ignore') }}</button>
                             </div>
+                            <section v-if="recurringOnly && !isSearching && recurringExpected.length > 0" class="recurring-expected">
+                                <h3>
+                                    <span class="material-icons" aria-hidden="true">schedule</span>
+                                    {{ isCurrentMonth ? t('recurringExpectedTitle') : t('recurringMissingTitle') }}
+                                </h3>
+                                <ul>
+                                    <li v-for="series in recurringExpected" :key="series.label + series.amount">
+                                        <span class="recurring-expected-label">{{ series.label }}</span>
+                                        <span class="recurring-expected-day">{{ t('recurringDay', { day: series.day }) }}</span>
+                                        <span class="recurring-expected-amount" :class="series.amount >= 0 ? 'positive' : 'negative'">
+                                            {{ series.variable ? '≈ ' : '' }}{{ formatAmount(series.variable ? series.average : series.amount) }} {{ t('currencySymbol') }}
+                                        </span>
+                                    </li>
+                                </ul>
+                            </section>
                             <div v-if="searching" class="transactions-hint">{{ t('searching') }}</div>
                             <div v-else-if="displayedTransactions.length === 0" class="transactions-hint">
-                                {{ isSearching ? t('noSearchResults') : t('allChecked') }}
+                                {{ isSearching ? t('noSearchResults') : recurringOnly ? t('noRecurringReceived') : t('allChecked') }}
                             </div>
                             <div class="transactions-list">
                                 <div v-for="transaction in displayedTransactions" :key="transaction.id" class="transaction-item"
@@ -496,7 +516,12 @@
                                          :aria-label="t('transactionDetail') + ' : ' + transaction.label"
                                          @click="openTransactionModal(transaction)" @keydown.enter.prevent="openTransactionModal(transaction)" @keydown.space.prevent="openTransactionModal(transaction)">
                                         <div class="transaction-label">{{ transaction.label }}</div>
-                                        <div class="transaction-date">{{ formatDate(transaction.rdate || transaction.date) }}</div>
+                                        <div class="transaction-date">
+                                            {{ formatDate(transaction.rdate || transaction.date) }}
+                                            <span v-if="isRecurring(transaction)" class="recurring-badge" :title="t('recurringBadgeTitle')">
+                                                <span class="material-icons" aria-hidden="true">autorenew</span>{{ t('recurringBadge') }}
+                                            </span>
+                                        </div>
                                     </div>
                                     <div class="transaction-category">
                                         <category-picker v-if="isUncategorized(transaction) && ruleCategoryOptions.length > 0" compact

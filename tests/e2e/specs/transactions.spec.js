@@ -160,6 +160,22 @@ test('closes the detail modal with Escape', async ({ adminPage: page }) => {
     await expect(page.getByRole('dialog')).toHaveCount(0);
 });
 
+test('shows the recurring transactions of the month', async ({ adminPage: page }) => {
+    // Salary and rent: in each of the 3 months of the data set
+    const toggle = page.locator('.toggle-recurring');
+    await expect(toggle).toContainText(tr('recurringCount', { count: 2 }));
+    await expect(row(page, 'PRLV LOYER AGENCE').locator('.recurring-badge')).toBeVisible();
+    await expect(row(page, 'CB SUPERMARCHE CASINO').locator('.recurring-badge')).toHaveCount(0);
+
+    await toggle.click();
+    await expect(page.locator('.transaction-item')).toHaveCount(2);
+    await expect(row(page, 'VIR SALAIRE ACME')).toBeVisible();
+    await expect(row(page, 'PRLV LOYER AGENCE')).toBeVisible();
+
+    await toggle.click();
+    await expect(page.locator('.transaction-item')).toHaveCount(6);
+});
+
 test('imports a bank statement file', async ({ adminPage: page }) => {
     const day = d => {
         const date = new Date();

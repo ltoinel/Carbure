@@ -70,4 +70,87 @@ class TransactionTest extends TestCase
         $this->assertSame('2026-01-10', $fix->invoke(null, 1, 2000, '2026-01-10'));
         $this->assertSame('2026-01-28', $fix->invoke(null, 7, -20, '2026-01-28'));
     }
+
+    /**
+     * Transactions of the months before October 2026 (and of October)
+     * @param array $series [label, amount, day, months ago...] (months ago: 0 = October);
+     *                      card payment (type 7) when the label starts with "CB ", else direct debit
+     * @return array Rows, oldest first, as read from the database
+     */
+    private function recurringRows($series)
+    {
+        $rows = [];
+        $id = 1;
+        foreach ($series as [$label, $amount, $day, $ago]) {
+            foreach ((array)$ago as $months) {
+                $date = date('Y-m-d', strtotime("2026-10-01 -$months months +" . ($day - 1) . ' days'));
+                $type = str_starts_with($label, 'CB ') ? 7 : 2;
+                $rows[] = ['id' => $id++, 'date' => $date, 'type' => $type, 'label' => $label, 'category' => 3, 'amount' => $amount];
+            }
+        }
+        usort($rows, fn($a, $b) => strcmp($a['date'], $b['date']) ?: $a['id'] <=> $b['id']);
+        return $rows;
+    }
+
+    public function testFindRecurring()
+    {
+        $rows = $this->recurringRows([
+            // Monthly, received in October; the reference changes every month
+            ['PRLV SEPA EDF MDT/1234', -80, 5, [3, 2, 1]],
+            ['PRLV SEPA EDF MDT/1299', -120, 6, [0]],
+            // Monthly, not received yet in October
+            ['CB NETFLIX.COM', -13.49, 20, [3, 2, 1]],
+            // Twice: not enough months
+            ['PRLV GYM CLUB', -30, 10, [1, 0]],
+            // Every month, but many times (groceries)
+            ['CB CARREFOUR', -50, 3, [3, 2, 1, 0]],
+            ['CB CARREFOUR', -60, 12, [3, 2, 1, 0]],
+            // Every month, at any day
+            ['CB AMAZON', -25, 2, [3, 1]],
+            ['CB AMAZON', -25, 18, [2, 0]],
+            // Card payment every month at the same day, but not the same amount (restaurant)
+            ['CB SUSHI SHOP', -20, 12, [3, 1]],
+            ['CB SUSHI SHOP', -55, 12, [2, 0]],
+            // Stopped two months ago
+            ['PRLV ANCIEN ABONNEMENT', -9.99, 8, [5, 4, 3, 2]],
+            // Same label, debit and credit: two series
+            ['VIR COMPTE JOINT', -400, 27, [3, 2, 1]],
+            ['VIR COMPTE JOINT', 400, 27, [3, 2, 1]],
+        ]);
+
+        $series = Transaction::findRecurring($rows, '2026-10-01');
+
+        $this->assertSame(['PRLV SEPA EDF MDT/1299', 'CB NETFLIX.COM', 'VIR COMPTE JOINT', 'VIR COMPTE JOINT'], array_column($series, 'label'));
+        [$edf, $netflix, $debit, $credit] = $series;
+
+        $this->assertSame('received', $edf['status']);
+        $this->assertCount(1, $edf['ids']);
+        $this->assertSame(-120.0, $edf['amount']);
+        $this->assertSame(-90.0, $edf['average']);
+        $this->assertTrue($edf['variable']);
+        $this->assertSame(4, $edf['months']);
+        $this->assertSame('2026-10-06', $edf['last']);
+
+        $this->assertSame('expected', $netflix['status']);
+        $this->assertSame([], $netflix['ids']);
+        $this->assertSame(20, $netflix['day']);
+        $this->assertFalse($netflix['variable']);
+        $this->assertSame('2026-09-20', $netflix['last']);
+
+        $this->assertSame([-400.0, 400.0], [$debit['amount'], $credit['amount']]);
+    }
+
+    public function testRecurringAroundTheEndOfTheMonth()
+    {
+        // Paid on the 30th or on the 1st: the same usual day
+        $rows = $this->recurringRows([
+            ['PRLV LOYER', -950, 30, [4, 2]],
+            ['PRLV LOYER', -950, 1, [3, 1, 0]],
+        ]);
+
+        $series = Transaction::findRecurring($rows, '2026-10-01');
+
+        $this->assertCount(1, $series);
+        $this->assertSame(5, $series[0]['months']);
+    }
 }

@@ -141,6 +141,17 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
     }
 
     /**
+     * Fetches the recurring transactions of a month (found about once a month)
+     * @param {number} month - Month (1-12)
+     * @param {number} year - Year
+     * @returns {Promise<Array>} Series: {label, category, amount, average, variable, day, months, last, ids, status}
+     */
+    async function fetchRecurring(month, year) {
+        const data = await request(`${baseUrl}/transaction/recurring?month=${month}&year=${year}`, {}, 'Failed to fetch the recurring transactions');
+        return Array.isArray(data) ? data : [];
+    }
+
+    /**
      * Fetches the transactions of a category (sub-categories included) for a month
      * @param {number} month - Month (1-12)
      * @param {number} year - Year
@@ -857,6 +868,7 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
     return {
         abortAllExcept,
         fetchTransactions,
+        fetchRecurring,
         fetchBudget,
         fetchOAuthClient,
         approveOAuth,

@@ -237,6 +237,30 @@ Types : 1 virement, 2 prélèvement, 3 chèque, 4 remise de chèque, 5 rembourse
 Mois qui ont des transactions, du plus récent au plus ancien : `[{"year": 2026, "month": 10}, …]`.
 Le portail en tire les listes de mois et d'années.
 
+### `GET /transaction/recurring`
+
+Transactions récurrentes d'un mois : retrouvées environ une fois par mois vers le même jour
+(salaire, loyer, abonnements, factures). Une série regroupe les transactions de même sens
+(débit ou crédit) dont le libellé, chiffres retirés (références, dates), est le même. Elle
+est récurrente si elle apparaît dans 3 mois au moins de la période, 1,5 fois par mois au
+plus, 3 fois sur 4 à 5 jours près du même jour, et encore active (vue dans le mois ou le
+mois précédent). Un paiement par carte doit en plus garder le même montant à 20 % près
+(un abonnement, pas le restaurant) ; un prélèvement ou un virement peut varier.
+
+| Paramètre | Requis | Description |
+|---|---|---|
+| `month`, `year` | non | Mois (mois courant par défaut) |
+| `months` | non | Nombre de mois précédents examinés (2 à 24, défaut 6) |
+
+Réponse, triée par jour : `[{"label", "category", "amount" (dernier montant), "average",
+"variable" (montant changeant de plus de 10 %), "day" (jour habituel), "months" (nombre de
+mois où elle apparaît), "last" (date de la dernière), "ids" (ses transactions du mois),
+"status"}]`. `status` vaut `received`, ou `expected` si elle n'est pas encore dans le mois.
+
+```bash
+curl "https://exemple.fr/api/transaction/recurring?month=10&year=2026" -H "Authorization: Bearer $TOKEN"
+```
+
 ### `GET /transaction/search`
 
 | Paramètre | Requis | Description |
