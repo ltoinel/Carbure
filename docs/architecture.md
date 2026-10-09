@@ -100,7 +100,10 @@ sequenceDiagram
 - L'**UUID** d'une transaction est `md5(date réelle + libellé + montant)` (libellé tronqué
   à 24 caractères pour les paiements par carte) : il permet de dédoublonner les
   transactions entre deux synchronisations et de transformer une opération « en cours »
-  en opération débitée.
+  en opération débitée. Des transactions identiques reçues ensemble (même date réelle,
+  libellé et montant : deux cafés le même jour) sont distinguées par leur rang : la
+  première garde cet UUID, les suivantes ont `md5(uuid + "#n")`
+  (`Transaction::prepareAll()`).
 - Les virements de type 1 (salaire) datés après le 25 sont rattachés au mois suivant.
 - La **catégorisation** recherche les mots-clés de `bank_transaction_category_keyword`
   dans le libellé des transactions sans catégorie du dernier mois (ou de tout

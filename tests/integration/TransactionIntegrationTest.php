@@ -112,6 +112,18 @@ class TransactionIntegrationTest extends DatabaseTestCase
         $this->assertSame($this->day(27), $salary['rdate']);
     }
 
+    public function testSaveKeepsIdenticalTransactions()
+    {
+        // Two coffees on the same day: two transactions, saved again without duplicates
+        $coffee = ['date' => $this->day(6), 'amount' => -2.5, 'raw' => 'PRLV CAFE DU COIN', 'type' => 2];
+        $this->assertCount(2, Transaction::save([$coffee, $coffee], self::USER, false));
+        $this->assertCount(0, Transaction::save([$coffee, $coffee], self::USER, false));
+        // A third one received later
+        $this->assertCount(1, Transaction::save([$coffee, $coffee, $coffee], self::USER, false));
+
+        $this->assertEquals(3, Db::queryOne("SELECT COUNT(*) AS n FROM bank_transaction WHERE label = 'PRLV CAFE DU COIN'", "")['n']);
+    }
+
     public function testPeriods()
     {
         $periods = Transaction::periods();

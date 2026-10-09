@@ -271,7 +271,7 @@ existante).
 | Statut | Signification |
 |---|---|
 | `new` | Nouvelle transaction |
-| `known` | Même UUID qu'une transaction existante (ou qu'une ligne précédente du fichier) : elle serait fusionnée |
+| `known` | Même UUID qu'une transaction existante : elle serait fusionnée. Des lignes identiques du fichier sont autant de transactions (chacune son UUID) |
 | `duplicate` | Même montant qu'une transaction existante à 3 jours près (date ou date réelle) : probablement la même, synchronisée avec un autre libellé |
 
 Erreurs : `400` (base64 invalide, fichier vide), `413` (fichier trop gros, plus de 5 000
