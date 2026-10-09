@@ -452,7 +452,7 @@
                                         </button>
                                     </div>
                                     <div class="transaction-count">{{ t('transactionCount', { count: isSearching ? searchResults.length : transactions.length }) }}</div>
-                                    <label class="toggle-switch" :class="{ on: transactionFilter === 'unchecked' }">
+                                    <label class="toggle-switch toggle-unchecked" :class="{ on: transactionFilter === 'unchecked' }">
                                         <input type="checkbox" role="switch"
                                                :checked="transactionFilter === 'unchecked'"
                                                @change="transactionFilter = $event.target.checked ? 'unchecked' : 'all'" />
