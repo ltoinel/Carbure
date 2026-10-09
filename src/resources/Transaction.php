@@ -103,6 +103,106 @@ final class Transaction {
     }
 
     /**
+     * Recurring transactions of a month: the ones found about once a month at about the
+     * same day (salary, rent, subscriptions, bills), from the label without its numbers.
+     *
+     * @param int|null $month  The month (current month by default)
+     * @param int|null $year   The year (current year by default)
+     * @param int      $months Number of previous months looked at (2 to 24)
+     * @return array The series, by day of the month: label, category, amount (last one),
+     *               average, variable (amount changing by more than 10 %), day (usual day
+     *               of the month), months (number of months seen), last (date of the last
+     *               one), ids (its transactions of the month) and status: "received", or
+     *               "expected" when it is not in the month yet
+     */
+    #[ApiRoute('/transaction/recurring', method: 'GET')]
+    public static function recurring($month = null, $year = null, $months = 6)
+    {
+        $months = max(2, min(24, (int)$months));
+        [$first, $to] = Month::range($month, $year);
+        $from = date('Y-m-d', strtotime("$first -$months months"));
+
+        $sql = "SELECT id, date, type, label, category, amount FROM bank_transaction WHERE date >= ? AND date < ? ORDER BY date, id";
+        $rows = Db::execute($sql, "ss", $from, $to)->get_result()->fetch_all(MYSQLI_ASSOC);
+
+        return self::findRecurring($rows, $first);
+    }
+
+    /**
+     * Find the recurring series among transactions (see recurring()).
+     *
+     * A series is the transactions of the same label (without its numbers: references,
+     * dates) and the same direction (debit or credit). It is recurring when it is seen in
+     * 3 months at least, 1.5 times a month at most (not the bakery), mostly at the same
+     * day (within 5 days), and still running: seen in the month or the month before.
+     * Card payments must also keep about the same amount (within 20 %: a subscription,
+     * not the restaurant); direct debits and transfers may change (electricity bill).
+     *
+     * @param array  $rows  The transactions [{id, date, type, label, category, amount}], oldest first
+     * @param string $first First day of the month (Y-m-d)
+     * @return array The series (see recurring())
+     */
+    public static function findRecurring($rows, $first)
+    {
+        $current = substr($first, 0, 7);
+        $previous = date('Y-m', strtotime("$first -1 month"));
+
+        $groups = [];
+        foreach ($rows as $row) {
+            $name = trim(preg_replace('/[^\p{L}]+/u', ' ', preg_replace('/\d+/', '', (string)$row['label'])));
+            if ($name !== '') {
+                $groups[((float)$row['amount'] < 0 ? '-' : '+') . $name][] = $row;
+            }
+        }
+
+        $series = [];
+        foreach ($groups as $group) {
+            $byMonth = [];
+            foreach ($group as $row) {
+                $byMonth[substr($row['date'], 0, 7)][] = $row;
+            }
+            $count = count($byMonth);
+            if ($count < 3 || count($group) > 1.5 * $count
+                || (!isset($byMonth[$current]) && !isset($byMonth[$previous]))) {
+                continue;
+            }
+
+            // Usual day: the median one; 3 transactions out of 4 within 5 days of it
+            $days = array_map(fn($row) => (int)substr($row['date'], 8, 2), $group);
+            sort($days);
+            $day = $days[intdiv(count($days), 2)];
+            $near = array_filter($days, fn($d) => min(abs($d - $day), 31 - abs($d - $day)) <= 5);
+            if (count($near) < 0.75 * count($days)) {
+                continue;
+            }
+
+            $amounts = array_map(fn($row) => (float)$row['amount'], $group);
+            $average = array_sum($amounts) / count($amounts);
+            $spread = max($amounts) - min($amounts);
+            $last = end($group);
+            if (in_array((int)$last['type'], [7, 12], true) && $spread > 0.2 * abs($average)) {
+                continue;
+            }
+            $ids = array_map(fn($row) => (int)$row['id'], $byMonth[$current] ?? []);
+            $series[] = [
+                'label' => stripslashes($last['label']),
+                'category' => (int)$last['category'],
+                'amount' => round((float)$last['amount'], 2),
+                'average' => round($average, 2),
+                'variable' => $spread > 0.1 * abs($average),
+                'day' => $day,
+                'months' => $count,
+                'last' => $last['date'],
+                'ids' => $ids,
+                'status' => $ids ? 'received' : 'expected',
+            ];
+        }
+
+        usort($series, fn($a, $b) => $a['day'] <=> $b['day'] ?: strcmp($a['label'], $b['label']));
+        return $series;
+    }
+
+    /**
      * Load transactions from an array.
      *
      * @param array $data     The array of transactions

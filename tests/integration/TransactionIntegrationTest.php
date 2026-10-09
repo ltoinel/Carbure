@@ -124,6 +124,33 @@ class TransactionIntegrationTest extends DatabaseTestCase
         $this->assertEquals(3, Db::queryOne("SELECT COUNT(*) AS n FROM bank_transaction WHERE label = 'PRLV CAFE DU COIN'", "")['n']);
     }
 
+    public function testRecurring()
+    {
+        // A subscription of the 3 previous months, not in the current month yet
+        foreach ([3, 2, 1] as $ago) {
+            $date = date('Y-m-d', strtotime(date('Y-m-01') . " -$ago months +9 days"));
+            Db::execute("INSERT INTO bank_transaction (uuid, date, rdate, type, label, category, amount, card, pointed, user) VALUES (?, ?, ?, 7, 'CB NETFLIX.COM', 0, -13.49, '', 1, 1)",
+                "sss", "netflix$ago", $date, $date);
+        }
+
+        $series = Transaction::recurring();
+        $this->assertSame(['CB NETFLIX.COM'], array_column($series, 'label'));
+        $this->assertSame('expected', $series[0]['status']);
+        $this->assertSame(10, $series[0]['day']);
+
+        // Received this month
+        Db::execute("INSERT INTO bank_transaction (uuid, date, rdate, type, label, category, amount, card, pointed, user) VALUES ('netflix0', ?, ?, 7, 'CB NETFLIX.COM', 0, -13.49, '', 0, 1)",
+            "ss", $this->day(10), $this->day(10));
+        $id = (int)Db::queryOne("SELECT id FROM bank_transaction WHERE uuid = 'netflix0'", "")['id'];
+        $series = Transaction::recurring();
+        $this->assertSame('received', $series[0]['status']);
+        $this->assertSame([$id], $series[0]['ids']);
+
+        // Looking at only 2 previous months of an older month: not enough months
+        $old = strtotime(date('Y-m-01') . ' -2 months');
+        $this->assertSame([], Transaction::recurring((int)date('n', $old), (int)date('Y', $old), 2));
+    }
+
     public function testPeriods()
     {
         $periods = Transaction::periods();

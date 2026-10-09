@@ -66,11 +66,11 @@ test('searches the transactions of every month by label', async ({ adminPage: pa
 });
 
 test('filters the transactions not checked yet', async ({ adminPage: page }) => {
-    const toggle = page.locator('label.toggle-switch');
-    await expect(page.locator('.toggle-label')).toHaveText(tr('uncheckedCount', { count: 3 }));
+    const toggle = page.locator('.toggle-unchecked');
+    await expect(page.locator('.toggle-unchecked .toggle-label')).toHaveText(tr('uncheckedCount', { count: 3 }));
 
     await toggle.click();
-    await expect(page.getByRole('switch')).toBeChecked();
+    await expect(toggle.getByRole('switch')).toBeChecked();
     await expect(page.locator('.transaction-item')).toHaveCount(3);
 
     await toggle.click();
@@ -81,7 +81,7 @@ test('checks and unchecks a transaction', async ({ adminPage: page, api }) => {
     const transaction = row(page, 'CB SUPERMARCHE CASINO');
     await transaction.getByRole('button', { name: tr('checkTransaction') }).click();
     await expect(transaction.getByRole('button', { name: tr('uncheckTransaction') })).toHaveAttribute('aria-pressed', 'true');
-    await expect(page.locator('.toggle-label')).toHaveText(tr('uncheckedCount', { count: 2 }));
+    await expect(page.locator('.toggle-unchecked .toggle-label')).toHaveText(tr('uncheckedCount', { count: 2 }));
 
     const { month, year } = currentMonth();
     const saved = await (await api.get(`/api/transaction?month=${month}&year=${year}`)).json();
@@ -158,6 +158,22 @@ test('closes the detail modal with Escape', async ({ adminPage: page }) => {
 
     await page.keyboard.press('Escape');
     await expect(page.getByRole('dialog')).toHaveCount(0);
+});
+
+test('shows the recurring transactions of the month', async ({ adminPage: page }) => {
+    // Salary and rent: in each of the 3 months of the data set
+    const toggle = page.locator('.toggle-recurring');
+    await expect(toggle).toContainText(tr('recurringCount', { count: 2 }));
+    await expect(row(page, 'PRLV LOYER AGENCE').locator('.recurring-badge')).toBeVisible();
+    await expect(row(page, 'CB SUPERMARCHE CASINO').locator('.recurring-badge')).toHaveCount(0);
+
+    await toggle.click();
+    await expect(page.locator('.transaction-item')).toHaveCount(2);
+    await expect(row(page, 'VIR SALAIRE ACME')).toBeVisible();
+    await expect(row(page, 'PRLV LOYER AGENCE')).toBeVisible();
+
+    await toggle.click();
+    await expect(page.locator('.transaction-item')).toHaveCount(6);
 });
 
 test('imports a bank statement file', async ({ adminPage: page }) => {

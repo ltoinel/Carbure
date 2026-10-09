@@ -79,6 +79,11 @@ modification.
   (coche verte) ou non vérifiée. Les transactions non vérifiées sont en gras.
 - **Filtre** : à côté du nombre de transactions, un interrupteur limite la liste aux
   transactions non vérifiées (avec leur nombre).
+- **Transactions récurrentes** : celles retrouvées chaque mois (salaire, loyer,
+  abonnements, factures, `GET /transaction/recurring`) portent le badge « Mensuelle ». Un
+  second interrupteur n'affiche qu'elles et liste celles qui ne sont pas encore arrivées
+  (« Attendues ce mois-ci », avec leur jour habituel et leur montant, « ≈ » s'il varie ;
+  « Absentes ce mois-ci » pour un mois passé). Il n'apparaît pas pendant une recherche.
 - **Recherche** : le champ de recherche (2 caractères minimum) interroge
   `GET /transaction/search` sur tous les mois et affiche le **total** des transactions
   trouvées ; le filtre s'applique aussi aux résultats. La croix efface la recherche.

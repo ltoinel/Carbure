@@ -107,6 +107,30 @@ test('displayedTransactions, stats and totals', () => {
     assert.equal(Math.round(stats.expense * 100) / 100, -1032.4);
 });
 
+test('recurring transactions: ids, filter and expected series', () => {
+    const recurring = [
+        { label: 'VIR SALAIRE ACME', ids: [1], status: 'received' },
+        { label: 'PRLV LOYER AGENCE', ids: ['3'], status: 'received' },
+        { label: 'CB NETFLIX.COM', ids: [], status: 'expected' },
+    ];
+    const recurringIds = transactions.computed.recurringIds.call({ recurring });
+    assert.deepEqual([...recurringIds], [1, 3]);
+    assert.deepEqual(transactions.computed.recurringExpected.call({ recurring }).map(s => s.label), ['CB NETFLIX.COM']);
+
+    const list = [
+        { id: 1, amount: '3200.00', pointed: '1' },
+        { id: 2, amount: '-82.40', pointed: '0' },
+        { id: 3, amount: '-950.00', pointed: '0' },
+    ];
+    const context = { transactions: list, searchResults: list, isSearching: false, transactionFilter: 'all', recurringOnly: true, recurringIds };
+    context.isRecurring = transactions.methods.isRecurring.bind(context);
+    assert.deepEqual(transactions.computed.displayedTransactions.call(context).map(t => t.id), [1, 3]);
+    // Combined with the unchecked filter
+    assert.deepEqual(transactions.computed.displayedTransactions.call({ ...context, transactionFilter: 'unchecked' }).map(t => t.id), [3]);
+    // Not applied to the search results (other months)
+    assert.equal(transactions.computed.displayedTransactions.call({ ...context, isSearching: true }).length, 3);
+});
+
 test('isSearching: from 2 characters', () => {
     assert.equal(transactions.computed.isSearching.call({ searchQuery: ' a ' }), false);
     assert.equal(transactions.computed.isSearching.call({ searchQuery: 'ed' }), true);
