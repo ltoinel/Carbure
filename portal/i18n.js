@@ -528,7 +528,6 @@ const i18n = {
         
         // Login
         loginSubtitle: 'Gestion Bancaire',
-        apiUrlLabel: 'URL de l\'API',
         loginButton: 'Se connecter',
         loggingIn: 'Connexion...',
         loginRequired: 'Nom d\'utilisateur et mot de passe requis',
@@ -1118,7 +1117,6 @@ const i18n = {
         
         // Login
         loginSubtitle: 'Banking Management',
-        apiUrlLabel: 'API URL',
         loginButton: 'Log in',
         loggingIn: 'Logging in...',
         loginRequired: 'Username and password required',

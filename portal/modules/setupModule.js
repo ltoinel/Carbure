@@ -63,7 +63,7 @@ export function createSetupModule() {
              * @returns {string}
              */
             setupUrl(path = '') {
-                return `${(this.loginForm.apiUrl || window.location.origin).replace(/\/$/, '')}/api/setup${path}`;
+                return `${this.apiBaseUrl}/setup${path}`;
             },
 
             /**
