@@ -20,6 +20,11 @@ consultées :
 
 Tous s'appuient sur la même **API REST PHP** (`src/`).
 
+<video class="teaser" controls muted playsinline preload="none" poster="assets/carbure-teaser.png">
+  <source src="assets/carbure-teaser.webm" type="video/webm">
+  Votre navigateur ne lit pas cette vidéo : <a href="assets/carbure-teaser.webm">la télécharger</a>.
+</video>
+
 ![Flux du mois : des revenus aux dépenses, à l'épargne et au reste](assets/screenshot-flow.png)
 
 ## Fonctionnalités
