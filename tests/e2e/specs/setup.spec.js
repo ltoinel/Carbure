@@ -86,16 +86,15 @@ test('offers the starter data on a new database', async ({ page }) => {
     expect(sent[1]).toMatchObject({ starter_categories: false });
 });
 
-test('shows the wizard even with the session of a previous installation', async ({ page, baseURL }) => {
+test('shows the wizard even with the session of a previous installation', async ({ page }) => {
     // The API of a server not installed (the routes of the wizard are added after: they win)
     await page.route('**/api/**', route => route.fulfill({ status: 503, json: { error: 'Carbure is not installed yet', code: 503, setup: true } }));
     await notInstalled(page);
     // Same address, token of an instance that was since reinstalled from scratch
-    await page.addInitScript(origin => {
+    await page.addInitScript(() => {
         localStorage.setItem('authToken', 'token-of-a-previous-installation');
-        localStorage.setItem('apiUrl', origin);
         localStorage.setItem('username', 'admin');
-    }, new URL(baseURL).origin);
+    });
     await page.goto('/portal/');
 
     await expect(page.getByRole('heading', { name: tr('setupTitle') })).toBeVisible();

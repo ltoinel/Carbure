@@ -171,13 +171,15 @@ test('imports a bank statement file', async ({ adminPage: page }) => {
         + `${day(1)};VIR SALAIRE ACME;3 200,00\n`
         // Same amount as CB SUPERMARCHE CASINO, one day later: probable duplicate
         + `${day(3)};CARTE SUPERMARCHE CASINO;-82,40\n`
+        + `${day(7)};CB FLEURISTE ROSE;-25,00\n`
+        // Twice the same day: two transactions
         + `${day(7)};CB FLEURISTE ROSE;-25,00\n`;
 
     await page.getByRole('button', { name: tr('importButton') }).click();
     const modal = page.getByRole('dialog', { name: tr('importTitle') });
     await modal.locator('input[type="file"]').setInputFiles({ name: 'releve.csv', mimeType: 'text/csv', buffer: Buffer.from(csv) });
 
-    await expect(modal.locator('.import-count.status-new strong')).toHaveText('1');
+    await expect(modal.locator('.import-count.status-new strong')).toHaveText('2');
     await expect(modal.locator('.import-count.status-duplicate strong')).toHaveText('1');
     await expect(modal.locator('.import-count.status-known strong')).toHaveText('1');
     await expect(modal.locator('.import-row.status-duplicate')).toContainText('CB SUPERMARCHE CASINO');
@@ -185,10 +187,10 @@ test('imports a bank statement file', async ({ adminPage: page }) => {
     await expect(modal.locator('.import-row.status-duplicate input')).not.toBeChecked();
     await expect(modal.locator('.import-row.status-known input')).toBeDisabled();
 
-    await modal.getByRole('button', { name: tr('importConfirm', { count: 1 }) }).click();
+    await modal.getByRole('button', { name: tr('importConfirm', { count: 2 }) }).click();
     await expect(modal).toHaveCount(0);
-    await expect(row(page, 'CB FLEURISTE ROSE').locator('.transaction-amount')).toHaveText(euros(-25));
-    await expect(page.locator('.transaction-item')).toHaveCount(7);
+    await expect(row(page, 'CB FLEURISTE ROSE')).toHaveCount(2);
+    await expect(page.locator('.transaction-item')).toHaveCount(8);
 });
 
 test('explains why a file cannot be imported', async ({ adminPage: page }) => {
