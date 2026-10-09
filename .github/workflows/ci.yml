@@ -160,23 +160,6 @@ jobs:
             tests/e2e/.data/logs/
           if-no-files-found: ignore
 
-  secrets:
-    name: Secret scan
-    # gitleaks does not support the release event; the released commit was scanned on main
-    if: github.event_name != 'release'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: read
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-
-      - uses: gitleaks/gitleaks-action@v3
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
   docker:
     name: Docker image
     runs-on: ubuntu-latest

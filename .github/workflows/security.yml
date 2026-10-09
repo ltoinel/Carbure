@@ -1,0 +1,132 @@
+name: Security
+
+# Security checks, with their own badge in the README:
+# - secrets committed in the history (gitleaks), on each pull request and push on main;
+# - known vulnerabilities of the dependencies of the repository (Trivy), same triggers;
+# - known vulnerabilities of the image published on Docker Hub (Trivy), every week: new
+#   vulnerabilities are published without any change of Carbure.
+# The image built by each pull request is scanned by the CI (job "Docker image").
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    # Monday, 6:00 UTC
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  secrets:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: gitleaks/gitleaks-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  dependencies:
+    name: Dependency scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # Upload of the scan results to the Security tab
+      security-events: write
+    steps:
+      - uses: actions/checkout@v7
+
+      # Lock files of the repository (Playwright, MkDocs): fails on a CRITICAL
+      # vulnerability that has a fix
+      - name: Scan the dependencies (blocking)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+          format: table
+          trivyignores: .trivyignore
+
+      - name: Scan the dependencies (report)
+        if: always()
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln
+          severity: CRITICAL,HIGH,MEDIUM
+          limit-severities-for-sarif: true
+          ignore-unfixed: true
+          format: sarif
+          output: trivy-dependencies.sarif
+          trivyignores: .trivyignore
+          skip-setup-trivy: true
+
+      - name: Publish the scan in the Security tab
+        if: always() && github.event_name != 'pull_request'
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: trivy-dependencies.sarif
+          category: trivy-dependencies
+
+  published-image:
+    name: Published image scan
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      # .trivyignore of the repository
+      - uses: actions/checkout@v7
+
+      # Same rules as the scan of the CI: a CRITICAL vulnerability that has a fix means
+      # that a new release (rebuilt image) is needed
+      - name: Scan the image of Docker Hub (blocking)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ltoinel/carbure:latest
+          scanners: vuln,secret
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+          format: table
+          trivyignores: .trivyignore
+          skip-dirs: /opt/woob
+
+      - name: Scan the image of Docker Hub (report)
+        if: always()
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ltoinel/carbure:latest
+          scanners: vuln,secret
+          severity: CRITICAL,HIGH,MEDIUM
+          limit-severities-for-sarif: true
+          ignore-unfixed: true
+          format: sarif
+          output: trivy-published-image.sarif
+          trivyignores: .trivyignore
+          skip-dirs: /opt/woob
+          skip-setup-trivy: true
+
+      - name: Publish the scan in the Security tab
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: trivy-published-image.sarif
+          category: trivy-published-image
