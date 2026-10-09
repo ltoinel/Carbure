@@ -2195,6 +2195,84 @@ button .material-icons {
     color: var(--error-color);
 }
 
+/* Recurring transactions: badge of a row, series expected in the month */
+.recurring-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    margin-left: 8px;
+    padding: 1px 8px 1px 4px;
+    border-radius: 999px;
+    background: var(--background);
+    color: var(--primary-color);
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.recurring-badge .material-icons {
+    font-size: 14px;
+}
+
+.recurring-expected {
+    padding: 12px 24px;
+    background: var(--background);
+    border-bottom: 1px solid var(--divider);
+}
+
+.recurring-expected h3 {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.recurring-expected h3 .material-icons {
+    font-size: 18px;
+}
+
+.recurring-expected ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.recurring-expected li {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    padding: 4px 0;
+    font-size: 14px;
+}
+
+.recurring-expected-label {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text-primary);
+}
+
+.recurring-expected-day {
+    color: var(--text-secondary);
+}
+
+.recurring-expected-amount {
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.recurring-expected-amount.positive {
+    color: var(--success-color);
+}
+
+.recurring-expected-amount.negative {
+    color: var(--error-color);
+}
+
 /* On/off switch (unchecked transactions filter) */
 .toggle-switch {
     display: inline-flex;

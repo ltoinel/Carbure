@@ -23,6 +23,12 @@ export function createTransactionModule(getApiService) {
                 // 'all' or 'unchecked'
                 transactionFilter: 'all',
 
+                // Recurring series of the month (salary, rent, subscriptions...) and the
+                // filter that shows only their transactions
+                recurring: [],
+                recurringOnly: false,
+                recurringRequest: 0,
+
                 // Rule proposed after a manual categorization: {keyword, category, categoryName}
                 ruleSuggestion: null,
                 // Transaction shown in the detail modal, its category and checked state being edited
@@ -61,11 +67,39 @@ export function createTransactionModule(getApiService) {
              * @returns {Array}
              */
             displayedTransactions() {
-                const list = this.isSearching ? this.searchResults : this.transactions;
+                let list = this.isSearching ? this.searchResults : this.transactions;
+                if (this.recurringOnly && !this.isSearching) {
+                    list = list.filter(t => this.isRecurring(t));
+                }
                 if (this.transactionFilter === 'unchecked') {
                     return list.filter(t => !Number(t.pointed));
                 }
                 return list;
+            },
+
+            /**
+             * Ids of the recurring transactions of the month
+             * @returns {Set<number>}
+             */
+            recurringIds() {
+                return new Set(this.recurring.flatMap(series => series.ids.map(Number)));
+            },
+
+            /**
+             * Recurring series not seen in the month yet
+             * @returns {Array}
+             */
+            recurringExpected() {
+                return this.recurring.filter(series => series.status === 'expected');
+            },
+
+            /**
+             * Whether the selected month is the current one (expected series may still come)
+             * @returns {boolean}
+             */
+            isCurrentMonth() {
+                const now = new Date();
+                return Number(this.selectedMonth) === now.getMonth() + 1 && Number(this.selectedYear) === now.getFullYear();
             },
 
             /**
@@ -130,6 +164,7 @@ export function createTransactionModule(getApiService) {
                     this.transactions = Array.isArray(data) ? data : [];
                     // Categories are shown on every row (name or picker)
                     this.ensureCategories();
+                    this.loadRecurring(month, year);
                 } catch (err) {
                     if (err.name === 'AbortError') {
                         return;
@@ -141,6 +176,36 @@ export function createTransactionModule(getApiService) {
                     this.loadingTransactions = false;
                     this.transactionController = null;
                 }
+            },
+
+            /**
+             * Loads the recurring series of a month (an answer for another month is ignored)
+             * @param {number} month - Month (1-12)
+             * @param {number} year - Year
+             * @returns {Promise<void>}
+             */
+            async loadRecurring(month, year) {
+                const request = ++this.recurringRequest;
+                try {
+                    const series = await getApiService().fetchRecurring(month, year);
+                    if (request === this.recurringRequest) {
+                        this.recurring = series;
+                    }
+                } catch (err) {
+                    console.error('Error loading recurring transactions:', err);
+                    if (request === this.recurringRequest) {
+                        this.recurring = [];
+                    }
+                }
+            },
+
+            /**
+             * Whether a transaction belongs to a recurring series of the month
+             * @param {Object} transaction - Transaction
+             * @returns {boolean}
+             */
+            isRecurring(transaction) {
+                return this.recurringIds.has(Number(transaction.id));
             },
 
             /**
