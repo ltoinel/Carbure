@@ -71,7 +71,9 @@ Pour chaque compte suivi :
    configuration.
 3. **Dédoublonnage** : chaque opération reçoit une empreinte (date réelle, libellé nettoyé,
    montant) ; une opération déjà connue n'est jamais importée deux fois, même synchronisée
-   plusieurs fois ou par deux utilisateurs.
+   plusieurs fois ou par deux utilisateurs. Des opérations **identiques reçues ensemble**
+   (deux cafés le même jour, au même prix) sont bien gardées toutes les deux : elles sont
+   distinguées par leur rang.
 4. **Mois de rattachement** : un **virement daté après le 25** est rattaché au **1er du mois
    suivant** (un salaire versé le 28 compte pour le mois qu'il finance) ; la date réelle
    reste visible dans le détail de la transaction.
@@ -102,6 +104,7 @@ transactions du dernier mois restées sans catégorie.
   vérifiées sont en gras ; un interrupteur n'affiche qu'elles, avec leur nombre. Catégoriser
   une transaction la marque aussi comme vérifiée. Le nombre de transactions à vérifier est
   repris par les notifications et le badge de l'app iPhone.
+- **Choix du mois** dans l'en-tête, limité aux mois qui ont des transactions.
 - **Recherche** sur tous les mois, à partir de deux caractères, avec le total des
   transactions trouvées.
 - **Détail** : montant, libellé complet, date et date réelle, type (carte, virement,
@@ -110,12 +113,50 @@ transactions du dernier mois restées sans catégorie.
 - **Catégoriser à la main** une transaction sans catégorie : un sélecteur avec recherche,
   icônes et couleurs. Pour un administrateur, Carbure propose ensuite de **créer la règle**
   correspondante, pour que les prochaines soient classées toutes seules.
-- **Import de relevés bancaires** : sans synchronisation woob, ou pour reprendre
-  l'historique, les fichiers proposés par les banques (OFX/QFX, QIF, CSV, CAMT.053) s'importent
-  depuis l'onglet Transactions. Les colonnes d'un CSV sont reconnues d'après leur en-tête
-  (formats français : `;`, `1 234,56`, Windows-1252). Un aperçu montre les nouvelles
-  transactions, celles déjà présentes et les doublons probables avant d'importer ; les règles
-  classent ensuite les transactions importées.
+- **Transactions récurrentes** repérées toutes seules et **import de relevés bancaires** :
+  voir ci-dessous.
+
+### Import de relevés bancaires
+
+Pour une banque que woob ne couvre pas, ou pour reprendre l'historique d'avant Carbure :
+
+1. Téléchargez le relevé sur le site de la banque, dans l'un des formats proposés :
+   **OFX/QFX**, **QIF**, **CSV** ou **CAMT.053** (XML ISO 20022).
+2. Dans l'onglet **Transactions**, cliquez sur **Importer** et déposez le fichier (1 Mo au
+   plus).
+3. L'**aperçu** classe chaque ligne : **nouvelle** (cochée), **déjà connue** (même empreinte
+   qu'une transaction existante, ignorée) ou **doublon probable** (même montant à 3 jours
+   près, souvent la même opération déjà synchronisée avec un autre libellé : décochée par
+   défaut, à vous de trancher).
+4. Validez : les transactions cochées sont enregistrées (le détail indique « relevé
+   importé » comme origine), puis les **règles** les catégorisent ; la liste s'ouvre sur le
+   dernier mois importé.
+
+Les colonnes d'un CSV sont reconnues d'après leur en-tête (date, libellé, montant, ou débit et
+crédit), y compris les formats français (`;`, `1 234,56`, encodage Windows-1252). Le libellé
+est nettoyé comme à la synchronisation. Le contenu du fichier n'est jamais écrit dans les
+logs.
+
+### Transactions récurrentes
+
+Carbure **repère tout seul** les opérations qui reviennent chaque mois : salaire, loyer,
+abonnements, factures, remboursements…
+
+- **Badge « Mensuelle »** sur ces transactions dans la liste du mois.
+- Un **interrupteur** n'affiche qu'elles, et liste celles **attendues ce mois-ci** qui ne sont
+  pas encore arrivées, avec leur jour habituel et leur montant (« ≈ » s'il varie) ; pour un
+  mois passé, celles qui ont **manqué** (« Absentes ce mois-ci »). Pratique pour vérifier que
+  le salaire est tombé ou qu'un prélèvement n'a pas été oublié.
+
+**Règles de détection**, sur les 6 derniers mois :
+
+- les transactions sont regroupées par **sens** (débit ou crédit) et par **libellé sans ses
+  chiffres** (références, dates, numéros de facture) ;
+- une série est récurrente si elle apparaît dans **3 mois au moins**, **environ une fois par
+  mois** (1,5 fois au plus), **vers le même jour** (3 fois sur 4 à 5 jours près), et si elle
+  est **encore active** (vue ce mois-ci ou le mois précédent) ;
+- un **paiement par carte** doit en plus garder le même montant à 20 % près (un abonnement,
+  pas le restaurant du coin) ; un prélèvement ou un virement peut varier (électricité, eau).
 
 ## Catégories
 
@@ -327,8 +368,9 @@ utilisateurs ouvrent **Agent IA** depuis leur menu.
 
 - Les **montants sont en euros** ; pas de gestion de plusieurs devises.
 - Les banques couvertes sont celles de **woob**, surtout françaises.
-- Pas d'**import de fichiers** (CSV, OFX) : les transactions viennent de la synchronisation.
-- Pas d'**opérations récurrentes** ni d'**objectifs d'épargne**.
+- Les opérations récurrentes sont **détectées**, pas **planifiées** : pas d'échéancier de
+  factures ni de prévision du solde.
+- Pas d'**objectifs d'épargne**.
 - L'app native est sur **iPhone** ; sur Android, le portail web s'utilise dans le
   navigateur.
 

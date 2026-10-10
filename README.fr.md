@@ -31,6 +31,10 @@
 </p>
 
 <p align="center">
+  <a href="https://ltoinel.github.io/Carbure/assets/videos/carbure-teaser.mp4"><img src="docs/assets/teaser-poster.jpg" alt="Voir le teaser de Carbure (1 min)" width="100%"></a>
+</p>
+
+<p align="center">
   <img src="docs/assets/screenshot-transactions.png" alt="Transactions du mois : revenus, dépenses, recherche, pointage et catégories" width="100%">
 </p>
 
@@ -64,6 +68,8 @@
 - 📈 **Tendances** : revenus, dépenses et épargne sur 3, 6 ou 12 mois, comparés à la période
   précédente ou à la même période l'an dernier.
 - ✅ **Pointage** : vérifiez vos transactions en un clic, filtrez celles qui restent à contrôler.
+- 🔁 **Opérations récurrentes** : salaire, loyer, abonnements et factures sont repérés tout
+  seuls ; voyez d'un coup d'œil celles encore attendues ce mois-ci.
 - 🔔 **Alertes sur iPhone** : un push après chaque synchronisation, dès qu'une dépense dépasse
   le seuil que vous avez choisi, ou quand une règle que vous avez désignée s'applique.
 - 📊 **Insights** : vos propres indicateurs du mois (courses, carburant, abonnements…).
@@ -165,3 +171,7 @@ L'image Docker embarque des logiciels tiers, non modifiés, sous leur propre lic
 
 Carbure appelle woob comme un programme séparé ; il peut être remplacé par une autre
 version de woob (environnement virtuel `/opt/woob`).
+
+La musique du [teaser](https://ltoinel.github.io/Carbure/assets/videos/carbure-teaser.mp4) est
+« Nowhere Land » de Kevin MacLeod ([incompetech.com](https://incompetech.com)), sous
+licence [Creative Commons : Attribution 4.0](https://creativecommons.org/licenses/by/4.0/deed.fr).
