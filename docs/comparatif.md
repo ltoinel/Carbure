@@ -45,7 +45,7 @@ seul utilisateur (Kresus).
 | Pointage des transactions | ✅ | ✅ rapprochement | ✅ rapprochement | ➖ |
 | Graphiques et tendances | ✅ tendances, comparaisons, flux du mois avec ses transactions | ✅ rapports | ✅ rapports personnalisés | ✅ |
 | Indicateurs personnalisés | ✅ insights SQL | ➖ | ⚠️ rapports personnalisés | ➖ |
-| Opérations récurrentes, factures | ➖ | ✅ | ✅ échéances | ✅ |
+| Opérations récurrentes, factures | ⚠️ détectées automatiquement, attendues du mois ; pas d'échéancier | ✅ | ✅ échéances | ✅ |
 | Objectifs d'épargne | ➖ | ✅ tirelires | ✅ modèles d'objectifs | ➖ |
 
 ## Foyer et appareils
