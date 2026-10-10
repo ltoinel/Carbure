@@ -10,7 +10,7 @@ banque grâce à [woob](https://woob.tech/), nettoyées et catégorisées par mo
 consultées :
 
 - dans le **portail web** (`portal/`, Vue 3) : transactions, pointage, recherche,
-  budgets, insights, tendances, et pour les administrateurs règles, catégories, comptes
+  transactions récurrentes, import de relevés, budgets, insights, tendances, et pour les administrateurs règles, catégories, comptes
   et utilisateurs ;
 - dans l'**application iOS** Carbure, qui reçoit aussi des notifications push (APNs)
   après chaque synchronisation et pour les dépenses importantes — bientôt disponible sur
@@ -20,10 +20,13 @@ consultées :
 
 Tous s'appuient sur la même **API REST PHP** (`src/`).
 
-<video class="teaser" controls muted playsinline preload="none" poster="assets/carbure-teaser.png">
-  <source src="assets/carbure-teaser.webm" type="video/webm">
-  Votre navigateur ne lit pas cette vidéo : <a href="assets/carbure-teaser.webm">la télécharger</a>.
+<video class="teaser" controls playsinline preload="none" poster="assets/carbure-header.jpg">
+  <source src="assets/videos/carbure-teaser.mp4" type="video/mp4">
+  Votre navigateur ne lit pas cette vidéo : <a href="assets/videos/carbure-teaser.mp4">la télécharger</a>.
 </video>
+
+*Carbure en une minute : synchronisation, catégorisation, budgets, flux du mois, tendances,
+insights, notifications, agent IA et foyer.*
 
 ![Flux du mois : des revenus aux dépenses, à l'épargne et au reste](assets/screenshot-flow.png)
 
@@ -33,8 +36,10 @@ Tous s'appuient sur la même **API REST PHP** (`src/`).
 |---|---|
 | Installation | Assistant dans le navigateur (base de données, schéma, administrateur), image Docker nginx + PHP-FPM avec woob, mises à jour de la base automatiques ou en un clic |
 | Synchronisation | Opérations à venir et historique via woob, de tous les comptes ou d'un seul, progression en temps réel (SSE), date et résultat de la dernière synchronisation de chaque compte, synchronisation quotidienne planifiable |
+| Import de relevés | Fichiers des banques (OFX/QFX, QIF, CSV, CAMT.053), aperçu des nouvelles transactions, de celles déjà connues et des doublons probables avant d'importer, catégorisation par les règles |
 | Comptes | Comptes du foyer, recherche des comptes dans woob et suivi en un clic, liste des banques supportées par woob |
-| Transactions | Liste mensuelle, recherche par libellé avec total, pointage (vérifiée / non vérifiée), catégorisation manuelle avec proposition de règle |
+| Transactions | Liste mensuelle, sélecteur des mois avec transactions, recherche par libellé avec total, pointage (vérifiée / non vérifiée), catégorisation manuelle avec proposition de règle, banque et compte d'origine |
+| Transactions récurrentes | Détection automatique des opérations mensuelles (salaire, loyer, abonnements, factures), badge « Mensuelle », liste de celles attendues ce mois-ci |
 | Budgets | Flux du mois (diagramme de Sankey revenus → dépenses, épargne, reste), synthèse du mois, budget par catégorie avec reste ou dépassement, catégorie parente égale à la somme de ses sous-catégories ou à son propre montant, transactions d'une catégorie |
 | Tendances | Débit, crédit, hors budget, budget planifié et épargne (catégorie « Epargne ») sur 3, 6 ou 12 mois, comparaison avec une autre période |
 | Catégorisation | Catégories hiérarchiques (icône, couleur), règles par mots-clés appliquées à chaque synchronisation ou à la demande |
