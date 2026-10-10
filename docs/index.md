@@ -20,6 +20,7 @@ consultées :
 
 Tous s'appuient sur la même **API REST PHP** (`src/`).
 
+<<<<<<< HEAD
 <video controls playsinline preload="metadata" poster="assets/carbure-header.jpg" style="width:100%;height:auto;border-radius:8px">
   <source src="assets/videos/carbure-teaser.mp4" type="video/mp4">
   <a href="assets/videos/carbure-teaser.mp4">Voir le teaser de Carbure (1 min)</a>
@@ -27,6 +28,14 @@ Tous s'appuient sur la même **API REST PHP** (`src/`).
 
 *Carbure en une minute : synchronisation, catégorisation, budgets, flux du mois, tendances,
 insights, notifications, agent IA et foyer.*
+=======
+<video class="teaser" controls muted playsinline preload="none" poster="assets/carbure-teaser.png">
+  <source src="assets/carbure-teaser.webm" type="video/webm">
+  Votre navigateur ne lit pas cette vidéo : <a href="assets/carbure-teaser.webm">la télécharger</a>.
+</video>
+
+![Flux du mois : des revenus aux dépenses, à l'épargne et au reste](assets/screenshot-flow.png)
+>>>>>>> refs/remotes/origin/main
 
 ## Fonctionnalités
 

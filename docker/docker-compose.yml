@@ -34,6 +34,9 @@ services:
       MARIADB_USER: carbure
       MARIADB_PASSWORD: ${DB_PASSWORD:-change-me}
       MARIADB_RANDOM_ROOT_PASSWORD: "yes"
+      # A new major version of MariaDB (image updated by docker compose pull) upgrades
+      # the existing database when it starts (mariadb-upgrade); nothing to do otherwise
+      MARIADB_AUTO_UPGRADE: "1"
     volumes:
       - carbure-db:/var/lib/mysql
     healthcheck:

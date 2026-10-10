@@ -134,3 +134,15 @@
 .md-copyright__highlight a:hover {
   text-decoration-color: currentColor;
 }
+
+/* ===== Presentation video of the home page ===== */
+.md-typeset video.teaser {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  margin: 1.2em 0;
+  border-radius: 0.6rem;
+  background: var(--md-primary-fg-color);
+  box-shadow: 0 0.6rem 1.6rem rgba(0, 0, 0, 0.18);
+}
