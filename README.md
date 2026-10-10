@@ -31,6 +31,10 @@
 </p>
 
 <p align="center">
+  <a href="https://ltoinel.github.io/Carbure/carbure-teaser.mp4"><img src="docs/assets/en/teaser-poster.jpg" alt="Watch the Carbure teaser (1 min, in French)" width="100%"></a>
+</p>
+
+<p align="center">
   <img src="docs/assets/en/screenshot-transactions.png" alt="Transactions of the month: income, expenses, search, check-off and categories" width="100%">
 </p>
 
@@ -163,3 +167,7 @@ The Docker image bundles third-party software, unmodified, under its own license
 
 Carbure calls woob as a separate program; it can be replaced by another woob version
 (virtual environment `/opt/woob`).
+
+The music of the [teaser](https://ltoinel.github.io/Carbure/carbure-teaser.mp4) is
+"Nowhere Land" by Kevin MacLeod ([incompetech.com](https://incompetech.com)), licensed
+under [Creative Commons: By Attribution 4.0](https://creativecommons.org/licenses/by/4.0/).

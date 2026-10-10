@@ -31,6 +31,10 @@
 </p>
 
 <p align="center">
+  <a href="https://ltoinel.github.io/Carbure/carbure-teaser.mp4"><img src="docs/assets/teaser-poster.jpg" alt="Voir le teaser de Carbure (1 min)" width="100%"></a>
+</p>
+
+<p align="center">
   <img src="docs/assets/screenshot-transactions.png" alt="Transactions du mois : revenus, dépenses, recherche, pointage et catégories" width="100%">
 </p>
 
@@ -165,3 +169,7 @@ L'image Docker embarque des logiciels tiers, non modifiés, sous leur propre lic
 
 Carbure appelle woob comme un programme séparé ; il peut être remplacé par une autre
 version de woob (environnement virtuel `/opt/woob`).
+
+La musique du [teaser](https://ltoinel.github.io/Carbure/carbure-teaser.mp4) est
+« Nowhere Land » de Kevin MacLeod ([incompetech.com](https://incompetech.com)), sous
+licence [Creative Commons : Attribution 4.0](https://creativecommons.org/licenses/by/4.0/deed.fr).
