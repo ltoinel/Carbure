@@ -1,28 +1,27 @@
 # TODO
 
-Tâches restant à réaliser sur Carbure. Une tâche terminée est retirée de cette liste
-(l'historique Git garde la trace de ce qui a été fait).
+Remaining tasks on Carbure. A finished task is removed from this list (the Git history
+keeps track of what was done).
 
-- [ ] **Production** : tester la connexion de Claude au serveur MCP depuis claude.ai
-      (Paramètres → Connecteurs → Ajouter un connecteur personnalisé). L'image Docker applique
-      la migration OAuth au démarrage et route `/.well-known/oauth-*` ; renseigner `public_url`
-      (onglet **Administration → Paramètres**) si le proxy HTTPS du NAS n'envoie pas
+- [ ] **Production**: test the connection of Claude to the MCP server from claude.ai
+      (Settings → Connectors → Add custom connector). The Docker image applies the OAuth
+      migration at startup and routes `/.well-known/oauth-*`; set `public_url`
+      (**Administration → Settings** tab) if the HTTPS proxy of the NAS does not send
       `X-Forwarded-Proto`.
 
-- [ ] **Production** : après le déploiement, vérifier sur la page Journaux que l'IP des
-      entrées est celle du client et non celle du proxy inversé de DSM (il doit envoyer
-      `X-Forwarded-For`). Régler `log_retention_days` (absent des configurations existantes :
-      logs conservés indéfiniment) dans **Administration → Paramètres**.
+- [ ] **Production**: after the deployment, check on the Logs page that the IP of the
+      entries is the client's, not the one of the DSM reverse proxy (it must send
+      `X-Forwarded-For`). Set `log_retention_days` (missing from existing configurations:
+      logs kept forever) in **Administration → Settings**.
 
-- [ ] Authentification forte : gérer les validations par **code** (OTP par SMS, `BrowserQuestion`
-      de woob), qui attendent une saisie sur l'entrée standard (aujourd'hui fermée par
-      `tools/woob-tty.py`) ; et proposer le mode interactif à « Rechercher mes comptes dans
-      woob » / « Connecter la banque » (`Woob::listAccounts`), qui échouent aussi sur une banque
-      exigeant une 2FA.
+- [ ] Strong authentication: handle the validations by **code** (SMS OTP, woob
+      `BrowserQuestion`), which wait for input on stdin (closed today by
+      `tools/woob-tty.py`); and offer the interactive mode to "Find my accounts in woob" /
+      "Connect the bank" (`Woob::listAccounts`), which also fail on a bank that requires 2FA.
 
-- [ ] Connexion MySQL en `utf8mb4` (`Db` n'appelle pas `set_charset` : la connexion prend le
-      jeu de caractères par défaut du serveur). Avant de l'ajouter, vérifier en production ce
-      que reçoit PHP et comment les accents sont stockés :
+- [ ] MySQL connection in `utf8mb4` (`Db` does not call `set_charset`: the connection uses
+      the default charset of the server). Before adding it, check in production what PHP
+      receives and how accents are stored:
 
       ```bash
       docker compose exec carbure php -r '$c = parse_ini_file("/data/conf/prod.ini");
@@ -31,21 +30,21 @@ Tâches restant à réaliser sur Carbure. Une tâche terminée est retirée de c
         foreach ($m->query("SELECT name, HEX(name) AS h FROM bank_transaction_category WHERE name LIKE \"%pargne%\"") as $r) echo $r["name"], " ", $r["h"], "\n";'
       ```
 
-      `utf8mb4` (et `É` = `C389`) : `set_charset('utf8mb4')` ne change rien, l'ajouter.
-      `latin1` avec `É` = `C383E280B0` : les accents sont stockés doublement encodés ; il faut
-      d'abord une migration de conversion, sinon le portail afficherait « Ã‰pargne ».
-      Symptôme d'un serveur en latin1 : l'API répond 500 (« cannot be encoded in JSON » dans
-      les logs) dès qu'un texte accentué a été écrit par une connexion utf8mb4.
-- [ ] Regex `PRLV SEPA` gourmande (`ECH/…` n'est pas retiré du libellé) et `addslashes()`
-      appliqué avant une requête préparée (double échappement). Les corriger change les libellés
-      donc les UUID : prévoir une migration SQL qui recalcule libellés et UUID à l'identique
-      de PHP (montant au format float PHP `-42.5`, 24 premiers **octets** du libellé pour les
-      cartes, uniquement les lignes dont l'UUID actuel correspond à la formule), et gérer les
-      collisions d'UUID. La regex est dans le `prod.ini` de chaque instance : la corriger dans
-      `prod.sample.ini` ne suffit pas. Les répétitions d'une transaction identique ont
-      l'UUID `md5(uuid . '#n')` (`Transaction::prepareAll()`) : la migration doit les
-      recalculer à partir de l'UUID de base, rang par rang.
-- [ ] Le compte n'entre pas dans l'UUID : une même opération (date réelle, libellé,
-      montant) sur deux comptes synchronisés n'est enregistrée qu'une fois. L'ajouter change
-      tous les UUID (migration, ou clé unique `(account_number, uuid)`) ; à faire seulement
-      si des comptes du foyer peuvent avoir des opérations identiques.
+      `utf8mb4` (and `É` = `C389`): `set_charset('utf8mb4')` changes nothing, add it.
+      `latin1` with `É` = `C383E280B0`: accents are stored double-encoded; a conversion
+      migration is needed first, otherwise the portal would show "Ã‰pargne".
+      Symptom of a latin1 server: the API answers 500 ("cannot be encoded in JSON" in the
+      logs) as soon as an accented text was written by a utf8mb4 connection.
+- [ ] Greedy `PRLV SEPA` regex (`ECH/…` is not removed from the label) and `addslashes()`
+      applied before a prepared statement (double escaping). Fixing them changes the labels,
+      hence the UUIDs: plan an SQL migration that recomputes labels and UUIDs exactly like
+      PHP (amount in PHP float format `-42.5`, first 24 **bytes** of the label for cards,
+      only the rows whose current UUID matches the formula), and handle UUID collisions.
+      The regex is in the `prod.ini` of each instance: fixing it in `prod.sample.ini` is not
+      enough. Repetitions of an identical transaction have the UUID `md5(uuid . '#n')`
+      (`Transaction::prepareAll()`): the migration must recompute them from the base UUID,
+      rank by rank.
+- [ ] The account is not part of the UUID: the same operation (real date, label, amount) on
+      two synchronized accounts is stored only once. Adding it changes every UUID (migration,
+      or unique key `(account_number, uuid)`); only worth doing if accounts of the household
+      can have identical operations.
