@@ -74,6 +74,8 @@ sequenceDiagram
     participant D as Device / Apns
     P->>B: GET /api/bank/sync (JWT ou sync_token)
     B->>B: GET_LOCK('bank_sync') — une seule synchro à la fois
+    B->>W: woob bank list (déverrouillage : login et session persistée)
+    W-->>B: comptes (validation sur le téléphone attendue si demandée)
     loop Pour chaque compte (numéro@banque)
         B->>W: woob bank coming <compte> -f json
         W-->>B: opérations à venir (type 12 conservé)

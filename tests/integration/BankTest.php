@@ -292,6 +292,55 @@ class BankTest extends DatabaseTestCase
         $this->assertStringContainsString('coming failed', $accounts['comingfail@bank']['last_sync_message']);
     }
 
+    public function testSyncUnlocksBankFirst()
+    {
+        $lock = sys_get_temp_dir() . '/carbure-fake-woob-2fa-list';
+        @unlink($lock);
+        putenv('CARBURE_FAKE_WOOB_2FA_LIST=1');
+        Config::set('woob_2fa_wait', 0);
+        Config::set('woob_unlock_attempts', 3);
+        $this->loginAs(self::ADMIN);
+        try {
+            $output = $this->sync();
+        } finally {
+            putenv('CARBURE_FAKE_WOOB_2FA_LIST');
+            Config::set('woob_2fa_wait', 15);
+            Config::set('woob_unlock_attempts', 6);
+            @unlink($lock);
+        }
+
+        // "bank list" logs in first (phone validation awaited), then coming/history run
+        $this->assertStringContainsString('Unlocking bank, validate on your phone... (attempt 1/3)', $output);
+        $this->assertStringContainsString('Bank unlocked', $output);
+        $this->assertLessThan(strpos($output, 'Syncing '), strpos($output, 'Bank unlocked'));
+        $this->assertStringContainsString('data: Synchronization complete', $output);
+    }
+
+    public function testSyncAbortsWhenUnlockExhausted()
+    {
+        $lock = sys_get_temp_dir() . '/carbure-fake-woob-2fa-list';
+        @unlink($lock);
+        putenv('CARBURE_FAKE_WOOB_2FA_LIST=1');
+        Config::set('woob_2fa_wait', 0);
+        Config::set('woob_unlock_attempts', 1);
+        $this->loginAs(self::ADMIN);
+        try {
+            $output = $this->sync();
+        } finally {
+            putenv('CARBURE_FAKE_WOOB_2FA_LIST');
+            Config::set('woob_2fa_wait', 15);
+            Config::set('woob_unlock_attempts', 6);
+            @unlink($lock);
+        }
+
+        // No account is synchronized, the message tells what to do
+        $this->assertStringContainsString('Error: bank unlock failed, validate on your phone and try again', $output);
+        $this->assertStringNotContainsString('Syncing ', $output);
+        $accounts = array_column(Bank::accounts(), null, 'bankId');
+        $this->assertNull($accounts['111@bnp']['last_sync_at']);
+        $this->assertNull($accounts['111@bnp']['last_sync_status']);
+    }
+
     public function testSyncRetriesHistoryOnDecoupledValidation()
     {
         $marker = sys_get_temp_dir() . '/carbure-fake-woob-2fahistory';

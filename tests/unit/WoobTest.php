@@ -101,6 +101,59 @@ class WoobTest extends TestCase
         $this->assertStringContainsString('Two-factor authentication required for 2fahistory@bank', $output);
     }
 
+    public function testUnlockRetriesUntilBankListAnswers()
+    {
+        $lock = sys_get_temp_dir() . '/carbure-fake-woob-2fa-list';
+        @unlink($lock);
+        putenv('CARBURE_FAKE_WOOB_2FA_LIST=1');
+        Config::set('woob_2fa_wait', 0);
+        Config::set('woob_unlock_attempts', 3);
+        try {
+            ob_start();
+            try {
+                $accounts = Woob::unlockAccounts();
+            } finally {
+                $output = ob_get_clean();
+            }
+        } finally {
+            putenv('CARBURE_FAKE_WOOB_2FA_LIST');
+            Config::set('woob_2fa_wait', 15);
+            Config::set('woob_unlock_attempts', 6);
+            @unlink($lock);
+        }
+
+        // First list demands the phone validation, the next one answers
+        $this->assertCount(2, $accounts);
+        $this->assertSame('00012345678@bnp', $accounts[0]['id']);
+        $this->assertStringContainsString('Unlocking bank, validate on your phone... (attempt 1/3)', $output);
+        $this->assertStringContainsString('Bank unlocked (2 accounts)', $output);
+    }
+
+    public function testUnlockGivesUpAfterAttempts()
+    {
+        $lock = sys_get_temp_dir() . '/carbure-fake-woob-2fa-list';
+        @unlink($lock);
+        putenv('CARBURE_FAKE_WOOB_2FA_LIST=1');
+        Config::set('woob_2fa_wait', 0);
+        Config::set('woob_unlock_attempts', 1);
+        try {
+            ob_start();
+            try {
+                Woob::unlockAccounts();
+                $this->fail('Unlock accepted');
+            } catch (Exception $e) {
+                $output = ob_get_clean();
+                $this->assertStringContainsString('Recipient or Transfer', $e->getMessage());
+                $this->assertStringNotContainsString('Bank unlocked', $output);
+            }
+        } finally {
+            putenv('CARBURE_FAKE_WOOB_2FA_LIST');
+            Config::set('woob_2fa_wait', 15);
+            Config::set('woob_unlock_attempts', 6);
+            @unlink($lock);
+        }
+    }
+
     public function testTwoFactorWithoutRetryThrows()
     {
         $marker = sys_get_temp_dir() . '/carbure-fake-woob-2fa';

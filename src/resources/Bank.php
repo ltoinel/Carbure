@@ -387,6 +387,21 @@ final class Bank {
         }
 
         try {
+            // Unlock first: "bank list" logs in to every backend and persists
+            // the session (the push is validated on the phone), so the following
+            // calls find the bank authenticated
+            try {
+                Woob::unlockAccounts();
+            } catch (Exception $e) {
+                if (Woob::isTwoFactorError($e->getMessage())) {
+                    Logger::error("Bank unlock failed: " . $e->getMessage());
+                    Webservice::sendProgress("Error: bank unlock failed, validate on your phone and try again");
+                    return;
+                }
+                Logger::warn("Bank unlock check failed, continuing with the synchronization: " . $e->getMessage());
+                Webservice::sendProgress("Warning: bank unlock check failed (" . $e->getMessage() . "), continuing");
+            }
+
             // Synchronize each bank account
             foreach ($bankIds as $bankId) {
                 

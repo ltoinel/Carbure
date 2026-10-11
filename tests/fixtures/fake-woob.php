@@ -19,6 +19,8 @@
  * - account "2fahistory@bank": first history call fails like a DecoupledValidation
  *   without resource (bank demanding the phone validation while listing,
  *   exit code 1), next calls answer; coming answers
+ * - bank list with CARBURE_FAKE_WOOB_2FA_LIST=1: first list fails the same way,
+ *   next lists answer (two accounts)
  */
 
 $type = $argv[2] ?? '';
@@ -99,6 +101,14 @@ if (($argv[1] ?? '') === 'config') {
 }
 
 if (($argv[1] ?? '') === 'bank' && $type === 'list') {
+    // First list demands the phone validation (marker removed by the tests):
+    // the bank sends the push, woob aborts, the next list answers
+    $lock = sys_get_temp_dir() . '/carbure-fake-woob-2fa-list';
+    if (!is_file($lock) && getenv('CARBURE_FAKE_WOOB_2FA_LIST')) {
+        touch($lock);
+        fwrite(STDERR, "Error(creditmutuel): The resource should be of type Recipient or Transfer, not \"<class 'NoneType'>\"\n");
+        exit(1);
+    }
     $index = array_search('-b', $argv);
     // Without -b: the backend added last by "config add" (or bnp)
     $added = @json_decode((string)@file_get_contents(sys_get_temp_dir() . '/carbure-fake-woob-add.json'), true);

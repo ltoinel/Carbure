@@ -61,7 +61,9 @@ bancaire tiers, pas de cloud. Les modules woob couvrent surtout les **banques fr
 
 ### Déroulement d'une synchronisation
 
-Pour chaque compte suivi :
+La synchronisation déverrouille d'abord la banque (`bank ls` : connexion et session
+persistée, validation sur le téléphone si demandée, jusqu'à `woob_unlock_attempts`
+tentatives espacées de `woob_2fa_wait` secondes), puis traite chaque compte suivi :
 
 1. **Opérations à venir**, puis **historique** : woob renvoie les dernières opérations
    (100 par défaut, réglage `woob_transactions`).

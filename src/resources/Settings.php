@@ -32,6 +32,7 @@ final class Settings {
         'woob_transactions' => ['kind' => 'number', 'min' => 1, 'max' => 5000],
         'woob_2fa_wait' => ['kind' => 'number', 'min' => 0, 'max' => 300],
         'woob_2fa_retries' => ['kind' => 'number', 'min' => 0, 'max' => 5],
+        'woob_unlock_attempts' => ['kind' => 'number', 'min' => 1, 'max' => 12],
         'woob_logging' => ['kind' => 'select', 'options' => ['debug', 'info', 'warning', 'error', 'critical']],
         'woob_debug' => ['kind' => 'bool'],
         'woob_auto_update' => ['kind' => 'bool'],
@@ -45,7 +46,7 @@ final class Settings {
     /** Section of the settings that the file may not have yet */
     const SECTIONS = [
         'log_level' => 'global', 'log_retention_days' => 'global', 'savings_category' => 'global', 'public_url' => 'global',
-        'woob_transactions' => 'woob', 'woob_2fa_wait' => 'woob', 'woob_2fa_retries' => 'woob', 'woob_logging' => 'woob', 'woob_debug' => 'woob', 'woob_auto_update' => 'woob',
+        'woob_transactions' => 'woob', 'woob_2fa_wait' => 'woob', 'woob_2fa_retries' => 'woob', 'woob_unlock_attempts' => 'woob', 'woob_logging' => 'woob', 'woob_debug' => 'woob', 'woob_auto_update' => 'woob',
         'apns_environment' => 'apns', 'apns_auth_method' => 'apns', 'apns_bundle_id' => 'apns',
         'apns_key_id' => 'apns', 'apns_team_id' => 'apns',
     ];

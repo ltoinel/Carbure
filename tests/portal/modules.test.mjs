@@ -227,3 +227,26 @@ test('syncSteps: a warning on coming does not stop history nor fail the sync', (
     // No "Error" line: the synchronization succeeds
     assert.deepEqual(sync.computed.syncErrors.call({ syncLog: lines }), []);
 });
+
+test('syncSteps: bank unlock lines do not alter the steps', () => {
+    const sync = createSyncModule(() => null);
+    const context = { syncLog: [], syncStatus: 'running', ...sync.computed };
+    const steps = lines => sync.computed.syncSteps.call({ ...context, syncLog: lines });
+    const result = steps([
+        'Unlocking bank, validate on your phone... (attempt 1/6)',
+        'Bank unlocked (2 accounts)',
+        'Syncing 111@bnp (coming)...',
+        'Done 111@bnp (coming): 1 received, 1 new',
+    ]);
+    assert.deepEqual(result.accounts[0].steps.map(s => [s.kind, s.status]), [['coming', 'ok']]);
+    assert.deepEqual(sync.computed.syncErrors.call({ syncLog: [
+        'Unlocking bank, validate on your phone... (attempt 1/6)',
+        'Bank unlocked (2 accounts)',
+    ] }), []);
+
+    // Exhausted unlock: the global error is shown, no account is started
+    const aborted = steps(['Error: bank unlock failed, validate on your phone and try again']);
+    assert.deepEqual(aborted.accounts, []);
+    assert.equal(aborted.global.length, 1);
+    assert.equal(aborted.global[0].kind, 'error');
+});

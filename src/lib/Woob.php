@@ -25,6 +25,13 @@ final class Woob {
     private const TWO_FACTOR_RETRIES_DEFAULT = 1;
 
     /**
+     * Unlock at the start of a synchronization ("bank list" logs in to every
+     * backend and persists the session): attempts before giving up, spaced by
+     * woob_2fa_wait seconds (6 attempts: about 3 minutes to validate on the phone).
+     */
+    private const UNLOCK_ATTEMPTS_DEFAULT = 6;
+
+    /**
      * Command that runs woob, after making sure that woob will accept to start: it
      * refuses a configuration file of the banks (logins and passwords) readable by
      * the group or the other users, as a file copied into a NAS shared folder often is.
@@ -175,12 +182,73 @@ final class Woob {
         if ($progress) {
             Webservice::sendProgress("Two-factor authentication required for $bankId, validate on your phone...");
         }
-        $remaining = $wait;
+        self::sleepWithHeartbeat($wait, $progress);
+    }
+
+    /**
+     * Sleep while keeping the SSE stream alive (stream routes only: JSON routes
+     * must not output anything before their response).
+     *
+     * @param int  $seconds  How long to sleep
+     * @param bool $progress Send SSE heartbeats while sleeping
+     * @return void
+     */
+    private static function sleepWithHeartbeat($seconds, $progress)
+    {
+        $remaining = max(0, (int)$seconds);
         while ($remaining > 0) {
             sleep(1);
             $remaining--;
             if ($progress) {
                 Webservice::sendHeartbeat();
+            }
+        }
+    }
+
+    /**
+     * How many times the bank is unlocked at the start of a synchronization
+     * (woob_unlock_attempts, 6 by default so old configurations keep working).
+     *
+     * @return int The number of attempts (1 to 12)
+     */
+    private static function unlockAttempts()
+    {
+        try {
+            $attempts = Config::get('woob_unlock_attempts');
+        } catch (Exception $e) {
+            return self::UNLOCK_ATTEMPTS_DEFAULT;
+        }
+        return is_numeric($attempts) ? max(1, min(12, (int)$attempts)) : self::UNLOCK_ATTEMPTS_DEFAULT;
+    }
+
+    /**
+     * Unlock the bank before synchronizing: "bank list" logs in to every backend
+     * and persists the session, so the following calls find it authenticated.
+     * The first call triggers the push on the phone; each failure asking for the
+     * phone validation waits for it, then runs woob again.
+     *
+     * @return array The accounts found (id, label, balance, currency...)
+     * @throws Exception If woob fails without asking for the phone validation, or
+     *                   still asks for it after every attempt
+     */
+    public static function unlockAccounts()
+    {
+        $attempts = self::unlockAttempts();
+        for ($attempt = 1; ; $attempt++) {
+            try {
+                // Single attempt (no silent retry here): the loop below spaces
+                // the runs and shows the progress of each one
+                $accounts = self::fetchAccounts();
+                Logger::info("Bank unlocked (" . count($accounts) . " accounts)");
+                Webservice::sendProgress("Bank unlocked (" . count($accounts) . " accounts)");
+                return $accounts;
+            } catch (Exception $e) {
+                if (!self::isTwoFactorError($e->getMessage()) || $attempt >= $attempts) {
+                    throw $e;
+                }
+                Logger::warn("Bank unlock needs the phone validation (attempt $attempt/$attempts)");
+                Webservice::sendProgress("Unlocking bank, validate on your phone... (attempt $attempt/$attempts)");
+                self::sleepWithHeartbeat(self::twoFactorWait(), true);
             }
         }
     }
