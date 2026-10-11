@@ -3,6 +3,7 @@ import './setup.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createBudgetModule } from '../../portal/modules/budgetModule.js';
+import { createSyncModule } from '../../portal/modules/syncModule.js';
 import { createTransactionModule } from '../../portal/modules/transactionModule.js';
 import { createRulesModule } from '../../portal/modules/rulesModule.js';
 import { agentConfigurations } from '../../portal/modules/agentsModule.js';
@@ -184,4 +185,27 @@ test('config: curl command of the synchronization', async () => {
     assert.equal(syncCommand('https://x.fr/api/bank/sync', 'abc'), 'curl -sN -H "X-Sync-Token: abc" "https://x.fr/api/bank/sync"');
     assert.equal(syncCommand('https://x.fr/api/bank/sync', 'abc', '123@bnp'), 'curl -sN -H "X-Sync-Token: abc" "https://x.fr/api/bank/sync?account=123%40bnp"');
     assert.equal(syncCommand('https://x.fr/api/bank/sync', null), 'curl -sN "https://x.fr/api/bank/sync"');
+});
+
+test('syncSteps: two-factor validation is a step of the account', () => {
+    const sync = createSyncModule(() => null);
+    const context = { syncLog: [], syncStatus: 'running', ...sync.computed };
+    const steps = lines => sync.computed.syncSteps.call({ ...context, syncLog: lines });
+    const result = steps([
+        'Syncing 111@creditmutuel (coming)...',
+        'Two-factor authentication required for 111@creditmutuel, validate on your phone...',
+        'Done 111@creditmutuel (coming): 1 received, 1 new',
+    ]);
+    assert.equal(result.accounts.length, 1);
+    assert.deepEqual(result.accounts[0].steps.map(s => s.kind), ['coming', '2fa']);
+    assert.deepEqual(result.accounts[0].steps.map(s => s.status), ['ok', 'ok']);
+    assert.equal(result.accounts[0].steps[0].created, 1);
+
+    // Without validation the retry fails: both steps are errors
+    const failed = steps([
+        'Syncing 111@creditmutuel (coming)...',
+        'Two-factor authentication required for 111@creditmutuel, validate on your phone...',
+        'Error syncing 111@creditmutuel: Error while calling woob (exit code: 1)',
+    ]);
+    assert.deepEqual(failed.accounts[0].steps.map(s => s.status), ['error', 'error']);
 });

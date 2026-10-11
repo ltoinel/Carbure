@@ -17,6 +17,14 @@ final class Woob {
     private const HEARTBEAT_INTERVAL = 15;
 
     /**
+     * Two-factor authentication (e.g. Credit Mutuel "Confirmation Mobile"):
+     * woob aborts in non-interactive mode after triggering the push on the
+     * phone. Carbure waits for the validation, then runs woob again.
+     */
+    private const TWO_FACTOR_WAIT_DEFAULT = 15;
+    private const TWO_FACTOR_RETRIES_DEFAULT = 1;
+
+    /**
      * Command that runs woob, after making sure that woob will accept to start: it
      * refuses a configuration file of the banks (logins and passwords) readable by
      * the group or the other users, as a file copied into a NAS shared folder often is.
@@ -51,6 +59,8 @@ final class Woob {
      * Call Woob to get the list of transactions from a bank.
      * Uses proc_open to send SSE heartbeats while waiting for woob to finish,
      * preventing proxy/client timeouts on long-running commands.
+     * On two-factor authentication (woob refuses non-interactive mode after
+     * triggering the push on the phone), waits for the validation and retries.
      *
      * @param string $type   The type of transactions to get (coming or history)
      * @param string $bankId The bank account identifier
@@ -58,6 +68,31 @@ final class Woob {
      * @throws Exception If woob fails, or reports an error without returning data
      */
     public static function getBankData($type, $bankId)
+    {
+        $retries = self::twoFactorRetries();
+        for ($attempt = 0; ; $attempt++) {
+            try {
+                return self::fetchBankData($type, $bankId);
+            } catch (Exception $e) {
+                if ($attempt < $retries && self::isTwoFactorError($e->getMessage())) {
+                    // Stream route (bank sync): progress is shown live
+                    self::waitForTwoFactorValidation($bankId, true);
+                    continue;
+                }
+                throw $e;
+            }
+        }
+    }
+
+    /**
+     * Single woob call without two-factor retry (see getBankData).
+     *
+     * @param string $type   The type of transactions to get (coming or history)
+     * @param string $bankId The bank account identifier
+     * @return array|null The transaction data or null if no data
+     * @throws Exception If woob fails, or reports an error without returning data
+     */
+    private static function fetchBankData($type, $bankId)
     {
         $command = self::buildCommand($type, $bankId);
         Logger::debug("Calling woob : $command");
@@ -77,12 +112,106 @@ final class Woob {
     }
 
     /**
+     * Whether a woob failure asks for an out-of-band validation (push on the
+     * phone) that aborts non-interactive runs, e.g. Credit Mutuel:
+     * "You have to run bank in interactive mode to perform a two-factor authentication".
+     *
+     * @param string $text The error message or stderr
+     * @return bool True if waiting for the phone validation then retrying may help
+     */
+    public static function isTwoFactorError($text)
+    {
+        return preg_match('/two[\s_\-]*factor|\b2fa\b|interactive mode|appvalidation|actionneeded/i', (string)$text) === 1;
+    }
+
+    /**
+     * Seconds to wait for the phone validation before running woob again
+     * (woob_2fa_wait, 15 by default so old configurations keep working).
+     *
+     * @return int The wait in seconds (0 to 300)
+     */
+    private static function twoFactorWait()
+    {
+        try {
+            $wait = Config::get('woob_2fa_wait');
+        } catch (Exception $e) {
+            return self::TWO_FACTOR_WAIT_DEFAULT;
+        }
+        return is_numeric($wait) ? max(0, min(300, (int)$wait)) : self::TWO_FACTOR_WAIT_DEFAULT;
+    }
+
+    /**
+     * How many times woob is run again after a two-factor failure
+     * (woob_2fa_retries, 1 by default so old configurations keep working).
+     *
+     * @return int The number of retries (0 to 5)
+     */
+    private static function twoFactorRetries()
+    {
+        try {
+            $retries = Config::get('woob_2fa_retries');
+        } catch (Exception $e) {
+            return self::TWO_FACTOR_RETRIES_DEFAULT;
+        }
+        return is_numeric($retries) ? max(0, min(5, (int)$retries)) : self::TWO_FACTOR_RETRIES_DEFAULT;
+    }
+
+    /**
+     * Wait for the validation on the phone, keeping the SSE stream alive.
+     *
+     * @param string $bankId   The bank account identifier
+     * @param bool   $progress Send SSE progress and heartbeats (stream routes only:
+     *                         JSON routes must not output anything before their response)
+     * @return void
+     */
+    private static function waitForTwoFactorValidation($bankId, $progress)
+    {
+        $wait = self::twoFactorWait();
+        Logger::warn("Two-factor authentication required for $bankId, waiting {$wait}s for the validation on the phone");
+        if ($progress) {
+            Webservice::sendProgress("Two-factor authentication required for $bankId, validate on your phone...");
+        }
+        $remaining = $wait;
+        while ($remaining > 0) {
+            sleep(1);
+            $remaining--;
+            if ($progress) {
+                Webservice::sendHeartbeat();
+            }
+        }
+    }
+
+    /**
      * List the bank accounts of every configured woob backend.
+     * Retries after a two-factor failure (silently: JSON routes must not
+     * output SSE progress before their response).
      *
      * @return array The accounts: id ("<account>@<backend>"), label, balance, currency...
      * @throws Exception If woob fails or returns nothing while reporting an error
      */
     public static function listAccounts()
+    {
+        $retries = self::twoFactorRetries();
+        for ($attempt = 0; ; $attempt++) {
+            try {
+                return self::fetchAccounts();
+            } catch (Exception $e) {
+                if ($attempt < $retries && self::isTwoFactorError($e->getMessage())) {
+                    self::waitForTwoFactorValidation('woob', false);
+                    continue;
+                }
+                throw $e;
+            }
+        }
+    }
+
+    /**
+     * Single "bank list" call without two-factor retry (see listAccounts).
+     *
+     * @return array The accounts: id ("<account>@<backend>"), label, balance, currency...
+     * @throws Exception If woob fails or returns nothing while reporting an error
+     */
+    private static function fetchAccounts()
     {
         $woob_path = self::path();
         $woob_logging = Config::get('woob_logging');

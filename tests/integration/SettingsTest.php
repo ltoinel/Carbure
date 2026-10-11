@@ -83,13 +83,16 @@ class SettingsTest extends DatabaseTestCase
     {
         $this->loginAs(self::ADMIN);
         $config = Settings::update(['log_level' => 'debug', 'savings_category' => 'Économies', 'woob_debug' => true,
-                                    'woob_transactions' => '250', 'public_url' => 'https://carbure.example.fr/']);
+                                    'woob_transactions' => '250', 'woob_2fa_wait' => '15', 'woob_2fa_retries' => '1',
+                                    'public_url' => 'https://carbure.example.fr/']);
 
         $ini = parse_ini_file($this->file);
         $this->assertSame('debug', $ini['log_level']);
         $this->assertSame('Économies', $ini['savings_category']);
         $this->assertSame('1', $ini['woob_debug']);
         $this->assertSame('250', $ini['woob_transactions']);
+        $this->assertSame('15', $ini['woob_2fa_wait']);
+        $this->assertSame('1', $ini['woob_2fa_retries']);
         $this->assertSame('https://carbure.example.fr', $ini['public_url']);
         // The other settings are kept, the previous file too
         $this->assertSame('s3cret', $ini['db_password']);
@@ -111,6 +114,9 @@ class SettingsTest extends DatabaseTestCase
             'injection in woob command' => ['woob_logging', 'error; id'],
             'not a number' => ['woob_transactions', '10; id'],
             'too many' => ['woob_transactions', '999999'],
+            '2fa wait too long' => ['woob_2fa_wait', '301'],
+            '2fa retries too many' => ['woob_2fa_retries', '6'],
+            '2fa wait not a number' => ['woob_2fa_wait', 'soon'],
             'not a level' => ['log_level', 'verbose'],
             'newline' => ['savings_category', "Epargne\nwoob_path=/bin/sh"],
             'not a url' => ['public_url', 'javascript:alert(1)'],

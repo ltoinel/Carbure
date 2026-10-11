@@ -13,6 +13,8 @@
  * - account "empty@bank" : no output
  * - account "broken@bank": no output, error on stderr, exit code 0 (module not loaded)
  * - account "slow@bank"  : waits 2 seconds before answering
+ * - account "2fa@bank"   : first call fails like a two-factor authentication in
+ *   non-interactive mode (push triggered, exit code 1), next calls answer
  * - other accounts       : one JSON array of transactions per line, like woob -f json
  */
 
@@ -126,6 +128,16 @@ if ($account === 'empty@bank') {
 if ($account === 'broken@bank') {
     fwrite(STDERR, "Error(bnp): Unable to load module \"bnp\": No module named 'curl_cffi'\n");
     exit(0);
+}
+
+if ($account === '2fa@bank') {
+    $marker = sys_get_temp_dir() . '/carbure-fake-woob-2fa';
+    if (!is_file($marker)) {
+        // First call: the bank triggers the push, woob aborts (non-interactive)
+        touch($marker);
+        fwrite(STDERR, "Error(creditmutuel): You have to run bank in interactive mode to perform a two-factor authentication\n");
+        exit(1);
+    }
 }
 
 if ($account === 'slow@bank') {

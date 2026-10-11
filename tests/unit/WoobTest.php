@@ -41,6 +41,61 @@ class WoobTest extends TestCase
         Woob::getBankData('history', 'fail@bank');
     }
 
+    public function testIsTwoFactorError()
+    {
+        $this->assertTrue(Woob::isTwoFactorError('Error(creditmutuel): You have to run bank in interactive mode to perform a two-factor authentication'));
+        $this->assertTrue(Woob::isTwoFactorError('AppValidation required'));
+        $this->assertFalse(Woob::isTwoFactorError("AttributeError: 'NoneType' object has no attribute 'iter_accounts'"));
+        $this->assertFalse(Woob::isTwoFactorError(''));
+    }
+
+    public function testTwoFactorWaitsAndRetriesOnce()
+    {
+        $marker = sys_get_temp_dir() . '/carbure-fake-woob-2fa';
+        @unlink($marker);
+        Config::set('woob_2fa_wait', 0);
+        Config::set('woob_2fa_retries', 1);
+        try {
+            ob_start();
+            try {
+                $data = Woob::getBankData('history', '2fa@bank');
+            } finally {
+                $output = ob_get_clean();
+            }
+        } finally {
+            Config::set('woob_2fa_wait', 15);
+            Config::set('woob_2fa_retries', 1);
+            @unlink($marker);
+        }
+
+        // First call triggers the push and fails, the retry answers
+        $this->assertCount(3, $data);
+        $this->assertStringContainsString('Two-factor authentication required for 2fa@bank', $output);
+    }
+
+    public function testTwoFactorWithoutRetryThrows()
+    {
+        $marker = sys_get_temp_dir() . '/carbure-fake-woob-2fa';
+        @unlink($marker);
+        Config::set('woob_2fa_wait', 0);
+        Config::set('woob_2fa_retries', 0);
+        try {
+            ob_start();
+            try {
+                Woob::getBankData('history', '2fa@bank');
+                $this->fail('Two-factor failure accepted');
+            } catch (Exception $e) {
+                $output = ob_get_clean();
+                $this->assertStringContainsString('two-factor authentication', $e->getMessage());
+                $this->assertStringNotContainsString('Two-factor authentication required', $output);
+            }
+        } finally {
+            Config::set('woob_2fa_wait', 15);
+            Config::set('woob_2fa_retries', 1);
+            @unlink($marker);
+        }
+    }
+
     public function testBankIdIsEscaped()
     {
         // Without escaping, the shell would run the injected command

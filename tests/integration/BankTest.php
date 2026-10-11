@@ -244,6 +244,27 @@ class BankTest extends DatabaseTestCase
         $this->assertTrue(Bank::discover()[0]['followed']);
     }
 
+    public function testSyncRetriesAfterTwoFactorValidation()
+    {
+        $marker = sys_get_temp_dir() . '/carbure-fake-woob-2fa';
+        @unlink($marker);
+        Config::set('woob_2fa_wait', 0);
+        $this->loginAs(self::ADMIN);
+        try {
+            Bank::create('2fa', 'bank');
+            $output = $this->sync();
+        } finally {
+            Config::set('woob_2fa_wait', 15);
+            @unlink($marker);
+        }
+
+        // The first woob call triggers the push, the retry imports the data
+        $this->assertStringContainsString('Two-factor authentication required for 2fa@bank', $output);
+        $this->assertStringContainsString('Done 2fa@bank (history)', $output);
+        $accounts = array_column(Bank::accounts(), null, 'bankId');
+        $this->assertSame('OK', $accounts['2fa@bank']['last_sync_status']);
+    }
+
     public function testSyncRecordsTheLastResultOfEachAccount()
     {
         $this->loginAs(self::ADMIN);

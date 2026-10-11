@@ -36,7 +36,7 @@ flowchart LR
 | `Migrator` | Versionnement du schéma (table `schema_migrations`) et application des migrations |
 | `Setting` | Réglages modifiés depuis le portail (table `settings`) |
 | `Db` | Connexion `mysqli` unique, requêtes préparées |
-| `Woob` | Exécution de woob (`proc_open`) avec envoi de *heartbeats* SSE pendant l'attente |
+| `Woob` | Exécution de woob (`proc_open`) avec envoi de *heartbeats* SSE pendant l'attente ; en cas de double authentification (validation sur le téléphone), attente (`woob_2fa_wait`) puis nouvel essai (`woob_2fa_retries`) |
 | `Apns` | Envoi des notifications (authentification par clé `.p8` ou certificat) |
 | `Logger` | Logs bufferisés dans `data/logs/carbure_AAAAMMJJ.log`, une entrée JSON par ligne : heure ISO 8601, niveau, identifiant de requête (`uid`), IP du client, utilisateur, méthode et chemin, message et contexte ; une ligne de fin par requête (statut, durée) ; purge après `log_retention_days` jours |
 

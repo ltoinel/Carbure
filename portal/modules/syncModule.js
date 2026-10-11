@@ -31,7 +31,7 @@ export function createSyncModule(getApiService) {
         computed: {
             /**
              * Steps of the synchronization built from the progress messages:
-             * per account (coming, history, notification), then categorization.
+             * per account (coming, history, 2fa, notification), then categorization.
              * Each step: {kind, status: running|ok|error, count, error}
              * @returns {{accounts: Array<{id: string, steps: Array}>, global: Array}}
              */
@@ -61,19 +61,37 @@ export function createSyncModule(getApiService) {
                         current = { kind: match[2], status: 'running', count: 0, created: null, error: null };
                         account(match[1]).steps.push(current);
                     } else if ((match = line.match(/^Done (.+) \((coming|history)\): (\d+) received, (\d+) new$/))) {
-                        // Result of the step sent by the server
-                        if (current && current.kind === match[2]) {
-                            current.count = Number(match[3]);
-                            current.created = Number(match[4]);
-                            current.status = 'ok';
+                        // Result of the step sent by the server; a 2FA wait may sit
+                        // between "Syncing" and "Done" (woob run again after the
+                        // validation on the phone), so look the step up in its account
+                        const acc = account(match[1]);
+                        const step = [...acc.steps].reverse().find(s => s.kind === match[2] && s.status === 'running')
+                            || (current && current.kind === match[2] ? current : null);
+                        if (step) {
+                            step.count = Number(match[3]);
+                            step.created = Number(match[4]);
+                            step.status = 'ok';
                         }
+                        // The wait is over: the validation went through
+                        acc.steps.filter(s => s.kind === '2fa' && s.status === 'running').forEach(s => { s.status = 'ok'; });
+                        if (current && current.kind === '2fa') {
+                            current = step || current;
+                        }
+                    } else if ((match = line.match(/^Two-factor authentication required for (.+?), validate on your phone\.\.\.$/))) {
+                        // woob aborted (non-interactive) after triggering the push:
+                        // Carbure waits, then runs woob again (no new "Syncing" line)
+                        current = { kind: '2fa', status: 'running', count: 0, error: null };
+                        account(match[1]).steps.push(current);
                     } else if ((match = line.match(/^Error syncing (.+?): (.*)$/))) {
+                        const acc = account(match[1]);
                         if (current && current.status === 'running') {
                             current.status = 'error';
                             current.error = match[2];
                         } else {
-                            account(match[1]).steps.push({ kind: 'sync', status: 'error', count: 0, error: match[2] });
+                            acc.steps.push({ kind: 'sync', status: 'error', count: 0, error: match[2] });
                         }
+                        // A 2FA wait interrupted by the failure is over too
+                        acc.steps.filter(s => s.status === 'running').forEach(s => { s.status = 'error'; if (!s.error) s.error = match[2]; });
                     } else if ((match = line.match(/^Notifying users of (.+)\.\.\.$/))) {
                         close('ok');
                         current = { kind: 'notify', status: 'running', count: 0, error: null };

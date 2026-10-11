@@ -92,6 +92,13 @@ transactions du dernier mois restées sans catégorie.
 - **Suivi en direct** : étapes par compte (à venir, historique, notifications), nombre
   d'opérations reçues et nouvelles, journal détaillé ; en cas d'erreur woob, lien vers les
   tickets du module concerné.
+- **Double authentification** : certaines banques (Crédit Mutuel…) demandent une
+  validation sur le téléphone (« Confirmation Mobile ») que woob ne peut pas attendre
+  en mode non interactif. Carbure affiche alors une étape « Validation 2FA »,
+  attend la validation (`woob_2fa_wait`, 15 secondes par défaut), puis relance woob
+  (`woob_2fa_retries`, 1 nouvel essai par défaut). Validez sur votre téléphone dès
+  que la notification arrive, avant la fin de l'attente ; sinon, relancez simplement
+  la synchronisation après avoir validé.
 - **Une seule à la fois** : une synchronisation lancée pendant une autre est refusée
   (« déjà en cours »).
 
