@@ -268,11 +268,18 @@ class BankTest extends DatabaseTestCase
     public function testSyncContinuesWithHistoryWhenComingFails()
     {
         Db::query("DELETE FROM bank_transaction");
+        Config::set('woob_2fa_wait', 0);
         $this->loginAs(self::ADMIN);
-        Bank::create('comingfail', 'bank');
-        $output = $this->sync();
+        try {
+            Bank::create('comingfail', 'bank');
+            $output = $this->sync();
+        } finally {
+            Config::set('woob_2fa_wait', 15);
+        }
 
-        // Coming fails (e.g. the Credit Mutuel module) but history is imported
+        // Coming fails (e.g. the Credit Mutuel module): retried as a phone
+        // validation demand, then reported without skipping history
+        $this->assertStringContainsString('Two-factor authentication required for comingfail@bank', $output);
         $this->assertStringContainsString('Warning syncing comingfail@bank (coming)', $output);
         $this->assertStringContainsString('Recipient or Transfer', $output);
         $this->assertStringContainsString('Done comingfail@bank (history): 3 received, 3 new', $output);
@@ -283,6 +290,31 @@ class BankTest extends DatabaseTestCase
         $accounts = array_column(Bank::accounts(), null, 'bankId');
         $this->assertSame('OK', $accounts['comingfail@bank']['last_sync_status']);
         $this->assertStringContainsString('coming failed', $accounts['comingfail@bank']['last_sync_message']);
+    }
+
+    public function testSyncRetriesHistoryOnDecoupledValidation()
+    {
+        $marker = sys_get_temp_dir() . '/carbure-fake-woob-2fahistory';
+        @unlink($marker);
+        Db::query("DELETE FROM bank_transaction");
+        Config::set('woob_2fa_wait', 0);
+        $this->loginAs(self::ADMIN);
+        try {
+            Bank::create('2fahistory', 'bank');
+            $output = $this->sync();
+        } finally {
+            Config::set('woob_2fa_wait', 15);
+            @unlink($marker);
+        }
+
+        // The bank demands the phone validation while listing history: waited,
+        // run again, imported (coming answers at once)
+        $this->assertStringContainsString('Two-factor authentication required for 2fahistory@bank', $output);
+        $this->assertStringContainsString('Done 2fahistory@bank (coming): 1 received, 1 new', $output);
+        $this->assertStringContainsString('Done 2fahistory@bank (history): 3 received, 3 new', $output);
+        $accounts = array_column(Bank::accounts(), null, 'bankId');
+        $this->assertSame('OK', $accounts['2fahistory@bank']['last_sync_status']);
+        $this->assertSame('4 new', $accounts['2fahistory@bank']['last_sync_message']);
     }
 
     public function testSyncRecordsTheLastResultOfEachAccount()

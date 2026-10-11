@@ -115,13 +115,17 @@ final class Woob {
      * Whether a woob failure asks for an out-of-band validation (push on the
      * phone) that aborts non-interactive runs, e.g. Credit Mutuel:
      * "You have to run bank in interactive mode to perform a two-factor authentication".
+     * A bank demanding the phone validation while listing operations shows instead
+     * a DecoupledValidation without resource ("The resource should be of type
+     * Recipient or Transfer..."), which is the same situation: waiting for the
+     * validation, then running woob again, may succeed.
      *
      * @param string $text The error message or stderr
      * @return bool True if waiting for the phone validation then retrying may help
      */
     public static function isTwoFactorError($text)
     {
-        return preg_match('/two[\s_\-]*factor|\b2fa\b|interactive mode|appvalidation|actionneeded/i', (string)$text) === 1;
+        return preg_match('/two[\s_\-]*factor|\b2fa\b|interactive mode|appvalidation|actionneeded|should be of type Recipient or Transfer/i', (string)$text) === 1;
     }
 
     /**

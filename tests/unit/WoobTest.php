@@ -45,6 +45,9 @@ class WoobTest extends TestCase
     {
         $this->assertTrue(Woob::isTwoFactorError('Error(creditmutuel): You have to run bank in interactive mode to perform a two-factor authentication'));
         $this->assertTrue(Woob::isTwoFactorError('AppValidation required'));
+        // DecoupledValidation without resource: the bank demands the phone
+        // validation while listing operations (same situation)
+        $this->assertTrue(Woob::isTwoFactorError('Error(creditmutuel): The resource should be of type Recipient or Transfer, not "<class \'NoneType\'>"'));
         $this->assertFalse(Woob::isTwoFactorError("AttributeError: 'NoneType' object has no attribute 'iter_accounts'"));
         $this->assertFalse(Woob::isTwoFactorError(''));
     }
@@ -71,6 +74,31 @@ class WoobTest extends TestCase
         // First call triggers the push and fails, the retry answers
         $this->assertCount(3, $data);
         $this->assertStringContainsString('Two-factor authentication required for 2fa@bank', $output);
+    }
+
+    public function testDecoupledValidationWhileListingIsRetried()
+    {
+        $marker = sys_get_temp_dir() . '/carbure-fake-woob-2fahistory';
+        @unlink($marker);
+        Config::set('woob_2fa_wait', 0);
+        Config::set('woob_2fa_retries', 1);
+        try {
+            ob_start();
+            try {
+                $data = Woob::getBankData('history', '2fahistory@bank');
+            } finally {
+                $output = ob_get_clean();
+            }
+        } finally {
+            Config::set('woob_2fa_wait', 15);
+            Config::set('woob_2fa_retries', 1);
+            @unlink($marker);
+        }
+
+        // First history call demands the phone validation (DecoupledValidation
+        // without resource), the retry answers
+        $this->assertCount(3, $data);
+        $this->assertStringContainsString('Two-factor authentication required for 2fahistory@bank', $output);
     }
 
     public function testTwoFactorWithoutRetryThrows()

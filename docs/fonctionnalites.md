@@ -94,7 +94,9 @@ transactions du dernier mois restées sans catégorie.
   tickets du module concerné.
 - **Double authentification** : certaines banques (Crédit Mutuel…) demandent une
   validation sur le téléphone (« Confirmation Mobile ») que woob ne peut pas attendre
-  en mode non interactif. Carbure affiche alors une étape « Validation 2FA »,
+  en mode non interactif — soit explicitement (`…interactive mode…two-factor…`),
+  soit en demandant la validation pendant le listage (`…should be of type Recipient
+  or Transfer…`). Carbure affiche alors une étape « Validation 2FA »,
   attend la validation (`woob_2fa_wait`, 15 secondes par défaut), puis relance woob
   (`woob_2fa_retries`, 1 nouvel essai par défaut). Validez sur votre téléphone dès
   que la notification arrive, avant la fin de l'attente ; sinon, relancez simplement

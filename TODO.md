@@ -3,11 +3,14 @@
 Tâches restant à réaliser sur Carbure. Une tâche terminée est retirée de cette liste
 (l'historique Git garde la trace de ce qui a été fait).
 
-- [ ] **Amont woob** : le module Crédit Mutuel échoue sur les opérations à venir
-      (`The resource should be of type Recipient or Transfer, not "<class 'NoneType'>"`,
-      `stdout: []`, woob 3.7). Carbure contourne (historique synchronisé, compte `OK`
-      avec note) ; ouvrir un ticket GitLab woob avec ces éléments, et tester un bump
-      de `WOOB_VERSION` (`docker/Dockerfile`) si une version plus récente corrige.
+- [ ] **Amont woob** : le module Crédit Mutuel lève une `DecoupledValidation` sans
+      ressource quand la banque redemande une validation téléphone pendant le listage ;
+      le CLI (`woob/applications/bank/bank.py`, `bcall_error_handler`) l'affiche comme
+      `The resource should be of type Recipient or Transfer, not "<class 'NoneType'>"`
+      (`stdout: []`, woob 3.7) au lieu de l'afficher et de reprendre comme pour les
+      virements. Carbure contourne (attente + rejeu, historique synchronisé, compte
+      `OK` avec note) ; ouvrir un ticket GitLab woob avec ces éléments, et tester un
+      bump de `WOOB_VERSION` (`docker/Dockerfile`) si une version plus récente corrige.
 - [ ] **Production** : tester la connexion de Claude au serveur MCP depuis claude.ai
       (Paramètres → Connecteurs → Ajouter un connecteur personnalisé). L'image Docker applique
       la migration OAuth au démarrage et route `/.well-known/oauth-*` ; renseigner `public_url`

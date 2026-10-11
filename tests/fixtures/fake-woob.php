@@ -16,6 +16,9 @@
  * - account "2fa@bank"   : first call fails like a two-factor authentication in
  *   non-interactive mode (push triggered, exit code 1), next calls answer
  * - account "comingfail@bank": coming fails (exit code 1), history answers
+ * - account "2fahistory@bank": first history call fails like a DecoupledValidation
+ *   without resource (bank demanding the phone validation while listing,
+ *   exit code 1), next calls answer; coming answers
  */
 
 $type = $argv[2] ?? '';
@@ -146,6 +149,17 @@ if ($account === 'comingfail@bank' && $type === 'coming') {
     echo "[]\n";
     fwrite(STDERR, "Error(creditmutuel): The resource should be of type Recipient or Transfer, not \"<class 'NoneType'>\"\n");
     exit(1);
+}
+
+if ($account === '2fahistory@bank' && $type === 'history') {
+    $marker = sys_get_temp_dir() . '/carbure-fake-woob-2fahistory';
+    if (!is_file($marker)) {
+        // First history call: the bank demands the phone validation while listing
+        touch($marker);
+        echo "[]\n";
+        fwrite(STDERR, "Error(creditmutuel): The resource should be of type Recipient or Transfer, not \"<class 'NoneType'>\"\n");
+        exit(1);
+    }
 }
 
 if ($account === 'slow@bank') {
