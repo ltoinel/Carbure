@@ -580,6 +580,7 @@ const i18n = {
         // Loading & Messages
         loadingMessage: 'Chargement des transactions...',
         emptyMessage: 'Aucune transaction pour cette période',
+        emptyImportHint: 'Importez un relevé téléchargé depuis votre banque (OFX, QIF, CSV, CAMT.053), même sans compte synchronisé.',
         errorMessage: 'Erreur lors du chargement des transactions',
         
         // Transaction Types
@@ -1180,6 +1181,7 @@ const i18n = {
         // Loading & Messages
         loadingMessage: 'Loading transactions...',
         emptyMessage: 'No transactions for this period',
+        emptyImportHint: 'Import a statement downloaded from your bank (OFX, QIF, CSV, CAMT.053), even without a synchronized account.',
         errorMessage: 'Error loading transactions',
         
         // Transaction Types

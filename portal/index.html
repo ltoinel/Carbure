@@ -542,6 +542,11 @@
                         <div class="empty-state">
                             <div class="material-icons" aria-hidden="true">inbox</div>
                             <p>{{ t('emptyMessage') }}</p>
+                            <!-- Also without a synchronized account: a statement file is enough -->
+                            <p class="empty-state-hint">{{ t('emptyImportHint') }}</p>
+                            <button type="button" class="btn-secondary btn-import" @click="openImport" :title="t('importTitle')">
+                                <span class="material-icons" aria-hidden="true">upload_file</span>{{ t('importButton') }}
+                            </button>
                         </div>
                     </div>
                 </div>
