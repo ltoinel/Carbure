@@ -2367,6 +2367,12 @@ button .material-icons {
     color: var(--text-secondary);
 }
 
+/* Copy of the previous month: button above the summary */
+.budget-toolbar {
+    display: flex;
+    justify-content: flex-end;
+}
+
 .budget-summary {
     background: var(--surface);
     border-radius: var(--border-radius-xl);

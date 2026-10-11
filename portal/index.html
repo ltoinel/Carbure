@@ -642,6 +642,14 @@
                             </template>
                         </nav>
 
+                        <!-- Copy the budgets of the previous month -->
+                        <div class="budget-toolbar">
+                            <button class="btn-secondary" @click="openCopyModal">
+                                <span class="material-icons" aria-hidden="true">content_copy</span>
+                                {{ copyButtonLabel }}
+                            </button>
+                        </div>
+
                         <!-- Month summary -->
                         <section class="budget-summary" v-if="budgetGroups.expenses.length > 0">
                             <div class="budget-summary-figures">
@@ -2267,6 +2275,40 @@
                     <button @click="submitBudgetEdit" :disabled="savingBudget">
                         <span class="material-icons" aria-hidden="true">check_circle</span>
                         {{ t('save') }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Copy previous month budgets modal -->
+        <div v-if="showCopyModal" class="modal-overlay" @click.self="closeCopyModal">
+            <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title-8">
+                <div class="modal-header">
+                    <span class="material-icons" aria-hidden="true">content_copy</span>
+                    <h3 id="modal-title-8">{{ t('budgetCopyTitle') }}</h3>
+                    <button class="modal-close" @click="closeCopyModal" :aria-label="t('close')">
+                        <span class="material-icons" aria-hidden="true">close</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p>{{ t('budgetCopyHelp', { month: copySourceName }) }}</p>
+                    <label class="setup-checkbox">
+                        <input type="radio" value="missing" v-model="copyMode" />
+                        {{ t('budgetCopyMissing') }}
+                    </label>
+                    <label class="setup-checkbox">
+                        <input type="radio" value="all" v-model="copyMode" />
+                        {{ t('budgetCopyOverwrite') }}
+                    </label>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" @click="closeCopyModal">
+                        <span class="material-icons" aria-hidden="true">cancel</span>
+                        {{ t('cancel') }}
+                    </button>
+                    <button @click="submitBudgetCopy(selectedMonth, selectedYear)" :disabled="copyingBudget">
+                        <span class="material-icons" aria-hidden="true">check_circle</span>
+                        {{ t('budgetCopyConfirm') }}
                     </button>
                 </div>
             </div>
