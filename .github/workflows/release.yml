@@ -2,7 +2,8 @@ name: Release
 
 # Published from GitHub (Releases -> Draft a new release, tag 1.2.0 or v1.2.0) or with
 # "gh release create 1.2.0 --generate-notes": the workflow attaches the archives to the
-# release and publishes the Docker image. "Run workflow" rebuilds an existing release.
+# release, publishes the Docker image, then announces the release in the discussions.
+# "Run workflow" rebuilds an existing release.
 on:
   release:
     types: [published]
@@ -124,3 +125,36 @@ jobs:
           sbom: true
           provenance: mode=max
 
+  announce:
+    name: Announcement
+    # Once the archives and the image are published
+    needs: [release, docker]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      discussions: write
+    steps:
+      # Discussion linked to the release, in the Announcements category: GitHub shows
+      # the release notes (changelog) in it. Not for a pre-release, and only once
+      # (a rebuild with "Run workflow" keeps the existing discussion).
+      - name: Announce the release in the discussions
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          release=$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG")
+          if [ "$(jq -r .prerelease <<< "$release")" = true ]; then
+            echo "Pre-release $TAG: no announcement"
+            exit 0
+          fi
+          discussion=$(jq -r '.discussion_url // empty' <<< "$release")
+          if [ -n "$discussion" ]; then
+            echo "Already announced: $discussion"
+            exit 0
+          fi
+          discussion=$(gh api -X PATCH "repos/$GITHUB_REPOSITORY/releases/$(jq -r .id <<< "$release")" \
+            -f discussion_category_name=Announcements --jq '.discussion_url // empty')
+          if [ -z "$discussion" ]; then
+            echo "::error::No discussion created: check that the category Announcements exists"
+            exit 1
+          fi
+          echo "Announced: $discussion" >> "$GITHUB_STEP_SUMMARY"
