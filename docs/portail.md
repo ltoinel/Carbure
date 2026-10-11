@@ -103,7 +103,9 @@ modification.
   avec un autre libellé : non cochée) ou **déjà présente** (même identifiant : ignorée).
   Les transactions importées appartiennent à l'utilisateur connecté et passent par les
   règles de catégorisation ; la liste s'ouvre ensuite sur le dernier mois importé
-  (`POST /transaction/import/preview`, `POST /transaction/import`).
+  (`POST /transaction/import/preview`, `POST /transaction/import`). Aucun compte synchronisé
+  n'est nécessaire : sur un mois vide (nouvelle installation), le bouton est proposé au
+  centre de la page, ce qui permet d'utiliser Carbure uniquement avec des relevés.
 
 ## Budget
 

@@ -1101,6 +1101,19 @@ button .material-icons {
     font-weight: 400;
 }
 
+.empty-state p.empty-state-hint {
+    max-width: 480px;
+    margin: 8px auto 20px;
+    font-size: 14px;
+}
+
+.empty-state .btn-import .material-icons {
+    font-size: 18px;
+    margin: 0;
+    color: inherit;
+    opacity: 1;
+}
+
 
 /* Tab Content */
 .tab-content {

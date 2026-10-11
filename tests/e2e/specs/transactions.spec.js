@@ -210,6 +210,37 @@ test('imports a bank statement file', async ({ adminPage: page }) => {
     await expect(page.locator('.transaction-item')).toHaveCount(8);
 });
 
+test('imports a statement file without any account to synchronize', async ({ adminPage: page }) => {
+    // No followed account anymore
+    await openTab(page, tr('tabAccounts'));
+    for (const bankId of ['00012345678@bnp', 'fail@bank']) {
+        const item = page.locator('.account-item').filter({ has: page.locator('code', { hasText: bankId }) });
+        await item.getByRole('button', { name: tr('deleteAccount') }).click();
+        await expect(item).toHaveCount(0);
+    }
+
+    // Empty month (as on a new installation): the import is offered by the empty state
+    await page.route('**/api/transaction?month=*', route => route.fulfill({ json: [] }));
+    await page.reload();
+    await expect(page.locator('.empty-state')).toContainText(tr('emptyImportHint'));
+    await page.locator('.empty-state').getByRole('button', { name: tr('importButton') }).click();
+    await page.unroute('**/api/transaction?month=*');
+
+    const modal = page.getByRole('dialog', { name: tr('importTitle') });
+    const csv = 'Date;Libellé;Montant\n15/03/2020;CB LIBRAIRIE;-18,90\n20/03/2020;VIR REMBOURSEMENT;40,00\n';
+    await modal.locator('input[type="file"]').setInputFiles({ name: 'releve.csv', mimeType: 'text/csv', buffer: Buffer.from(csv) });
+    await expect(modal.locator('.import-count.status-new strong')).toHaveText('2');
+    await modal.getByRole('button', { name: tr('importConfirm', { count: 2 }) }).click();
+
+    // The portal shows the month of the imported transactions
+    await expect(modal).toHaveCount(0);
+    await expect(row(page, 'CB LIBRAIRIE')).toHaveCount(1);
+    await expect(page.locator('.transaction-item')).toHaveCount(2);
+    // Other files are imported from the toolbar of the list
+    await expect(page.locator('.empty-state')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: tr('importButton') })).toBeVisible();
+});
+
 test('explains why a file cannot be imported', async ({ adminPage: page }) => {
     await page.getByRole('button', { name: tr('importButton') }).click();
     const modal = page.getByRole('dialog', { name: tr('importTitle') });
