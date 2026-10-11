@@ -145,9 +145,11 @@ test('agentConfigurations: the MCP URL and the token in each configuration', () 
     const url = 'https://carbure.example.com/api/mcp';
     const configs = agentConfigurations(url, 'tok-123');
     assert.deepEqual(configs.map(c => c.id), ['claude-code', 'chatgpt', 'cursor', 'vscode', 'gemini']);
+    // Counted, not searched with includes(): a test, not a check of a URL
+    const occurrences = (text, part) => text.split(part).length - 1;
     for (const config of configs) {
-        assert.ok(config.code.includes(url), config.id);
-        assert.ok(config.code.includes('tok-123'), config.id);
+        assert.ok(occurrences(config.code, url) > 0, config.id);
+        assert.ok(occurrences(config.code, 'tok-123') > 0, config.id);
     }
     assert.deepEqual(JSON.parse(configs.find(c => c.id === 'cursor').code), { mcpServers: { carbure: { url, headers: { Authorization: 'Bearer tok-123' } } } });
 });

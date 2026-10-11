@@ -10,8 +10,8 @@
  * @module oauthModule
  */
 
-/** Key of the request kept while the user logs in */
-const STORAGE_KEY = 'oauthRequest';
+/** Parameter of the URL that carries the request from /api/oauth/authorize */
+const REQUEST_PARAM = 'oauth_request';
 
 /**
  * Creates the OAuth consent mixin
@@ -48,27 +48,18 @@ export function createOAuthModule(getApiService) {
 
         methods: {
             /**
-             * Takes the authorization request out of the URL, and keeps it while the
-             * user logs in
+             * Takes the authorization request out of the URL, and keeps it in memory
+             * only (not in the storage of the browser) while the user logs in: the
+             * login does not reload the page
              */
             captureOAuthRequest() {
                 const params = new URLSearchParams(window.location.search);
-                const request = params.get('oauth_request');
+                const request = params.get(REQUEST_PARAM);
                 if (!request) {
-                    try {
-                        this.oauthRequest = sessionStorage.getItem(STORAGE_KEY);
-                    } catch (e) {
-                        this.oauthRequest = null;
-                    }
                     return;
                 }
                 this.oauthRequest = request;
-                try {
-                    sessionStorage.setItem(STORAGE_KEY, request);
-                } catch (e) {
-                    // Kept in memory only
-                }
-                params.delete('oauth_request');
+                params.delete(REQUEST_PARAM);
                 const query = params.toString();
                 window.history.replaceState(null, '', window.location.pathname + (query ? `?${query}` : '') + window.location.hash);
             },
@@ -112,11 +103,6 @@ export function createOAuthModule(getApiService) {
             clearOAuthRequest() {
                 this.oauthRequest = null;
                 this.oauthClient = null;
-                try {
-                    sessionStorage.removeItem(STORAGE_KEY);
-                } catch (e) {
-                    // Nothing kept
-                }
             }
         }
     };

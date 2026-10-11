@@ -159,4 +159,13 @@ function currentMonth(ago = 0) {
     return { month: date.getMonth() + 1, year: date.getFullYear() };
 }
 
-module.exports = { test, expect: base.expect, USERS, openTab, tr, pickCategory, euros, currentMonth };
+/**
+ * Text to match literally in a regular expression (every special character escaped)
+ * @param {string} text
+ * @returns {string}
+ */
+function escapeRegExp(text) {
+    return String(text).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+module.exports = { test, expect: base.expect, USERS, openTab, tr, pickCategory, euros, currentMonth, escapeRegExp };
