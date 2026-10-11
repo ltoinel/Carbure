@@ -1,120 +1,116 @@
 # AGENTS.md
 
-Instructions pour les agents de code (et les contributeurs) travaillant sur Carbure.
-Un éventuel `CLAUDE.md` local (non versionné) peut compléter ces règles pour Claude Code.
+Rules for coding agents and contributors on Carbure. Pending work: [TODO.md](TODO.md).
 
-## Le projet
+## Project
 
-Carbure est un portail web de suivi du budget et des transactions bancaires du foyer :
-un **portail** `portal/` (Vue 3, sans build) et une **API REST PHP 8.2+** `src/` (sans
-framework, sans Composer), aussi consommée par **l'app iOS**. Les transactions sont
-synchronisées par [woob](https://woob.tech/), catégorisées par mots-clés, et des
-notifications APNs sont envoyées à l'application iOS. Un serveur MCP en lecture seule
-(`/api/mcp`) ouvre les données aux agents IA. Déploiement recommandé : image Docker
-(nginx + PHP-FPM + woob), installée depuis le navigateur.
+Household budget/bank-transaction tracker: **portal** `portal/` (Vue 3 global build, no
+bundler) + **PHP 8.2+ REST API** `src/` (no framework, no Composer), also used by the
+**iOS app**. Transactions synced via woob, categorized by keywords; APNs notifications;
+read-only MCP server at `/api/mcp`. Production = Docker image (nginx + PHP-FPM + woob)
+built by the GitHub release workflow; committing/pushing is not deploying.
 
-## Organisation
+## Layout
 
-| Chemin | Contenu |
+| Path | Content |
 |---|---|
-| `src/api.php` | Point d'entrée HTTP (`/api/*`) ; sans `conf/<env>.ini`, ne sert que l'assistant d'installation (`/api/setup`) |
-| `src/autoload.php` | Chargement des classes et de la configuration (`APP_ENV`) |
-| `src/lib/` | Socle : `Config`, `Db` (mysqli), `Logger`, `Jwt`, `Webservice` (dont les en-têtes de sécurité), `ApiResolver`, `ApiRoute`, `Woob`, `Apns`, `Setup` et `Installer` (assistant d'installation), `Migrator` (versions du schéma), `Setting` (réglages en base) |
-| `src/resources/` | Ressources de l'API : `User`, `Bank`, `Transaction`, `Budget`, `Category`, `Insight`, `Device`, `ApiToken`, `Mcp`, `OAuth`, `System` |
-| `portal/` | Portail web (Vue 3 global build, mixins dans `modules/`, i18n fr/en dans `i18n.js`) |
-| `swagger/` | Génération OpenAPI par réflexion + Swagger UI |
-| `sql/carbure.sql` | Schéma complet (installation neuve) |
-| `sql/migrations/` | Migrations datées pour les bases existantes (appliquées par `Migrator`, table `schema_migrations`) |
-| `tools/migrate.php` | Migrations du schéma en ligne de commande (lancé par l'image Docker à chaque démarrage) ; tout le reste se fait dans le portail |
-| `docker/` | `Dockerfile` (nginx + PHP-FPM + woob, `HEALTHCHECK` sur `/api/health`), `docker-compose.yml`, `docker-compose.dev.yml` (surcharge de développement, lancée par `start.sh`) |
-| `start.sh` | Démarre l'environnement de développement (image de production, code monté, données d'exemple) |
-| `data/` | Données de l'instance, non versionnées : `conf/prod.ini`, `conf/certs/`, `logs/`, `cache/`, `woob/` |
-| `conf/*.sample.ini`, `conf/testing.ini`, `conf/e2e.ini` | Configuration d'exemple et de test (`prod.ini` n'est jamais versionné) |
-| `tests/unit/`, `tests/integration/` | Tests PHPUnit (unitaires sans dépendance ; intégration avec MariaDB) |
-| `tests/portal/` | Tests unitaires du portail (`node:test`, sans dépendance) |
-| `tests/e2e/` | Tests de bout en bout du portail (Playwright, vraie API, base recréée à chaque test) ; `server/seed.php` est aussi le jeu de données de `start.sh` |
-| `tools/phpunit.phar` | PHPUnit 11 |
-| `VERSION` | Version (`dev` dans le dépôt, écrite par la release) |
-| `docs/`, `mkdocs.yml` | Documentation GitHub Pages (MkDocs Material) |
-| `TODO.md` | Tâches restantes |
+| `src/api.php` | HTTP entry (`/api/*`); without `conf/<env>.ini` serves only `/api/setup` |
+| `src/autoload.php` | Loads `src/lib`, `src/resources`, then `Config::load(getenv('APP_ENV') ?: 'prod')` |
+| `src/lib/` | `Config`, `Db` (mysqli), `Logger`, `Jwt`, `Webservice` (+ security headers), `ApiResolver`, `ApiRoute`, `Woob`, `Apns`, `Setup`/`Installer`, `Migrator`, `Setting` |
+| `src/resources/` | `User`, `Bank`, `Transaction`, `Budget`, `Category`, `Insight`, `Device`, `ApiToken`, `Mcp`, `OAuth`, `System` |
+| `portal/` | Mixins in `modules/`, API calls in `services/apiService.js`, i18n in `i18n.js` |
+| `swagger/` | OpenAPI via reflection + Swagger UI |
+| `sql/carbure.sql`, `sql/migrations/` | Full schema; dated migrations (`Migrator`, table `schema_migrations`) |
+| `tools/migrate.php` | CLI migrations (run by the Docker entrypoint) |
+| `docker/` | `Dockerfile`, `nginx.conf`, `docker-compose.yml`, `docker-compose.dev.yml` |
+| `data/` | Untracked instance data: `conf/prod.ini`, `conf/certs/`, `logs/`, `cache/`, `woob/` |
+| `conf/*.sample.ini`, `testing.ini`, `e2e.ini` | Sample/test config (`prod.ini` never tracked) |
+| `tests/unit/`, `tests/integration/` | PHPUnit (integration needs MariaDB) |
+| `tests/portal/` | Portal unit tests (`node:test`) |
+| `tests/e2e/` | Playwright, real API, DB recreated per test; `server/seed.php` = also `start.sh` data |
+| `docs/`, `mkdocs.yml` | MkDocs docs; `VERSION` = `dev` in repo |
 
-## Lancer le projet
+## Commands
 
 ```bash
-./start.sh            # http://localhost:8000/portal/ (admin / admin-password, marie / marie-password)
-```
-
-Image Docker de production et MariaDB 11, code monté en direct, données d'exemple ;
-`--reset`, `--build`, `--stop`, `--clean` (détails : docs/developpement.md).
-
-## Lancer le lint et les tests
-
-```bash
+./start.sh   # dev stack http://localhost:8000/portal/ (admin/admin-password); --reset --build --stop --clean
 find src tests swagger -name '*.php' -not -path '*/node_modules/*' -print0 | xargs -0 -n1 php -l
-for f in $(find portal -name '*.js' -not -path '*/vendor/*'); do cp "$f" /tmp/check.mjs && node --check /tmp/check.mjs; done
-
+for f in $(find portal -name '*.js' -not -path '*/vendor/*'); do cp "$f" /tmp/c.mjs && node --check /tmp/c.mjs; done
 php tools/phpunit.phar --testsuite unit
-DB_HOST=127.0.0.1 DB_USER=root DB_PASSWORD=root php tools/phpunit.phar   # unit + intégration
-node --test 'tests/portal/*.test.mjs'                                    # portail, unitaires
-
-cd tests/e2e && npm ci && npx playwright install chromium                # e2e, une fois
-E2E_DB_HOST=127.0.0.1 E2E_DB_PASSWORD=root npx playwright test           # e2e du portail
+DB_HOST=127.0.0.1 DB_USER=root DB_PASSWORD=root php tools/phpunit.phar   # + integration (recreates carbure_test)
+node --test 'tests/portal/*.test.mjs'
+cd tests/e2e && npm ci && npx playwright install chromium               # once
+E2E_DB_HOST=127.0.0.1 E2E_DB_PASSWORD=root PHP_BIN=… npx playwright test
+git config core.hooksPath .githooks   # pre-commit lint, pre-push unit tests
 ```
 
-Les tests d'intégration recréent la base `carbure_test` à partir de `sql/carbure.sql` ;
-les tests e2e recréent `carbure_e2e` avant chaque test (PHP avec `mysqli` et MariaDB
-requis, voir docs/developpement.md). Hooks Git : `git config core.hooksPath .githooks`
-(lint en pre-commit, tests unitaires PHP et du portail en pre-push).
+## Local environment (WSL)
 
-## Conventions de code
+- Shell is zsh: don't name a variable `path`; `echo ===` fails. Prefer `bash -c '…'`.
+- PHP not installed. Download a static CLI into a scratch dir:
+  `https://dl.static-php.dev/static-php-cli/common/php-8.3.x-cli-linux-x86_64.tar.gz`
+  (lint + unit tests; no `mysqli`/`pcov`) or `…/bulk/…` (has `mysqli`: integration/e2e
+  with MariaDB in Docker; coverage only in CI).
+- Case-insensitive FS; LF line endings (`.gitattributes`).
 
-- Une route = une méthode **publique statique** d'une classe de `src/resources/`, annotée
-  `#[ApiRoute('/chemin', method: 'GET', public: false, stream: false, raw: false)]`.
-- Action d'administration : `User::requireAdmin()` en premier ; dans le portail, onglet
-  ou bouton visible seulement si `isAdmin`.
-- Les paramètres de requête (JSON + query string) sont injectés **par nom** dans les
-  paramètres de la méthode : le nom d'un paramètre fait partie du contrat d'API.
-- Erreurs : `Error` avec un code HTTP 4xx pour les erreurs client, `Exception` pour les
-  erreurs serveur.
-- SQL uniquement en requêtes préparées (`Db::execute`, `Db::queryOne`).
-- PHPDoc sur chaque méthode ; style du code existant (accolades, commentaires courts).
-- Portail : chaque texte passe par `t('clé')` ; ajouter la clé en `fr` **et** en `en`.
-- Fins de ligne LF ; messages de commit en anglais.
+## API conventions
 
-## Règles de sécurité et de compatibilité
+- Flow: `api.php` → `Webservice::exec()` → `ApiResolver::findRoute()` → static method in
+  `src/resources/`. Route cache in APCu, auto-invalidated on file mtime changes.
+- Route = **public static** method with
+  `#[ApiRoute('/path', method: 'GET', public: false, stream: false, raw: false)]`.
+  `public: true` = no JWT; `stream: true` = SSE (`Webservice::sendProgress()`/`sendHeartbeat()`).
+- Request params (JSON body + query string) are injected **by name** into method params:
+  renaming one breaks the API; unknown param → 400.
+- Errors: `throw new Error(msg, 4xx)` (code = HTTP status); `Exception` = 500.
+  Response: `{"error","code","uid"}`.
+- SQL: prepared statements only (`Db::execute`, `Db::queryOne`).
+- Current user: `Jwt::getUserIdFromToken()`; headers: `Webservice::getHeader()`.
+- Admin actions: `User::requireAdmin()` first (`users.is_admin`); portal shows them only
+  if `isAdmin`. Non-admins read/edit only their own profile.
+- Passwords: `password_hash()`; legacy salted SHA-256 migrated at login (`User::verifyPassword`).
+- `Logger` masks `password`/`token`; never log secrets otherwise.
+- PHPDoc on every method; match existing style.
 
-- **Dossier de production** : sur l'installation de l'auteur, le dépôt de travail est le
-  dossier servi en production. Toute modification y est en ligne immédiatement ; ne pas
-  changer de branche ni réécrire l'arbre de travail dans ce dossier.
-- **Rétrocompatibilité** : l'app iOS n'est pas mise à jour en même temps que le serveur.
-  N'ajouter que des routes ou des paramètres facultatifs ; ne jamais renommer, supprimer
-  ou changer le format d'une réponse existante.
-- **Schéma** : toute modification passe par un fichier `sql/migrations/AAAA-MM-JJ_nom.sql`
-  (avec sa ligne `-- applied-if: …` obligatoire, vérifiée par un test, voir
-  docs/developpement.md) **et** par `sql/carbure.sql`. Les migrations sont appliquées au
-  démarrage du conteneur Docker, par l'assistant d'installation ou depuis le portail
-  (bandeau administrateur) ; `tools/migrate.php` en ligne de commande. Le code ne doit pas
-  dépendre d'une migration non appliquée.
-- **Secrets** : jamais de secret, d'identifiant bancaire, d'e-mail personnel ou de log
-  dans le dépôt (`data/` est ignoré : configuration, clés, logs, identifiants woob). Les
-  fichiers d'exemple ne contiennent que des valeurs factices.
-- **UUID des transactions** : le libellé nettoyé entre dans l'UUID ; modifier
-  `Transaction::cleanLabel()` ou les `regex_label` crée des doublons sans migration.
-- Les routes publiques sont limitées à `POST /user/login`, `GET /bank/sync` (protégée
-  par JWT ou `sync_token`), `POST /mcp` et `GET /mcp` (jeton d'accès ou JWT),
-  `GET /health` et les routes OAuth du serveur MCP (`/.well-known/oauth-*`,
-  `POST /oauth/register`, `GET /oauth/authorize`, `POST /oauth/token`) ; un test unitaire
-  échoue si une nouvelle route publique apparaît.
-- Les en-têtes de sécurité de l'API sont posés par PHP ; ceux du portail par nginx
-  (`docker/nginx.conf`, pas de `.htaccess`).
+## Domain rules
 
-## Définition de « terminé »
+- **Household model**: all users see the same data; budgets/categories have no user
+  column; a transaction belongs to the first owner (`MIN(user_id)`) of the synced account.
+- **Transaction UUID** = `md5(rdate . label . amount)` (card labels truncated to 24
+  chars), computed after `Transaction::cleanLabel()` + config `regex_label`. Identical
+  rows in one batch: `md5(uuid . '#n')` (`Transaction::prepareAll()`). Changing label
+  cleaning creates duplicates → needs a migration.
 
-- [ ] Lint PHP et JS sans erreur.
-- [ ] Tests unitaires verts (et tests ajoutés pour le code nouveau).
-- [ ] Fonctionnalité du portail ajoutée ou modifiée : test Playwright dans
-      `tests/e2e/specs/`, suite e2e verte.
-- [ ] Couverture PHP ≥ 90 % en CI (unit + intégration).
-- [ ] Migration SQL fournie si le schéma change, et signalée comme action de déploiement.
-- [ ] `TODO.md` mis à jour (tâches cochées / ajoutées).
-- [ ] Documentation mise à jour (`README.md`, `docs/`) si le comportement ou l'API change.
+## Compatibility & safety
+
+- **Backward compatibility**: iOS app isn't updated with the server. Only add routes or
+  optional params; never rename/remove or change an existing response format.
+- **Schema**: change via `sql/migrations/YYYY-MM-DD_name.sql` (mandatory
+  `-- applied-if: …` line, test-checked) **and** `sql/carbure.sql`. Applied at container
+  start, by setup wizard, or portal admin banner. Code must not depend on an unapplied
+  migration; flag it as a deployment action.
+- **Public routes** limited to: `POST /user/login`, `GET /bank/sync` (JWT or
+  `sync_token`), `GET|POST /mcp` (token or JWT), `GET /health`, MCP OAuth
+  (`/.well-known/oauth-*`, `POST /oauth/register`, `GET /oauth/authorize`,
+  `POST /oauth/token`). A unit test fails on any new public route.
+- **Secrets**: nothing secret/personal/logs in the repo; samples use fake values. Never
+  print or copy `data/conf/prod.ini`. Tests must not write to `data/logs/`.
+- Security headers: API via PHP; portal via nginx (`docker/nginx.conf`, no `.htaccess`).
+
+## Portal
+
+- Every string via `t('key')`; add each key in **both** `fr` and `en`.
+- Any added/changed feature gets a Playwright spec in `tests/e2e/specs/` (data: `seed.php`).
+
+## Commits
+
+English; short subject + bullet list of changes.
+
+## Definition of done
+
+- PHP/JS lint clean; unit tests green, new code tested.
+- Portal change: e2e spec added, e2e suite green.
+- PHP coverage ≥ 90 % in CI (unit + integration).
+- SQL migration if schema changed, flagged as deployment action.
+- `TODO.md` updated (check done, add discovered debt/manual steps).
+- `README.md` / `docs/` updated if behavior or API changes.
