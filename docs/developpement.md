@@ -211,7 +211,7 @@ Le workflow lance la CI, publie l'image Docker Hub `ltoinel/carbure` (`1.2.0`, `
 étiquette, `.github/release.yml`). Un tag avec un suffixe (`v1.2.0-rc.1`) donne une
 pré-release, sans le tag `latest`. Les releases du dépôt sont **immuables** : aucun fichier
 ne peut être ajouté une fois la release publiée, d'où cet ordre (le workflow crée un
-brouillon, y joint les archives, puis le publie). Les notes restent modifiables ensuite.
+brouillon, y joint les archives, puis le publie).
 
 **Actions → Release → Run workflow** (champ `tag`) reconstruit l'image Docker d'un tag
 existant ; sa release, immuable, n'est pas modifiée.
