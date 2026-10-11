@@ -24,7 +24,7 @@ if [ -f /data/conf/prod.ini ]; then
     done
     su -s /bin/sh www-data -c "php $APP/tools/migrate.php"
 else
-    echo "Carbure: not installed yet, open the portal in a browser to install it (http://<host>:8080/)"
+    echo "Carbure: not installed yet, open the portal in a browser to install it (http://HOST:8080/)"
 fi
 
 # Optional periodic synchronization (e.g. SYNC_INTERVAL=86400 for once a day);
