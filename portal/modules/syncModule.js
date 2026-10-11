@@ -82,6 +82,18 @@ export function createSyncModule(getApiService) {
                         // Carbure waits, then runs woob again (no new "Syncing" line)
                         current = { kind: '2fa', status: 'running', count: 0, error: null };
                         account(match[1]).steps.push(current);
+                    } else if ((match = line.match(/^Warning syncing (.+?) \((coming|history)\): (.*)$/))) {
+                        // A step failed without stopping the synchronization (coming):
+                        // shown with its message, the following steps still run and the
+                        // synchronization can succeed (this line is not an "Error")
+                        const acc = account(match[1]);
+                        const step = [...acc.steps].reverse().find(s => s.kind === match[2] && s.status === 'running');
+                        if (step) {
+                            step.status = 'error';
+                            step.error = match[3];
+                        } else {
+                            acc.steps.push({ kind: match[2], status: 'error', count: 0, error: match[3] });
+                        }
                     } else if ((match = line.match(/^Error syncing (.+?): (.*)$/))) {
                         const acc = account(match[1]);
                         if (current && current.status === 'running') {

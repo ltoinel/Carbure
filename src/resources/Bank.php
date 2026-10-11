@@ -393,21 +393,36 @@ final class Bank {
                 $status = true;
                 $created = [];
                 $error = null;
+                $comingError = null;
 
+                // Coming operations are best-effort (some bank modules fail on
+                // them, e.g. Credit Mutuel): their failure is reported but the
+                // history is still synchronized
                 try {
                     Webservice::sendProgress("Syncing $bankId (coming)...");
                     $created = self::syncBankData('coming', $bankId);
+                } catch (Exception $e) {
+                    $comingError = $e->getMessage();
+                    Logger::warn("Coming operations failed for $bankId, continuing with history: $comingError");
+                    Webservice::sendProgress("Warning syncing $bankId (coming): $comingError (history continues)");
+                }
 
+                try {
                     Webservice::sendProgress("Syncing $bankId (history)...");
                     $created = array_merge($created, self::syncBankData('history', $bankId));
-
                 } catch (Exception $e) {
                     Logger::error("Error syncing $bankId: " . $e->getMessage());
                     Webservice::sendProgress("Error syncing $bankId: " . $e->getMessage());
                     $status = false;
-                    $error = $e->getMessage();
+                    $error = $comingError !== null
+                        ? "coming failed: $comingError ; history failed: " . $e->getMessage()
+                        : $e->getMessage();
                 }
-                self::recordSyncResult($bankId, $status, $status ? count($created) . " new" : $error);
+                if ($status && $comingError !== null) {
+                    self::recordSyncResult($bankId, true, count($created) . " new (coming failed: $comingError)");
+                } else {
+                    self::recordSyncResult($bankId, $status, $status ? count($created) . " new" : $error);
+                }
 
                 // Send notification to all users who own this bank account
                 Webservice::sendProgress("Notifying users of $bankId...");

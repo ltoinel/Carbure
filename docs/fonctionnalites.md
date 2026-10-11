@@ -99,6 +99,11 @@ transactions du dernier mois restées sans catégorie.
   (`woob_2fa_retries`, 1 nouvel essai par défaut). Validez sur votre téléphone dès
   que la notification arrive, avant la fin de l'attente ; sinon, relancez simplement
   la synchronisation après avoir validé.
+- **Opérations à venir facultatives** : si woob échoue sur les opérations à venir
+  (le module Crédit Mutuel renvoie parfois `The resource should be of type Recipient
+  or Transfer`), l'historique est quand même synchronisé et le compte est marqué
+  `Synchronisé` avec une note (`… new (coming failed: …)`), l'échec restant visible
+  dans le journal détaillé.
 - **Une seule à la fois** : une synchronisation lancée pendant une autre est refusée
   (« déjà en cours »).
 

@@ -15,7 +15,7 @@
  * - account "slow@bank"  : waits 2 seconds before answering
  * - account "2fa@bank"   : first call fails like a two-factor authentication in
  *   non-interactive mode (push triggered, exit code 1), next calls answer
- * - other accounts       : one JSON array of transactions per line, like woob -f json
+ * - account "comingfail@bank": coming fails (exit code 1), history answers
  */
 
 $type = $argv[2] ?? '';
@@ -138,6 +138,14 @@ if ($account === '2fa@bank') {
         fwrite(STDERR, "Error(creditmutuel): You have to run bank in interactive mode to perform a two-factor authentication\n");
         exit(1);
     }
+}
+
+if ($account === 'comingfail@bank' && $type === 'coming') {
+    // Like the Credit Mutuel module on coming operations: no data, a validation
+    // error of weboob on stderr, exit code 1 (history still answers)
+    echo "[]\n";
+    fwrite(STDERR, "Error(creditmutuel): The resource should be of type Recipient or Transfer, not \"<class 'NoneType'>\"\n");
+    exit(1);
 }
 
 if ($account === 'slow@bank') {

@@ -265,6 +265,26 @@ class BankTest extends DatabaseTestCase
         $this->assertSame('OK', $accounts['2fa@bank']['last_sync_status']);
     }
 
+    public function testSyncContinuesWithHistoryWhenComingFails()
+    {
+        Db::query("DELETE FROM bank_transaction");
+        $this->loginAs(self::ADMIN);
+        Bank::create('comingfail', 'bank');
+        $output = $this->sync();
+
+        // Coming fails (e.g. the Credit Mutuel module) but history is imported
+        $this->assertStringContainsString('Warning syncing comingfail@bank (coming)', $output);
+        $this->assertStringContainsString('Recipient or Transfer', $output);
+        $this->assertStringContainsString('Done comingfail@bank (history): 3 received, 3 new', $output);
+        $this->assertStringContainsString('data: Synchronization complete', $output);
+        $this->assertSame(4, Db::queryOne("SELECT COUNT(*) AS n FROM bank_transaction", "")['n']);
+
+        // Synchronized, with a note: the failure stays visible, the sync succeeds
+        $accounts = array_column(Bank::accounts(), null, 'bankId');
+        $this->assertSame('OK', $accounts['comingfail@bank']['last_sync_status']);
+        $this->assertStringContainsString('coming failed', $accounts['comingfail@bank']['last_sync_message']);
+    }
+
     public function testSyncRecordsTheLastResultOfEachAccount()
     {
         $this->loginAs(self::ADMIN);

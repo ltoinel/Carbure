@@ -86,13 +86,16 @@ sequenceDiagram
         B->>B: date et résultat dans bank_account.last_sync_*
         B->>D: notification à chaque utilisateur du foyer<br/>(nombre de transactions non pointées)
         B->>D: alerte « dépense importante » pour chaque nouvelle dépense<br/>au-delà du seuil alert_threshold d'un utilisateur
-    end
-    B->>T: updateMissingCategories() (mots-clés)
+    end    B->>T: updateMissingCategories() (mots-clés)
     B-->>P: flux SSE « Synchronization complete »
 ```
 
 - `?account=<numéro>@<banque>` limite la synchronisation à un compte (bouton de
   synchronisation de l'onglet Comptes).
+- Les opérations à venir sont facultatives : leur échec (avertissement `Warning syncing`,
+  par exemple le module Crédit Mutuel) n'empêche pas l'historique, et le compte est
+  `OK` avec une note si l'historique passe. Une double authentification fait attendre
+  la validation sur le téléphone (`woob_2fa_wait`) puis relance woob (`woob_2fa_retries`).
 - Les transactions importées sont rattachées au premier utilisateur ayant ajouté le compte
   (`MIN(user_id)` dans `bank_account`), sans restreindre leur visibilité.
 - Le **libellé** est mis en majuscules puis nettoyé par les expressions régulières

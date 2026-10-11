@@ -209,3 +209,21 @@ test('syncSteps: two-factor validation is a step of the account', () => {
     ]);
     assert.deepEqual(failed.accounts[0].steps.map(s => s.status), ['error', 'error']);
 });
+
+test('syncSteps: a warning on coming does not stop history nor fail the sync', () => {
+    const sync = createSyncModule(() => null);
+    const context = { syncLog: [], syncStatus: 'running', ...sync.computed };
+    const steps = lines => sync.computed.syncSteps.call({ ...context, syncLog: lines });
+    const lines = [
+        'Syncing 111@creditmutuel (coming)...',
+        'Warning syncing 111@creditmutuel (coming): Error(creditmutuel): boom (history continues)',
+        'Syncing 111@creditmutuel (history)...',
+        'Done 111@creditmutuel (history): 3 received, 3 new',
+        'Synchronization complete',
+    ];
+    const result = steps(lines);
+    assert.deepEqual(result.accounts[0].steps.map(s => [s.kind, s.status]), [['coming', 'error'], ['history', 'ok']]);
+    assert.match(result.accounts[0].steps[0].error, /boom/);
+    // No "Error" line: the synchronization succeeds
+    assert.deepEqual(sync.computed.syncErrors.call({ syncLog: lines }), []);
+});
