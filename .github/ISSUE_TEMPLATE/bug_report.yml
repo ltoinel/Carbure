@@ -1,0 +1,96 @@
+name: Bug report
+description: Something does not work as expected (portal, API, synchronization, Docker image…)
+title: "[Bug] "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting a bug! French or English are both welcome.
+        **A security vulnerability?** Do not open an issue: [report it privately](https://github.com/ltoinel/Carbure/security/advisories/new).
+        **Never paste** bank data, credentials, tokens or `prod.ini`: redact them.
+
+  - type: input
+    id: version
+    attributes:
+      label: Carbure version
+      description: Shown in the footer of the portal, or the tag of the Docker image.
+      placeholder: v1.0.5
+    validations:
+      required: true
+
+  - type: dropdown
+    id: deployment
+    attributes:
+      label: Deployment
+      options:
+        - Docker image (docker compose)
+        - Docker image on a NAS (Synology, QNAP…)
+        - Development stack (./start.sh)
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      multiple: true
+      options:
+        - Installation / setup wizard
+        - Bank synchronization (woob)
+        - Statement import
+        - Transactions / categories / rules
+        - Budget / insights / trends
+        - Users / login
+        - AI agents (MCP server)
+        - iOS app
+        - Other
+
+  - type: input
+    id: bank
+    attributes:
+      label: Bank and woob module
+      description: For a synchronization problem only (e.g. "Crédit Mutuel, creditmutuel").
+      placeholder: Crédit Mutuel, creditmutuel
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Include the error message shown by the portal, if any.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open the Accounts tab
+        2. Click "Synchronize this account"
+        3. …
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: |
+        Relevant lines of `docker compose logs carbure` or of the Logs page (Administration).
+        Redact account numbers, labels and any personal data.
+      render: text
+
+  - type: input
+    id: browser
+    attributes:
+      label: Browser / device
+      placeholder: Firefox 131 on Windows, iPhone with iOS 18…
