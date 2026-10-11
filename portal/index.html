@@ -548,14 +548,21 @@
 
                 <!-- Budget Tab -->
                 <div v-else-if="activeTab === 'budget'" key="budget" class="tab-panel">
-                    <div class="sub-tabs" role="tablist" :aria-label="t('tabBudget')">
-                        <button type="button" role="tab" class="sub-tab" :class="{ active: budgetView === 'flow' }"
-                                :aria-selected="budgetView === 'flow' ? 'true' : 'false'" @click="budgetView = 'flow'">
-                            <span class="material-icons" aria-hidden="true">account_tree</span>{{ t('budgetFlowTab') }}
-                        </button>
-                        <button type="button" role="tab" class="sub-tab" :class="{ active: budgetView === 'budgets' }"
-                                :aria-selected="budgetView === 'budgets' ? 'true' : 'false'" @click="budgetView = 'budgets'">
-                            <span class="material-icons" aria-hidden="true">tune</span>{{ t('budgetConfigTab') }}
+                    <div class="budget-subtabs">
+                        <div class="sub-tabs" role="tablist" :aria-label="t('tabBudget')">
+                            <button type="button" role="tab" class="sub-tab" :class="{ active: budgetView === 'flow' }"
+                                    :aria-selected="budgetView === 'flow' ? 'true' : 'false'" @click="budgetView = 'flow'">
+                                <span class="material-icons" aria-hidden="true">account_tree</span>{{ t('budgetFlowTab') }}
+                            </button>
+                            <button type="button" role="tab" class="sub-tab" :class="{ active: budgetView === 'budgets' }"
+                                    :aria-selected="budgetView === 'budgets' ? 'true' : 'false'" @click="budgetView = 'budgets'">
+                                <span class="material-icons" aria-hidden="true">tune</span>{{ t('budgetConfigTab') }}
+                            </button>
+                        </div>
+                        <!-- Copy the budgets of the previous month -->
+                        <button v-if="budgetView === 'budgets'" class="btn-secondary budget-copy-button" @click="openCopyModal">
+                            <span class="material-icons" aria-hidden="true">content_copy</span>
+                            {{ copyButtonLabel }}
                         </button>
                     </div>
 
@@ -641,14 +648,6 @@
                                 <button class="breadcrumb-item" @click="goToBreadcrumb(idx)">{{ crumb.name }}</button>
                             </template>
                         </nav>
-
-                        <!-- Copy the budgets of the previous month -->
-                        <div class="budget-toolbar">
-                            <button class="btn-secondary" @click="openCopyModal">
-                                <span class="material-icons" aria-hidden="true">content_copy</span>
-                                {{ copyButtonLabel }}
-                            </button>
-                        </div>
 
                         <!-- Month summary -->
                         <section class="budget-summary" v-if="budgetGroups.expenses.length > 0">

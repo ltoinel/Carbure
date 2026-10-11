@@ -2367,10 +2367,21 @@ button .material-icons {
     color: var(--text-secondary);
 }
 
-/* Copy of the previous month: button above the summary */
-.budget-toolbar {
+/* Sub-tabs of the Budget tab with the copy button on the same row */
+.budget-subtabs {
     display: flex;
-    justify-content: flex-end;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.budget-subtabs .sub-tabs {
+    margin-bottom: 0;
+}
+
+.budget-subtabs .budget-copy-button {
+    margin-left: auto;
 }
 
 .budget-summary {
