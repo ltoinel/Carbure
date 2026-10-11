@@ -102,9 +102,21 @@ git config core.hooksPath .githooks   # pre-commit lint, pre-push unit tests
 - Every string via `t('key')`; add each key in **both** `fr` and `en`.
 - Any added/changed feature gets a Playwright spec in `tests/e2e/specs/` (data: `seed.php`).
 
-## Commits
+## Issues, branches, PRs and commits
 
-English; short subject + bullet list of changes.
+- Every change starts from an issue (assigned, in the next milestone); the PR says `Closes #<n>`.
+- Never push to `main`: branch from `origin/main` as `<type>/<issue>-<short-topic>`
+  (e.g. `fix/26-codeql-alerts`).
+- PRs are squash-merged and the **PR title becomes the commit of `main`**: it follows
+  [Conventional Commits](https://www.conventionalcommits.org/), checked by CI:
+  `type(scope): description` — English, imperative, lowercase start, no final period.
+  - types: `feat`, `fix`, `security`, `perf`, `refactor`, `docs`, `test`, `ci`, `chore`
+    (`build`, `revert` also accepted);
+  - optional scopes: `api`, `portal`, `sync`, `import`, `mcp`, `oauth`, `docker`, `db`, `deps`…;
+  - breaking change: `type(scope)!: …` (exceptional: the iOS app must keep working).
+- Commit messages inside a branch: same format; body = bullet list of changes.
+- Label the PR with its kind (`enhancement`, `bug`, `security`, `documentation`,
+  `dependencies`): `.github/release.yml` groups the release notes by label.
 
 ## Definition of done
 
