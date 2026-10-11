@@ -308,13 +308,14 @@ final class Bank {
      * Save the transactions of a bank account: coming (card transactions not debited
      * yet, type 12) or history.
      *
-     * @param string $kind   "coming" or "history"
-     * @param string $bankId The bank id to sync (account_number@bank_name)
+     * @param string $kind        "coming" or "history"
+     * @param string $bankId      The bank id to sync (account_number@bank_name)
+     * @param bool   $interactive Allow the bank to ask a two-factor authentication
      * @return array The new transactions
      */
-    private static function syncBankData($kind, $bankId)
+    private static function syncBankData($kind, $bankId, $interactive = false)
     {
-        $transactions = self::getBankData($kind, $bankId);
+        $transactions = self::getBankData($kind, $bankId, $interactive);
         if (empty($transactions)) {
             Logger::warn("No $kind transactions for $bankId");
             Webservice::sendProgress("Done $bankId ($kind): 0 received, 0 new");
@@ -337,7 +338,7 @@ final class Bank {
      * (X-Sync-Token header or ?token= parameter).
      *
      * @param string|null $token The sync token passed as query parameter
-     * @return void
+     * @return bool True for an authenticated user, false for the scheduler
      * @throws Error If the caller is not allowed
      */
     private static function checkSyncAccess($token)
@@ -345,11 +346,11 @@ final class Bank {
         $token = Webservice::getHeader('X-Sync-Token') ?? $token;
 
         if ($token !== null && Config::has('sync_token') && hash_equals((string)Config::get('sync_token'), (string)$token)) {
-            return;
+            return false;
         }
 
         if (Jwt::checkAuthorization()) {
-            return;
+            return true;
         }
 
         throw new Error("Unauthorized - Invalid or missing JWT token or sync token", 401);
@@ -358,15 +359,27 @@ final class Bank {
     /**
      * Synchronize the bank data with Server-Sent Events progress.
      *
-     * @param string|null $token   The sync token (for the scheduler)
-     * @param string|null $account Synchronize only this account (account_number@bank_name)
+     * In interactive mode (a user in the portal, one account), woob may start a
+     * two-factor authentication: its messages ("validate in your bank app") are sent
+     * as "Bank message <account>: <message>" while it waits for the validation.
+     *
+     * @param string|null $token       The sync token (for the scheduler)
+     * @param string|null $account     Synchronize only this account (account_number@bank_name)
+     * @param string|null $interactive "true": allow a two-factor authentication (needs $account)
      * @return void
-     * @throws Error If unauthorized or the account is not followed
+     * @throws Error If unauthorized, the account is not followed or the interactive mode not allowed
      */
     #[ApiRoute('/bank/sync', method: 'GET', public: true, stream: true)]
-    public static function getSync($token = null, $account = null)
+    public static function getSync($token = null, $account = null, $interactive = null)
     {
-        self::checkSyncAccess($token);
+        $user = self::checkSyncAccess($token);
+
+        // A two-factor authentication is only started for a user who waits for it
+        // (never by the scheduler), on one account
+        $interactive = filter_var($interactive, FILTER_VALIDATE_BOOLEAN);
+        if ($interactive && (!$user || $account === null || $account === '')) {
+            throw new Error("The interactive mode needs a user and one account", 400);
+        }
 
         $bankIds = self::getBankIds();
         if ($account !== null && $account !== '') {
@@ -396,10 +409,10 @@ final class Bank {
 
                 try {
                     Webservice::sendProgress("Syncing $bankId (coming)...");
-                    $created = self::syncBankData('coming', $bankId);
+                    $created = self::syncBankData('coming', $bankId, $interactive);
 
                     Webservice::sendProgress("Syncing $bankId (history)...");
-                    $created = array_merge($created, self::syncBankData('history', $bankId));
+                    $created = array_merge($created, self::syncBankData('history', $bankId, $interactive));
 
                 } catch (Exception $e) {
                     Logger::error("Error syncing $bankId: " . $e->getMessage());
@@ -411,7 +424,7 @@ final class Bank {
 
                 // Send notification to all users who own this bank account
                 Webservice::sendProgress("Notifying users of $bankId...");
-                self::notifyBankUsers($bankId, $status);
+                self::notifyBankUsers($bankId, $status, $error);
                 self::alertLargeExpenses($bankId, $created);
                 self::alertRuleMatches($created);
             }
@@ -497,11 +510,14 @@ final class Bank {
     /**
      * Send notification to all users who own a specific bank account.
      *
-     * @param string $bankId The bank ID (account_number@bank_name)
-     * @param bool   $status The sync status (true=success, false=failure)
+     * A failure that needs a two-factor authentication asks to approve it in the portal.
+     *
+     * @param string      $bankId The bank ID (account_number@bank_name)
+     * @param bool        $status The sync status (true=success, false=failure)
+     * @param string|null $error  The error of a failed synchronization
      * @return void
      */
-        public static function notifyBankUsers($bankId, $status)
+        public static function notifyBankUsers($bankId, $status, $error = null)
     {
         // Parse bankId to extract account_number and bank_name
         list($accountNumber, $bankName) = explode('@', $bankId, 2);
@@ -519,7 +535,10 @@ final class Bank {
                 $unpointed = Transaction::countUnpointed();
 
                 // Determine notification message based on sync status
-                if ($status === false) {
+                if ($status === false && Woob::needsTwoFactor($error)) {
+                    $message = "Strong authentication needed";
+                    $description = "Open Carbure (Accounts) to approve the connection to " . strtoupper($bankName);
+                } elseif ($status === false) {
                     $message = "Bank synchronization failed !";
                     $description = "$unpointed transactions to review";
                 } else {
@@ -636,12 +655,14 @@ final class Bank {
     /**
      * Call Woob to get the list of transactions from a bank.
      *
-     * @param string $type   The type of transactions to get (coming or history)
-     * @param string $bankId The bank id
+     * @param string $type        The type of transactions to get (coming or history)
+     * @param string $bankId      The bank id
+     * @param bool   $interactive Allow the bank to ask a two-factor authentication
      * @return array|null The transaction data or null if no data
      */
-    private static function getBankData($type, $bankId)
+    private static function getBankData($type, $bankId, $interactive = false)
     {
-        return Woob::getBankData($type, $bankId);
+        return Woob::getBankData($type, $bankId, $interactive,
+            fn($message) => Webservice::sendProgress("Bank message $bankId: $message"));
     }
 }

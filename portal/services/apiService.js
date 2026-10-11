@@ -566,11 +566,15 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
      * ": heartbeat" comments while woob is working.
      * @param {Function} onMessage - Called with each progress message
      * @param {string|null} account - Synchronize only this account (bankId)
+     * @param {boolean} interactive - Allow the bank to ask a two-factor authentication (one account)
      * @returns {Promise<void>} Resolved when the synchronization ends
      * @throws {Error} If the request fails
      */
-    async function syncBanks(onMessage, account = null) {
-        const query = account ? `?account=${encodeURIComponent(account)}` : '';
+    async function syncBanks(onMessage, account = null, interactive = false) {
+        let query = account ? `?account=${encodeURIComponent(account)}` : '';
+        if (account && interactive) {
+            query += '&interactive=true';
+        }
         const response = await authFetch(`${baseUrl}/bank/sync${query}`, { headers: getHeaders() });
 
         if (!response.ok || !response.body) {

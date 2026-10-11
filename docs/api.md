@@ -187,7 +187,14 @@ sont enregistrés pour chaque compte. Accès autorisé avec :
 - le `sync_token` de la configuration, dans l'en-tête `X-Sync-Token` ou le paramètre
   `?token=` ;
 
-`401` sinon. La réponse est un flux `text/event-stream` : messages `data: …` (progression,
+`401` sinon. `?interactive=true` (avec `account`, pour un utilisateur connecté seulement,
+`400` sinon) autorise woob à déclencher une authentification forte : woob est lancé sur un
+pseudo-terminal (`tools/woob-tty.py`) et ses messages sont relayés en
+`data: Bank message <compte>: <message>` pendant qu'il attend la validation dans
+l'application de la banque. Sans ce paramètre, une banque qui exige une authentification
+forte échoue avec `…interactive mode to perform a two-factor authentication`.
+
+La réponse est un flux `text/event-stream` : messages `data: …` (progression,
 résultat de chaque étape) et commentaires `: heartbeat` toutes les 15 s pendant
 l'exécution de woob. Une seule synchronisation peut tourner à la fois (sinon :
 `data: Synchronization already in progress`).

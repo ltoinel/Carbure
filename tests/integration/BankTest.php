@@ -273,6 +273,57 @@ class BankTest extends DatabaseTestCase
         Bank::getSync(null, 'unknown@bnp');
     }
 
+    public function testInteractiveSyncRelaysTheTwoFactorAuthentication()
+    {
+        Db::query("INSERT INTO bank_account (bank_name, account_number, user_id) VALUES ('bank', '2fa', " . self::ADMIN . ")");
+        $this->loginAs(self::ADMIN);
+
+        // Without the interactive mode, woob refuses to start the authentication
+        ob_start();
+        try {
+            Bank::getSync(null, '2fa@bank');
+        } finally {
+            $output = ob_get_clean();
+        }
+        $this->assertStringContainsString('data: Error syncing 2fa@bank: Error while calling woob (exit code: 1): Error(bank): You have to run bank in interactive mode', $output);
+
+        // The household is asked to approve the authentication in the portal
+        $alerts = array_map(fn($r) => $r['payload']['aps']['alert'], FakeApnsServer::requests());
+        $this->assertContains(['title' => 'Strong authentication needed', 'body' => 'Open Carbure (Accounts) to approve the connection to BANK'],
+            array_map(fn($a) => array_intersect_key($a, ['title' => 1, 'body' => 1]), $alerts));
+
+        ob_start();
+        try {
+            Bank::getSync(null, '2fa@bank', 'true');
+        } finally {
+            $output = ob_get_clean();
+        }
+        $this->assertStringContainsString('data: Bank message 2fa@bank: Veuillez valider la connexion dans votre application bancaire.', $output);
+        $this->assertStringContainsString('data: Done 2fa@bank (history): 3 received', $output);
+        $this->assertStringNotContainsString('Error syncing', $output);
+    }
+
+    public function testInteractiveSyncNeedsAUserAndOneAccount()
+    {
+        $this->loginAs(self::ADMIN);
+        try {
+            Bank::getSync(null, null, 'true');
+            $this->fail('All the accounts in interactive mode');
+        } catch (Error $e) {
+            $this->assertSame(400, $e->getCode());
+        }
+
+        // The scheduler (sync token, checked first) never starts a two-factor authentication
+        Config::set('sync_token', 'scheduler-secret');
+        try {
+            $this->expectException(Error::class);
+            $this->expectExceptionCode(400);
+            Bank::getSync('scheduler-secret', '111@bnp', 'true');
+        } finally {
+            Config::set('sync_token', '');
+        }
+    }
+
     public function testSync()
     {
         Db::query("DELETE FROM bank_transaction");

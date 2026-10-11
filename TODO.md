@@ -14,6 +14,12 @@ Tâches restant à réaliser sur Carbure. Une tâche terminée est retirée de c
       `X-Forwarded-For`). Régler `log_retention_days` (absent des configurations existantes :
       logs conservés indéfiniment) dans **Administration → Paramètres**.
 
+- [ ] Authentification forte : gérer les validations par **code** (OTP par SMS, `BrowserQuestion`
+      de woob), qui attendent une saisie sur l'entrée standard (aujourd'hui fermée par
+      `tools/woob-tty.py`) ; et proposer le mode interactif à « Rechercher mes comptes dans
+      woob » / « Connecter la banque » (`Woob::listAccounts`), qui échouent aussi sur une banque
+      exigeant une 2FA.
+
 - [ ] Connexion MySQL en `utf8mb4` (`Db` n'appelle pas `set_charset` : la connexion prend le
       jeu de caractères par défaut du serveur). Avant de l'ajouter, vérifier en production ce
       que reçoit PHP et comment les accents sont stockés :

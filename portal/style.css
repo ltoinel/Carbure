@@ -3452,6 +3452,43 @@ button .material-icons {
     font-size: 12px;
 }
 
+.sync-step-message,
+.sync-2fa-hint {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: var(--border-radius-sm);
+    background: var(--info-light);
+    color: var(--info-color);
+    font-size: 12px;
+}
+
+.sync-step-message {
+    flex-basis: 100%;
+    margin-left: 28px;
+}
+
+.sync-2fa-hint {
+    margin: 0 0 10px;
+}
+
+.sync-2fa-help {
+    display: block;
+    margin-top: 6px;
+}
+
+.sync-2fa-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 8px;
+}
+
+.account-2fa-button {
+    margin-top: 0;
+}
+
 .woob-issues-link {
     display: block;
     margin-top: 6px;

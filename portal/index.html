@@ -1169,11 +1169,15 @@
                                          :title="a.last_sync_message || ''">
                                         <span class="material-icons" aria-hidden="true">{{ { OK: 'check_circle', ERROR: 'error' }[a.last_sync_status] || 'schedule' }}</span>
                                         <span>
-                                            <span class="account-sync-state">{{ a.last_sync_status ? t('lastSync_' + a.last_sync_status) : t('lastSyncNever') }}</span>
+                                            <span class="account-sync-state">{{ a.last_sync_status === 'ERROR' && needsTwoFactor(a.last_sync_message) ? t('lastSync2fa') : a.last_sync_status ? t('lastSync_' + a.last_sync_status) : t('lastSyncNever') }}</span>
                                             <span v-if="a.last_sync_at" class="account-sync-date">{{ formatSyncDate(a.last_sync_at) }}</span>
                                         </span>
                                     </div>
                                     <div class="device-actions">
+                                        <button v-if="a.last_sync_status === 'ERROR' && needsTwoFactor(a.last_sync_message)" class="btn-secondary sync-2fa-button account-2fa-button" @click="startSync(a.bankId, true)" :disabled="syncStatus === 'running'">
+                                            <span class="material-icons" aria-hidden="true">phonelink_lock</span>
+                                            {{ t('sync2faButton') }}
+                                        </button>
                                         <button class="btn-icon" @click="startSync(a.bankId)" :disabled="syncStatus === 'running'" :title="t('syncAccount')" :aria-label="t('syncAccount')">
                                             <span class="material-icons" aria-hidden="true" :class="{ spin: syncStatus === 'running' && syncTarget === a.bankId }">sync</span>
                                         </button>
@@ -1192,6 +1196,10 @@
                                 <span>{{ t('syncStatus_' + syncStatus) }}</span>
                                 <span v-if="syncDuration !== null" class="sync-duration">{{ t('syncDuration', { seconds: syncDuration }) }}</span>
                             </div>
+                            <p v-if="syncInteractive && syncStatus === 'running'" class="sync-2fa-hint">
+                                <span class="material-icons inline-icon" aria-hidden="true">phonelink_lock</span>
+                                {{ t('sync2faWaiting') }}
+                            </p>
                             <div class="sync-steps">
                                 <div v-for="acc in syncSteps.accounts" :key="acc.id" class="sync-account">
                                     <div class="sync-account-name">
@@ -1209,8 +1217,19 @@
                                                 <span v-else-if="step.count" class="sync-step-count">{{ t('syncStepCount', { count: step.count }) }}</span>
                                             </span>
                                             <span class="sync-step-state">{{ t('syncState_' + step.status) }}</span>
+                                            <div v-if="step.message && step.status === 'running'" class="sync-step-message" role="status">
+                                                <span class="material-icons inline-icon" aria-hidden="true">phonelink_lock</span>
+                                                {{ step.message }}
+                                            </div>
                                             <div v-if="step.error" class="sync-step-error">
                                                 {{ step.error }}
+                                                <template v-if="needsTwoFactor(step.error)">
+                                                    <span class="sync-2fa-help">{{ t('sync2faHelp') }}</span>
+                                                    <button class="btn-secondary sync-2fa-button" @click="startSync(acc.id, true)" :disabled="syncStatus === 'running'">
+                                                        <span class="material-icons" aria-hidden="true">phonelink_lock</span>
+                                                        {{ t('sync2faButton') }}
+                                                    </button>
+                                                </template>
                                                 <a v-if="/woob/i.test(step.error)" class="woob-issues-link" :href="woobIssuesUrl(acc.id)" target="_blank" rel="noopener">
                                                     <span class="material-icons inline-icon" aria-hidden="true">bug_report</span>
                                                     {{ t('woobIssues', { module: acc.id.split('@').pop() }) }}
