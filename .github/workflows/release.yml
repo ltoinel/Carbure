@@ -1,25 +1,30 @@
 name: Release
 
-# Published from GitHub (Releases -> Draft a new release, tag 1.2.0 or v1.2.0) or with
-# "gh release create 1.2.0 --generate-notes": the workflow attaches the archives to the
-# release and publishes the Docker image. "Run workflow" rebuilds an existing release.
+# Started by pushing a tag (git tag v1.2.0 && git push origin v1.2.0): CI, Docker image,
+# then the release is created with its archives and generated notes in one go. The
+# releases of the repository are immutable: no file can be attached once published.
+# A tag with a suffix (v1.2.0-rc.1) gives a pre-release. "Run workflow" rebuilds the
+# Docker image of an existing tag (its release, immutable, is left as is).
 on:
-  release:
-    types: [published]
+  push:
+    tags:
+      - 'v[0-9]*.[0-9]*.[0-9]*'
+      - '[0-9]*.[0-9]*.[0-9]*'
   workflow_dispatch:
     inputs:
       tag:
-        description: Tag of the release to build (e.g. 1.0.0)
+        description: Tag to build (e.g. v1.2.0)
         required: true
 
 permissions:
   contents: read
 
 env:
-  TAG: ${{ github.event.release.tag_name || inputs.tag }}
+  TAG: ${{ inputs.tag || github.ref_name }}
+  PRERELEASE: ${{ contains(inputs.tag || github.ref_name, '-') }}
 
 concurrency:
-  group: release-${{ github.event.release.tag_name || inputs.tag }}
+  group: release-${{ inputs.tag || github.ref_name }}
   cancel-in-progress: false
 
 jobs:
@@ -34,7 +39,8 @@ jobs:
 
   release:
     name: Release archives
-    needs: ci
+    # Published once the Docker image is available
+    needs: [ci, docker]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -55,17 +61,23 @@ jobs:
           echo "${TAG#v}" > "build/$name/VERSION"
           tar -czf "dist/$name.tar.gz" -C build "$name"
           (cd build && zip -qr "../dist/$name.zip" "$name")
-          (cd dist && sha256sum * > SHA256SUMS)
+          (cd dist && sha256sum -- * > SHA256SUMS)
 
-      - name: Attach the archives to the release
+      # gh creates a draft, uploads the archives, then publishes it: the release is
+      # complete when it becomes immutable
+      - name: Publish the release with its archives
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           if gh release view "$TAG" > /dev/null 2>&1; then
-            gh release upload "$TAG" dist/* --clobber
-          else
-            gh release create "$TAG" dist/* --title "Carbure $TAG" --generate-notes --verify-tag
+            echo "::notice::The release $TAG already exists (immutable): left as is"
+            exit 0
           fi
+          flags=()
+          if [ "$PRERELEASE" = true ]; then
+            flags+=(--prerelease)
+          fi
+          gh release create "$TAG" dist/* --title "Carbure $TAG" --generate-notes --verify-tag "${flags[@]}"
 
   docker:
     name: Docker image
@@ -107,7 +119,7 @@ jobs:
           tags: |
             type=semver,pattern={{version}},value=${{ env.TAG }}
             type=semver,pattern={{major}}.{{minor}},value=${{ env.TAG }}
-            type=raw,value=latest,enable=${{ !github.event.release.prerelease }}
+            type=raw,value=latest,enable=${{ env.PRERELEASE != 'true' }}
 
       - uses: docker/build-push-action@v7
         with:

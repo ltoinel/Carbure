@@ -194,20 +194,27 @@ git config core.hooksPath .githooks
 | Workflow | Déclencheur | Étapes |
 |---|---|---|
 | CI | Pull request, push sur `main` | Lint PHP/JS/CSS, tests unitaires du portail, tests unitaires et d'intégration (MariaDB), couverture ≥ 90 %, tests de bout en bout du portail (Playwright, rapport en artefact en cas d'échec) ; image Docker : hadolint, build, scan Trivy, démarrage avec `docker compose`, installation par l'assistant et test de fumée |
-| Release | Release publiée sur GitHub (tag `1.2.0` ou `v1.2.0`), ou lancement manuel avec le tag | CI, archive de l'application (`src`, `portal`, `swagger`, `sql`, `tools/migrate.php`, `VERSION` écrit depuis le tag) jointe à la release ; image Docker `amd64`/`arm64` publiée sur Docker Hub (`ltoinel/carbure`) (version passée par `CARBURE_VERSION`), avec SBOM et provenance |
+| Release | Push d'un tag (`v1.2.0` ou `1.2.0`), ou lancement manuel avec le tag | CI, image Docker `amd64`/`arm64` publiée sur Docker Hub (`ltoinel/carbure`) (version passée par `CARBURE_VERSION`), avec SBOM et provenance ; puis création de la release avec l'archive de l'application (`src`, `portal`, `swagger`, `sql`, `tools/migrate.php`, `VERSION` écrit depuis le tag) et les notes générées |
 | Security | Pull request, push sur `main`, chaque lundi, lancement manuel | Scan de secrets de l'historique (gitleaks), vulnérabilités des dépendances du dépôt (Trivy) ; chaque lundi et à la demande, vulnérabilités de l'image publiée sur Docker Hub (Trivy). Rapports dans l'onglet Security |
 | Docs | Push sur `main` | Construction MkDocs et déploiement GitHub Pages |
 
-Publier une version : sur GitHub, **Releases → Draft a new release**, créer le tag (par
-exemple `1.2.0`) sur `main` et publier ; ou en ligne de commande :
+Publier une version : pousser un tag sur `main` (ne **pas** créer la release dans
+l'interface de GitHub) :
 
 ```bash
-gh release create 1.2.0 --target main --generate-notes
+git switch main && git pull
+git tag v1.2.0 && git push origin v1.2.0
 ```
 
-Le workflow joint les archives à la release et publie l'image Docker Hub `ltoinel/carbure`
-(`1.2.0`, `1.2` et `latest`, sauf pour une pré-release). **Actions → Release → Run
-workflow** reconstruit une release existante (champ `tag`).
+Le workflow lance la CI, publie l'image Docker Hub `ltoinel/carbure` (`1.2.0`, `1.2` et
+`latest`), puis crée la release avec ses archives et les notes générées (groupées par
+étiquette, `.github/release.yml`). Un tag avec un suffixe (`v1.2.0-rc.1`) donne une
+pré-release, sans le tag `latest`. Les releases du dépôt sont **immuables** : aucun fichier
+ne peut être ajouté une fois la release publiée, d'où cet ordre (le workflow crée un
+brouillon, y joint les archives, puis le publie). Les notes restent modifiables ensuite.
+
+**Actions → Release → Run workflow** (champ `tag`) reconstruit l'image Docker d'un tag
+existant ; sa release, immuable, n'est pas modifiée.
 
 La publication sur Docker Hub (`ltoinel/carbure`) utilise les secrets du dépôt
 `DOCKERHUB_USERNAME` et `DOCKERHUB_TOKEN` (jeton d'accès Docker Hub en lecture/écriture, dans
