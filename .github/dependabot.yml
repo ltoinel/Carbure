@@ -1,3 +1,4 @@
+# Conventional Commits titles (see CONTRIBUTING.md): "ci(deps): …", "chore(deps): …"
 version: 2
 updates:
   # GitHub Actions — also keeps SHA-pinned actions up to date
@@ -10,6 +11,7 @@ updates:
         patterns: ["*"]
     commit-message:
       prefix: "ci"
+      include: "scope"
 
   # Docker base images (php:8.3-fpm-alpine)
   - package-ecosystem: docker
@@ -17,7 +19,8 @@ updates:
     schedule:
       interval: weekly
     commit-message:
-      prefix: "docker"
+      prefix: "chore"
+      include: "scope"
 
   # Images referenced in docker-compose files
   - package-ecosystem: docker-compose
@@ -25,7 +28,8 @@ updates:
     schedule:
       interval: monthly
     commit-message:
-      prefix: "docker"
+      prefix: "chore"
+      include: "scope"
 
   # End-to-end tests (portal)
   - package-ecosystem: npm
@@ -37,6 +41,7 @@ updates:
         patterns: ["*"]
     commit-message:
       prefix: "test"
+      include: "scope"
 
   # MkDocs documentation
   - package-ecosystem: pip
@@ -48,3 +53,4 @@ updates:
         patterns: ["*"]
     commit-message:
       prefix: "docs"
+      include: "scope"
