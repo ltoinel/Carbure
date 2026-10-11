@@ -135,12 +135,19 @@ jobs:
       discussions: write
     steps:
       # Discussion linked to the release, in the Announcements category: GitHub shows
-      # the release notes (changelog) in it. Not for a pre-release, and only once
-      # (a rebuild with "Run workflow" keeps the existing discussion).
+      # the release notes (changelog) in it. Only for a major or minor release (1.2.0,
+      # 2.0.0), not for a patch (1.2.3) nor a pre-release, and only once (a rebuild
+      # with "Run workflow" keeps the existing discussion).
       - name: Announce the release in the discussions
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          # 1.2.3 or v1.2.3: the third number is the patch
+          patch=$(cut -d. -f3 <<< "${TAG#v}")
+          if [ -n "$patch" ] && [ "${patch%%[!0-9]*}" != 0 ]; then
+            echo "Patch release $TAG: no announcement"
+            exit 0
+          fi
           release=$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG")
           if [ "$(jq -r .prerelease <<< "$release")" = true ]; then
             echo "Pre-release $TAG: no announcement"
