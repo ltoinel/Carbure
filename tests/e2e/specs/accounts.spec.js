@@ -1,8 +1,8 @@
 // Accounts tab (administrators): followed bank accounts and synchronization (fake woob)
-const { test, expect, tr, openTab } = require('../fixtures');
+const { test, expect, tr, openTab, escapeRegExp } = require('../fixtures');
 
 /** Row of a followed account, by its bank id (account_number@bank) */
-const account = (page, bankId) => page.locator('.account-item').filter({ has: page.locator('code', { hasText: new RegExp(`^${bankId}$`) }) });
+const account = (page, bankId) => page.locator('.account-item').filter({ has: page.locator('code', { hasText: new RegExp(`^${escapeRegExp(bankId)}$`) }) });
 
 test('lists the followed accounts with their last synchronization', async ({ adminPage: page }) => {
     await openTab(page, tr('tabAccounts'));
@@ -56,7 +56,7 @@ test('finds the accounts of a bank in woob and follows one', async ({ adminPage:
 
     await discovered.filter({ hasText: 'Livret A' }).getByRole('button', { name: tr('followAccount') }).click();
     await expect(modal.getByLabel(new RegExp(tr('accountNumber')))).toHaveValue('00087654321');
-    await expect(modal.getByLabel(new RegExp(tr('accountBank').replace(/[()]/g, '\\$&')))).toHaveValue('bnp');
+    await expect(modal.getByLabel(new RegExp(escapeRegExp(tr('accountBank'))))).toHaveValue('bnp');
     await modal.getByRole('button', { name: tr('save') }).click();
 
     await expect(page.locator('.toast')).toHaveText(tr('accountAdded'));
