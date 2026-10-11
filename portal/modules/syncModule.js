@@ -19,6 +19,8 @@ export function createSyncModule(getApiService) {
                 bankAccounts: [],
                 // Account being synchronized alone (bankId), null for all
                 syncTarget: null,
+                // The account is synchronized with a two-factor authentication allowed
+                syncInteractive: false,
                 // 'idle', 'running', 'success', 'error' or 'busy' (another sync is running)
                 syncStatus: 'idle',
                 syncLog: [],
@@ -32,7 +34,8 @@ export function createSyncModule(getApiService) {
             /**
              * Steps of the synchronization built from the progress messages:
              * per account (coming, history, notification), then categorization.
-             * Each step: {kind, status: running|ok|error, count, error}
+             * Each step: {kind, status: running|ok|error, count, error, message}
+             * (message: last message of the bank, e.g. a validation to do in its app)
              * @returns {{accounts: Array<{id: string, steps: Array}>, global: Array}}
              */
             syncSteps() {
@@ -66,6 +69,10 @@ export function createSyncModule(getApiService) {
                             current.count = Number(match[3]);
                             current.created = Number(match[4]);
                             current.status = 'ok';
+                        }
+                    } else if ((match = line.match(/^Bank message (.+?): (.*)$/))) {
+                        if (current && current.status === 'running') {
+                            current.message = match[2];
                         }
                     } else if ((match = line.match(/^Error syncing (.+?): (.*)$/))) {
                         if (current && current.status === 'running') {
@@ -111,6 +118,16 @@ export function createSyncModule(getApiService) {
 
         methods: {
             /**
+             * Whether a synchronization error asks a two-factor authentication, which
+             * woob only starts in interactive mode
+             * @param {string|null} error - Error of a synchronization step
+             * @returns {boolean}
+             */
+            needsTwoFactor(error) {
+                return /interactive mode to perform a two-factor authentication/i.test(error || '');
+            },
+
+            /**
              * Search of the woob issues about a bank module (known problems and fixes)
              * @param {string} bankId - Account "<number>@<backend>" (backend named after the module)
              * @returns {string} URL of the search on the woob GitLab
@@ -139,14 +156,17 @@ export function createSyncModule(getApiService) {
 
             /**
              * Starts a synchronization and follows its progress
+             * @param {string|null} account - Synchronize only this account (bankId)
+             * @param {boolean} interactive - Allow the bank to ask a two-factor authentication
              * @returns {Promise<void>}
              */
-            async startSync(account = null) {
+            async startSync(account = null, interactive = false) {
                 if (this.syncStatus === 'running') {
                     return;
                 }
 
                 this.syncTarget = typeof account === 'string' ? account : null;
+                this.syncInteractive = this.syncTarget !== null && interactive === true;
                 this.syncStatus = 'running';
                 this.syncLog = [];
                 this.syncStartedAt = Date.now();
@@ -161,7 +181,7 @@ export function createSyncModule(getApiService) {
                                 log.scrollTop = log.scrollHeight;
                             }
                         });
-                    }, this.syncTarget);
+                    }, this.syncTarget, this.syncInteractive);
 
                     const last = this.syncLog[this.syncLog.length - 1] || '';
                     if (last.includes('already in progress')) {

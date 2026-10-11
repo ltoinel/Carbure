@@ -133,6 +133,16 @@ test('syncBanks reads the progress events of one account', async () => {
     assert.deepEqual(messages, ['Syncing 1@bnp (coming)...', 'Done 1@bnp (coming): 1 received, 1 new', 'Synchronization complete']);
 });
 
+test('syncBanks asks the interactive mode for one account only', async () => {
+    const calls = mockFetch(() => new Response(new Blob(['data: Synchronization complete\n\n']).stream(), { status: 200 }));
+    const api = createApiService(BASE, 't');
+
+    await api.syncBanks(() => {}, '1@bnp', true);
+    await api.syncBanks(() => {}, null, true);
+    assert.equal(calls[0].url, `${BASE}/bank/sync?account=1%40bnp&interactive=true`);
+    assert.equal(calls[1].url, `${BASE}/bank/sync`);
+});
+
 test('syncBanks reports a refused synchronization', async () => {
     mockFetch(() => json({ error: 'Account not found' }, 404));
     await assert.rejects(createApiService(BASE, 't').syncBanks(() => {}, 'x@y'), { message: 'Account not found' });

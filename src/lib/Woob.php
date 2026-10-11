@@ -48,22 +48,43 @@ final class Woob {
     }
 
     /**
+     * Whether a woob error asks a two-factor authentication, which woob only starts
+     * in interactive mode (a user who waits for it in the portal).
+     *
+     * @param string|null $error The error message
+     * @return bool
+     */
+    public static function needsTwoFactor($error)
+    {
+        return (bool)preg_match('/interactive mode to perform a two-factor authentication/i', (string)$error);
+    }
+
+    /**
      * Call Woob to get the list of transactions from a bank.
      * Uses proc_open to send SSE heartbeats while waiting for woob to finish,
      * preventing proxy/client timeouts on long-running commands.
      *
-     * @param string $type   The type of transactions to get (coming or history)
-     * @param string $bankId The bank account identifier
+     * In interactive mode, woob runs on a pseudo-terminal (tools/woob-tty.py): it may then
+     * start a two-factor authentication and wait for its validation in the bank app,
+     * and each message it writes (other than the data) is given to $onMessage.
+     *
+     * @param string        $type        The type of transactions to get (coming or history)
+     * @param string        $bankId      The bank account identifier
+     * @param bool          $interactive Allow woob to ask a two-factor authentication
+     * @param callable|null $onMessage   Receives each message of woob (interactive mode)
      * @return array|null The transaction data or null if no data
      * @throws Exception If woob fails, or reports an error without returning data
      */
-    public static function getBankData($type, $bankId)
+    public static function getBankData($type, $bankId, $interactive = false, $onMessage = null)
     {
         $command = self::buildCommand($type, $bankId);
+        if ($interactive) {
+            $command = self::interactiveCommand($command);
+        }
         Logger::debug("Calling woob : $command");
 
         $stderr = '';
-        $stdout = self::executeWithHeartbeat($command, $stderr);
+        $stdout = self::executeWithHeartbeat($command, $stderr, true, $interactive ? $onMessage : null);
         $data = self::parseOutput($type, $stdout);
 
         // woob may exit with 0 when a backend cannot be loaded or logged in:
@@ -341,15 +362,46 @@ final class Woob {
     }
 
     /**
+     * Command that runs a woob command on a pseudo-terminal (interactive mode).
+     *
+     * @param string $command The woob command
+     * @return string The command run through tools/woob-tty.py
+     */
+    private static function interactiveCommand($command)
+    {
+        return 'python3 ' . escapeshellarg(dirname(__DIR__, 2) . '/tools/woob-tty.py') . ' ' . escapeshellarg($command);
+    }
+
+    /**
+     * Give the complete lines of a woob output that are not data (JSON) to a callback,
+     * without terminal colors. The incomplete last line stays in the buffer.
+     *
+     * @param string   $buffer    The output not handled yet (updated)
+     * @param callable $onMessage Receives each message
+     * @return void
+     */
+    private static function emitMessages(&$buffer, $onMessage)
+    {
+        while (($end = strpos($buffer, "\n")) !== false) {
+            $line = trim(preg_replace('/\e\[[0-9;?]*[A-Za-z]/', '', substr($buffer, 0, $end)));
+            $buffer = substr($buffer, $end + 1);
+            if ($line !== '' && $line[0] !== '[' && $line[0] !== '{') {
+                $onMessage(mb_substr($line, 0, 300));
+            }
+        }
+    }
+
+    /**
      * Execute a shell command with SSE heartbeats sent during execution.
      *
-     * @param string $command   The shell command to execute
-     * @param string $stderr    Receives the error output of the command
-     * @param bool   $heartbeat Send SSE heartbeats while waiting (stream routes only)
+     * @param string        $command   The shell command to execute
+     * @param string        $stderr    Receives the error output of the command
+     * @param bool          $heartbeat Send SSE heartbeats while waiting (stream routes only)
+     * @param callable|null $onMessage Receives each line of the output that is not data
      * @return string The stdout output of the command
      * @throws Exception If the process fails to start or exits with a non-zero code
      */
-    private static function executeWithHeartbeat($command, &$stderr = '', $heartbeat = true)
+    private static function executeWithHeartbeat($command, &$stderr = '', $heartbeat = true, $onMessage = null)
     {
         $descriptors = [
             0 => ['pipe', 'r'],
@@ -367,6 +419,7 @@ final class Woob {
 
         $output = [1 => '', 2 => ''];
         $open = [1 => $pipes[1], 2 => $pipes[2]];
+        $pending = '';
 
         // Read stdout and stderr until both are closed, sending a heartbeat
         // each time woob stays silent for HEARTBEAT_INTERVAL seconds
@@ -388,8 +441,16 @@ final class Woob {
                 if ($chunk === '' || $chunk === false) {
                     fclose($pipe);
                     unset($open[$index]);
+                    if ($index === 1 && $onMessage !== null) {
+                        $pending .= "\n";
+                        self::emitMessages($pending, $onMessage);
+                    }
                 } else {
                     $output[$index] .= $chunk;
+                    if ($index === 1 && $onMessage !== null) {
+                        $pending .= $chunk;
+                        self::emitMessages($pending, $onMessage);
+                    }
                 }
             }
         }

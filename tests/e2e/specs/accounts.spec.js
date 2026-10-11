@@ -63,6 +63,34 @@ test('finds the accounts of a bank in woob and follows one', async ({ adminPage:
     await expect(account(page, '00087654321@bnp')).toBeVisible();
 });
 
+test('approves the strong authentication asked by a bank', async ({ adminPage: page }) => {
+    // Account of the fake woob that only answers in interactive mode (on a terminal)
+    await openTab(page, tr('tabAccounts'));
+    await page.getByRole('button', { name: tr('addAccountTitle') }).click();
+    const modal = page.getByRole('dialog', { name: tr('addAccountTitle') });
+    await modal.locator('#field-2').selectOption('__other');
+    await modal.getByPlaceholder(tr('accountBankPlaceholder')).fill('bank');
+    await modal.getByLabel(new RegExp(tr('accountNumber'))).fill('2fa');
+    await modal.getByRole('button', { name: tr('save') }).click();
+    await expect(page.locator('.toast')).toHaveText(tr('accountAdded'));
+
+    // A normal synchronization fails: woob needs the interactive mode
+    await account(page, '2fa@bank').getByRole('button', { name: tr('syncAccount') }).click();
+    await expect(page.locator('.sync-status')).toContainText(tr('syncStatus_error'));
+    await expect(page.locator('.sync-step-error')).toContainText(tr('sync2faHelp'));
+
+    // The account stays flagged (e.g. after a failed scheduled synchronization)
+    const row = account(page, '2fa@bank');
+    await expect(row.locator('.account-sync-state')).toHaveText(tr('lastSync2fa'));
+
+    await row.getByRole('button', { name: tr('sync2faButton') }).click();
+    await expect(page.locator('.sync-status')).toContainText(tr('syncStatus_success'));
+    await expect(page.getByRole('button', { name: tr('sync2faButton') })).toHaveCount(0);
+    await page.getByRole('button', { name: tr('syncShowLog') }).click();
+    await expect(page.locator('.sync-log')).toContainText('Bank message 2fa@bank: Veuillez valider la connexion dans votre application bancaire.');
+    await expect(account(page, '2fa@bank').locator('.account-sync-state')).toHaveText(tr('lastSync_OK'));
+});
+
 test('adds an account of a bank typed by hand, modifies then deletes it', async ({ adminPage: page }) => {
     await openTab(page, tr('tabAccounts'));
     await page.getByRole('button', { name: tr('addAccountTitle') }).click();

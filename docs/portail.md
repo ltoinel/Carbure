@@ -221,6 +221,20 @@ protégée.
 La synchronisation de tous les comptes est planifiée côté serveur (`SYNC_INTERVAL` avec
 Docker, ou une tâche cron).
 
+### Authentification forte (2FA)
+
+Certaines banques (Crédit Mutuel, CIC…) demandent régulièrement de valider la connexion
+dans leur application. La synchronisation planifiée ne déclenche jamais cette validation :
+elle échoue, le compte passe en **Authentification forte requise** et chaque utilisateur
+reçoit la notification « Strong authentication needed » sur l'app iOS. Le bouton
+**Valider l'authentification forte** (sur la ligne du compte ou sous l'erreur) relance la
+synchronisation de ce compte en mode interactif : woob déclenche la demande, son message
+s'affiche (« validez dans votre application… ») et la synchronisation attend la validation
+sur le téléphone. La session obtenue reste valable plusieurs semaines (souvent 90 jours,
+règle DSP2) ; les synchronisations planifiées fonctionnent de nouveau jusque-là.
+
+Les authentifications qui demandent de **saisir un code** (SMS) ne sont pas encore gérées.
+
 ## Agent IA
 
 Connexion d'un agent IA (Claude, ChatGPT, Cursor, Copilot, Gemini…) au serveur MCP de
