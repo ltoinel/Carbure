@@ -215,7 +215,9 @@ protégée.
   l'identifiant du compte. Pour une banque pas encore configurée, le formulaire demande les
   identifiants attendus par son module woob (numéro client, code, type de compte…) :
   **Connecter la banque** les confie à woob (Carbure ne les enregistre ni ne les journalise)
-  et affiche les comptes trouvés, à suivre en un clic.
+  et affiche les comptes trouvés, à suivre en un clic. Une banque déjà configurée reste
+  proposée (« autre identifiant ») pour connecter un second accès avec d'autres
+  identifiants (compte joint, professionnel…) : un nom libre lui est proposé (`bnp_2`…).
 - **Synchronisation** : progression en direct, statut OK/KO de chaque étape par compte
   (opérations à venir, historique, notifications), nombre de transactions reçues et
   nouvelles, journal détaillé. Avec le réglage `woob_debug`, le journal affiche aussi, en
@@ -318,7 +320,8 @@ release), lue dans `GET /api/health`.
 Le portail vise le niveau AA des WCAG (score Lighthouse « Accessibilité » de 100 sur les
 onglets et les fenêtres) :
 
-- contrastes suffisants (rouge de la marque assombri à 5:1 sur blanc) et focus clavier
+- contrastes suffisants (rouge de la marque assombri à 5:1 sur blanc), au repos **et au
+  survol** des boutons (un bouton à fond clair garde son fond au survol), et focus clavier
   toujours visible ;
 - lien « Aller au contenu », repères de page (bannière, navigation, contenu principal) et
   onglet courant annoncé ;
@@ -329,6 +332,11 @@ onglets et les fenêtres) :
   celle de l'utilisateur ;
 - graphiques doublés d'un tableau (Tendances, Flux du mois) et animations coupées quand le
   système demande moins de mouvements.
+
+Les contrastes sont vérifiés par les tests e2e (`tests/e2e/specs/accessibility.spec.js`) :
+chaque texte de chaque onglet, des menus et des fenêtres, et chaque bouton au repos et au
+survol doivent atteindre 4,5:1 (3:1 pour une icône ou un grand texte). Les couleurs
+choisies par les utilisateurs (catégories) et les graphiques SVG ne sont pas mesurés.
 
 ## Mode debug
 
