@@ -35,6 +35,25 @@ test('synchronizes one account', async ({ adminPage: page }) => {
     await expect(page.locator('.transaction-item').filter({ hasText: 'BOULANGERIE' })).toHaveCount(2);
 });
 
+test('shows the debug logs of woob in the synchronization log', async ({ adminPage: page, api }) => {
+    const saved = await api.put('/api/system/config', { data: { values: { woob_debug: true } } });
+    expect(saved.ok(), await saved.text()).toBeTruthy();
+
+    await openTab(page, tr('tabAccounts'));
+    await account(page, 'fail@bank').getByRole('button', { name: tr('syncAccount') }).click();
+    await expect(page.locator('.sync-status')).toContainText(tr('syncStatus_error'));
+
+    // The error output of woob, line by line, besides the steps
+    await page.getByRole('button', { name: tr('syncShowLog') }).click();
+    const debug = page.locator('.sync-log li.sync-log-debug');
+    await expect(debug.filter({ hasText: 'Woob debug fail@bank: DEBUG:woob.browser:Request: GET https://bank.example/accounts' })).toHaveCount(1);
+    await expect(debug.last()).toHaveText("Woob debug fail@bank: AttributeError: 'NoneType' object has no attribute 'iter_accounts'");
+
+    // Nothing synchronized: no categorization, only the notification of the error
+    await expect(page.locator('.sync-log')).not.toContainText('Updating missing categories');
+    await expect(page.locator('.sync-log')).toContainText('Notifying users of fail@bank');
+});
+
 test('reports a synchronization error', async ({ adminPage: page }) => {
     await openTab(page, tr('tabAccounts'));
     await account(page, 'fail@bank').getByRole('button', { name: tr('syncAccount') }).click();

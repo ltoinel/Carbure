@@ -218,8 +218,11 @@ protégée.
   et affiche les comptes trouvés, à suivre en un clic.
 - **Synchronisation** : progression en direct, statut OK/KO de chaque étape par compte
   (opérations à venir, historique, notifications), nombre de transactions reçues et
-  nouvelles, journal détaillé. En cas d'échec woob, un lien ouvre la recherche des tickets
-  woob sur le module concerné. Pendant une synchronisation, l'icône de l'onglet tourne.
+  nouvelles, journal détaillé. Avec le réglage `woob_debug`, le journal affiche aussi, en
+  direct, les logs de débogage de woob (requêtes vers la banque, trace de l'erreur Python),
+  à un administrateur uniquement. En cas d'échec woob, un lien ouvre la recherche des tickets
+  woob sur le module concerné. Si aucun compte n'a pu être synchronisé, la catégorisation
+  est sautée : seule l'erreur est notifiée. Pendant une synchronisation, l'icône de l'onglet tourne.
 
 La synchronisation de tous les comptes est planifiée côté serveur (`SYNC_INTERVAL` avec
 Docker, ou une tâche cron).

@@ -68,14 +68,18 @@ final class Woob {
      * start a two-factor authentication and wait for its validation in the bank app,
      * and each message it writes (other than the data) is given to $onMessage.
      *
+     * When woob_debug is enabled, each line of the error output of woob (its debug logs:
+     * requests to the bank, Python traceback...) is given live to $onDebug.
+     *
      * @param string        $type        The type of transactions to get (coming or history)
      * @param string        $bankId      The bank account identifier
      * @param bool          $interactive Allow woob to ask a two-factor authentication
      * @param callable|null $onMessage   Receives each message of woob (interactive mode)
+     * @param callable|null $onDebug     Receives each line of the debug logs of woob (woob_debug)
      * @return array|null The transaction data or null if no data
      * @throws Exception If woob fails, or reports an error without returning data
      */
-    public static function getBankData($type, $bankId, $interactive = false, $onMessage = null)
+    public static function getBankData($type, $bankId, $interactive = false, $onMessage = null, $onDebug = null)
     {
         $command = self::buildCommand($type, $bankId);
         if ($interactive) {
@@ -84,7 +88,8 @@ final class Woob {
         Logger::debug("Calling woob : $command");
 
         $stderr = '';
-        $stdout = self::executeWithHeartbeat($command, $stderr, true, $interactive ? $onMessage : null);
+        $stdout = self::executeWithHeartbeat($command, $stderr, true, $interactive ? $onMessage : null,
+            Config::get('woob_debug') ? $onDebug : null);
         $data = self::parseOutput($type, $stdout);
 
         // woob may exit with 0 when a backend cannot be loaded or logged in:
@@ -378,15 +383,17 @@ final class Woob {
      *
      * @param string   $buffer    The output not handled yet (updated)
      * @param callable $onMessage Receives each message
+     * @param bool     $data      The output contains data (JSON lines, skipped)
+     * @param int      $maxLength Maximum length of a message
      * @return void
      */
-    private static function emitMessages(&$buffer, $onMessage)
+    private static function emitMessages(&$buffer, $onMessage, $data = true, $maxLength = 300)
     {
         while (($end = strpos($buffer, "\n")) !== false) {
             $line = trim(preg_replace('/\e\[[0-9;?]*[A-Za-z]/', '', substr($buffer, 0, $end)));
             $buffer = substr($buffer, $end + 1);
-            if ($line !== '' && $line[0] !== '[' && $line[0] !== '{') {
-                $onMessage(mb_substr($line, 0, 300));
+            if ($line !== '' && (!$data || ($line[0] !== '[' && $line[0] !== '{'))) {
+                $onMessage(mb_substr($line, 0, $maxLength));
             }
         }
     }
@@ -398,10 +405,11 @@ final class Woob {
      * @param string        $stderr    Receives the error output of the command
      * @param bool          $heartbeat Send SSE heartbeats while waiting (stream routes only)
      * @param callable|null $onMessage Receives each line of the output that is not data
+     * @param callable|null $onError   Receives each line of the error output
      * @return string The stdout output of the command
      * @throws Exception If the process fails to start or exits with a non-zero code
      */
-    private static function executeWithHeartbeat($command, &$stderr = '', $heartbeat = true, $onMessage = null)
+    private static function executeWithHeartbeat($command, &$stderr = '', $heartbeat = true, $onMessage = null, $onError = null)
     {
         $descriptors = [
             0 => ['pipe', 'r'],
@@ -419,7 +427,8 @@ final class Woob {
 
         $output = [1 => '', 2 => ''];
         $open = [1 => $pipes[1], 2 => $pipes[2]];
-        $pending = '';
+        $pending = [1 => '', 2 => ''];
+        $callbacks = [1 => $onMessage, 2 => $onError];
 
         // Read stdout and stderr until both are closed, sending a heartbeat
         // each time woob stays silent for HEARTBEAT_INTERVAL seconds
@@ -441,16 +450,14 @@ final class Woob {
                 if ($chunk === '' || $chunk === false) {
                     fclose($pipe);
                     unset($open[$index]);
-                    if ($index === 1 && $onMessage !== null) {
-                        $pending .= "\n";
-                        self::emitMessages($pending, $onMessage);
-                    }
+                    $chunk = "\n";
                 } else {
                     $output[$index] .= $chunk;
-                    if ($index === 1 && $onMessage !== null) {
-                        $pending .= $chunk;
-                        self::emitMessages($pending, $onMessage);
-                    }
+                }
+                // stdout: messages besides the data; stderr: logs, kept longer (requests, tracebacks)
+                if ($callbacks[$index] !== null) {
+                    $pending[$index] .= $chunk;
+                    self::emitMessages($pending[$index], $callbacks[$index], $index === 1, $index === 1 ? 300 : 2000);
                 }
             }
         }
@@ -459,7 +466,6 @@ final class Woob {
         $stderr = $output[2];
         $return_var = proc_close($process);
 
-        
         if (Config::get('woob_debug')) {
             Logger::debug("Woob stdout", ["stdout" => $stdout]);
             Logger::debug("Woob stderr", ["stderr" => $stderr]);

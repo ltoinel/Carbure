@@ -16,6 +16,7 @@
  * - account "2fa@bank"   : asks a two-factor authentication, only possible when the output
  *                          is a terminal (like woob); otherwise fails with code 1
  * - other accounts       : one JSON array of transactions per line, like woob -f json
+ * - with --debug          : the bank commands also write debug logs on stderr, like woob
  */
 
 $type = $argv[2] ?? '';
@@ -114,6 +115,11 @@ if (($argv[1] ?? '') === 'bank' && $type === 'list') {
         ['id' => "00087654321@$backend", 'label' => 'Livret A', 'balance' => '5000.00', 'currency' => 'EUR'],
     ]) . "\n";
     exit(0);
+}
+
+if (($argv[1] ?? '') === 'bank' && in_array('--debug', $argv, true)) {
+    fwrite(STDERR, "DEBUG:woob.browser:Request: GET https://bank.example/accounts\n");
+    fwrite(STDERR, "DEBUG:woob.browser:Response: 200 OK\n");
 }
 
 if ($account === 'fail@bank') {

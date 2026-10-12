@@ -3288,6 +3288,14 @@ button .material-icons {
 
 .sync-log li {
     padding: 1px 0;
+    overflow-wrap: anywhere;
+}
+
+/* Debug logs of woob (woob_debug): set apart without lowering the contrast */
+.sync-log li.sync-log-debug {
+    font-style: italic;
+    border-left: 2px solid var(--divider);
+    padding-left: 8px;
 }
 
 /* Synchronization steps */
