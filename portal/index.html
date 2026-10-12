@@ -2320,14 +2320,18 @@
                 </div>
                 <div class="modal-body">
                     <p>{{ t('budgetCopyHelp', { month: copySourceName }) }}</p>
-                    <label class="setup-checkbox">
-                        <input type="radio" value="missing" v-model="copyMode" />
-                        {{ t('budgetCopyMissing') }}
-                    </label>
-                    <label class="setup-checkbox">
-                        <input type="radio" value="all" v-model="copyMode" />
-                        {{ t('budgetCopyOverwrite') }}
-                    </label>
+                    <!-- One choice, announced as a group by the screen readers -->
+                    <fieldset class="budget-copy-mode">
+                        <legend class="visually-hidden">{{ t('budgetCopyTitle') }}</legend>
+                        <label class="setup-checkbox">
+                            <input type="radio" name="budget-copy-mode" value="missing" v-model="copyMode" />
+                            {{ t('budgetCopyMissing') }}
+                        </label>
+                        <label class="setup-checkbox">
+                            <input type="radio" name="budget-copy-mode" value="all" v-model="copyMode" />
+                            {{ t('budgetCopyOverwrite') }}
+                        </label>
+                    </fieldset>
                 </div>
                 <div class="modal-footer">
                     <button class="btn-secondary" @click="closeCopyModal">

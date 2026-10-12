@@ -151,13 +151,15 @@ final class Budget {
      * month are copied; with overwrite, every budget of the source month
      * replaces the one of the target month.
      *
-     * @param int|null $month     The target month (current month by default)
-     * @param int|null $year      The target year (current year by default)
-     * @param bool     $overwrite True to replace the budgets already set in the target month
-     * @return array month, source (previous month, Y-m), copied (budgets written) and overwrite
+     * @param int|string|null      $month     The target month (current month by default)
+     * @param int|string|null      $year      The target year (current year by default)
+     * @param bool|int|string|null $overwrite True to replace the budgets already set in the
+     *                                        target month ("true"/"false" from a query string)
+     * @return array{month: string, source: string, copied: int, overwrite: bool} month,
+     *               source (previous month, Y-m), copied (budgets written) and overwrite
      */
     #[ApiRoute('/budget/copy', method: 'POST')]
-    public static function copy($month = null, $year = null, $overwrite = false)
+    public static function copy(int|string|null $month = null, int|string|null $year = null, bool|int|string|null $overwrite = false): array
     {
         [$targetMonth, $targetYear] = Month::resolve($month, $year);
         $target = sprintf('%04d-%02d-01', $targetYear, $targetMonth);
