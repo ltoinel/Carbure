@@ -329,6 +329,45 @@ class BankTest extends DatabaseTestCase
         $this->assertStringNotContainsString('Error syncing', $output);
     }
 
+    public function testSyncSendsTheDebugLogsOfWoobToAnAdministrator()
+    {
+        Config::set('woob_debug', true);
+        try {
+            $this->loginAs(self::ADMIN);
+            $output = $this->sync();
+            $this->assertStringContainsString('data: Woob debug 111@bnp: DEBUG:woob.browser:Request: GET https://bank.example/accounts', $output);
+            $this->assertStringContainsString("data: Woob debug fail@bank: AttributeError: 'NoneType' object has no attribute 'iter_accounts'", $output);
+
+            // The debug logs may show bank data: not for the other users
+            $this->loginAs(self::USER);
+            $this->assertStringNotContainsString('Woob debug', $this->sync());
+        } finally {
+            Config::set('woob_debug', false);
+        }
+
+        // Disabled: no debug logs
+        $this->loginAs(self::ADMIN);
+        $this->assertStringNotContainsString('Woob debug', $this->sync());
+    }
+
+    public function testFailedSyncDoesNotUpdateTheCategories()
+    {
+        $this->loginAs(self::ADMIN);
+        ob_start();
+        try {
+            Bank::getSync(null, 'fail@bank');
+        } finally {
+            $output = ob_get_clean();
+        }
+        $this->assertStringContainsString('data: Error syncing fail@bank', $output);
+        $this->assertStringContainsString('data: Notifying users of fail@bank...', $output);
+        $this->assertStringNotContainsString('Updating missing categories', $output);
+        $this->assertStringContainsString('data: Synchronization complete', $output);
+
+        // One account synchronized: the categories are updated
+        $this->assertStringContainsString('data: Updating missing categories...', $this->sync());
+    }
+
     public function testInteractiveSyncNeedsAUserAndOneAccount()
     {
         $this->loginAs(self::ADMIN);

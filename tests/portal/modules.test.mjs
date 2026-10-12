@@ -191,3 +191,21 @@ test('accountName: the name given to the account, else the bank and the end of t
     assert.equal(context.bankIdName('00012345678@bnp'), 'Compte joint');
     assert.equal(context.bankIdName('fail@bank'), 'BANK ···fail');
 });
+
+test('sync: the debug logs of woob are not steps nor transactions', async () => {
+    const { createSyncModule } = await import('../../portal/modules/syncModule.js');
+    const { syncSteps } = createSyncModule(() => null).computed;
+    const steps = syncSteps.call({
+        syncStatus: 'error',
+        syncLog: [
+            'Syncing 1@bnp (coming)...',
+            'Woob debug 1@bnp: DEBUG:woob.browser:Request: GET https://bank.example/accounts',
+            'Woob debug 1@bnp: Error while calling woob',
+            'Error syncing 1@bnp: Error while calling woob (exit code: 1): 500 Server Error',
+            'Notifying users of 1@bnp...',
+            'Synchronization complete',
+        ],
+    });
+    assert.deepEqual(steps.global, []);
+    assert.deepEqual(steps.accounts[0].steps.map(s => [s.kind, s.status, s.count]), [['coming', 'error', 0], ['notify', 'ok', 0]]);
+});

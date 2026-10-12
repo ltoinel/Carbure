@@ -3275,6 +3275,12 @@ button .material-icons {
 
 .sync-log li {
     padding: 1px 0;
+    overflow-wrap: anywhere;
+}
+
+/* Debug logs of woob (woob_debug) */
+.sync-log li.sync-log-debug {
+    opacity: 0.7;
 }
 
 /* Synchronization steps */

@@ -72,6 +72,14 @@ if ($path === '/api/__e2e/reset' || !is_file($configCopy)) {
 }
 System::$configFile = realpath($configCopy);
 
+// The settings changed by the Config tab apply to the next requests, as in production
+$defaults = parse_ini_file($root . '/conf/e2e.ini');
+foreach (parse_ini_file($configCopy) as $key => $value) {
+    if (($defaults[$key] ?? null) !== $value) {
+        Config::set($key, $value);
+    }
+}
+
 if ($path === '/api/__e2e/reset') {
     header('Content-Type: application/json');
     try {

@@ -59,6 +59,10 @@ export function createSyncModule(getApiService) {
 
                 for (const line of this.syncLog) {
                     let match;
+                    if (line.startsWith('Woob debug ')) {
+                        // Debug logs of woob (woob_debug): only shown in the log
+                        continue;
+                    }
                     if ((match = line.match(/^Syncing (.+) \((coming|history)\)\.\.\.$/))) {
                         close('ok');
                         current = { kind: match[2], status: 'running', count: 0, created: null, error: null };

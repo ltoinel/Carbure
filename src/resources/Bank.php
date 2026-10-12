@@ -338,11 +338,12 @@ final class Bank {
      * @param string $kind        "coming" or "history"
      * @param string $bankId      The bank id to sync (account_number@bank_name)
      * @param bool   $interactive Allow the bank to ask a two-factor authentication
+     * @param bool   $debug       Send the debug logs of woob (woob_debug) in the progress
      * @return array The new transactions
      */
-    private static function syncBankData($kind, $bankId, $interactive = false)
+    private static function syncBankData($kind, $bankId, $interactive = false, $debug = false)
     {
-        $transactions = self::getBankData($kind, $bankId, $interactive);
+        $transactions = self::getBankData($kind, $bankId, $interactive, $debug);
         if (empty($transactions)) {
             Logger::warn("No $kind transactions for $bankId");
             Webservice::sendProgress("Done $bankId ($kind): 0 received, 0 new");
@@ -390,6 +391,12 @@ final class Bank {
      * two-factor authentication: its messages ("validate in your bank app") are sent
      * as "Bank message <account>: <message>" while it waits for the validation.
      *
+     * With woob_debug enabled, an administrator also receives the debug logs of woob
+     * (error output) as "Woob debug <account>: <line>", to diagnose a failing bank.
+     *
+     * The missing categories are only updated when at least one account was synchronized:
+     * after a failure, only the users are notified of the error.
+     *
      * @param string|null $token       The sync token (for the scheduler)
      * @param string|null $account     Synchronize only this account (account_number@bank_name)
      * @param string|null $interactive "true": allow a two-factor authentication (needs $account)
@@ -419,6 +426,9 @@ final class Bank {
         // Allow unlimited execution time for bank sync
         set_time_limit(0);
 
+        // The debug logs of woob may show bank data: only for an administrator
+        $debug = $user && Config::get('woob_debug') && User::isAdmin();
+
         // Acquire exclusive lock to prevent concurrent syncs
         $lockAcquired = Db::query("SELECT GET_LOCK('bank_sync', 0) AS locked")->fetch_assoc()['locked'];
         if (!$lockAcquired) {
@@ -427,6 +437,9 @@ final class Bank {
         }
 
         try {
+            // At least one account synchronized: the transactions may need categories
+            $synced = false;
+
             // Synchronize each bank account
             foreach ($bankIds as $bankId) {
                 
@@ -436,10 +449,10 @@ final class Bank {
 
                 try {
                     Webservice::sendProgress("Syncing $bankId (coming)...");
-                    $created = self::syncBankData('coming', $bankId, $interactive);
+                    $created = self::syncBankData('coming', $bankId, $interactive, $debug);
 
                     Webservice::sendProgress("Syncing $bankId (history)...");
-                    $created = array_merge($created, self::syncBankData('history', $bankId, $interactive));
+                    $created = array_merge($created, self::syncBankData('history', $bankId, $interactive, $debug));
 
                 } catch (Exception $e) {
                     Logger::error("Error syncing $bankId: " . $e->getMessage());
@@ -448,6 +461,7 @@ final class Bank {
                     $error = $e->getMessage();
                 }
                 self::recordSyncResult($bankId, $status, $status ? count($created) . " new" : $error);
+                $synced = $synced || $status;
 
                 // Send notification to all users who own this bank account
                 Webservice::sendProgress("Notifying users of $bankId...");
@@ -456,9 +470,11 @@ final class Bank {
                 self::alertRuleMatches($created);
             }
             
-            // Update missing categories
-            Webservice::sendProgress("Updating missing categories...");
-            Transaction::updateMissingCategories();
+            // Update missing categories: useless when every account failed (no transaction)
+            if ($synced) {
+                Webservice::sendProgress("Updating missing categories...");
+                Transaction::updateMissingCategories();
+            }
 
             // Delete the log files older than the retention: a cleanup must not fail the sync
             try {
@@ -685,11 +701,13 @@ final class Bank {
      * @param string $type        The type of transactions to get (coming or history)
      * @param string $bankId      The bank id
      * @param bool   $interactive Allow the bank to ask a two-factor authentication
+     * @param bool   $debug       Send the debug logs of woob in the progress
      * @return array|null The transaction data or null if no data
      */
-    private static function getBankData($type, $bankId, $interactive = false)
+    private static function getBankData($type, $bankId, $interactive = false, $debug = false)
     {
         return Woob::getBankData($type, $bankId, $interactive,
-            fn($message) => Webservice::sendProgress("Bank message $bankId: $message"));
+            fn($message) => Webservice::sendProgress("Bank message $bankId: $message"),
+            $debug ? fn($line) => Webservice::sendProgress("Woob debug $bankId: $line") : null);
     }
 }

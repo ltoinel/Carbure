@@ -90,8 +90,8 @@ transactions du dernier mois restées sans catégorie.
   relevés téléchargés depuis la banque s'**importent** depuis l'onglet Transactions (voir
   plus bas).
 - **Suivi en direct** : étapes par compte (à venir, historique, notifications), nombre
-  d'opérations reçues et nouvelles, journal détaillé ; en cas d'erreur woob, lien vers les
-  tickets du module concerné.
+  d'opérations reçues et nouvelles, journal détaillé (avec les logs de débogage de woob si
+  `woob_debug` est activé) ; en cas d'erreur woob, lien vers les tickets du module concerné.
 - **Une seule à la fois** : une synchronisation lancée pendant une autre est refusée
   (« déjà en cours »).
 
