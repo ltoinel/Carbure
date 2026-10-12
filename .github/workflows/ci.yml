@@ -28,6 +28,9 @@ jobs:
       - name: PHP syntax
         run: find src tests swagger tools -name '*.php' -print0 | xargs -0 -n1 php -l
 
+      - name: PHP types (PHPStan)
+        run: php -d memory_limit=1G tools/phpstan.phar analyse --no-progress --error-format=github -a tools/phpstan/NativeTypesRule.php
+
       - uses: actions/setup-node@v7
         with:
           node-version: 22

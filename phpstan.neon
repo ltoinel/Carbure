@@ -1,0 +1,17 @@
+# Static analysis of the PHP code (no Composer: the rule of Carbure is loaded with -a):
+#   php tools/phpstan.phar analyse -a tools/phpstan/NativeTypesRule.php
+# (run by the pre-commit hook and the CI lint job)
+parameters:
+    # Level 6: every parameter, return value and property must have a type
+    level: 6
+    phpVersion: 80200
+    paths:
+        - src
+        - swagger
+        - tools
+    excludePaths:
+        - tools/*.phar
+
+# Parameters, return values and properties typed in the code, not only in the PHPDoc
+rules:
+    - NativeTypesRule
