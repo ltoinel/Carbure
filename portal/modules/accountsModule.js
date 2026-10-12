@@ -198,8 +198,19 @@ export function createAccountsModule(getApiService) {
             },
 
             /**
-             * Name of a connected bank: "BNP Paribas (bnp_2)", from the description of its module
-             * @param {{name: string, module: string}} backend - woob backend
+             * Name of the bank of a connection, without its woob name (shown next to it)
+             * @param {{name: string, module: string}} backend - Backend of woob
+             * @returns {string}
+             */
+            bankDescription(backend) {
+                const module = this.bankModules.find(m => m.module === backend.module);
+                return module && module.description ? module.description : backend.name;
+            },
+
+            /**
+             * Name of a connected bank with its woob name, to tell two logins apart
+             * ("BNP Paribas (bnp_2)")
+             * @param {{name: string, module: string}} backend - Backend of woob
              * @returns {string}
              */
             backendName(backend) {

@@ -1166,8 +1166,10 @@
                                         <span class="material-icons" :class="{ spin: syncStatus === 'running' && syncTarget === null }" aria-hidden="true">sync</span>
                                         {{ t('syncAllAccounts') }}
                                     </button>
-                                    <button class="btn-add btn-add-icon" @click="openConnectModal()" :title="t('connectBankTitle')" :aria-label="t('connectBankTitle')">
-                                        <span class="material-icons" aria-hidden="true">add</span>
+                                    <!-- Step 1 of the addition of accounts: a labeled entry point -->
+                                    <button type="button" class="btn-add" @click="openConnectModal()">
+                                        <span class="material-icons" aria-hidden="true">add_link</span>
+                                        {{ t('connectBankTitle') }}
                                     </button>
                                 </div>
                             </div>
@@ -1179,7 +1181,7 @@
                                 <li v-for="b in bankBackends" :key="b.name" class="bank-connection">
                                     <span class="material-icons account-icon" aria-hidden="true">account_balance</span>
                                     <div class="account-details">
-                                        <div class="account-name">{{ backendName(b) }}</div>
+                                        <div class="account-name">{{ bankDescription(b) }}</div>
                                         <code class="device-token">{{ b.name }}</code>
                                     </div>
                                     <button type="button" class="btn-secondary" @click="openAddAccounts(b.name)" :aria-label="t('addAccountsTo', { bank: backendName(b) })">
@@ -2162,7 +2164,7 @@
                         <p class="setup-help">
                             <span class="material-icons inline-icon" aria-hidden="true">lock</span>{{ t('bankSetupHelp') }}
                         </p>
-                        <div v-if="bankSetup.loading" class="transactions-hint">{{ t('loadingMessage') }}</div>
+                        <div v-if="bankSetup.loading" class="transactions-hint" role="status">{{ t('bankSetupLoading') }}</div>
                         <template v-else>
                             <div v-for="f in bankSetup.fields" :key="f.key" class="form-group">
                                 <label :for="'bank-setting-' + f.key">{{ f.label }}{{ f.required ? ' *' : '' }}</label>

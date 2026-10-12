@@ -198,7 +198,11 @@ test('connects a new bank, then follows two of its accounts at once', async ({ a
     await expect(page.locator('.toast')).toHaveText(tr('accountsFollowedToast', { count: 2 }));
     await expect(account(page, '00012345678@boursorama').locator('.account-name')).toContainText('Compte chèques');
     await expect(account(page, '00087654321@boursorama').locator('.account-name')).toContainText('Livret A');
-    await expect(page.locator('.bank-connection').filter({ hasText: 'Boursorama (boursorama)' })).toHaveCount(1);
+    // The bank by its name, its woob name next to it (not repeated)
+    const connection = page.locator('.bank-connection').filter({ hasText: 'Boursorama' });
+    await expect(connection).toHaveCount(1);
+    await expect(connection.locator('.account-name')).toHaveText('Boursorama');
+    await expect(connection.locator('code')).toHaveText('boursorama');
 });
 
 test('connects a second login of a bank already connected', async ({ adminPage: page }) => {

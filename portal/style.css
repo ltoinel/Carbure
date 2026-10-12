@@ -1306,6 +1306,14 @@ button .material-icons {
     letter-spacing: 0.5px;
 }
 
+/* An account found by woob: its label and woob id as they are (not a field label) */
+.modal-body .accounts-list.discovered label.account-details {
+    text-transform: none;
+    letter-spacing: normal;
+    font-size: 14px;
+    color: var(--text-primary);
+}
+
 .modal-body input[type="number"] {
     padding: 12px 14px;
     border: 2px solid var(--divider);

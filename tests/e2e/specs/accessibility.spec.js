@@ -79,6 +79,8 @@ test('the menus, modals and the synchronization log are readable', async ({ admi
     const connect = page.getByRole('dialog', { name: tr('connectBankTitle') });
     await connect.getByLabel(new RegExp(tr('connectBankModule'))).selectOption('boursorama');
     await expect(connect.locator('fieldset.bank-setup input').first()).toBeVisible();
+    // Measured once the settings are loaded: the connect button is enabled (not mid-change)
+    await expect(connect.getByRole('button', { name: tr('bankConnect') })).toBeEnabled();
     problems.push(...await contrastProblems(page, tr('connectBankTitle')));
     await page.keyboard.press('Escape');
     await expect(connect).toHaveCount(0);

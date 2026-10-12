@@ -211,8 +211,10 @@ protégée.
   déjà importées sont conservées). Un compte s'affiche « BANQUE ···1234 » (banque et fin
   de l'identifiant), ou sous le **nom** qui lui a été donné (facultatif, ex. « Compte
   joint »), aussi dans la synchronisation et le détail d'une transaction.
+- **Synchroniser tous les comptes** (en haut de la page) : lance la synchronisation de
+  tous les comptes suivis, avec le même suivi en direct qu'un compte seul.
 - **Ajout en deux étapes** :
-    1. **+ Connecter une banque** (fenêtre modale) : choisir la banque parmi celles que
+    1. **Connecter une banque** (fenêtre modale) : choisir la banque parmi celles que
        woob supporte ; le formulaire demande les identifiants attendus par son module woob
        (numéro client, code, type de compte…), que **Connecter la banque** confie à woob
        (Carbure ne les enregistre ni ne les journalise). Une banque déjà connectée reste
