@@ -22,7 +22,7 @@ class BankTest extends DatabaseTestCase
         $accounts = Bank::get();
         // 111@bnp is followed twice (by two users): listed once
         $this->assertSame(['fail@bank', '111@bnp'], array_column($accounts, 'bankId'));
-        $this->assertSame(['bankId' => '111@bnp', 'account_number' => '111', 'bank_name' => 'bnp'],
+        $this->assertSame(['bankId' => '111@bnp', 'account_number' => '111', 'bank_name' => 'bnp', 'label' => null],
             array_diff_key($accounts[1], ['id' => true]));
         $this->assertGreaterThan(0, $accounts[1]['id']);
 
@@ -48,6 +48,32 @@ class BankTest extends DatabaseTestCase
 
         $this->assertTrue(Bank::delete($account['id']));
         $this->assertCount($before, Bank::accounts());
+    }
+
+    public function testLabel()
+    {
+        $this->loginAs(self::ADMIN);
+
+        // Trimmed, control characters replaced
+        $account = Bank::create('222', 'bnp', "  Compte\tjoint ");
+        $this->assertSame('Compte joint', $account['label']);
+        $listed = array_column(Bank::accounts(), 'label', 'bankId');
+        $this->assertSame('Compte joint', $listed['222@bnp']);
+        $this->assertSame('Compte joint', array_column(Bank::get(), 'label', 'bankId')['222@bnp']);
+
+        // Omitted (older clients): kept; empty: removed
+        $this->assertSame('Compte joint', Bank::update($account['id'], '222', 'bnp')['label']);
+        $this->assertSame('Livret A', Bank::update($account['id'], '222', 'bnp', 'Livret A')['label']);
+        $this->assertSame('Livret A', array_column(Bank::accounts(), 'label', 'bankId')['222@bnp']);
+        $this->assertNull(Bank::update($account['id'], '222', 'bnp', ' ')['label']);
+        $this->assertNull(array_column(Bank::accounts(), 'label', 'bankId')['222@bnp']);
+        $this->assertNull(Bank::create('333', 'bnp')['label']);
+
+        // 100 characters at most (accents count as one)
+        $this->assertSame(str_repeat('é', 100), Bank::update($account['id'], '222', 'bnp', str_repeat('é', 100))['label']);
+        $this->expectException(Error::class);
+        $this->expectExceptionCode(400);
+        Bank::update($account['id'], '222', 'bnp', str_repeat('é', 101));
     }
 
     public function testCreateDuplicateAndInvalid()

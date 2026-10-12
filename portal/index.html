@@ -1209,7 +1209,7 @@
                                 <div v-for="acc in syncSteps.accounts" :key="acc.id" class="sync-account">
                                     <div class="sync-account-name">
                                         <span class="material-icons" aria-hidden="true">account_balance</span>
-                                        {{ acc.id.split('@')[1].toUpperCase() }} ···{{ acc.id.split('@')[0].slice(-4) }}
+                                        {{ bankIdName(acc.id) }}
                                     </div>
                                     <ul>
                                         <li v-for="(step, i) in acc.steps" :key="i" class="sync-step" :class="'step-' + step.status">
@@ -2192,6 +2192,11 @@
                     <div class="form-group">
                         <label for="field-3">{{ t('accountNumber') }} *</label>
                         <input id="field-3" v-model="accountForm.account_number" maxlength="100" />
+                    </div>
+                    <div class="form-group">
+                        <label for="field-account-label">{{ t('accountLabel') }}</label>
+                        <input id="field-account-label" v-model="accountForm.label" maxlength="100" :placeholder="t('accountLabelPlaceholder')" aria-describedby="account-label-help" />
+                        <small id="account-label-help">{{ t('accountLabelHelp') }}</small>
                     </div>
                 </div>
                 <div class="modal-footer">

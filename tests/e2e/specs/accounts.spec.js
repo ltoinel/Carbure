@@ -57,10 +57,40 @@ test('finds the accounts of a bank in woob and follows one', async ({ adminPage:
     await discovered.filter({ hasText: 'Livret A' }).getByRole('button', { name: tr('followAccount') }).click();
     await expect(modal.getByLabel(new RegExp(tr('accountNumber')))).toHaveValue('00087654321');
     await expect(modal.getByLabel(new RegExp(escapeRegExp(tr('accountBank'))))).toHaveValue('bnp');
+    // Named after its label in woob
+    await expect(modal.getByLabel(tr('accountLabel'))).toHaveValue('Livret A');
     await modal.getByRole('button', { name: tr('save') }).click();
 
     await expect(page.locator('.toast')).toHaveText(tr('accountAdded'));
-    await expect(account(page, '00087654321@bnp')).toBeVisible();
+    await expect(account(page, '00087654321@bnp').locator('.account-name')).toContainText('Livret A');
+});
+
+test('names an account, shown instead of the bank and the end of its number', async ({ adminPage: page }) => {
+    await openTab(page, tr('tabAccounts'));
+    const bnp = account(page, '00012345678@bnp');
+    await bnp.getByRole('button', { name: tr('editAccount') }).click();
+
+    let modal = page.getByRole('dialog', { name: tr('editAccount') });
+    await expect(modal.getByLabel(tr('accountLabel'))).toHaveValue('');
+    await modal.getByLabel(tr('accountLabel')).fill('Compte joint');
+    await modal.getByRole('button', { name: tr('save') }).click();
+    await expect(page.locator('.toast')).toHaveText(tr('accountUpdated'));
+    await expect(bnp.locator('.account-name')).toContainText('Compte joint');
+    await expect(bnp.locator('.account-name')).not.toContainText('BNP ···5678');
+
+    // Also in the synchronization progress
+    await bnp.getByRole('button', { name: tr('syncAccount') }).click();
+    await expect(page.locator('.sync-status')).toContainText(tr('syncStatus_success'));
+    await expect(page.locator('.sync-account-name')).toContainText('Compte joint');
+
+    // Emptied: back to the bank and the end of the number
+    await bnp.getByRole('button', { name: tr('editAccount') }).click();
+    modal = page.getByRole('dialog', { name: tr('editAccount') });
+    await expect(modal.getByLabel(tr('accountLabel'))).toHaveValue('Compte joint');
+    await modal.getByLabel(tr('accountLabel')).fill('');
+    await modal.getByRole('button', { name: tr('save') }).click();
+    await expect(page.locator('.toast')).toHaveText(tr('accountUpdated'));
+    await expect(bnp.locator('.account-name')).toContainText('BNP ···5678');
 });
 
 test('approves the strong authentication asked by a bank', async ({ adminPage: page }) => {

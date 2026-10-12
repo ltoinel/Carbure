@@ -16,12 +16,13 @@ final class Bank {
     /**
      * Get the bank accounts of the household (every user sees all of them).
      * Each bank account is returned with bankId = account_number@bank_name
-     * @return array List of bank accounts with bankId and details
+     * @return array List of bank accounts with bankId and details (label: name given to
+     *               the account, null if none)
      */
     #[ApiRoute('/bank', method: 'GET')]
     public static function get()
     {
-        $sql = "SELECT MIN(id) AS id, account_number, bank_name FROM bank_account
+        $sql = "SELECT MIN(id) AS id, account_number, bank_name, MAX(label) AS label FROM bank_account
                 GROUP BY account_number, bank_name ORDER BY bank_name, account_number";
         $stmt = Db::execute($sql, "");
         $result = $stmt->get_result();
@@ -33,7 +34,8 @@ final class Bank {
                     'id' => $row['id'],
                     'bankId' => $row['account_number'] . '@' . $row['bank_name'],
                     'account_number' => $row['account_number'],
-                    'bank_name' => $row['bank_name']
+                    'bank_name' => $row['bank_name'],
+                    'label' => $row['label']
                 );
             }
         }
@@ -60,6 +62,26 @@ final class Bank {
     }
 
     /**
+     * Normalize the name given to an account: trimmed, without control characters,
+     * null when empty.
+     *
+     * @param string|null $label The name given to the account
+     * @return string|null The name to store
+     * @throws Error If it is too long
+     */
+    private static function normalizeLabel($label)
+    {
+        $label = trim(preg_replace('/[\x00-\x1F\x7F]+/u', ' ', (string)$label) ?? '');
+        if ($label === '') {
+            return null;
+        }
+        if (mb_strlen($label) > 100) {
+            throw new Error("Account name too long (100 characters max)", 400);
+        }
+        return $label;
+    }
+
+    /**
      * Get a bank account of the household.
      *
      * @param int $id The account id
@@ -79,15 +101,15 @@ final class Bank {
      * All the bank accounts of the household with the user who added them and the
      * result of their last synchronization (administrators).
      *
-     * @return array The accounts: id, bankId, account_number, bank_name, user_id and
-     *               username (who added it),
+     * @return array The accounts: id, bankId, account_number, bank_name, label (name
+     *               given to the account, null if none), user_id and username (who added it),
      *               last_sync_at, last_sync_status (OK|ERROR), last_sync_message
      */
     #[ApiRoute('/bank/accounts', method: 'GET')]
     public static function accounts()
     {
         User::requireAdmin();
-        $sql = "SELECT a.id, a.account_number, a.bank_name, a.user_id, u.username,
+        $sql = "SELECT a.id, a.account_number, a.bank_name, a.label, a.user_id, u.username,
                        a.last_sync_at, a.last_sync_status, a.last_sync_message
                 FROM bank_account a JOIN users u ON u.id = a.user_id
                 ORDER BY a.bank_name, a.account_number, u.username";
@@ -101,51 +123,56 @@ final class Bank {
     /**
      * Follow a bank account (it is synchronized from now on).
      *
-     * @param string $account_number The account identifier in woob
-     * @param string $bank_name      The woob backend name
+     * @param string      $account_number The account identifier in woob
+     * @param string      $bank_name      The woob backend name
+     * @param string|null $label          Name given to the account (optional)
      * @return array The account (user_id: the administrator who added it)
      * @throws Error If invalid or already followed by the household
      */
     #[ApiRoute('/bank', method: 'POST')]
-    public static function create($account_number, $bank_name)
+    public static function create($account_number, $bank_name, $label = null)
     {
         User::requireAdmin();
         self::validateAccount($account_number, $bank_name);
+        $label = self::normalizeLabel($label);
         $userId = (int)Jwt::getUserIdFromToken();
 
         if (Db::queryOne("SELECT id FROM bank_account WHERE account_number = ? AND bank_name = ?", "ss", $account_number, $bank_name)) {
             throw new Error("This account is already followed", 409);
         }
 
-        $stmt = Db::execute("INSERT INTO bank_account (bank_name, account_number, user_id) VALUES (?, ?, ?)", "ssi", $bank_name, $account_number, $userId);
+        $stmt = Db::execute("INSERT INTO bank_account (bank_name, account_number, label, user_id) VALUES (?, ?, ?, ?)", "sssi", $bank_name, $account_number, $label, $userId);
 
-        return ['id' => $stmt->insert_id, 'bankId' => "$account_number@$bank_name", 'account_number' => $account_number, 'bank_name' => $bank_name, 'user_id' => $userId];
+        return ['id' => $stmt->insert_id, 'bankId' => "$account_number@$bank_name", 'account_number' => $account_number, 'bank_name' => $bank_name, 'label' => $label, 'user_id' => $userId];
     }
 
     /**
      * Modify a followed bank account.
      *
-     * @param int    $id             The account id
-     * @param string $account_number The account identifier in woob
-     * @param string $bank_name      The woob backend name
+     * @param int         $id             The account id
+     * @param string      $account_number The account identifier in woob
+     * @param string      $bank_name      The woob backend name
+     * @param string|null $label          Name given to the account: omitted (null) keeps
+     *                                    the current one, empty removes it
      * @return array The account
      * @throws Error If not found, invalid or already followed by the household
      */
     #[ApiRoute('/bank', method: 'PUT')]
-    public static function update($id, $account_number, $bank_name)
+    public static function update($id, $account_number, $bank_name, $label = null)
     {
         User::requireAdmin();
         $account = self::existingAccount($id);
         self::validateAccount($account_number, $bank_name);
+        $label = $label === null ? $account['label'] : self::normalizeLabel($label);
         $userId = (int)$account['user_id'];
 
         if (Db::queryOne("SELECT id FROM bank_account WHERE account_number = ? AND bank_name = ? AND id <> ?", "ssi", $account_number, $bank_name, $id)) {
             throw new Error("This account is already followed", 409);
         }
 
-        Db::execute("UPDATE bank_account SET account_number = ?, bank_name = ? WHERE id = ?", "ssi", $account_number, $bank_name, $id);
+        Db::execute("UPDATE bank_account SET account_number = ?, bank_name = ?, label = ? WHERE id = ?", "sssi", $account_number, $bank_name, $label, $id);
 
-        return ['id' => (int)$id, 'bankId' => "$account_number@$bank_name", 'account_number' => $account_number, 'bank_name' => $bank_name, 'user_id' => $userId];
+        return ['id' => (int)$id, 'bankId' => "$account_number@$bank_name", 'account_number' => $account_number, 'bank_name' => $bank_name, 'label' => $label, 'user_id' => $userId];
     }
 
     /**

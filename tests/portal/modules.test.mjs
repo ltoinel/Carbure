@@ -168,3 +168,26 @@ test('config: curl command of the synchronization', async () => {
     assert.equal(syncCommand('https://x.fr/api/bank/sync', 'abc', '123@bnp'), 'curl -sN -H "X-Sync-Token: abc" "https://x.fr/api/bank/sync?account=123%40bnp"');
     assert.equal(syncCommand('https://x.fr/api/bank/sync', null), 'curl -sN "https://x.fr/api/bank/sync"');
 });
+
+test('accountName: the name given to the account, else the bank and the end of the number', async () => {
+    const { createAccountsModule } = await import('../../portal/modules/accountsModule.js');
+    const { methods } = createAccountsModule(() => null);
+    const context = {
+        bankAccounts: [
+            { bankId: '00012345678@bnp', account_number: '00012345678', bank_name: 'bnp', label: 'Compte joint' },
+            { bankId: '999@bnp', account_number: '999', bank_name: 'bnp', label: null },
+        ],
+    };
+    context.accountName = methods.accountName.bind(context);
+    context.bankIdName = methods.bankIdName.bind(context);
+
+    assert.equal(context.accountName(context.bankAccounts[0]), 'Compte joint');
+    assert.equal(context.accountName(context.bankAccounts[1]), 'BNP ···999');
+    // A transaction of a followed account: the name of the account, not its own label
+    assert.equal(context.accountName({ bank_name: 'bnp', account_number: '00012345678', label: 'CB PAUL' }), 'Compte joint');
+    assert.equal(context.accountName({ bank_name: 'lcl', account_number: '11112222', label: 'CB PAUL' }), 'LCL ···2222');
+    // Imported statement file: no bank
+    assert.equal(context.accountName({ bank_name: null, account_number: 'FR761234' }), '···1234');
+    assert.equal(context.bankIdName('00012345678@bnp'), 'Compte joint');
+    assert.equal(context.bankIdName('fail@bank'), 'BANK ···fail');
+});

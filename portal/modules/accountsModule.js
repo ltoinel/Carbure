@@ -20,8 +20,8 @@ export function createAccountsModule(getApiService) {
             return {
                 showAccountModal: false,
                 savingAccount: false,
-                // Account of the modal: {id (null for a new one), account_number, bank_name}
-                accountForm: { id: null, account_number: '', bank_name: '' },
+                // Account of the modal: {id (null for a new one), account_number, bank_name, label}
+                accountForm: { id: null, account_number: '', bank_name: '', label: '' },
                 discoveredAccounts: [],
                 // Banks configured in woob: [{name, module}]
                 bankBackends: [],
@@ -152,15 +152,33 @@ export function createAccountsModule(getApiService) {
             },
 
             /**
-             * Short display of an account: "BNP ···5678" ("···5678" without bank: imported file)
+             * Short display of an account: the name given to the followed account, else
+             * "BNP ···5678" ("···5678" without bank: imported file)
              * @param {Object} account - Account, or transaction: {bank_name, account_number}
+             *                           (the label of a transaction is not the account's)
              * @returns {string}
              */
             accountName(account) {
+                const followed = (this.bankAccounts || []).find(a =>
+                    a.bank_name === account.bank_name && String(a.account_number) === String(account.account_number));
+                if (followed && followed.label) {
+                    return followed.label;
+                }
                 return [
                     account.bank_name ? String(account.bank_name).toUpperCase() : null,
                     account.account_number ? `···${String(account.account_number).slice(-4)}` : null
                 ].filter(Boolean).join(' ');
+            },
+
+            /**
+             * Short display of an account from its bank id ("account_number@bank_name")
+             * @param {string} bankId - Bank id
+             * @returns {string}
+             */
+            bankIdName(bankId) {
+                const id = String(bankId);
+                const at = id.lastIndexOf('@');
+                return this.accountName({ account_number: id.slice(0, at), bank_name: id.slice(at + 1) });
             },
 
             /**
@@ -185,8 +203,8 @@ export function createAccountsModule(getApiService) {
              */
             openAccountModal(account = null) {
                 this.accountForm = account
-                    ? { id: account.id, account_number: account.account_number, bank_name: account.bank_name }
-                    : { id: null, account_number: '', bank_name: '' };
+                    ? { id: account.id, account_number: account.account_number, bank_name: account.bank_name, label: account.label || '' }
+                    : { id: null, account_number: '', bank_name: '', label: '' };
                 const bank = account ? account.bank_name : '';
                 const known = this.bankBackends.some(b => b.name === bank) || this.bankModules.some(m => m.module === bank);
                 this.newAccountBank = !bank ? '' : known ? bank : '__other';
@@ -204,11 +222,12 @@ export function createAccountsModule(getApiService) {
             },
 
             /**
-             * Fills the modal with an account found by woob
+             * Fills the modal with an account found by woob (named after its label in woob)
              * @param {Object} discovered - Account found by woob
              */
             pickDiscovered(discovered) {
                 this.accountForm.account_number = String(discovered.account_number);
+                this.accountForm.label = discovered.label ? String(discovered.label).slice(0, 100) : '';
                 const known = this.bankBackends.some(b => b.name === discovered.bank_name);
                 this.newAccountBank = known ? discovered.bank_name : '__other';
                 this.accountForm.bank_name = discovered.bank_name;
@@ -225,6 +244,7 @@ export function createAccountsModule(getApiService) {
                 }
                 const number = String(form.account_number).trim();
                 const bank = String(form.bank_name).trim();
+                const label = String(form.label || '').trim();
                 if (!number || !bank) {
                     this.showToast(this.t('accountRequired'));
                     return;
@@ -232,10 +252,10 @@ export function createAccountsModule(getApiService) {
                 this.savingAccount = true;
                 try {
                     if (form.id) {
-                        await getApiService().updateBankAccount(form.id, number, bank);
+                        await getApiService().updateBankAccount(form.id, number, bank, label);
                         this.showToast(this.t('accountUpdated'));
                     } else {
-                        await getApiService().createBankAccount(number, bank);
+                        await getApiService().createBankAccount(number, bank, label);
                         this.showToast(this.t('accountAdded'));
                     }
                     this.showAccountModal = false;

@@ -35,6 +35,8 @@ keeps track of what was done).
       migration is needed first, otherwise the portal would show "Ã‰pargne".
       Symptom of a latin1 server: the API answers 500 ("cannot be encoded in JSON" in the
       logs) as soon as an accented text was written by a utf8mb4 connection.
+      Account names (`bank_account.label`, often accented: « Compte chèques ») are also
+      covered by such a conversion; the 100-character limit is checked with `mb_strlen`.
 - [ ] Greedy `PRLV SEPA` regex (`ECH/…` is not removed from the label) and `addslashes()`
       applied before a prepared statement (double escaping). Fixing them changes the labels,
       hence the UUIDs: plan an SQL migration that recomputes labels and UUIDs exactly like

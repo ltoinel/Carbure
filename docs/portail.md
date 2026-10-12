@@ -205,9 +205,12 @@ protégée.
   « Ajouté par » (l'utilisateur qui l'a ajouté), la date et le statut de sa dernière
   synchronisation (Synchronisé, Échec ou Jamais synchronisé ; le détail au survol), et
   trois actions : **synchroniser ce compte**, modifier, ne plus suivre (les transactions
-  déjà importées sont conservées).
+  déjà importées sont conservées). Un compte s'affiche « BANQUE ···1234 » (banque et fin
+  de l'identifiant), ou sous le **nom** qui lui a été donné (facultatif, ex. « Compte
+  joint »), aussi dans la synchronisation et le détail d'une transaction.
 - **+** (fenêtre modale) : « Rechercher mes comptes dans woob » liste les comptes des
-  banques configurées dans woob (libellé, solde) et les suit en un clic ; sinon choisir la
+  banques configurées dans woob (libellé, solde) et les suit en un clic (le libellé woob
+  pré-remplit le nom du compte) ; sinon choisir la
   banque (configurée dans woob, ou parmi toutes celles que woob supporte) et saisir
   l'identifiant du compte. Pour une banque pas encore configurée, le formulaire demande les
   identifiants attendus par son module woob (numéro client, code, type de compte…) :

@@ -123,29 +123,30 @@ l'a ajouté.
 ### `GET /bank`
 
 Comptes bancaires du foyer, visibles par tous les utilisateurs (un compte n'apparaît
-qu'une fois) :
+qu'une fois) ; `label` est le nom donné au compte (`null` s'il n'en a pas) :
 
 ```json
-[{ "id": 1, "bankId": "12345678@bnp", "account_number": "12345678", "bank_name": "bnp" }]
+[{ "id": 1, "bankId": "12345678@bnp", "account_number": "12345678", "bank_name": "bnp", "label": "Compte joint" }]
 ```
 
 ### `GET /bank/accounts` — administrateur
 
 Tous les comptes du foyer avec l'utilisateur qui les a ajoutés et le résultat de leur
-dernière synchronisation : `id`, `bankId`, `account_number`, `bank_name`, `user_id` et
+dernière synchronisation : `id`, `bankId`, `account_number`, `bank_name`, `label`, `user_id` et
 `username` (qui l'a ajouté), `last_sync_at`, `last_sync_status` (`OK`, `ERROR` ou `null`),
 `last_sync_message` (nombre de nouvelles transactions ou erreur).
 
 ### `POST /bank` — administrateur
 
 Suit un compte pour le foyer. Paramètres : `account_number` (identifiant du compte dans
-woob) et `bank_name` (nom du backend woob) ; `user_id` du compte est l'administrateur qui
-l'ajoute. `409` si le foyer suit déjà ce compte, `400` si un identifiant est invalide.
+woob), `bank_name` (nom du backend woob) et `label` (facultatif : nom donné au compte,
+100 caractères maximum) ; `user_id` du compte est l'administrateur qui l'ajoute. `409` si le foyer suit déjà ce compte, `400` si un identifiant est invalide.
 
 ### `PUT /bank` — administrateur
 
-Modifie un compte suivi : `id`, `account_number`, `bank_name` (`404` si inconnu, `409` si
-le foyer suit déjà le compte visé).
+Modifie un compte suivi : `id`, `account_number`, `bank_name` et `label` (facultatif :
+absent, le nom actuel est conservé ; vide, il est supprimé). `404` si inconnu, `409` si le
+foyer suit déjà le compte visé.
 
 ### `DELETE /bank?id=` — administrateur
 

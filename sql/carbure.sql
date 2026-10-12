@@ -40,6 +40,7 @@ CREATE TABLE `bank_account` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `bank_name` varchar(50) NOT NULL,
   `account_number` varchar(100) NOT NULL,
+  `label` varchar(100) DEFAULT NULL COMMENT 'Name given to the account',
   `user_id` int(10) unsigned NOT NULL,
   `last_sync_at` datetime DEFAULT NULL,
   `last_sync_status` enum('OK','ERROR') DEFAULT NULL,
@@ -216,7 +217,8 @@ CREATE TABLE `schema_migrations` (
 INSERT IGNORE INTO `schema_migrations` (`version`) VALUES
 ('2026-10-13_base'),
 ('2026-10-14_oauth'),
-('2026-10-15_transaction_bank');
+('2026-10-15_transaction_bank'),
+('2026-10-16_bank_account_label');
 
 SET FOREIGN_KEY_CHECKS = 1;
 COMMIT;
