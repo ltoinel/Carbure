@@ -187,7 +187,11 @@ depuis le dépôt de woob : l'image contient `gpgv`, avec lequel woob vérifie l
 de chaque module installé ou mis à jour et refuse un module dont la signature est
 invalide. À chaque démarrage, le conteneur lance `woob config update` : il met à jour les dépôts,
 la clé du dépôt (`/data/woob/.local/share/woob/keyrings/`) et les modules bancaires
-installés. Une commande woob lancée à la main dans le
+installés. La première fois, woob demande s'il doit faire confiance à la clé du dépôt :
+le conteneur ne l'accepte que si son empreinte SHA-1 est celle fixée dans l'image
+(`WOOB_KEYRING_SHA1`, `docker/Dockerfile`), sinon il la refuse et l'écrit dans ses logs
+(les modules ne sont alors pas mis à jour). Les clés suivantes sont vérifiées par woob
+avec la précédente. Une commande woob lancée à la main dans le
 conteneur doit l'être en `www-data` (`docker exec -u www-data …`) : lancée en root, elle
 créerait dans `/data/woob` des fichiers que Carbure ne pourrait plus modifier (le
 redémarrage du conteneur les lui rend).
