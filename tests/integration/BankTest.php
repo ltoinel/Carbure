@@ -379,6 +379,8 @@ class BankTest extends DatabaseTestCase
             Config::set('woob_2fa_wait', 0);
             Config::set('woob_2fa_retries', 1);
         }
+        // The results are then read by an administrator
+        $this->loginAs(self::ADMIN);
         return [$output, $waited];
     }
 
