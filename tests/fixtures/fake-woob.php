@@ -8,6 +8,7 @@
  *        fake-woob.php bank list [-b <backend>] -f json (two accounts, "none": no account)
  *        fake-woob.php config info <module> -f json       (settings once installed, like woob 3.7)
  *        fake-woob.php config add <module> '"<backend> key=value ..."' (installs with the probe name)
+ *        fake-woob.php config remove <backend>           (no longer listed by config list)
  *
  * - account "fail@bank"  : writes on stderr and exits with code 1
  * - account "empty@bank" : no output
@@ -15,6 +16,9 @@
  * - account "forbidden@bank" (and bank list -b forbidden): "[]", the bank refuses woob
  *                          ("Bug(...): 403 Client Error: Forbidden" on stderr), exit code 0
  * - account "slow@bank"  : waits 2 seconds before answering
+ * - account "nocoming@bank": the coming transactions fail (code 1), the history works
+ * - account "validate@bank": asks a validation in the bank app (even on a terminal) until
+ *                          the file carbure-fake-woob-validated exists in the temp dir
  * - account "2fa@bank"   : asks a two-factor authentication, only possible when the output
  *                          is a terminal (like woob); otherwise fails with code 1
  * - other accounts       : one JSON array of transactions per line, like woob -f json
@@ -32,9 +36,14 @@ if (($argv[1] ?? '') === 'config' && $type === 'modules') {
 }
 
 if (($argv[1] ?? '') === 'config' && $type === 'list') {
-    // One JSON object per line, with the (secret) configuration that must not leak
-    echo json_encode(['Name' => 'bnp', 'Module' => 'bnp', 'Configuration' => 'login=12345678, password=*****']) . "\n";
-    echo json_encode(['Name' => 'cic_pro', 'Module' => 'cic', 'Configuration' => 'login=jdoe, password=*****']) . "\n";
+    // One JSON object per line, with the (secret) configuration that must not leak;
+    // the backends removed by "config remove" are no longer listed
+    $removed = file(sys_get_temp_dir() . '/carbure-fake-woob-removed', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
+    foreach ([['bnp', 'bnp', 'login=12345678, password=*****'], ['cic_pro', 'cic', 'login=jdoe, password=*****']] as [$name, $module, $configuration]) {
+        if (!in_array($name, $removed, true)) {
+            echo json_encode(['Name' => $name, 'Module' => $module, 'Configuration' => $configuration]) . "\n";
+        }
+    }
     exit(0);
 }
 
@@ -61,7 +70,11 @@ if (($argv[1] ?? '') === 'config' && $type === 'info') {
 }
 
 if (($argv[1] ?? '') === 'config' && $type === 'remove') {
-    file_put_contents(sys_get_temp_dir() . '/carbure-fake-woob-removed', $argv[3] ?? '');
+    // Records the backends removed (one per line), to check it; with the file
+    // carbure-fake-woob-stuck, woob silently removes nothing
+    if (!is_file(sys_get_temp_dir() . '/carbure-fake-woob-stuck')) {
+        file_put_contents(sys_get_temp_dir() . '/carbure-fake-woob-removed', ($argv[3] ?? '') . "\n", FILE_APPEND);
+    }
     exit(0);
 }
 
@@ -163,6 +176,16 @@ if ($account === '2fa@bank') {
     }
     // Message of a DecoupledValidation, then the data once validated
     echo "\e[1mVeuillez valider la connexion dans votre application bancaire.\e[0m\n";
+}
+
+if ($account === 'nocoming@bank' && $type === 'coming') {
+    fwrite(STDERR, "Error(bank): NotImplementedError: coming transactions are not available\n");
+    exit(1);
+}
+
+if ($account === 'validate@bank' && !is_file(sys_get_temp_dir() . '/carbure-fake-woob-validated')) {
+    fwrite(STDERR, "Error(bank): You have to run bank in interactive mode to perform a two-factor authentication\n");
+    exit(1);
 }
 
 if ($account === 'slow@bank') {

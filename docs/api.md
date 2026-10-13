@@ -63,7 +63,8 @@ curl -X POST https://exemple.fr/api/user/login \
 Le jeton est valable 30 jours. La date de connexion est enregistrée (`last_login`).
 
 `401` si les identifiants sont faux ; `423` si le compte est bloqué : après 5 échecs
-d'affilée, le compte est bloqué 24 heures, même avec le bon mot de passe. Une connexion
+d'affilée, le compte est bloqué 24 heures, même avec le bon mot de passe (le 5e échec
+répond déjà `423`). Une connexion
 réussie remet le compteur à zéro.
 
 ### `POST /user/unlock` — administrateur
@@ -180,6 +181,14 @@ connexion ; vide le supprime). Le nom dans woob, qui identifie les comptes et le
 transactions, ne change pas. Renvoie `name` et `label`. `404` si la banque n'est pas
 configurée dans woob, `400` si le nom est invalide ou trop long.
 
+### `DELETE /bank/backend` — administrateur
+
+Supprime une connexion bancaire : `backend` (nom dans woob, dans la query string). woob
+l'oublie avec ses identifiants (`woob config remove`), son nom donné et ses comptes suivis
+sont supprimés ; les transactions déjà importées sont conservées. Renvoie `true`. `404` si
+la banque n'est pas configurée dans woob, `400` si le nom est invalide, `500` si woob ne
+l'a pas supprimée.
+
 ### `GET /bank/discover` — administrateur
 
 Interroge woob (`woob bank list`) et renvoie les comptes des banques configurées :
@@ -206,6 +215,18 @@ pseudo-terminal (`tools/woob-tty.py`) et ses messages sont relayés en
 `data: Bank message <compte>: <message>` pendant qu'il attend la validation dans
 l'application de la banque. Sans ce paramètre, une banque qui exige une authentification
 forte échoue avec `…interactive mode to perform a two-factor authentication`.
+
+Les opérations à venir sont facultatives : si leur appel à woob échoue (hors
+authentification forte), l'historique est quand même synchronisé, l'échec est envoyé en
+`data: Coming failed <compte>: <erreur>` et le compte reste `OK`, avec le résultat
+`<n> new (coming failed: <erreur>)`.
+
+Pour le planificateur (`sync_token`, jamais en mode interactif), un compte dont la banque
+demande une validation dans son application est resynchronisé après `woob_2fa_wait`
+secondes (15 par défaut), jusqu'à `woob_2fa_retries` fois (1 par défaut) : la validation a
+pu être faite entre-temps. Seul ce compte attend (`data: Waiting for a validation <compte>:
+new attempt in 15 s (1/1)`, puis des `: heartbeat`) ; seul le résultat de la dernière
+tentative est enregistré et notifié.
 
 La réponse est un flux `text/event-stream` : messages `data: …` (progression,
 résultat de chaque étape) et commentaires `: heartbeat` toutes les 15 s pendant
@@ -633,7 +654,7 @@ Le fichier de configuration, par section : `file` (chemin dans l'instance), `wri
 
 `values` : les nouvelles valeurs par clé, uniquement parmi les réglages modifiables
 (`log_level`, `log_retention_days`, `savings_category`, `public_url`, `woob_transactions`, `woob_logging`,
-`woob_debug`, `woob_auto_update`, `apns_environment`, `apns_auth_method`, `apns_bundle_id`,
+`woob_debug`, `woob_auto_update`, `woob_2fa_wait`, `woob_2fa_retries`, `apns_environment`, `apns_auth_method`, `apns_bundle_id`,
 `apns_key_id`, `apns_team_id`). Toutes les valeurs sont vérifiées avant d'écrire quoi que
 ce soit (`400` sinon, fichier inchangé) ; l'ancien fichier est gardé en `.bak`. Renvoie la
 configuration comme `GET`.

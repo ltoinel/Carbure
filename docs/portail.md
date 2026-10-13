@@ -226,7 +226,9 @@ protégée.
        ouvert.
     2. **Banques connectées** : chaque connexion (backend woob) affiche son nom (à défaut
        celui de la banque) et son nom dans woob ; le bouton crayon la **renomme** (un nom
-       vide rétablit celui de la banque). Son bouton **Ajouter des comptes** ouvre la liste des comptes que woob trouve pour elle
+       vide rétablit celui de la banque) ; la corbeille la **supprime**, après confirmation :
+       woob oublie ses identifiants et ses comptes suivis ne le sont plus (leurs transactions
+       sont conservées). Son bouton **Ajouter des comptes** ouvre la liste des comptes que woob trouve pour elle
        (`woob bank list -b <banque>` : libellé, solde) ; on coche ceux à suivre et
        **Suivre les comptes sélectionnés** les ajoute d'un coup, nommés d'après leur libellé
        woob. Les comptes déjà suivis sont cochés et grisés. Après une connexion, cette liste
@@ -236,7 +238,8 @@ protégée.
   l'identifiant. La modification d'un compte ne change que son nom.
 - **Synchronisation** : progression en direct, statut OK/KO de chaque étape par compte
   (opérations à venir, historique, notifications), nombre de transactions reçues et
-  nouvelles, journal détaillé. Avec le réglage `woob_debug`, le journal affiche aussi, en
+  nouvelles, journal détaillé. Un échec des opérations à venir est affiché sur leur étape
+  sans faire échouer le compte : l'historique est quand même synchronisé. Avec le réglage `woob_debug`, le journal affiche aussi, en
   direct, les logs de débogage de woob (requêtes vers la banque, trace de l'erreur Python),
   à un administrateur uniquement. La commande système lancée pour chaque étape (`Woob command …`)
   y figure toujours. En cas d'échec woob, un lien ouvre la recherche des tickets
@@ -250,7 +253,9 @@ Docker, ou une tâche cron).
 
 Certaines banques (Crédit Mutuel, CIC…) demandent régulièrement de valider la connexion
 dans leur application. La synchronisation planifiée ne déclenche jamais cette validation :
-elle échoue, le compte passe en **Authentification forte requise** et chaque utilisateur
+elle réessaie d'abord le compte après `woob_2fa_wait` secondes (`woob_2fa_retries` fois :
+la validation a pu être faite entre-temps sur le téléphone), puis, si la banque la demande
+toujours, elle échoue, le compte passe en **Authentification forte requise** et chaque utilisateur
 reçoit la notification « Strong authentication needed » sur l'app iOS. Le bouton
 **Valider l'authentification forte** (sur la ligne du compte ou sous l'erreur) relance la
 synchronisation de ce compte en mode interactif : woob déclenche la demande, son message
