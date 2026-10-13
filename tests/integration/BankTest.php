@@ -147,7 +147,7 @@ class BankTest extends DatabaseTestCase
         // An empty name removes it: the bank name is shown again
         $this->assertSame(['name' => 'cic_pro', 'label' => null], Bank::renameBackend('cic_pro', ' '));
         $this->assertSame(['Compte joint ✨', null], array_column(Bank::backends(), 'label'));
-        $this->assertSame(1, (int)Db::queryOne("SELECT COUNT(*) AS n FROM bank_backend")['n']);
+        $this->assertSame(1, (int)Db::queryOne("SELECT COUNT(*) AS n FROM bank_backend", "")['n']);
 
         foreach ([['Bad Name', 'x', 400], ['bnp', str_repeat('a', 101), 400], ['unknown', 'x', 404]] as [$backend, $label, $code]) {
             try {
@@ -237,12 +237,12 @@ class BankTest extends DatabaseTestCase
         try {
             $result = Bank::createBackend('bnp', 'mybnp', ['login' => '12345678', 'password' => '123456'], ' Compte joint ');
             $this->assertSame('Compte joint', $result['label']);
-            $this->assertSame('Compte joint', Db::queryOne("SELECT label FROM bank_backend WHERE name = 'mybnp'")['label']);
+            $this->assertSame('Compte joint', Db::queryOne("SELECT label FROM bank_backend WHERE name = ?", "s", 'mybnp')['label']);
 
             // Without a name, the former one is removed
             Db::execute("INSERT INTO bank_backend (name, label) VALUES ('mybnp3', 'Ancien')", "");
             Bank::createBackend('bnp', 'mybnp3', ['login' => '12345678', 'password' => '123456']);
-            $this->assertNull(Db::queryOne("SELECT label FROM bank_backend WHERE name = 'mybnp3'"));
+            $this->assertNull(Db::queryOne("SELECT label FROM bank_backend WHERE name = ?", "s", 'mybnp3'));
         } finally {
             @unlink(sys_get_temp_dir() . '/carbure-fake-woob-add.json');
         }
