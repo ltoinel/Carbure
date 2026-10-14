@@ -16,6 +16,7 @@ class WoobRepositoryTest extends TestCase
     protected function tearDown(): void
     {
         $this->forget();
+        @unlink(sys_get_temp_dir() . '/carbure-fake-woob-other-keyring');
     }
 
     /** The fake woob trusts no keyring */
@@ -25,33 +26,35 @@ class WoobRepositoryTest extends TestCase
         @rmdir((string)WoobRepository::$keyringDir);
     }
 
-    public function testAnswersYesOnlyToTheConfirmedFingerprint()
+    /**
+     * Update woob, returning the result and the lines written by woob.
+     *
+     * @return array{0: array<string, mixed>, 1: list<string>}
+     */
+    private function update(?string $fingerprint): array
     {
-        $asked = str_repeat('ab', 20);
-        $this->assertSame('y', WoobRepository::answer($asked, $asked));
-        $this->assertSame('y', WoobRepository::answer($asked, strtoupper($asked)));
-        $this->assertSame('n', WoobRepository::answer($asked, str_repeat('cd', 20)));
-        $this->assertSame('n', WoobRepository::answer($asked, null));
-        // Never an empty answer: woob takes it for a yes
-        $this->assertSame('n', WoobRepository::answer($asked, ''));
+        $lines = [];
+        $result = WoobRepository::update($fingerprint, function (string $line) use (&$lines) {
+            $lines[] = $line;
+        });
+        return [$result, $lines];
     }
 
-    public function testReadsTheQuestionOfWoob()
+    public function testMatchesOnlyTheConfirmedFingerprint()
     {
-        $output = "The repository https://updates.woob.tech/3/main/ isn't trusted yet.\n"
-            . "Fingerprint of keyring is B5FC136C2D500B8483696A0EE722865842A4CC45\n"
-            . "Are you sure you want to continue? (Y/n): ";
-        $this->assertSame('b5fc136c2d500b8483696a0ee722865842a4cc45', WoobRepository::askedFingerprint($output));
-        $this->assertTrue(WoobRepository::waitsForAnswer('Are you sure you want to continue? (Y/n): '));
-        $this->assertFalse(WoobRepository::waitsForAnswer('Updating repositories'));
-        $this->assertNull(WoobRepository::askedFingerprint('All modules are up-to-date.'));
+        $keyring = str_repeat('ab', 20);
+        $this->assertTrue(WoobRepository::matches($keyring, $keyring));
+        $this->assertTrue(WoobRepository::matches($keyring, ' ' . strtoupper($keyring)));
+        $this->assertFalse(WoobRepository::matches($keyring, str_repeat('cd', 20)));
+        $this->assertFalse(WoobRepository::matches($keyring, null));
+        $this->assertFalse(WoobRepository::matches($keyring, ''));
     }
 
     public function testStatusOfARepositoryNotTrusted()
     {
         $status = WoobRepository::status();
         $this->assertFalse($status['trusted']);
-        // The fingerprint woob will ask to trust, to compare
+        // The fingerprint to confirm
         $this->assertSame($this->fingerprint, $status['fingerprint']);
         $this->assertNull($status['error']);
     }
@@ -62,46 +65,57 @@ class WoobRepositoryTest extends TestCase
         Config::set('woob_repository', sys_get_temp_dir() . '/carbure-no-repository');
         try {
             $status = WoobRepository::status();
+            [$result, $lines] = $this->update($this->fingerprint);
         } finally {
             Config::set('woob_repository', $repository);
         }
         $this->assertFalse($status['trusted']);
         $this->assertNull($status['fingerprint']);
         $this->assertStringContainsString('not downloaded', $status['error']);
+        // Nothing to compare with: woob is not started
+        $this->assertFalse($result['updated']);
+        $this->assertStringContainsString('not downloaded', $result['message']);
+        $this->assertSame([], $lines);
+        $this->assertFalse(WoobRepository::isTrusted());
     }
 
-    public function testUpdateRefusesAKeyringNotConfirmed()
+    public function testWoobNotStartedWithoutTheConfirmedFingerprint()
     {
+        // woob would trust any keyring by itself (no terminal): it is not even started
         foreach ([null, str_repeat('0', 40)] as $confirmed) {
-            $lines = [];
-            $result = WoobRepository::update($confirmed, function (string $line) use (&$lines) {
-                $lines[] = $line;
-            });
+            [$result, $lines] = $this->update($confirmed);
             $this->assertFalse($result['updated']);
             $this->assertTrue($result['refused']);
             $this->assertSame($this->fingerprint, $result['asked']);
-            $this->assertContains("Repository not trusted: $this->fingerprint", $lines);
-            $this->assertFalse(WoobRepository::status()['trusted']);
+            $this->assertSame([], $lines);
+            $this->assertFalse(WoobRepository::isTrusted());
         }
     }
 
-    public function testUpdateTrustsTheConfirmedKeyringThenAsksNoMore()
+    public function testTheConfirmedKeyringIsTrustedThenNoMoreConfirmationNeeded()
     {
-        $lines = [];
-        $result = WoobRepository::update($this->fingerprint, function (string $line) use (&$lines) {
-            $lines[] = $line;
-        });
+        [$result, $lines] = $this->update(strtoupper($this->fingerprint));
         $this->assertTrue($result['updated']);
         $this->assertFalse($result['refused']);
-        $this->assertContains("Repository trusted: $this->fingerprint", $lines);
-        $this->assertContains('100% All modules are up-to-date.', $lines);
+        $this->assertContains('Are you sure you want to continue? (Y/n): *** ASSUMING YES ***', $lines);
         $this->assertSame('100% All modules are up-to-date.', $result['message']);
         $this->assertSame(['repository' => WoobRepository::repository(), 'trusted' => true, 'fingerprint' => $this->fingerprint, 'error' => null],
             WoobRepository::status());
 
-        // Trusted: no question, no fingerprint needed
-        $result = WoobRepository::update(null, fn(string $line) => null);
+        // Trusted: woob checks the next keyrings itself
+        [$result] = $this->update(null);
         $this->assertTrue($result['updated']);
         $this->assertNull($result['asked']);
+    }
+
+    public function testAKeyringStoredByWoobOtherThanTheConfirmedOneIsRemoved()
+    {
+        // The repository served another keyring to woob than to Carbure
+        touch(sys_get_temp_dir() . '/carbure-fake-woob-other-keyring');
+        [$result] = $this->update($this->fingerprint);
+        $this->assertFalse($result['updated']);
+        $this->assertStringContainsString('is not the confirmed one', $result['message']);
+        $this->assertFalse(WoobRepository::isTrusted());
+        $this->assertSame([], glob(WoobRepository::$keyringDir . '/*') ?: []);
     }
 }

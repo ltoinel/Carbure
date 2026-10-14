@@ -230,8 +230,9 @@ final class Bank {
     /**
      * Update the woob bank modules (administrators), streamed: each line of woob, then
      * "Woob updated", "Woob repository not trusted: <fingerprint>" (the keyring must be
-     * confirmed) or "Woob update failed: <cause>". The keyring of the repository is
-     * trusted only if woob shows exactly the fingerprint confirmed by the administrator.
+     * confirmed, woob not started) or "Woob update failed: <cause>". While the repository
+     * is not trusted, woob (which would trust any keyring by itself) is started only if the
+     * confirmed fingerprint is the one of its keyring, and must store that very keyring.
      *
      * @param string|null $fingerprint Fingerprint of the keyring confirmed by the administrator
      * @return void
@@ -397,7 +398,8 @@ final class Bank {
      * @return array{backend: string, label: string|null, accounts: list<array<string, mixed>>}
      *               backend, label, accounts
      *               [{bankId, account_number, bank_name, label, balance, currency, followed}]
-     * @throws Error If a setting is missing or invalid, or woob refuses the bank
+     * @throws Error If a setting is missing or invalid, or woob refuses the bank; 409 if the
+     *               module must be installed before the woob repository is trusted
      */
     #[ApiRoute('/bank/backend', method: 'POST')]
     public static function createBackend(string $module, string $backend, mixed $settings = [], ?string $label = null): array

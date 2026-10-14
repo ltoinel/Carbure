@@ -25,7 +25,8 @@ woob_update() {
         echo "Carbure: woob repository not trusted yet: an administrator must trust it from the Accounts page of the portal to update the bank modules" >&2
         return 0
     fi
-    # No answer to any question of woob (stdin closed: a new keyring is never trusted here)
+    # Only once a keyring is trusted: without one, woob would trust the keyring of its
+    # repository by itself ("*** ASSUMING YES ***"); with one, woob checks the next ones
     output=$(su -s /bin/sh www-data -c "env HOME=/data/woob woob config update" < /dev/null 2>&1) || true
     if echo "$output" | grep -qiE "aborted|error|not trusted|invalid signature"; then
         echo "Carbure: woob update failed, it will be retried at the next start: $(echo "$output" | grep -iE "aborted|error|not trusted|invalid signature" | tail -1)" >&2

@@ -6,10 +6,12 @@
  * Repository of the woob bank modules (Python code that reads the bank credentials):
  * the trust of its keyring and the update of the modules, decided by an administrator.
  *
- * The first "woob config update" asks whether to trust the keyring of the repository,
- * showing its fingerprint (SHA-1); woob then checks the signature of every module with
- * it, and each next keyring with the previous one. Carbure answers yes only when an
- * administrator confirmed exactly the fingerprint woob shows.
+ * The first time woob refreshes its repositories, it trusts the keyring of the
+ * repository; without a terminal it does not even ask ("*** ASSUMING YES ***"). woob
+ * then checks the signature of every module with it, and each next keyring with the
+ * previous one. So, while no keyring is trusted, Carbure starts woob only once an
+ * administrator confirmed the fingerprint (SHA-1) of the keyring that Carbure downloads
+ * itself, and checks afterwards that woob stored that very keyring.
  *
  * @author     Ludovic Toinel
  * @copyright  2026 Carbure App
@@ -20,11 +22,8 @@ final class WoobRepository {
     /** Repository of the bank modules of woob 3 */
     public const DEFAULT_REPOSITORY = 'https://updates.woob.tech/3/main/';
 
-    /** Fingerprint shown by woob before trusting a repository */
-    private const FINGERPRINT = '/Fingerprint of keyring is ([0-9a-f]{40})/i';
-
-    /** Question of woob waiting for an answer ("Are you sure you want to continue? (Y/n): ") */
-    private const QUESTION = '/\((?:Y\/n|y\/N)\):\s*$/';
+    /** woob trusting a keyring by itself (no terminal to ask): logged */
+    private const ASSUMING_YES = '*** ASSUMING YES ***';
 
     /** An update that went wrong, in the output of woob */
     private const FAILURE = '/aborted|error|not trusted|invalid signature|unavailable/i';
@@ -50,8 +49,18 @@ final class WoobRepository {
     }
 
     /**
+     * Whether woob already trusts the keyring of its repository.
+     *
+     * @return bool
+     */
+    public static function isTrusted(): bool
+    {
+        return self::trustedKeyring() !== null;
+    }
+
+    /**
      * State of the repository: trusted or not, and the fingerprint of its keyring (the
-     * one trusted, else the one woob would ask to trust).
+     * one trusted, else the one to confirm before trusting it).
      *
      * @return array{repository: string, trusted: bool, fingerprint: string|null, error: string|null}
      */
@@ -66,83 +75,126 @@ final class WoobRepository {
     }
 
     /**
-     * Update the repositories and the bank modules of woob ("woob config update"). If woob
-     * asks to trust the keyring of the repository, it is trusted only if its fingerprint
-     * is exactly the one confirmed by the administrator.
+     * Update the repositories and the bank modules of woob ("woob config update"). While
+     * no keyring is trusted, woob is started only if the fingerprint confirmed by the
+     * administrator is the one of the keyring Carbure downloads (woob would trust any
+     * keyring by itself), and the keyring woob stored must be that one.
      *
      * @param string|null $fingerprint Fingerprint confirmed by the administrator (null: none)
      * @param callable    $onMessage   Receives each line written by woob
      * @return array{updated: bool, asked: string|null, refused: bool, message: string} updated:
-     *         success; asked: fingerprint woob asked to trust (null if not asked); refused:
-     *         Carbure answered no to woob; message: last line of woob
+     *         success; asked: fingerprint to confirm (null if none); refused: woob not started,
+     *         the keyring is not confirmed; message: cause of a failure, else last line of woob
      */
     public static function update(?string $fingerprint, callable $onMessage): array
     {
-        $process = proc_open(Woob::path() . ' config update', [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
+        $confirmed = $fingerprint === null ? null : strtolower(trim($fingerprint));
+        $trusted = self::isTrusted();
+        $check = $trusted ? null : self::checkConfirmed($confirmed);
+        if ($check !== null) {
+            return $check;
+        }
+        [$code, $output] = self::run($onMessage);
+        if (!$trusted && $confirmed !== null) {
+            $stored = self::checkStoredKeyring($confirmed);
+            if ($stored !== null) {
+                return $stored;
+            }
+        }
+        $lines = array_values(array_filter(array_map('trim', preg_split('/[\r\n]+/', $output) ?: [])));
+        $updated = $code === 0 && !preg_match(self::FAILURE, $output);
+        return ['updated' => $updated, 'asked' => null, 'refused' => false, 'message' => (string)end($lines)];
+    }
+
+    /**
+     * Whether a fingerprint confirmed by the administrator is the one of the keyring of
+     * the repository (case ignored).
+     *
+     * @param string      $keyring   Fingerprint of the keyring
+     * @param string|null $confirmed Fingerprint confirmed by the administrator
+     * @return bool
+     */
+    public static function matches(string $keyring, ?string $confirmed): bool
+    {
+        return $confirmed !== null && $confirmed !== '' && hash_equals(strtolower($keyring), strtolower(trim($confirmed)));
+    }
+
+    /**
+     * Before trusting the keyring of the repository: the confirmed fingerprint must be
+     * the one of the keyring downloaded now.
+     *
+     * @param string|null $confirmed Fingerprint confirmed by the administrator
+     * @return array{updated: bool, asked: string|null, refused: bool, message: string}|null
+     *         Why woob must not be started, null if it can
+     */
+    private static function checkConfirmed(?string $confirmed): ?array
+    {
+        [$remote, $error] = self::remoteFingerprint();
+        if ($remote === null) {
+            return ['updated' => false, 'asked' => null, 'refused' => false, 'message' => (string)$error];
+        }
+        if (!self::matches($remote, $confirmed)) {
+            Logger::warn("Keyring $remote of " . self::repository() . " not confirmed: woob not started");
+            return ['updated' => false, 'asked' => $remote, 'refused' => true, 'message' => "Keyring $remote not confirmed"];
+        }
+        Logger::info("Keyring $remote of " . self::repository() . " confirmed by an administrator");
+        return null;
+    }
+
+    /**
+     * After the first update: the keyring woob stored must be the confirmed one (woob
+     * downloaded it again), else it is removed.
+     *
+     * @param string $confirmed Fingerprint confirmed by the administrator
+     * @return array{updated: bool, asked: string|null, refused: bool, message: string}|null
+     *         The failure, null if the keyring stored is the confirmed one
+     */
+    private static function checkStoredKeyring(string $confirmed): ?array
+    {
+        $stored = self::trustedKeyring();
+        $fingerprint = $stored !== null ? (string)sha1_file($stored) : null;
+        if ($fingerprint !== null && self::matches($fingerprint, $confirmed)) {
+            return null;
+        }
+        foreach (array_merge(glob(self::keyringDir() . '/*.gpg') ?: [], glob(self::keyringDir() . '/*.version') ?: []) as $file) {
+            @unlink($file);
+        }
+        $message = "keyring " . ($fingerprint ?? 'none') . " is not the confirmed one ($confirmed)";
+        Logger::error("woob stored a keyring that is not the confirmed one: $message, removed");
+        return ['updated' => false, 'asked' => null, 'refused' => false, 'message' => $message];
+    }
+
+    /**
+     * Run "woob config update" without any input, giving each line it writes to the callback.
+     *
+     * @param callable $onMessage Receives each line
+     * @return array{0: int, 1: string} Exit code and output of woob
+     * @throws Exception If woob cannot be started
+     */
+    private static function run(callable $onMessage): array
+    {
+        $process = proc_open(Woob::path() . ' config update', [0 => ['file', '/dev/null', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
         if (!is_resource($process)) {
             throw new Exception("Failed to start woob");
         }
-        $state = ['output' => '', 'pending' => [1 => '', 2 => ''], 'asked' => null, 'answer' => null, 'stdin' => $pipes[0]];
-        self::read([1 => $pipes[1], 2 => $pipes[2]], $state, $fingerprint, $onMessage);
-        if (is_resource($state['stdin'])) {
-            fclose($state['stdin']);
-        }
+        $state = ['output' => '', 'pending' => [1 => '', 2 => '']];
+        self::read([1 => $pipes[1], 2 => $pipes[2]], $state, $onMessage);
         $code = proc_close($process);
-
-        $lines = array_values(array_filter(array_map('trim', preg_split('/[\r\n]+/', $state['output']) ?: [])));
-        $updated = $code === 0 && $state['answer'] !== 'n' && !preg_match(self::FAILURE, $state['output']);
-        return ['updated' => $updated, 'asked' => $state['asked'], 'refused' => $state['answer'] === 'n', 'message' => (string)end($lines)];
-    }
-
-    /**
-     * Answer of Carbure to woob asking to trust a keyring: yes only for the fingerprint
-     * confirmed by the administrator (an empty answer would be a yes for woob).
-     *
-     * @param string      $asked     Fingerprint shown by woob
-     * @param string|null $confirmed Fingerprint confirmed by the administrator
-     * @return string "y" or "n"
-     */
-    public static function answer(string $asked, ?string $confirmed): string
-    {
-        return $confirmed !== null && hash_equals(strtolower($asked), strtolower(trim($confirmed))) ? 'y' : 'n';
-    }
-
-    /**
-     * Whether woob waits for an answer: its last line, not ended, is a yes/no question.
-     *
-     * @param string $line Last line written by woob, not ended
-     * @return bool
-     */
-    public static function waitsForAnswer(string $line): bool
-    {
-        return (bool)preg_match(self::QUESTION, $line);
-    }
-
-    /**
-     * Fingerprint of the keyring woob asks to trust (the last one it showed).
-     *
-     * @param string $output Output of woob so far
-     * @return string|null The fingerprint, null if woob showed none
-     */
-    public static function askedFingerprint(string $output): ?string
-    {
-        if (!preg_match_all(self::FINGERPRINT, $output, $m)) {
-            return null;
+        if (str_contains($state['output'], self::ASSUMING_YES)) {
+            Logger::info("woob trusted the keyring of " . self::repository() . " by itself (ASSUMING YES)");
         }
-        return strtolower((string)end($m[1]));
+        return [$code, $state['output']];
     }
 
     /**
-     * Read the outputs of woob until it ends, giving each line to the callback and
-     * answering its question about the keyring.
+     * Read the outputs of woob until it ends, giving each line to the callback.
      *
-     * @param array<int, resource>  $open        Pipes to read: 1 (stdout), 2 (stderr)
-     * @param array<string, mixed>  $state       Output, pending lines, question and answer (updated)
-     * @param string|null           $fingerprint Fingerprint confirmed by the administrator
-     * @param callable              $onMessage   Receives each line
+     * @param array<int, resource>  $open      Pipes to read: 1 (stdout), 2 (stderr)
+     * @param array<string, mixed>  $state     Output and pending lines (updated)
+     * @param callable              $onMessage Receives each line
      * @return void
      */
-    private static function read(array $open, array &$state, ?string $fingerprint, callable $onMessage): void
+    private static function read(array $open, array &$state, callable $onMessage): void
     {
         while (!empty($open)) {
             $read = array_values($open);
@@ -157,7 +209,6 @@ final class WoobRepository {
                     self::readChunk($index, $open, $state, $onMessage);
                 }
             }
-            self::answerQuestion($state, $fingerprint, $onMessage);
         }
     }
 
@@ -192,29 +243,13 @@ final class WoobRepository {
     }
 
     /**
-     * Answer the question of woob, once: yes only to trust the keyring whose fingerprint
-     * is the one confirmed by the administrator, no to anything else (woob would wait
-     * forever). Its standard input is then closed.
+     * Directory of the keyrings trusted by woob.
      *
-     * @param array<string, mixed> $state       Output, pending lines, question and answer (updated)
-     * @param string|null          $fingerprint Fingerprint confirmed by the administrator
-     * @param callable             $onMessage   Receives the answer given
-     * @return void
+     * @return string
      */
-    private static function answerQuestion(array &$state, ?string $fingerprint, callable $onMessage): void
+    private static function keyringDir(): string
     {
-        if ($state['answer'] !== null || !is_resource($state['stdin'])
-            || !(self::waitsForAnswer($state['pending'][1]) || self::waitsForAnswer($state['pending'][2]))) {
-            return;
-        }
-        $asked = self::askedFingerprint($state['output']);
-        $state['asked'] = $asked;
-        $state['answer'] = $asked === null ? 'n' : self::answer($asked, $fingerprint);
-        $onMessage($state['answer'] === 'y' ? "Repository trusted: $asked" : "Repository not trusted: " . ($asked ?? 'unknown question'));
-        Logger::info("woob asked to trust the keyring " . ($asked ?? '?') . " of " . self::repository() . ": "
-            . ($state['answer'] === 'y' ? 'trusted' : 'refused'));
-        fwrite($state['stdin'], $state['answer'] . "\n");
-        fclose($state['stdin']);
+        return self::$keyringDir ?? rtrim((string)Woob::home(), '/') . '/.local/share/woob/keyrings';
     }
 
     /**
@@ -224,7 +259,7 @@ final class WoobRepository {
      */
     private static function trustedKeyring(): ?string
     {
-        $dir = self::$keyringDir ?? rtrim((string)Woob::home(), '/') . '/.local/share/woob/keyrings';
+        $dir = self::keyringDir();
         // Named after the URL of the repository by woob ("https___updates_woob_tech_3_main_.gpg")
         $file = $dir . '/' . preg_replace('/[^A-Za-z0-9]/', '_', self::repository()) . '.gpg';
         if (is_file($file)) {
@@ -235,7 +270,7 @@ final class WoobRepository {
     }
 
     /**
-     * Fingerprint of the keyring woob would ask to trust (SHA-1 of trusted.gpg).
+     * Fingerprint of the keyring of the repository (SHA-1 of trusted.gpg), downloaded now.
      *
      * @return array{0: string|null, 1: string|null} The fingerprint, or null and the error
      */

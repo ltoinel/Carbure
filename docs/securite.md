@@ -187,15 +187,24 @@ depuis le dépôt de woob : l'image contient `gpgv`, avec lequel woob vérifie l
 de chaque module installé ou mis à jour et refuse un module dont la signature est
 invalide.
 
-La première mise à jour, woob demande s'il doit faire confiance à la clé de son dépôt
-(`https://updates.woob.tech/3/main/`), en affichant son empreinte SHA-1. C'est un
-**administrateur** qui décide, depuis l'onglet **Comptes** (bouton **Mettre à jour les
-modules bancaires**) : le portail affiche le dépôt et l'empreinte de sa clé, à comparer
-avec celle publiée ou annoncée par les mainteneurs de woob, puis **Faire confiance et
-mettre à jour**. Carbure ne répond « oui » à woob que si l'empreinte que woob affiche est
-exactement celle confirmée (sinon « non », et le portail affiche la nouvelle empreinte à
-comparer) ; la clé est alors conservée dans `/data/woob/.local/share/woob/keyrings/`, et
-les clés suivantes sont vérifiées par woob avec la précédente, sans nouvelle question.
+La clé du dépôt de woob (`https://updates.woob.tech/3/main/`) n'est approuvée qu'une
+fois : les clés suivantes sont vérifiées par woob avec la précédente. Mais **toute
+commande woob qui rafraîchit les dépôts alors qu'aucune clé n'est approuvée lui fait
+confiance d'elle-même** : sans terminal, woob affiche la question puis
+`*** ASSUMING YES ***`. Carbure ne lance donc pas woob tant qu'un **administrateur** n'a
+pas approuvé cette clé, depuis l'onglet **Comptes** (bouton **Mettre à jour les modules
+bancaires**) : le portail affiche le dépôt et l'empreinte SHA-1 de sa clé, à comparer avec
+celle publiée ou annoncée par les mainteneurs de woob, puis **Faire confiance et mettre à
+jour**. Carbure télécharge lui-même la clé juste avant : woob n'est lancé que si son
+empreinte est exactement celle confirmée ; après la mise à jour, la clé que woob a
+conservée (`/data/woob/.local/share/woob/keyrings/`) doit aussi être celle-là, sinon elle
+est supprimée et la mise à jour échoue.
+
+Tant que le dépôt n'est pas approuvé, Carbure refuse aussi (`409`) d'installer un module
+bancaire (connecter une banque dont le module n'est pas encore installé), ce qui
+rafraîchirait les dépôts : approuvez le dépôt avant de connecter une banque. Une commande
+woob lancée à la main dans le conteneur (par exemple `woob config add`) ferait de même
+confiance à la clé d'elle-même.
 
 Une fois le dépôt approuvé, le conteneur lance aussi `woob config update` à chaque
 démarrage (dépôts, clé et modules installés), sans jamais répondre à une question de

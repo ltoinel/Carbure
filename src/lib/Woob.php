@@ -243,6 +243,7 @@ final class Woob {
      *               description: string, default: string, required: bool, masked: bool, regexp: string|null,
      *               choices: list<array{value: string, label: string}>}>} The module and its fields
      * @throws Exception If woob does not know the module
+     * @throws Error If the module must be installed before the woob repository is trusted (409)
      */
     public static function moduleFields(string $module): array
     {
@@ -307,11 +308,19 @@ final class Woob {
      * setting it asks for (no input). A backend created anyway (module without
      * settings) is removed.
      *
+     * Not before the keyring of the woob repository is trusted: refreshing the repositories
+     * to install a module, woob would trust it by itself ("*** ASSUMING YES ***").
+     *
      * @param string $module The woob module
      * @return void
+     * @throws Error If the woob repository is not trusted yet (409)
      */
     private static function installModule(string $module): void
     {
+        if (!WoobRepository::isTrusted()) {
+            throw new Error("Trust the woob repository first, from the Accounts page (update the bank modules), "
+                . "to install the module $module", 409);
+        }
         $woob_path = self::path();
         $probe = 'carbure_install_probe';
         $process = proc_open("$woob_path config add " . escapeshellarg($module) . ' ' . escapeshellarg($probe) . ' < /dev/null',

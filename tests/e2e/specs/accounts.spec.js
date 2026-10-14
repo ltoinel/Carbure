@@ -1,5 +1,5 @@
 // Accounts tab (administrators): followed bank accounts and synchronization (fake woob)
-const { test, expect, tr, openTab, escapeRegExp } = require('../fixtures');
+const { test, expect, tr, openTab, escapeRegExp, trustWoobRepository } = require('../fixtures');
 
 /** Row of a followed account, by its bank id (account_number@bank) */
 const account = (page, bankId) => page.locator('.account-item').filter({ has: page.locator('code', { hasText: new RegExp(`^${escapeRegExp(bankId)}$`) }) });
@@ -196,8 +196,16 @@ async function connectModal(page, module) {
     return modal;
 }
 
+test('a module is not installed before the woob repository is trusted', async ({ adminPage: page }) => {
+    // Installing the module would make woob trust the keyring of its repository by itself
+    const modal = await connectModal(page, 'boursorama');
+    await expect(modal.locator('fieldset.bank-setup').getByRole('alert')).toContainText('Trust the woob repository first');
+    await expect(modal.getByRole('button', { name: tr('bankConnect') })).toBeDisabled();
+});
+
 test('connects a new bank, then follows two of its accounts at once', async ({ adminPage: page }) => {
-    // Boursorama: woob installs its module to describe its settings
+    // Boursorama: woob installs its module to describe its settings (repository trusted)
+    trustWoobRepository();
     const modal = await connectModal(page, 'boursorama');
     const setup = modal.locator('fieldset.bank-setup');
     await expect(setup.getByLabel('Numéro client *')).toBeVisible();
@@ -329,7 +337,7 @@ test('an administrator trusts the woob repository, then updates the bank modules
     await modal.getByRole('button', { name: tr('woobTrustAndUpdate') }).click();
 
     await expect(modal.getByRole('status').filter({ hasText: tr('woobUpdated') })).toBeVisible();
-    await expect(modal.locator('.sync-log')).toContainText(`Repository trusted: ${fingerprint}`);
+    await expect(modal.locator('.sync-log')).toContainText(`Fingerprint of keyring is ${fingerprint}`);
     await expect(modal.locator('.sync-log')).toContainText('All modules are up-to-date.');
     await expect(page.locator('.toast')).toHaveText(tr('woobUpdated'));
     await modal.locator('.modal-footer').getByRole('button', { name: tr('close') }).click();

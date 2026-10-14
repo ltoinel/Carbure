@@ -9,7 +9,8 @@
  *        fake-woob.php config info <module> -f json       (settings once installed, like woob 3.7)
  *        fake-woob.php config add <module> '"<backend> key=value ..."' (installs with the probe name)
  *        fake-woob.php config remove <backend>           (no longer listed by config list)
- *        fake-woob.php config update                     (asks to trust the keyring the first time)
+ *        fake-woob.php config update                     (trusts the keyring by itself the first time,
+ *                                                          like woob without a terminal)
  *
  * - account "fail@bank"  : writes on stderr and exits with code 1
  * - account "empty@bank" : no output
@@ -88,7 +89,13 @@ if (($argv[1] ?? '') === 'config' && $type === 'add') {
     $words = explode(' ', trim($argv[4] ?? '', '"'));
     $backend = array_shift($words);
     if ($backend === 'carbure_install_probe') {
-        // Installs the module, then stops at the first setting asked
+        // Installs the module, then stops at the first setting asked; like woob, refreshing
+        // the repositories trusts their keyring by itself if none is trusted yet
+        $keyrings = sys_get_temp_dir() . '/carbure-fake-woob-keyrings';
+        if (!glob("$keyrings/*.gpg")) {
+            @mkdir($keyrings, 0700, true);
+            copy(__DIR__ . '/woob-repository/trusted.gpg', "$keyrings/https___updates_woob_tech_3_main_.gpg");
+        }
         touch(sys_get_temp_dir() . '/carbure-fake-woob-installed');
         echo "Module {$argv[3]} has been installed!\nAborted.\n";
         exit(130);
@@ -109,28 +116,29 @@ if (($argv[1] ?? '') === 'config' && $type === 'add') {
 }
 
 if (($argv[1] ?? '') === 'config' && $type === 'update') {
-    // Like woob 3.7: the first update asks to trust the keyring of the repository
-    // (tests/fixtures/woob-repository/trusted.gpg), kept in carbure-fake-woob-keyrings
+    // Like woob 3.7: the first update trusts the keyring of the repository
+    // (tests/fixtures/woob-repository/trusted.gpg), kept in carbure-fake-woob-keyrings;
+    // without a terminal, woob does not wait for an answer: it trusts it by itself. With
+    // the file carbure-fake-woob-other-keyring, woob gets (and stores) another keyring
     $keyrings = sys_get_temp_dir() . '/carbure-fake-woob-keyrings';
     if (!glob("$keyrings/*.gpg")) {
-        $keyring = __DIR__ . '/woob-repository/trusted.gpg';
+        $keyring = is_file(sys_get_temp_dir() . '/carbure-fake-woob-other-keyring')
+            ? "Another keyring\n" : file_get_contents(__DIR__ . '/woob-repository/trusted.gpg');
         echo "The repository https://updates.woob.tech/3/main/ isn't trusted yet.\n"
-            . "Fingerprint of keyring is " . sha1_file($keyring) . "\n"
+            . "Fingerprint of keyring is " . sha1($keyring) . "\n"
             . "Are you sure you want to continue? (Y/n): ";
-        flush();
-        $answer = fgets(STDIN);
-        if ($answer === false) {
-            echo "\nAborted.\n";
-            exit(1);
-        }
-        // An empty answer is a yes for woob
-        if (!in_array(trim($answer), ['', 'y', 'Y'], true)) {
-            fwrite(STDERR, "Error: Repository not trusted\n");
-            exit(1);
+        if (stream_isatty(STDIN)) {
+            $answer = fgets(STDIN);
+            if ($answer === false || !in_array(trim($answer), ['', 'y', 'Y'], true)) {
+                echo "\nAborted.\n";
+                exit(1);
+            }
+        } else {
+            echo "*** ASSUMING YES ***\n";
         }
         @mkdir($keyrings, 0700, true);
-        copy($keyring, "$keyrings/https___updates_woob_tech_3_main_.gpg");
-        echo "Keyring of https://updates.woob.tech/3/main/ trusted\n";
+        file_put_contents("$keyrings/https___updates_woob_tech_3_main_.gpg", $keyring);
+        file_put_contents("$keyrings/https___updates_woob_tech_3_main_.version", "202610130000\n");
     }
     fwrite(STDERR, "\r  0% Updating repositories\r100% All modules are up-to-date.\n");
     exit(0);

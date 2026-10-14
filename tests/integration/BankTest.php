@@ -199,13 +199,38 @@ class BankTest extends DatabaseTestCase
         $this->loginAs(self::ADMIN);
         $installed = sys_get_temp_dir() . '/carbure-fake-woob-installed';
         @unlink($installed);
+        $keyrings = WoobRepository::$keyringDir;
+        array_map('unlink', glob("$keyrings/*") ?: []);
         try {
-            // woob describes the settings once the module is installed: Carbure installs it
+            // Not before the woob repository is trusted: woob would trust it by itself
+            try {
+                Bank::module('boursorama');
+                $this->fail('Module installed before the woob repository is trusted');
+            } catch (Error $e) {
+                $this->assertSame(409, $e->getCode());
+                $this->assertStringContainsString('Trust the woob repository first', $e->getMessage());
+            }
+            // Nor by connecting a bank of this module (woob config add would install it)
+            try {
+                Bank::createBackend('boursorama', 'boursorama', ['login' => '12345678', 'password' => '123456']);
+                $this->fail('Bank of a module not installed connected before the woob repository is trusted');
+            } catch (Error $e) {
+                $this->assertSame(409, $e->getCode());
+            }
+            $this->assertFileDoesNotExist($installed);
+            $this->assertFalse(WoobRepository::isTrusted());
+            // An installed module needs nothing
+            $this->assertNotEmpty(Bank::module('bnp')['fields']);
+
+            // Trusted: woob describes the settings once the module is installed, Carbure installs it
+            @mkdir($keyrings, 0700, true);
+            copy(dirname(__DIR__) . '/fixtures/woob-repository/trusted.gpg', "$keyrings/https___updates_woob_tech_3_main_.gpg");
             $fields = array_column(Bank::module('boursorama')['fields'], 'key');
             $this->assertContains('password', $fields);
             $this->assertFileExists($installed);
         } finally {
             @unlink($installed);
+            array_map('unlink', glob("$keyrings/*") ?: []);
         }
     }
 
@@ -873,17 +898,17 @@ class BankTest extends DatabaseTestCase
             $this->assertFalse($status['trusted']);
             $this->assertSame($fingerprint, $status['fingerprint']);
 
-            // No fingerprint, or another one: refused, nothing trusted
+            // No fingerprint, or another one: woob (which would trust any keyring by
+            // itself) is not even started, nothing trusted
             foreach ([null, str_repeat('a', 40)] as $confirmed) {
                 $output = $this->updateWoob($confirmed);
-                $this->assertStringContainsString("data: Fingerprint of keyring is $fingerprint", $output);
-                $this->assertStringContainsString("data: Woob repository not trusted: $fingerprint", $output);
+                $this->assertSame("data: Woob repository not trusted: $fingerprint\n\n", $output);
                 $this->assertFalse(Bank::woob()['trusted']);
             }
 
-            // The fingerprint shown by woob: trusted, then the modules are updated
+            // The fingerprint of the keyring: trusted, then the modules are updated
             $output = $this->updateWoob(strtoupper($fingerprint));
-            $this->assertStringContainsString("data: Repository trusted: $fingerprint", $output);
+            $this->assertStringContainsString("data: Fingerprint of keyring is $fingerprint", $output);
             $this->assertStringContainsString('data: 100% All modules are up-to-date.', $output);
             $this->assertStringEndsWith("data: Woob updated\n\n", $output);
             $this->assertSame(['trusted' => true, 'fingerprint' => $fingerprint], array_intersect_key(Bank::woob(), ['trusted' => 1, 'fingerprint' => 1]));
@@ -892,7 +917,15 @@ class BankTest extends DatabaseTestCase
             $output = $this->updateWoob(null, false);
             $this->assertStringNotContainsString('Fingerprint of keyring', $output);
             $this->assertStringEndsWith("data: Woob updated\n\n", $output);
+
+            // woob got another keyring than the one confirmed: removed, the update fails
+            touch(sys_get_temp_dir() . '/carbure-fake-woob-other-keyring');
+            $output = $this->updateWoob($fingerprint);
+            $this->assertStringContainsString('data: Woob update failed: keyring', $output);
+            $this->assertStringContainsString("is not the confirmed one ($fingerprint)", $output);
+            $this->assertFalse(Bank::woob()['trusted']);
         } finally {
+            @unlink(sys_get_temp_dir() . '/carbure-fake-woob-other-keyring');
             array_map('unlink', glob(WoobRepository::$keyringDir . '/*') ?: []);
         }
     }
