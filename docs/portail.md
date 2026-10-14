@@ -1,4 +1,6 @@
 ---
+title: "Portail web : transactions, budgets et administration"
+description: "Les écrans du portail web de Carbure : transactions du mois, recherche, import de relevés, budgets, flux, tendances, insights, comptes, règles et utilisateurs."
 icon: material/monitor-dashboard
 ---
 
@@ -70,7 +72,7 @@ modification.
 
 ## Transactions
 
-![Transactions](assets/screenshot-transactions.png)
+![Écran Transactions du portail web Carbure](assets/screenshot-transactions.png)
 
 - Statistiques du mois : revenus, dépenses, solde.
 - Liste compacte des transactions avec l'icône et la couleur de leur catégorie (celles du
@@ -95,12 +97,20 @@ modification.
 - **Détail d'une transaction** : un clic (ou Entrée) sur le libellé ouvre une fenêtre avec
   le montant, le libellé complet, les dates, le type, la carte, la banque (compte synchronisé
   ou relevé importé) et la date d'import ; la
-  catégorie s'y change avec le sélecteur visuel et la transaction s'y pointe.
+  catégorie s'y change avec le sélecteur visuel et la transaction s'y pointe. Le bouton
+  corbeille supprime la transaction, après confirmation : elle n'est plus réimportée, ni par
+  la synchronisation ni par l'import d'un relevé (marquée « Supprimée » dans l'aperçu).
+  Le bouton **Transactions similaires** ferme la fenêtre et lance la recherche avec le
+  libellé débarrassé du type d'opération (CB, PRLV SEPA, VIR…) et de ce qui suit le
+  commerçant (numéro de carte, date, référence de mandat) : « PRLV SEPA EDF MDT/123 »
+  cherche « EDF ». La recherche s'efface ensuite avec la croix, comme une recherche saisie.
 - **Importer un relevé** : le bouton « Importer » ouvre une fenêtre où déposer le fichier
   téléchargé depuis l'espace client de la banque (OFX/QFX, QIF, CSV ou CAMT.053, 1 Mo au
   plus). Un aperçu classe chaque transaction : **nouvelle** (cochée), **doublon probable**
   (même montant qu'une transaction existante à 3 jours près, souvent la même synchronisée
   avec un autre libellé : non cochée) ou **déjà présente** (même identifiant : ignorée).
+  Chaque transaction a sa case : décocher celles à ne pas importer (ou « Tout cocher » pour
+  tout cocher ou décocher) ; le bouton indique le nombre de transactions importées.
   Les transactions importées appartiennent à l'utilisateur connecté et passent par les
   règles de catégorisation ; la liste s'ouvre ensuite sur le dernier mois importé
   (`POST /transaction/import/preview`, `POST /transaction/import`). Aucun compte synchronisé
@@ -109,7 +119,7 @@ modification.
 
 ## Budget
 
-![Flux du mois](assets/screenshot-flow.png)
+![Écran Budgets : flux du mois en diagramme de Sankey](assets/screenshot-flow.png)
 
 Deux sous-onglets : **Flux** (affiché par défaut) et **Budgets**.
 
@@ -154,7 +164,7 @@ tables `users`, `api_tokens` et `devices` (voir [Sécurité](securite.md#insight
 
 ## Tendances
 
-![Tendances](assets/screenshot-trends.png)
+![Écran Tendances du portail web Carbure](assets/screenshot-trends.png)
 
 - Période de **3, 6 ou 12 mois** se terminant au mois courant.
 - **Comparer à** : sans comparaison, la période précédente ou la même période l'an

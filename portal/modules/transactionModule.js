@@ -7,6 +7,37 @@
  * @module transactionModule
  */
 
+// What a bank adds around the merchant: kind of operation first, references after
+const LABEL_PREFIX = /^(FACTURE CARTE DU \d{4,8}|PAIEMENT (PAR )?CB|CB|CARTE|PRLV( SEPA)?|VIREMENT( SEPA)?|VIR( SEPA)?( INST)?|RETRAIT( DAB)?|CHQ|CHEQUE)\s+/;
+const LABEL_NOISE = /^(CARTE|ECH|MDT|REF|\S*\d\S*\d\S*\d\S*|\d{1,2}\/\d{1,2}\S*)$/;
+
+/**
+ * Query of the label search that finds the transactions similar to a label: the
+ * label without the kind of operation (CB, PRLV SEPA, VIR...) nor what follows the
+ * merchant (card number, date, mandate reference...). It stays a part of the label,
+ * so that the label search (a "contains") finds the transaction itself and its
+ * siblings; the label itself when too little is left.
+ * @param {string} label - Label of a transaction
+ * @returns {string}
+ */
+export function similarLabelQuery(label) {
+    const full = String(label || '').toUpperCase().replace(/\s+/g, ' ').trim();
+    let rest = full;
+    for (let previous = ''; previous !== rest;) {
+        previous = rest;
+        rest = rest.replace(LABEL_PREFIX, '');
+    }
+    const words = [];
+    for (const word of rest.split(' ')) {
+        if (LABEL_NOISE.test(word)) {
+            break;
+        }
+        words.push(word);
+    }
+    const query = words.join(' ');
+    return query.length >= 2 ? query : full;
+}
+
 /**
  * Creates a transaction module mixin for Vue components
  * @param {Function} getApiService - Function that returns the API service instance
@@ -355,6 +386,31 @@ export function createTransactionModule(getApiService) {
             },
 
             /**
+             * Deletes the transaction of the detail modal, after a confirmation; the list,
+             * the totals and the periods are then reloaded
+             * @returns {Promise<void>}
+             */
+            async deleteTransactionDetail() {
+                const transaction = this.transactionDetail;
+                if (!transaction || !confirm(this.t('confirmDeleteTransaction', { label: transaction.label }))) {
+                    return;
+                }
+                this.savingTransaction = true;
+                try {
+                    await getApiService().deleteTransaction(transaction.id);
+                    this.transactionDetail = null;
+                    this.searchResults = this.searchResults.filter(t => Number(t.id) !== Number(transaction.id));
+                    this.showToast(this.t('transactionDeleted'));
+                    this.loadPeriods();
+                    this.loadTransactions(this.selectedMonth, this.selectedYear);
+                } catch (error) {
+                    this.showToast(error.message);
+                } finally {
+                    this.savingTransaction = false;
+                }
+            },
+
+            /**
              * Opens the rules tab and the rule modal with the suggested rule pre-filled
              */
             createSuggestedRule() {
@@ -396,6 +452,23 @@ export function createTransactionModule(getApiService) {
                     return;
                 }
                 this.searchTimer = setTimeout(() => this.runSearch(), 300);
+            },
+
+            /**
+             * Closes the detail of a transaction and searches the transactions whose label
+             * is similar to its one, like a search typed by the user (cleared the same way)
+             * @returns {Promise<void>}
+             */
+            async searchSimilarTransactions() {
+                const transaction = this.transactionDetail;
+                if (!transaction) {
+                    return;
+                }
+                this.transactionDetail = null;
+                clearTimeout(this.searchTimer);
+                this.searchQuery = similarLabelQuery(transaction.label);
+                this.$nextTick?.(() => document.querySelector('.transaction-search input')?.focus());
+                await this.runSearch();
             },
 
             /**

@@ -2030,6 +2030,18 @@ button .material-icons {
     color: var(--info-color);
 }
 
+.btn-icon-sync:hover {
+    background: var(--info-light);
+    color: var(--info-color);
+}
+
+/* An icon button stays an icon when disabled (a synchronization running) */
+.btn-icon:disabled {
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: not-allowed;
+}
+
 .btn-icon-delete:hover {
     background: var(--error-light);
     color: var(--error-color);
@@ -5178,6 +5190,24 @@ a.footer-brand:hover {
 
 .transaction-detail-amount.negative {
     color: var(--error-color);
+}
+
+/* The label, with the search of the similar transactions next to it */
+.transaction-detail-label-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin: 4px 0 16px;
+}
+
+.transaction-detail-label-row .transaction-detail-label {
+    margin: 0;
+}
+
+.transaction-detail-similar {
+    flex-shrink: 0;
 }
 
 .transaction-detail-label {
