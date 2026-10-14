@@ -195,6 +195,10 @@ l'a pas supprimée.
 
 ### `GET /bank/woob` — administrateur
 
+Sur une installation neuve (woob jamais lancé), toutes les routes qui lancent woob
+répondent `409` tant que la clé de son dépôt n'est pas approuvée (`GET /bank/woob/update`) :
+au premier lancement, woob ferait confiance à cette clé de lui-même.
+
 État du dépôt des modules bancaires de woob : `repository` (URL), `trusted` (clé déjà
 approuvée), `fingerprint` (empreinte SHA-1 de la clé approuvée, sinon de celle que woob
 demandera d'approuver, à comparer avec celle des mainteneurs de woob ; `null` si le dépôt

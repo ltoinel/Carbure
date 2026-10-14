@@ -364,7 +364,8 @@ test('accounts: the woob repository is trusted only with the fingerprint shown, 
     };
     const { methods, data } = createAccountsModule(() => api);
     const toasts = [];
-    const context = { ...data(), showToast: message => toasts.push(message), t: key => key };
+    let reloaded = 0;
+    const context = { ...data(), showToast: message => toasts.push(message), t: key => key, loadBankBackends: async () => { reloaded++; } };
     for (const name of ['openWoobUpdate', 'runWoobUpdate', 'onWoobUpdateLine', 'closeWoobUpdate']) {
         context[name] = methods[name].bind(context);
     }
@@ -379,6 +380,8 @@ test('accounts: the woob repository is trusted only with the fingerprint shown, 
     assert.equal(context.woobUpdate.done, true);
     assert.equal(context.woobUpdate.error, null);
     assert.deepEqual(toasts, ['woobUpdated']);
+    // The banks woob supports are read again
+    assert.equal(reloaded, 1);
     context.closeWoobUpdate();
     assert.equal(context.woobUpdate.open, false);
 

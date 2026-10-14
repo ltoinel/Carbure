@@ -38,12 +38,20 @@ final class Woob {
      * Command that runs woob, after making sure that woob will accept to start: it
      * refuses a configuration file of the banks (logins and passwords) readable by
      * the group or the other users, as a file copied into a NAS shared folder often is.
+     * Not on a first run of woob before its repository is trusted: woob would trust the
+     * keyring of its repository by itself.
      *
+     * @param bool $refresh The command refreshes the repositories itself, once trusted by
+     *                      an administrator (WoobRepository::update())
      * @return string The command (woob_path of the configuration)
      * @throws Exception If the file stays readable by other users (ACL of the folder)
+     * @throws Error If the woob repository must be trusted first (409)
      */
-    public static function path(): string
+    public static function path(bool $refresh = false): string
     {
+        if (!$refresh) {
+            WoobRepository::requireTrustBeforeFirstRun();
+        }
         $woob_path = Config::get('woob_path');
         $home = self::home();
         $dir = rtrim((string)$home, '/') . '/.config/woob';
@@ -308,8 +316,9 @@ final class Woob {
      * setting it asks for (no input). A backend created anyway (module without
      * settings) is removed.
      *
-     * Not before the keyring of the woob repository is trusted: refreshing the repositories
-     * to install a module, woob would trust it by itself ("*** ASSUMING YES ***").
+     * Not before the keyring of the woob repository is trusted: woob checks the signature
+     * of a module with it ("No keyring found" otherwise), and would trust it by itself on
+     * a first run.
      *
      * @param string $module The woob module
      * @return void
@@ -318,8 +327,7 @@ final class Woob {
     private static function installModule(string $module): void
     {
         if (!WoobRepository::isTrusted()) {
-            throw new Error("Trust the woob repository first, from the Accounts page (update the bank modules), "
-                . "to install the module $module", 409);
+            throw new Error(WoobRepository::TRUST_FIRST . ", to install the module $module", 409);
         }
         $woob_path = self::path();
         $probe = 'carbure_install_probe';
@@ -435,7 +443,9 @@ final class Woob {
     {
         $woob_path = self::path();
         $woob_transactions = Config::get('woob_transactions');
-        $woob_auto_update = Config::get('woob_auto_update');
+        // --auto-update refreshes the repositories after a crash of a module: woob would
+        // trust the keyring of its repository by itself if none is trusted yet
+        $woob_auto_update = Config::get('woob_auto_update') && WoobRepository::isTrusted();
 
         $auto_update_flag = $woob_auto_update ? " --auto-update" : "";
 

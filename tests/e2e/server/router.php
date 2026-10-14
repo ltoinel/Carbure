@@ -66,6 +66,7 @@ Config::set('woob_path', escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($root
 // Its repository (keyring read without network) and the keyrings it trusts
 Config::set('woob_repository', $root . '/tests/fixtures/woob-repository/');
 WoobRepository::$keyringDir = sys_get_temp_dir() . '/carbure-fake-woob-keyrings';
+WoobRepository::$sourcesList = sys_get_temp_dir() . '/carbure-fake-woob-sources.list';
 
 // The Config tab writes a copy of the configuration, never conf/e2e.ini
 $configCopy = $dataDir . '/conf/e2e.ini';
@@ -96,6 +97,8 @@ if ($path === '/api/__e2e/reset') {
             }
             @unlink($file);
         }
+        // woob already run once (its list of repositories exists), its repository not trusted yet
+        file_put_contents(WoobRepository::$sourcesList, "https://updates.woob.tech/%(version)s/main/\n");
         carbure_e2e_seed();
         echo json_encode(['reset' => true]);
     } catch (Throwable $e) {

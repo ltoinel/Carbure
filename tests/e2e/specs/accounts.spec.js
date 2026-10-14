@@ -350,6 +350,26 @@ test('an administrator trusts the woob repository, then updates the bank modules
     await expect(modal.locator('.sync-log')).not.toContainText('Fingerprint of keyring');
 });
 
+test('a fresh woob is not run before its repository is trusted', async ({ adminPage: page, api }) => {
+    // woob never run (no list of its repositories): its first run would trust their keyring
+    require('fs').rmSync(require('path').join(require('os').tmpdir(), 'carbure-fake-woob-sources.list'), { force: true });
+    const refused = await api.get('/api/bank/backends');
+    expect(refused.status()).toBe(409);
+    expect((await refused.json()).error).toContain('Trust the woob repository first');
+    await page.reload();
+    await openTab(page, tr('tabAccounts'));
+    await expect(page.locator('.bank-connection')).toHaveCount(0);
+
+    // Trusted by the administrator (first run of woob): the connected banks are listed
+    await page.getByRole('button', { name: tr('woobUpdateButton') }).click();
+    const modal = page.getByRole('dialog', { name: tr('woobUpdateTitle') });
+    await modal.getByRole('button', { name: tr('woobTrustAndUpdate') }).click();
+    await expect(modal.getByRole('status').filter({ hasText: tr('woobUpdated') })).toBeVisible();
+    await modal.locator('.modal-footer').getByRole('button', { name: tr('close') }).click();
+    await expect(page.locator('.bank-connection')).toHaveCount(2);
+    expect((await api.get('/api/bank/backends')).status()).toBe(200);
+});
+
 test('the update of the bank modules is not offered to a user', async ({ userPage: page, request }) => {
     await expect(page.getByRole('button', { name: tr('woobUpdateButton') })).toHaveCount(0);
     const login = await request.post('/api/user/login', { data: { username: 'marie', password: 'marie-password' } });

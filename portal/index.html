@@ -2169,6 +2169,7 @@
                             </option>
                         </select>
                     </div>
+                    <div v-if="bankModulesError" class="sync-step-error" role="alert">{{ bankModulesError }}</div>
                     <!-- Settings asked by the woob module, sent to woob only -->
                     <fieldset v-if="connectModule" class="bank-setup">
                         <legend>{{ t('bankSetupTitle', { bank: bankSetup.description || bankSetup.module }) }}</legend>

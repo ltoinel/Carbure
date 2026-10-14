@@ -108,6 +108,47 @@ class WoobRepositoryTest extends TestCase
         $this->assertNull($result['asked']);
     }
 
+    public function testNoFirstRunOfWoobBeforeTheRepositoryIsTrusted()
+    {
+        // A fresh woob (no list of repositories): any command would refresh the repositories
+        // first and trust their keyring by itself
+        $sources = WoobRepository::$sourcesList;
+        @unlink($sources);
+        try {
+            foreach ([fn() => Woob::listBackends(), fn() => Woob::listAccounts('bnp'), fn() => Woob::moduleFields('bnp'),
+                fn() => Woob::getBankData('history', '123@bnp')] as $i => $call) {
+                try {
+                    $call();
+                    $this->fail("Case $i: woob run before its repository is trusted");
+                } catch (Error $e) {
+                    $this->assertSame(409, $e->getCode(), "Case $i");
+                    $this->assertStringContainsString('Trust the woob repository first', $e->getMessage());
+                }
+            }
+            // woob not even started
+            $this->assertFileDoesNotExist($sources);
+            $this->assertFalse(WoobRepository::isTrusted());
+
+            // The update confirmed by the administrator is the first run
+            [$result] = $this->update($this->fingerprint);
+            $this->assertTrue($result['updated']);
+            $this->assertTrue(WoobRepository::isTrusted());
+            $this->assertNotEmpty(Woob::listBackends());
+        } finally {
+            file_put_contents($sources, "https://updates.woob.tech/%(version)s/main/\n");
+        }
+    }
+
+    public function testNoAutoUpdateBeforeTheRepositoryIsTrusted()
+    {
+        // --auto-update refreshes the repositories after a crash of a module
+        $command = new ReflectionMethod(Woob::class, 'buildCommand');
+        Config::set('woob_auto_update', true);
+        $this->assertStringNotContainsString('--auto-update', $command->invoke(null, 'history', '1@bnp'));
+        $this->update($this->fingerprint);
+        $this->assertStringContainsString('--auto-update', $command->invoke(null, 'history', '1@bnp'));
+    }
+
     public function testAKeyringStoredByWoobOtherThanTheConfirmedOneIsRemoved()
     {
         // The repository served another keyring to woob than to Carbure

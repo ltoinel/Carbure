@@ -200,10 +200,20 @@ empreinte est exactement celle confirmée ; après la mise à jour, la clé que 
 conservée (`/data/woob/.local/share/woob/keyrings/`) doit aussi être celle-là, sinon elle
 est supprimée et la mise à jour échoue.
 
-Tant que le dépôt n'est pas approuvé, Carbure refuse aussi (`409`) d'installer un module
-bancaire (connecter une banque dont le module n'est pas encore installé), ce qui
-rafraîchirait les dépôts : approuvez le dépôt avant de connecter une banque. Une commande
-woob lancée à la main dans le conteneur (par exemple `woob config add`) ferait de même
+Tant que le dépôt n'est pas approuvé, Carbure refuse aussi (`409`, « Trust the woob
+repository first ») :
+
+- **toute commande woob** sur une installation neuve : au premier lancement (pas encore de
+  `~/.config/woob/sources.list`), n'importe quelle commande de woob crée la liste des
+  dépôts et les rafraîchit d'abord, faisant confiance à la clé d'elle-même ; la mise à
+  jour approuvée par l'administrateur est alors le premier lancement de woob ;
+- d'**installer un module bancaire** (connecter une banque dont le module n'est pas encore
+  installé) : woob vérifie sa signature avec la clé du dépôt ;
+- l'option `--auto-update` (`woob_auto_update`) n'est passée à woob qu'une fois le dépôt
+  approuvé : après le plantage d'un module, elle rafraîchit les dépôts.
+
+Approuvez donc le dépôt avant de connecter une banque. Une commande woob lancée à la main
+dans le conteneur (`woob config update`, ou n'importe laquelle au premier lancement) ferait
 confiance à la clé d'elle-même.
 
 Une fois le dépôt approuvé, le conteneur lance aussi `woob config update` à chaque

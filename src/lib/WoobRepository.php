@@ -38,6 +38,13 @@ final class WoobRepository {
     public static ?string $keyringDir = null;
 
     /**
+     * List of the repositories of woob, replaced by the tests (null: the one of the woob
+     * home, ~/.config/woob/sources.list). Missing, any woob command creates it and
+     * refreshes the repositories first, trusting their keyring by itself.
+     */
+    public static ?string $sourcesList = null;
+
+    /**
      * Repository of the bank modules (woob_repository, else the one of woob 3).
      *
      * @return string The URL (or directory, in the tests), ending with a slash
@@ -57,6 +64,25 @@ final class WoobRepository {
     {
         return self::trustedKeyring() !== null;
     }
+
+    /**
+     * Refuse a woob command that would make woob trust the keyring of its repository by
+     * itself: any command, while woob has no list of repositories yet (a first run creates
+     * it and refreshes the repositories) and no keyring is trusted.
+     *
+     * @return void
+     * @throws Error If the woob repository must be trusted first (409)
+     */
+    public static function requireTrustBeforeFirstRun(): void
+    {
+        $sources = self::$sourcesList ?? rtrim((string)Woob::home(), '/') . '/.config/woob/sources.list';
+        if (!is_file($sources) && !self::isTrusted()) {
+            throw new Error(self::TRUST_FIRST, 409);
+        }
+    }
+
+    /** Message of a woob action refused before the repository is trusted */
+    public const TRUST_FIRST = "Trust the woob repository first, from the Accounts page (update the bank modules)";
 
     /**
      * State of the repository: trusted or not, and the fingerprint of its keyring (the
@@ -173,7 +199,7 @@ final class WoobRepository {
      */
     private static function run(callable $onMessage): array
     {
-        $process = proc_open(Woob::path() . ' config update', [0 => ['file', '/dev/null', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
+        $process = proc_open(Woob::path(true) . ' config update', [0 => ['file', '/dev/null', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
         if (!is_resource($process)) {
             throw new Exception("Failed to start woob");
         }

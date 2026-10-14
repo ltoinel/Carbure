@@ -39,8 +39,9 @@ export function createAccountsModule(getApiService) {
                 showBackendModal: false,
                 savingBackend: false,
                 backendForm: { name: '', module: '', label: '' },
-                // Banks supported by woob: [{module, description}]
+                // Banks supported by woob: [{module, description}], or why woob gave none
                 bankModules: [],
+                bankModulesError: null,
                 // Step 1: connect a bank (woob module chosen in the modal)
                 showConnectModal: false,
                 connectModule: '',
@@ -162,6 +163,8 @@ export function createAccountsModule(getApiService) {
                 const [backends, modules] = await Promise.allSettled([api.fetchBankBackends(), api.fetchBankModules()]);
                 this.bankBackends = backends.status === 'fulfilled' ? backends.value : [];
                 this.bankModules = modules.status === 'fulfilled' ? modules.value : [];
+                // Why no bank can be chosen (e.g. woob repository to trust first)
+                this.bankModulesError = modules.status === 'rejected' ? modules.reason.message : null;
             },
 
             /**
@@ -296,6 +299,8 @@ export function createAccountsModule(getApiService) {
                 this.woobUpdate = { ...this.woobUpdate, running: false };
                 if (this.woobUpdate.done) {
                     this.showToast(this.t('woobUpdated'));
+                    // The banks woob supports, once its repository is trusted
+                    await this.loadBankBackends();
                 }
             },
 

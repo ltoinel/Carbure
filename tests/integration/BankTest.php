@@ -930,6 +930,36 @@ class BankTest extends DatabaseTestCase
         }
     }
 
+    public function testFreshWoobNotRunBeforeItsRepositoryIsTrusted()
+    {
+        $this->loginAs(self::ADMIN);
+        $sources = WoobRepository::$sourcesList;
+        @unlink($sources);
+        array_map('unlink', glob(WoobRepository::$keyringDir . '/*') ?: []);
+        try {
+            // Any woob command would trust the keyring of its repository by itself
+            // (the list of the modules may come from the cache: woob not run either)
+            foreach ([fn() => Bank::backends(), fn() => Bank::module('bnp'), fn() => Bank::discover()] as $i => $call) {
+                try {
+                    $call();
+                    $this->fail("Case $i: woob run before its repository is trusted");
+                } catch (Error $e) {
+                    $this->assertSame(409, $e->getCode(), "Case $i");
+                }
+            }
+            $this->assertFalse(Bank::woob()['trusted']);
+            $this->assertFileDoesNotExist($sources);
+
+            // Trusted by the administrator: woob runs
+            $fingerprint = sha1_file(dirname(__DIR__) . '/fixtures/woob-repository/trusted.gpg');
+            $this->assertStringEndsWith("data: Woob updated\n\n", $this->updateWoob($fingerprint, false));
+            $this->assertSame(['bnp', 'cic_pro'], array_column(Bank::backends(), 'name'));
+        } finally {
+            file_put_contents($sources, "https://updates.woob.tech/%(version)s/main/\n");
+            array_map('unlink', glob(WoobRepository::$keyringDir . '/*') ?: []);
+        }
+    }
+
     public function testWoobUpdateNotDuringASynchronization()
     {
         $this->loginAs(self::ADMIN);
