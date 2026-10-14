@@ -8,10 +8,13 @@
  *        fake-woob.php bank list [-b <backend>] -f json (two accounts, "none": no account)
  *        fake-woob.php config info <module> -f json       (settings once installed, like woob 3.7)
  *        fake-woob.php config add <module> '"<backend> key=value ..."' (installs with the probe name)
+ *        fake-woob.php config remove <backend>           (no longer listed by config list)
  *
  * - account "fail@bank"  : writes on stderr and exits with code 1
  * - account "empty@bank" : no output
  * - account "broken@bank": no output, error on stderr, exit code 0 (module not loaded)
+ * - account "forbidden@bank" (and bank list -b forbidden): "[]", the bank refuses woob
+ *                          ("Bug(...): 403 Client Error: Forbidden" on stderr), exit code 0
  * - account "slow@bank"  : waits 2 seconds before answering
  * - account "nocoming@bank": the coming transactions fail (code 1), the history works
  * - account "validate@bank": asks a validation in the bank app (even on a terminal) until
@@ -33,9 +36,14 @@ if (($argv[1] ?? '') === 'config' && $type === 'modules') {
 }
 
 if (($argv[1] ?? '') === 'config' && $type === 'list') {
-    // One JSON object per line, with the (secret) configuration that must not leak
-    echo json_encode(['Name' => 'bnp', 'Module' => 'bnp', 'Configuration' => 'login=12345678, password=*****']) . "\n";
-    echo json_encode(['Name' => 'cic_pro', 'Module' => 'cic', 'Configuration' => 'login=jdoe, password=*****']) . "\n";
+    // One JSON object per line, with the (secret) configuration that must not leak;
+    // the backends removed by "config remove" are no longer listed
+    $removed = file(sys_get_temp_dir() . '/carbure-fake-woob-removed', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
+    foreach ([['bnp', 'bnp', 'login=12345678, password=*****'], ['cic_pro', 'cic', 'login=jdoe, password=*****']] as [$name, $module, $configuration]) {
+        if (!in_array($name, $removed, true)) {
+            echo json_encode(['Name' => $name, 'Module' => $module, 'Configuration' => $configuration]) . "\n";
+        }
+    }
     exit(0);
 }
 
@@ -62,7 +70,11 @@ if (($argv[1] ?? '') === 'config' && $type === 'info') {
 }
 
 if (($argv[1] ?? '') === 'config' && $type === 'remove') {
-    file_put_contents(sys_get_temp_dir() . '/carbure-fake-woob-removed', $argv[3] ?? '');
+    // Records the backends removed (one per line), to check it; with the file
+    // carbure-fake-woob-stuck, woob silently removes nothing
+    if (!is_file(sys_get_temp_dir() . '/carbure-fake-woob-stuck')) {
+        file_put_contents(sys_get_temp_dir() . '/carbure-fake-woob-removed', ($argv[3] ?? '') . "\n", FILE_APPEND);
+    }
     exit(0);
 }
 
@@ -109,6 +121,11 @@ if (($argv[1] ?? '') === 'bank' && $type === 'list') {
         fwrite(STDERR, "Error(" . $added['backend'] . "): BrowserIncorrectPassword: Identifiant ou mot de passe incorrect\n");
         exit(1);
     }
+    if ($backend === 'forbidden') {
+        echo "[]\n";
+        fwrite(STDERR, "Bug(forbidden): 403 Client Error: Forbidden\nUse --debug option to print backtraces\n");
+        exit(0);
+    }
     if ($backend === 'none') {
         fwrite(STDERR, "Error(none): Unable to load module \"none\"\n");
         exit(0);
@@ -142,6 +159,13 @@ if ($account === 'empty@bank') {
 
 if ($account === 'broken@bank') {
     fwrite(STDERR, "Error(bnp): Unable to load module \"bnp\": No module named 'curl_cffi'\n");
+    exit(0);
+}
+
+if ($account === 'forbidden@bank') {
+    // Like woob 3.7 when the website of the bank refuses it: an empty list, exit code 0
+    echo "[]\n";
+    fwrite(STDERR, "Bug(bank): 403 Client Error: Forbidden\nUse --debug option to print backtraces\n");
     exit(0);
 }
 
