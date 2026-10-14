@@ -843,4 +843,91 @@ class BankTest extends DatabaseTestCase
         $this->expectException(Exception::class);
         (new ReflectionMethod(Bank::class, 'getBankOwner'))->invoke(null, 'unknown@bank');
     }
+
+    /**
+     * Update woob as the administrator and return the SSE output (the keyrings trusted
+     * by the fake woob are forgotten before).
+     */
+    private function updateWoob(?string $fingerprint = null, bool $forget = true): string
+    {
+        if ($forget) {
+            array_map('unlink', glob(WoobRepository::$keyringDir . '/*') ?: []);
+        }
+        ob_start();
+        try {
+            Bank::updateWoob($fingerprint);
+        } finally {
+            $output = ob_get_clean();
+        }
+        return $output;
+    }
+
+    public function testWoobRepositoryTrustedByAnAdministrator()
+    {
+        $this->loginAs(self::ADMIN);
+        $fingerprint = sha1_file(dirname(__DIR__) . '/fixtures/woob-repository/trusted.gpg');
+        try {
+            // Not trusted: the fingerprint to compare is given
+            array_map('unlink', glob(WoobRepository::$keyringDir . '/*') ?: []);
+            $status = Bank::woob();
+            $this->assertFalse($status['trusted']);
+            $this->assertSame($fingerprint, $status['fingerprint']);
+
+            // No fingerprint, or another one: refused, nothing trusted
+            foreach ([null, str_repeat('a', 40)] as $confirmed) {
+                $output = $this->updateWoob($confirmed);
+                $this->assertStringContainsString("data: Fingerprint of keyring is $fingerprint", $output);
+                $this->assertStringContainsString("data: Woob repository not trusted: $fingerprint", $output);
+                $this->assertFalse(Bank::woob()['trusted']);
+            }
+
+            // The fingerprint shown by woob: trusted, then the modules are updated
+            $output = $this->updateWoob(strtoupper($fingerprint));
+            $this->assertStringContainsString("data: Repository trusted: $fingerprint", $output);
+            $this->assertStringContainsString('data: 100% All modules are up-to-date.', $output);
+            $this->assertStringEndsWith("data: Woob updated\n\n", $output);
+            $this->assertSame(['trusted' => true, 'fingerprint' => $fingerprint], array_intersect_key(Bank::woob(), ['trusted' => 1, 'fingerprint' => 1]));
+
+            // Trusted: no question any more
+            $output = $this->updateWoob(null, false);
+            $this->assertStringNotContainsString('Fingerprint of keyring', $output);
+            $this->assertStringEndsWith("data: Woob updated\n\n", $output);
+        } finally {
+            array_map('unlink', glob(WoobRepository::$keyringDir . '/*') ?: []);
+        }
+    }
+
+    public function testWoobUpdateNotDuringASynchronization()
+    {
+        $this->loginAs(self::ADMIN);
+        // The synchronization of another connection holds the lock
+        $other = new mysqli(Config::get('db_hostname'), Config::get('db_username'), Config::get('db_password'), Config::get('db_name'), (int)Config::get('db_port'));
+        $other->query("SELECT GET_LOCK('bank_sync', 0)");
+        try {
+            $this->assertSame("data: Woob update failed: synchronization in progress\n\n", $this->updateWoob());
+        } finally {
+            $other->close();
+        }
+    }
+
+    public function testWoobUpdateInvalidFingerprint()
+    {
+        $this->loginAs(self::ADMIN);
+        $this->expectException(Error::class);
+        $this->expectExceptionCode(400);
+        Bank::updateWoob('not-a-sha1');
+    }
+
+    public function testWoobRequiresAnAdministrator()
+    {
+        $this->loginAs(self::USER);
+        foreach ([fn() => Bank::woob(), fn() => Bank::updateWoob()] as $i => $call) {
+            try {
+                $call();
+                $this->fail("Case $i: allowed to a user");
+            } catch (Error $e) {
+                $this->assertSame(403, $e->getCode(), "Case $i");
+            }
+        }
+    }
 }

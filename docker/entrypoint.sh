@@ -17,20 +17,16 @@ chmod -R u+rwX,go-rwx /data/woob 2>/dev/null || true
 # the signature of the bank modules; without it, installing a module fails with "No
 # keyring found") and installed bank modules. In the background (the portal starts
 # without waiting for the network), as www-data (the owner of /data/woob).
-# The first time, woob asks whether to trust the keyring of its repository: it is
-# trusted only if its SHA-1 is the one pinned in the image (WOOB_KEYRING_SHA1); the
-# next keyrings are checked by woob with the previous one.
+# The keyring of the woob repository is trusted by an administrator, who compares its
+# fingerprint in the portal (Accounts page, "update the bank modules"): until then, the
+# modules are not updated. The next keyrings are checked by woob with the previous one.
 woob_update() {
-    answer=n
     if [ -z "$(ls -A /data/woob/.local/share/woob/keyrings 2>/dev/null)" ]; then
-        sha1=$(curl -fsS "${WOOB_REPOSITORY}trusted.gpg" | sha1sum | cut -d' ' -f1)
-        if [ "$sha1" != "$WOOB_KEYRING_SHA1" ]; then
-            echo "Carbure: keyring of the woob repository not trusted (SHA-1 $sha1, expected $WOOB_KEYRING_SHA1): bank modules not updated" >&2
-            return 1
-        fi
-        answer=y
+        echo "Carbure: woob repository not trusted yet: an administrator must trust it from the Accounts page of the portal to update the bank modules" >&2
+        return 0
     fi
-    output=$(printf '%s\n' "$answer" | su -s /bin/sh www-data -c "env HOME=/data/woob woob config update" 2>&1) || true
+    # No answer to any question of woob (stdin closed: a new keyring is never trusted here)
+    output=$(su -s /bin/sh www-data -c "env HOME=/data/woob woob config update" < /dev/null 2>&1) || true
     if echo "$output" | grep -qiE "aborted|error|not trusted|invalid signature"; then
         echo "Carbure: woob update failed, it will be retried at the next start: $(echo "$output" | grep -iE "aborted|error|not trusted|invalid signature" | tail -1)" >&2
         return 1

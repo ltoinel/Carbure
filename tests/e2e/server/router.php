@@ -63,6 +63,9 @@ if (getenv('E2E_DB_NAME')) {
     Config::set('db_name', getenv('E2E_DB_NAME'));
 }
 Config::set('woob_path', escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($root . '/tests/fixtures/fake-woob.php'));
+// Its repository (keyring read without network) and the keyrings it trusts
+Config::set('woob_repository', $root . '/tests/fixtures/woob-repository/');
+WoobRepository::$keyringDir = sys_get_temp_dir() . '/carbure-fake-woob-keyrings';
 
 // The Config tab writes a copy of the configuration, never conf/e2e.ini
 $configCopy = $dataDir . '/conf/e2e.ini';
@@ -86,6 +89,11 @@ if ($path === '/api/__e2e/reset') {
         // The state kept by the fake woob (bank added, module installed...): a test must
         // not see the bank added by a previous one
         foreach (glob(sys_get_temp_dir() . '/carbure-fake-woob-*') ?: [] as $file) {
+            // The keyrings trusted by the fake woob are a directory
+            if (is_dir($file)) {
+                array_map('unlink', glob("$file/*") ?: []);
+                @rmdir($file);
+            }
             @unlink($file);
         }
         carbure_e2e_seed();

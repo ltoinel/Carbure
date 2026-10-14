@@ -73,10 +73,6 @@ RUN echo "${CARBURE_VERSION#v}" > VERSION \
 
 # Command run by the synchronization to call woob (its settings live in /data)
 ENV CARBURE_WOOB_PATH="env HOME=/data/woob woob"
-# Repository of the woob bank modules and SHA-1 of its keyring (trusted.gpg), trusted
-# at the first start only if it matches (docker/entrypoint.sh)
-ENV WOOB_REPOSITORY="https://updates.woob.tech/3/main/" \
-    WOOB_KEYRING_SHA1="b5fc136c2d500b8483696a0ee722865842a4cc45"
 
 VOLUME /data
 EXPOSE 80

@@ -313,3 +313,39 @@ test('a bank refusing the credentials can be connected again', async ({ adminPag
     await modal.getByRole('button', { name: tr('bankConnect') }).click();
     await expect(page.getByRole('dialog', { name: tr('addAccountsTitle', { bank: 'CIC (cic)' }) })).toBeVisible();
 });
+
+test('an administrator trusts the woob repository, then updates the bank modules', async ({ adminPage: page }) => {
+    // Fingerprint of the keyring of the fake woob repository
+    const keyring = require('fs').readFileSync(require('path').join(__dirname, '../../fixtures/woob-repository/trusted.gpg'));
+    const fingerprint = require('crypto').createHash('sha1').update(keyring).digest('hex');
+
+    await openTab(page, tr('tabAccounts'));
+    await page.getByRole('button', { name: tr('woobUpdateButton') }).click();
+    const modal = page.getByRole('dialog', { name: tr('woobUpdateTitle') });
+
+    // Not trusted yet: the fingerprint to compare, nothing updated until trusted
+    await expect(modal.locator('.woob-fingerprint')).toHaveText(fingerprint);
+    await expect(modal.locator('.sync-log')).toHaveCount(0);
+    await modal.getByRole('button', { name: tr('woobTrustAndUpdate') }).click();
+
+    await expect(modal.getByRole('status').filter({ hasText: tr('woobUpdated') })).toBeVisible();
+    await expect(modal.locator('.sync-log')).toContainText(`Repository trusted: ${fingerprint}`);
+    await expect(modal.locator('.sync-log')).toContainText('All modules are up-to-date.');
+    await expect(page.locator('.toast')).toHaveText(tr('woobUpdated'));
+    await modal.locator('.modal-footer').getByRole('button', { name: tr('close') }).click();
+    await expect(modal).toHaveCount(0);
+
+    // Trusted: the next update starts at once, without the fingerprint
+    await page.getByRole('button', { name: tr('woobUpdateButton') }).click();
+    await expect(modal.getByRole('status').filter({ hasText: tr('woobUpdated') })).toBeVisible();
+    await expect(modal.getByRole('button', { name: tr('woobTrustAndUpdate') })).toHaveCount(0);
+    await expect(modal.locator('.sync-log')).not.toContainText('Fingerprint of keyring');
+});
+
+test('the update of the bank modules is not offered to a user', async ({ userPage: page, request }) => {
+    await expect(page.getByRole('button', { name: tr('woobUpdateButton') })).toHaveCount(0);
+    const login = await request.post('/api/user/login', { data: { username: 'marie', password: 'marie-password' } });
+    const headers = { Authorization: `Bearer ${(await login.json()).token}` };
+    expect((await request.get('/api/bank/woob', { headers })).status()).toBe(403);
+    expect((await request.get('/api/bank/woob/update', { headers })).status()).toBe(403);
+});

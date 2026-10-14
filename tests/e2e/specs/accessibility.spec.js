@@ -99,6 +99,14 @@ test('the menus, modals and the synchronization log are readable', async ({ admi
     await page.keyboard.press('Escape');
     await expect(rename).toHaveCount(0);
 
+    // Update of the bank modules: the fingerprint of the woob repository to compare
+    await page.getByRole('button', { name: tr('woobUpdateButton') }).click();
+    const woobUpdate = page.getByRole('dialog', { name: tr('woobUpdateTitle') });
+    await expect(woobUpdate.getByRole('button', { name: tr('woobTrustAndUpdate') })).toBeVisible();
+    problems.push(...await contrastProblems(page, tr('woobUpdateTitle')));
+    await page.keyboard.press('Escape');
+    await expect(woobUpdate).toHaveCount(0);
+
     // A synchronization in error, with its log open
     await page.locator('.account-item').filter({ hasText: 'fail@bank' }).getByRole('button', { name: tr('syncAccount') }).click();
     await expect(page.locator('.sync-status')).toContainText(tr('syncStatus_error'));

@@ -233,6 +233,12 @@ protégée.
        **Suivre les comptes sélectionnés** les ajoute d'un coup, nommés d'après leur libellé
        woob. Les comptes déjà suivis sont cochés et grisés. Après une connexion, cette liste
        s'ouvre directement.
+- **Mettre à jour les modules bancaires** (administrateur) : met à jour les modules woob
+  des banques (`woob config update`), par exemple après la correction d'un module cassé,
+  avec le journal de woob en direct. La première fois, la fenêtre affiche le dépôt de woob
+  et l'empreinte de sa clé, à comparer avec celle publiée par les mainteneurs de woob avant
+  **Faire confiance et mettre à jour** ; les fois suivantes, la mise à jour démarre
+  directement (voir [Sécurité](securite.md)).
 
   Seul un compte listé par woob peut être suivi : il n'y a plus de saisie manuelle de
   l'identifiant. La modification d'un compte ne change que son nom.

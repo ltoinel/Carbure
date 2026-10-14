@@ -185,13 +185,22 @@ du dépôt.
 Les modules bancaires de woob (code Python qui lit les identifiants) sont téléchargés
 depuis le dépôt de woob : l'image contient `gpgv`, avec lequel woob vérifie la signature
 de chaque module installé ou mis à jour et refuse un module dont la signature est
-invalide. À chaque démarrage, le conteneur lance `woob config update` : il met à jour les dépôts,
-la clé du dépôt (`/data/woob/.local/share/woob/keyrings/`) et les modules bancaires
-installés. La première fois, woob demande s'il doit faire confiance à la clé du dépôt :
-le conteneur ne l'accepte que si son empreinte SHA-1 est celle fixée dans l'image
-(`WOOB_KEYRING_SHA1`, `docker/Dockerfile`), sinon il la refuse et l'écrit dans ses logs
-(les modules ne sont alors pas mis à jour). Les clés suivantes sont vérifiées par woob
-avec la précédente. Une commande woob lancée à la main dans le
+invalide.
+
+La première mise à jour, woob demande s'il doit faire confiance à la clé de son dépôt
+(`https://updates.woob.tech/3/main/`), en affichant son empreinte SHA-1. C'est un
+**administrateur** qui décide, depuis l'onglet **Comptes** (bouton **Mettre à jour les
+modules bancaires**) : le portail affiche le dépôt et l'empreinte de sa clé, à comparer
+avec celle publiée ou annoncée par les mainteneurs de woob, puis **Faire confiance et
+mettre à jour**. Carbure ne répond « oui » à woob que si l'empreinte que woob affiche est
+exactement celle confirmée (sinon « non », et le portail affiche la nouvelle empreinte à
+comparer) ; la clé est alors conservée dans `/data/woob/.local/share/woob/keyrings/`, et
+les clés suivantes sont vérifiées par woob avec la précédente, sans nouvelle question.
+
+Une fois le dépôt approuvé, le conteneur lance aussi `woob config update` à chaque
+démarrage (dépôts, clé et modules installés), sans jamais répondre à une question de
+woob ; tant qu'il ne l'est pas, il l'indique dans ses logs et ne met rien à jour. Un échec
+de la mise à jour est écrit dans les logs du conteneur. Une commande woob lancée à la main dans le
 conteneur doit l'être en `www-data` (`docker exec -u www-data …`) : lancée en root, elle
 créerait dans `/data/woob` des fichiers que Carbure ne pourrait plus modifier (le
 redémarrage du conteneur les lui rend).

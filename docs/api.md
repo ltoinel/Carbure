@@ -189,6 +189,24 @@ sont supprimés ; les transactions déjà importées sont conservées. Renvoie `
 la banque n'est pas configurée dans woob, `400` si le nom est invalide, `500` si woob ne
 l'a pas supprimée.
 
+### `GET /bank/woob` — administrateur
+
+État du dépôt des modules bancaires de woob : `repository` (URL), `trusted` (clé déjà
+approuvée), `fingerprint` (empreinte SHA-1 de la clé approuvée, sinon de celle que woob
+demandera d'approuver, à comparer avec celle des mainteneurs de woob ; `null` si le dépôt
+est injoignable) et `error` (cause, `null` sinon).
+
+### `GET /bank/woob/update` — administrateur (flux SSE)
+
+Met à jour les dépôts et les modules bancaires (`woob config update`). Paramètre
+facultatif `fingerprint` (empreinte SHA-1 confirmée par l'administrateur, `400` si ce
+n'est pas 40 caractères hexadécimaux) : si woob demande d'approuver la clé du dépôt,
+Carbure ne répond « oui » que si l'empreinte affichée par woob est exactement celle-ci.
+Chaque ligne de woob est envoyée (`data: <ligne>`), puis le résultat : `Woob updated`,
+`Woob repository not trusted: <empreinte>` (à comparer avant de réessayer avec elle) ou
+`Woob update failed: <cause>` (dont `synchronization in progress` : jamais pendant une
+synchronisation).
+
 ### `GET /bank/discover` — administrateur
 
 Interroge woob (`woob bank list`) et renvoie les comptes des banques configurées :

@@ -45,8 +45,7 @@ final class Woob {
     public static function path(): string
     {
         $woob_path = Config::get('woob_path');
-        // HOME given in the command (Docker: "env HOME=/data/woob woob"), or the one of PHP
-        $home = preg_match('/\bHOME=(\S+)/', (string)$woob_path, $m) ? trim($m[1], '"\'') : getenv('HOME');
+        $home = self::home();
         $dir = rtrim((string)$home, '/') . '/.config/woob';
         if ($home && is_dir($dir)) {
             if ((fileperms($dir) & 0077) !== 0) {
@@ -64,6 +63,19 @@ final class Woob {
         }
         // An unset woob_path gives an empty command, as before
         return (string)$woob_path;
+    }
+
+    /**
+     * Home directory of woob (its configuration, keyrings and modules): the HOME given in
+     * the command (Docker: "env HOME=/data/woob woob"), else the one of PHP.
+     *
+     * @return string|null The directory, null if unknown
+     */
+    public static function home(): ?string
+    {
+        $woob_path = (string)Config::get('woob_path');
+        $home = preg_match('/\bHOME=(\S+)/', $woob_path, $m) ? trim($m[1], '"\'') : getenv('HOME');
+        return $home ? (string)$home : null;
     }
 
     /**
