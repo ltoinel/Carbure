@@ -361,10 +361,25 @@ onglets et les fenêtres) :
 - graphiques doublés d'un tableau (Tendances, Flux du mois) et animations coupées quand le
   système demande moins de mouvements.
 
-Les contrastes sont vérifiés par les tests e2e (`tests/e2e/specs/accessibility.spec.js`) :
-chaque texte de chaque onglet, des menus et des fenêtres, et chaque bouton au repos et au
-survol doivent atteindre 4,5:1 (3:1 pour une icône ou un grand texte). Les couleurs
-choisies par les utilisateurs (catégories) et les graphiques SVG ne sont pas mesurés.
+Les tests e2e vérifient automatiquement, à chaque modification :
+
+- **contrastes** (`tests/e2e/specs/accessibility.spec.js`) : chaque texte de chaque onglet,
+  des menus et des fenêtres, et chaque bouton au repos et au survol doivent atteindre
+  4,5:1 (3:1 pour une icône ou un grand texte) ; une fenêtre ouverte est mesurée seule (la
+  page dessous est inactive). Les couleurs choisies par les utilisateurs (catégories) et
+  les graphiques SVG ne sont pas mesurés ;
+- **règles WCAG 2.2 A et AA d'axe-core** (`tests/e2e/specs/accessibility-axe.spec.js`) :
+  écran de connexion, chaque onglet d'un administrateur et d'un utilisateur, menus,
+  fenêtres et journal de synchronisation, sans aucune violation (noms accessibles,
+  rôles, structure, tailles de cible, contrastes…) ;
+- **affichage à 320 px de large** (zoom 400 %, critère 1.4.10) : aucun onglet ne défile
+  horizontalement ;
+- **zoom 200 %** (critère 1.4.4, page mise en page sur 640 px) et **espacement du texte**
+  (critère 1.4.12 : interligne 1,5, espacement des lettres et des mots augmenté) : aucun
+  texte de bouton, d'onglet, de libellé ou de titre n'est coupé.
+
+Ces tests automatiques ne remplacent pas une vérification avec un lecteur d'écran (NVDA,
+VoiceOver) ni un audit RGAA.
 
 ## Mode debug
 
