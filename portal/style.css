@@ -3635,6 +3635,70 @@ button .material-icons {
     gap: 4px;
 }
 
+/* Each connected bank with its followed accounts nested below it */
+.bank-groups {
+    list-style: none;
+    margin: 8px 0 0;
+    padding: 0;
+}
+
+.bank-group {
+    padding: 4px 0 12px;
+    border-bottom: 1px solid var(--divider);
+}
+
+.bank-group:last-child {
+    border-bottom: none;
+}
+
+.bank-group .bank-connection,
+.bank-group-header {
+    border-bottom: none;
+}
+
+.bank-group-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+}
+
+.bank-group-title {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.bank-group-help {
+    margin: 2px 0 0;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+/* The accounts of a bank: indented under its name, a line showing the hierarchy */
+.accounts-list.bank-group-accounts {
+    margin: 0 0 0 11px;
+    padding-left: 24px;
+    border-left: 2px solid var(--divider);
+}
+
+.bank-group-empty {
+    margin: 0 0 0 11px;
+    padding: 8px 0 8px 24px;
+    border-left: 2px solid var(--divider);
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+@media (max-width: 768px) {
+    .accounts-list.bank-group-accounts,
+    .bank-group-empty {
+        margin-left: 4px;
+        padding-left: 12px;
+    }
+}
+
 .account-woob-id {
     margin-bottom: 12px;
     color: var(--text-secondary);
@@ -5259,6 +5323,24 @@ a.footer-brand:hover {
     color: var(--error-color);
 }
 
+/* The label, with the search of the similar transactions next to it */
+.transaction-detail-label-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin: 4px 0 16px;
+}
+
+.transaction-detail-label-row .transaction-detail-label {
+    margin: 0;
+}
+
+.transaction-detail-similar {
+    flex-shrink: 0;
+}
+
 .transaction-detail-label {
     margin: 4px 0 16px;
     font-size: 15px;
@@ -6198,4 +6280,39 @@ textarea:focus-visible,
     .material-icons {
         forced-color-adjust: auto;
     }
+/* ===== Confirmation modal (askConfirm) ===== */
+.modal-confirm .confirm-error {
+    margin: 0;
+}
+
+/* Destructive confirmation: red, darker on hover (white label readable on both) */
+.btn-confirm-danger {
+    background: var(--error-color);
+    color: #fff;
+}
+
+.btn-confirm-danger:hover {
+    background: #a51f1f;
+}
+
+/* Action running: the button keeps its colors (its label "…in progress" stays
+   readable, it is not :disabled but aria-disabled), without the hover effect */
+button.is-busy,
+button.is-busy:hover {
+    cursor: progress;
+    transform: none;
+    box-shadow: none;
+}
+
+button.is-busy:not(.btn-confirm-danger):hover {
+    background: var(--primary-color);
+}
+
+.btn-confirm-danger.is-busy:hover {
+    background: var(--error-color);
+}
+
+/* Close button of a modal whose action runs: no grey square */
+.modal-close:disabled {
+    background: transparent;
 }

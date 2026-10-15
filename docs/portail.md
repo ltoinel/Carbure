@@ -100,6 +100,10 @@ modification.
   catégorie s'y change avec le sélecteur visuel et la transaction s'y pointe. Le bouton
   corbeille supprime la transaction, après confirmation : elle n'est plus réimportée, ni par
   la synchronisation ni par l'import d'un relevé (marquée « Supprimée » dans l'aperçu).
+  Le bouton **Transactions similaires** ferme la fenêtre et lance la recherche avec le
+  libellé débarrassé du type d'opération (CB, PRLV SEPA, VIR…) et de ce qui suit le
+  commerçant (numéro de carte, date, référence de mandat) : « PRLV SEPA EDF MDT/123 »
+  cherche « EDF ». La recherche s'efface ensuite avec la croix, comme une recherche saisie.
 - **Importer un relevé** : le bouton « Importer » ouvre une fenêtre où déposer le fichier
   téléchargé depuis l'espace client de la banque (OFX/QFX, QIF, CSV ou CAMT.053, 1 Mo au
   plus). Un aperçu classe chaque transaction : **nouvelle** (cochée), **doublon probable**
@@ -210,6 +214,12 @@ protégée.
 
 ## Comptes (administrateurs)
 
+La page est organisée par banque : chaque **banque connectée** (en-tête avec son nom et
+ses actions) présente juste en dessous, en retrait, les **comptes suivis** qui en
+viennent ; une banque sans compte suivi l'indique (« Aucun compte suivi : ajoutez des
+comptes de cette banque »). Les comptes d'une banque qui n'est plus connectée dans woob,
+ou importés depuis un fichier, sont regroupés à la fin sous **Autres comptes**.
+
 - **Comptes du foyer** (partagés par tous les utilisateurs) : chaque compte suivi avec
   « Ajouté par » (l'utilisateur qui l'a ajouté), la date et le statut de sa dernière
   synchronisation (Synchronisé, Échec ou Jamais synchronisé ; le détail au survol), et
@@ -232,9 +242,11 @@ protégée.
        ouvert.
     2. **Banques connectées** : chaque connexion (backend woob) affiche son nom (à défaut
        celui de la banque) et son nom dans woob ; le bouton crayon la **renomme** (un nom
-       vide rétablit celui de la banque) ; la corbeille la **supprime**, après confirmation :
-       woob oublie ses identifiants et ses comptes suivis ne le sont plus (leurs transactions
-       sont conservées). Son bouton **Ajouter des comptes** ouvre la liste des comptes que woob trouve pour elle
+       vide rétablit celui de la banque) ; la corbeille la **supprime**, après confirmation
+       dans une fenêtre du portail : woob oublie ses identifiants et ses comptes suivis ne le
+       sont plus (leurs transactions sont conservées). La fenêtre reste ouverte, son bouton
+       indiquant « Suppression en cours… », jusqu'à ce que woob ait supprimé la connexion ;
+       une erreur s'y affiche, la suppression peut alors être relancée ou annulée. Son bouton **Ajouter des comptes** ouvre la liste des comptes que woob trouve pour elle
        (`woob bank list -b <banque>` : libellé, solde) ; on coche ceux à suivre et
        **Suivre les comptes sélectionnés** les ajoute d'un coup, nommés d'après leur libellé
        woob. Les comptes déjà suivis sont cochés et grisés. Après une connexion, cette liste
