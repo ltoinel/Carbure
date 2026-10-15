@@ -1,7 +1,7 @@
 // Accessibility beyond the contrasts (see accessibility.spec.js): the WCAG 2.2 A/AA rules
 // of axe-core on every screen, the reflow at 320 CSS px (1.4.10), the zoom at 200 %
 // (1.4.4) and the text spacing (1.4.12)
-const { test, expect, tr, openTab } = require('../fixtures');
+const { test, expect, tr, openTab, trustWoobRepository } = require('../fixtures');
 const { axeViolations, reflowProblems, clippedTexts, TEXT_SPACING } = require('../axe');
 
 test.describe.configure({ timeout: 180_000 });
@@ -100,6 +100,8 @@ test('axe: the menus and the modals', async ({ adminPage: page }) => {
     await page.keyboard.press('Escape');
     await expect(category).toHaveCount(0);
 
+    // Connecting a bank: its module installed once the woob repository is trusted
+    trustWoobRepository();
     await openTab(page, tr('tabAccounts'));
     await page.getByRole('button', { name: tr('connectBankTitle') }).click();
     const connect = page.getByRole('dialog', { name: tr('connectBankTitle') });

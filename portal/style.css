@@ -4406,6 +4406,13 @@ a.footer-brand:hover {
         flex-wrap: wrap;
     }
 
+    /* A long label (update of the bank modules) wraps instead of widening the page */
+    .panel-actions button {
+        max-width: 100%;
+        white-space: normal;
+        text-align: left;
+    }
+
     .form-row {
         grid-template-columns: 1fr;
     }
