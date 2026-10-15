@@ -875,8 +875,8 @@ final class Bank {
     }
 
     /**
-     * End of a synchronization: categories of the new transactions, cleanup of the old
-     * logs, then the completion event.
+     * End of a synchronization: categories of the new transactions, budget alerts of
+     * the month (BudgetAlert), cleanup of the old logs, then the completion event.
      *
      * @param bool $synced At least one account was synchronized
      * @return void
@@ -887,6 +887,10 @@ final class Bank {
         if ($synced) {
             Webservice::sendProgress("Updating missing categories...");
             Transaction::updateMissingCategories();
+
+            // Spending of the budgets of the month, once the transactions are categorized
+            Webservice::sendProgress("Checking the budgets...");
+            BudgetAlert::check();
         }
 
         // Delete the log files older than the retention: a cleanup must not fail the sync
