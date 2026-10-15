@@ -16,6 +16,8 @@
     --success-light: #e8f5e9;
     --error-color: #c62828;
     --error-light: #ffebee;
+    /* Hover of a red button, its text --on-accent (white: 7.5:1) */
+    --error-hover: #a51f1f;
     --info-color: #1976d2;
     --info-light: #e3f2fd;
     /* Darkened for the contrast of a text on white or --warning-light (WCAG AA: 5.6:1) */
@@ -71,6 +73,8 @@
     --success-light: #12321f;
     --error-color: #f87171;
     --error-light: #3f1a1d;
+    /* Hover of a red button, its text --on-accent (dark: 9.4:1) */
+    --error-hover: #fca5a5;
     --info-color: #60a5fa;
     --info-light: #172a46;
     --warning-color: #fb923c;
@@ -6324,14 +6328,15 @@ textarea:focus-visible,
     margin: 0;
 }
 
-/* Destructive confirmation: red, darker on hover (white label readable on both) */
+/* Destructive confirmation: red, another shade on hover (label readable on both,
+   in both themes) */
 .btn-confirm-danger {
     background: var(--error-color);
-    color: #fff;
+    color: var(--on-accent);
 }
 
 .btn-confirm-danger:hover {
-    background: #a51f1f;
+    background: var(--error-hover);
 }
 
 /* Action running: the button keeps its colors (its label "…in progress" stays
