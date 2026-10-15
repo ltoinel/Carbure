@@ -58,10 +58,9 @@ final class Settings {
      *               [{key, value, set, secret, editable, kind, options?, min?, max?}]}]
      * @throws Exception If the file cannot be read
      */
-    #[ApiRoute('/system/config', method: 'GET')]
+    #[ApiRoute('/system/config', method: 'GET', admin: true)]
     public static function get(): array
     {
-        User::requireAdmin();
         $file = self::file();
         $ini = @parse_ini_file($file, true, INI_SCANNER_RAW);
         if ($ini === false) {
@@ -106,10 +105,9 @@ final class Settings {
      * @throws Error If a setting cannot be changed or a value is not valid (400)
      * @throws Exception If the file cannot be written
      */
-    #[ApiRoute('/system/config', method: 'PUT')]
+    #[ApiRoute('/system/config', method: 'PUT', admin: true)]
     public static function update(array $values): array
     {
-        User::requireAdmin();
         if (!$values) {
             throw new Error("No setting to change", 400);
         }
@@ -137,10 +135,9 @@ final class Settings {
      * @return array<string, mixed> url, token (null if there is none), masked, accounts (the bank
      *               accounts, for ?account=)
      */
-    #[ApiRoute('/system/sync', method: 'GET')]
+    #[ApiRoute('/system/sync', method: 'GET', admin: true)]
     public static function sync(string|bool|null $reveal = false): array
     {
-        User::requireAdmin();
         // From the file: the token may have been renewed since the configuration was loaded
         $ini = @parse_ini_file(self::file());
         $token = !empty($ini['sync_token']) ? (string)$ini['sync_token'] : null;
@@ -163,10 +160,9 @@ final class Settings {
      * @return array<string, string> token (the new one)
      * @throws Exception If the file cannot be written
      */
-    #[ApiRoute('/system/sync-token', method: 'POST')]
+    #[ApiRoute('/system/sync-token', method: 'POST', admin: true)]
     public static function renewSyncToken(): array
     {
-        User::requireAdmin();
         $token = bin2hex(random_bytes(24));
         $file = self::file();
         self::write($file, Installer::setIni(self::read($file), 'sync_token', $token));
