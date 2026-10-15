@@ -26,7 +26,9 @@ relu à chaque requête), sauf le conteneur Docker pour `SYNC_INTERVAL`.
     `log_retention_days`, `savings_category`, `public_url`, `woob_transactions`,
     `woob_logging`, `woob_debug`, `woob_auto_update`, `woob_2fa_wait`, `woob_2fa_retries`,
     `apns_environment`,
-    `apns_auth_method`, `apns_bundle_id`, `apns_key_id` et `apns_team_id`. Chaque valeur est
+    `apns_auth_method`, `apns_bundle_id`, `apns_key_id`, `apns_team_id` et les réglages
+    SMTP (`smtp_host`, `smtp_port`, `smtp_encryption`, `smtp_auth`, `smtp_username`,
+    `smtp_password`, `smtp_from`, `smtp_from_name`). Chaque valeur est
     vérifiée (liste de valeurs, nombre borné, format) avant l'écriture, et le fichier
     précédent est gardé en `prod.ini.bak`. Le serveur web doit pouvoir écrire le fichier ;
     sinon la page est en lecture seule.
@@ -78,7 +80,7 @@ transaction importée.
 |---|---|
 | `jwtsecret` | Secret HMAC des JWT (durée de validité : 30 jours), généré par l'assistant d'installation. Un administrateur le renouvelle depuis le portail (bandeau affiché si le secret est faible) ; le changer déconnecte tous les clients. |
 | `password_salt` | Sel des anciens mots de passe SHA-256, utilisé seulement pour les migrer vers bcrypt à la connexion |
-| `sync_token` | Secret permettant au planificateur d'appeler `/api/bank/sync` sans JWT. Vide = seul un utilisateur connecté peut lancer la synchro. |
+| `sync_token` | Secret permettant au planificateur d'appeler `/api/bank/sync` sans JWT, dans l'en-tête `X-Sync-Token` (`?token=` dans l'URL : obsolète). Vide = seul un utilisateur connecté peut lancer la synchro. |
 
 ## `[woob]`
 
@@ -105,6 +107,27 @@ transaction importée.
 | `apns_endpoint` | Facultatif : URL APNs imposée (tests), à la place de celle déduite de `apns_environment` |
 
 Les clés `.p8` placées dans `data/conf/certs/` sont ignorées par Git.
+
+## `[smtp]`
+
+Serveur d'envoi des notifications par email (chaque utilisateur choisit ensuite, dans son
+profil, les notifications qu'il reçoit par email). Sans `smtp_host` ou sans `smtp_from`,
+aucun email n'est envoyé. Le client SMTP est intégré à Carbure (aucune dépendance).
+
+| Clé | Description |
+|---|---|
+| `smtp_host` ✏️ | Nom du serveur SMTP (vide = emails désactivés) |
+| `smtp_port` ✏️ | Port : `587` (STARTTLS), `465` (TLS) ou `25` |
+| `smtp_encryption` ✏️ | `none`, `starttls` (passage en TLS après la connexion) ou `tls` (TLS dès la connexion) ; le certificat du serveur est toujours vérifié |
+| `smtp_auth` ✏️ | `none`, `plain` ou `login` |
+| `smtp_username` ✏️ | Identifiant du compte SMTP |
+| `smtp_password` ✏️ | Mot de passe du compte SMTP : secret, jamais affiché ni journalisé ; dans le portail, on saisit seulement un nouveau mot de passe pour le remplacer (sans `"`, `\`, `$` ni retour à la ligne) |
+| `smtp_from` ✏️ | Adresse d'expédition des emails |
+| `smtp_from_name` ✏️ | Nom de l'expéditeur (`Carbure` par défaut) |
+
+Le bouton **Envoyer un email de test** de **Administration → Paramètres** vérifie la
+configuration enregistrée : l'email part vers l'adresse de l'administrateur (ou celle
+saisie) et la réponse du serveur s'affiche en cas d'échec.
 
 ## Réglages en base
 

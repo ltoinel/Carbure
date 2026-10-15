@@ -29,7 +29,7 @@ class AccessTest extends DatabaseTestCase
     public function testEveryAdministratorRouteRefusesAUser()
     {
         $routes = $this->adminRoutes();
-        $this->assertCount(40, $routes);
+        $this->assertCount(41, $routes);
 
         $this->loginAs(self::USER);
         $this->assertAdminOnly($routes);
@@ -54,6 +54,7 @@ class AccessTest extends DatabaseTestCase
     {
         $this->loginAs(self::USER);
         $this->assertSame('user', json_decode($this->callRoute('GET', '/user/me'), true)['username']);
+        $this->assertIsArray(json_decode($this->callRoute('GET', '/user/notifications'), true));
     }
 
     public function testConditionalChecksOfTheUserUpdate()

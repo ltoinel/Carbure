@@ -2,6 +2,7 @@
 // buttons at rest and on hover, on every tab and in the modals (see a11y.js)
 const { test, expect, tr, openTab, trustWoobRepository } = require('../fixtures');
 const { contrastProblems } = require('../a11y');
+const { startFakeSmtp } = require('../fake-smtp');
 const path = require('path');
 
 // Hovering every button of every screen takes time
@@ -37,6 +38,42 @@ test('every tab is readable, buttons on hover included', async ({ adminPage: pag
         await page.waitForLoadState('networkidle');
         await page.waitForTimeout(300);
         problems.push(...await contrastProblems(page, tr(tab)));
+    }
+
+    expect(problems).toEqual([]);
+});
+
+test('the notifications of the profile and the test email are readable', async ({ adminPage: page }) => {
+    const problems = [];
+
+    // Profile: the notifications without SMTP server (email disabled, its reason)
+    await page.locator('.user-menu-toggle').click();
+    await page.getByRole('menuitem', { name: tr('myProfile') }).click();
+    await expect(page.locator('#notifications-email-unavailable')).toBeVisible();
+    problems.push(...await contrastProblems(page, tr('notificationsTitle')));
+
+    // Settings: the test email failed (no SMTP server), then sent
+    const smtp = await startFakeSmtp();
+    try {
+        await page.locator('.tabs').getByRole('button', { name: tr('tabAdministration'), exact: true }).click();
+        await page.getByRole('tab', { name: tr('tabSettings'), exact: true }).click();
+        await page.getByRole('button', { name: tr('smtpTestButton') }).click();
+        await expect(page.locator('.smtp-test-result[role="alert"]')).toBeVisible();
+        problems.push(...await contrastProblems(page, `${tr('smtpTestTitle')} (error)`));
+
+        await page.locator('#config-smtp_host').fill('127.0.0.1');
+        await page.locator('#config-smtp_port').fill(String(smtp.port));
+        await page.locator('#config-smtp_from').fill('carbure@example.com');
+        // A setting changed: the note of the test email
+        await expect(page.locator('.smtp-test-note')).toBeVisible();
+        problems.push(...await contrastProblems(page, `${tr('smtpTestTitle')} (unsaved)`));
+        await page.getByRole('button', { name: tr('save') }).click();
+        await expect(page.locator('.toast')).toHaveText(tr('configSaved'));
+        await page.getByRole('button', { name: tr('smtpTestButton') }).click();
+        await expect(page.locator('.smtp-test-ok')).toBeVisible();
+        problems.push(...await contrastProblems(page, `${tr('smtpTestTitle')} (sent)`));
+    } finally {
+        await smtp.close();
     }
 
     expect(problems).toEqual([]);
@@ -157,4 +194,43 @@ test('the menus, modals and the synchronization log are readable', async ({ admi
     problems.push(...await contrastProblems(page, 'sync'));
 
     expect(problems).toEqual([]);
+});
+
+test('the update of the bank modules offered after a failed synchronization is readable', async ({ adminPage: page }) => {
+    await openTab(page, tr('tabAccounts'));
+    await page.locator('.account-item').filter({ hasText: 'fail@bank' }).getByRole('button', { name: tr('syncAccount') }).click();
+    await expect(page.locator('.sync-status')).toContainText(tr('syncStatus_error'), { timeout: 15_000 });
+
+    const update = page.locator('.sync-woob-help').getByRole('button', { name: tr('woobUpdateButton') });
+    // Log collapsed, then open: the help and its button at rest and on hover
+    await expect(update).toBeVisible();
+    const problems = [...await contrastProblems(page, 'sync help')];
+    await page.getByRole('button', { name: tr('syncShowLog') }).click();
+    await expect(page.locator('.sync-log')).toBeVisible();
+    problems.push(...await contrastProblems(page, 'sync help (log open)'));
+
+    // On keyboard focus: a ring of 2px at least, the text still readable (the log before
+    // it is focusable too, to scroll it with the keyboard)
+    await update.focus();
+    await page.keyboard.press('Shift+Tab');
+    await expect(page.getByRole('list', { name: tr('syncLogLabel') })).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(update).toBeFocused();
+    const outline = await update.evaluate(el => {
+        const style = getComputedStyle(el);
+        return { style: style.outlineStyle, width: parseFloat(style.outlineWidth) };
+    });
+    expect(outline.style).not.toBe('none');
+    expect(outline.width).toBeGreaterThanOrEqual(2);
+    problems.push(...await contrastProblems(page, 'sync help (focus)'));
+    expect(problems).toEqual([]);
+
+    // In forced colors: a visible border, like the other buttons
+    await page.emulateMedia({ forcedColors: 'active' });
+    const border = await update.evaluate(el => {
+        const style = getComputedStyle(el);
+        return { style: style.borderTopStyle, width: parseFloat(style.borderTopWidth) };
+    });
+    expect(border.style).not.toBe('none');
+    expect(border.width).toBeGreaterThanOrEqual(1);
 });

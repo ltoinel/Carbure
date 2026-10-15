@@ -14,6 +14,14 @@ keeps track of what was done).
       `X-Forwarded-For`). Set `log_retention_days` (missing from existing configurations:
       logs kept forever) in **Administration → Settings**.
 
+- [ ] **Production** (sync token in the URL deprecated, #149): if a scheduled task of the
+      NAS (DSM Task Scheduler, cron) calls `/api/bank/sync?token=…`, replace it by
+      `curl -fsS -H "X-Sync-Token: <sync_token>" <url>/api/bank/sync > /dev/null` (the
+      command of **Administration → Synchro**). Then check that the Logs page no longer shows
+      the warning "The sync token passed in the URL is deprecated". Later: once no
+      scheduler uses it, remove `?token=` from `GET /bank/sync` (the MCP server keeps its
+      `?token=` for the agents that cannot send a header).
+
 - [ ] **GitHub settings** (owner, after the merge of the workflow hardening, #125): in
       **Settings → Actions → General**, tick "Require actions to be pinned to a full-length
       commit SHA" and restrict the allowed actions to those of GitHub, verified creators
@@ -23,6 +31,12 @@ keeps track of what was done).
       required checks and set **GitHub Actions** as the source of every required check (not
       "any source"). After the next release, check on the NAS
       `gh attestation verify oci://docker.io/ltoinel/carbure:<version> --owner ltoinel`.
+
+- [ ] **Production**: the migration `2026-10-20_user_notification` (table of the
+      notification channels chosen by each user) is applied at container start. To send the
+      notifications by email, set the `[smtp]` settings in **Administration → Settings**
+      (existing `prod.ini` files have no `[smtp]` section: it is added on save), then use
+      **Send a test email**. Until then nothing changes: notifications are pushed only.
 
 - [ ] Strong authentication: handle the validations by **code** (SMS OTP, woob
       `BrowserQuestion`), which wait for input on stdin (closed today by

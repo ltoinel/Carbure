@@ -134,6 +134,30 @@ test('axe: the menus and the modals', async ({ adminPage: page }) => {
     expect(problems).toEqual([]);
 });
 
+test('axe: the notifications of the profile and the result of the test email', async ({ adminPage: page }) => {
+    const problems = [];
+
+    // Profile: the notifications table, the email channel disabled with its reason
+    await page.locator('.user-menu-toggle').click();
+    await page.getByRole('menuitem', { name: tr('myProfile') }).click();
+    await expect(page.locator('#notifications-email-unavailable')).toBeVisible();
+    problems.push(...await axeViolations(page, tr('notificationsTitle')));
+    // At 320 CSS px wide too
+    await page.setViewportSize({ width: 320, height: 256 });
+    problems.push(...await reflowProblems(page, tr('notificationsTitle')));
+    await page.setViewportSize({ width: 1280, height: 720 });
+
+    // Settings: the test email failed (no SMTP server configured)
+    await showTab(page, 'tabSettings');
+    await page.getByRole('button', { name: tr('smtpTestButton') }).click();
+    await expect(page.locator('.smtp-test-result[role="alert"]')).toBeVisible();
+    problems.push(...await axeViolations(page, tr('smtpTestTitle')));
+    await page.setViewportSize({ width: 320, height: 256 });
+    problems.push(...await reflowProblems(page, tr('smtpTestTitle')));
+
+    expect(problems).toEqual([]);
+});
+
 test('reflow: every tab at 320 CSS px wide, without horizontal scrolling', async ({ adminPage: page }) => {
     // 1280 px at 400 % (WCAG 1.4.10)
     await page.setViewportSize({ width: 320, height: 256 });
@@ -151,4 +175,18 @@ test('zoom: every tab at 200 %, nothing cut nor scrolling horizontally', async (
 test('text spacing: no text cut with the spacing of WCAG 1.4.12', async ({ adminPage: page }) => {
     await page.addStyleTag({ content: TEXT_SPACING });
     expect(await everyTab(page, [...MAIN_TABS, ...ADMIN_TABS], clippedTexts)).toEqual([]);
+});
+
+test('reflow: a failed synchronization at 320 CSS px, its update of the bank modules included', async ({ adminPage: page }) => {
+    await openTab(page, tr('tabAccounts'));
+    await page.locator('.account-item').filter({ hasText: 'fail@bank' }).getByRole('button', { name: tr('syncAccount') }).click();
+    await expect(page.locator('.sync-status')).toContainText(tr('syncStatus_error'), { timeout: 15_000 });
+    await page.getByRole('button', { name: tr('syncShowLog') }).click();
+
+    await page.setViewportSize({ width: 320, height: 256 });
+    const update = page.locator('.sync-woob-help').getByRole('button', { name: tr('woobUpdateButton') });
+    await update.scrollIntoViewIfNeeded();
+    await expect(update).toBeVisible();
+    expect([...await reflowProblems(page, 'sync'), ...await clippedTexts(page, 'sync')]).toEqual([]);
+    expect(await axeViolations(page, 'sync 320')).toEqual([]);
 });

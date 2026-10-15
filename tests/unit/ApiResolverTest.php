@@ -115,6 +115,7 @@ class ApiResolverTest extends TestCase
         'GET /transaction/search' => 'user',
         'GET /user' => 'user',
         'GET /user/me' => 'user',
+        'GET /user/notifications' => 'user',
         'POST /bank' => 'admin',
         'POST /bank/backend' => 'admin',
         'POST /budget' => 'user',
@@ -131,6 +132,7 @@ class ApiResolverTest extends TestCase
         'POST /oauth/token' => 'public',
         'POST /system/jwt-secret' => 'admin',
         'POST /system/migrate' => 'admin',
+        'POST /system/smtp-test' => 'admin',
         'POST /system/sync-token' => 'admin',
         'POST /token' => 'user',
         'POST /transaction/import' => 'user',
@@ -148,6 +150,7 @@ class ApiResolverTest extends TestCase
         'PUT /transaction/category' => 'user',
         'PUT /transaction/pointed' => 'user',
         'PUT /user' => 'user',
+        'PUT /user/notifications' => 'user',
     ];
 
     public function testAccessLevelOfEveryRoute()

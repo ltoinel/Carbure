@@ -117,6 +117,41 @@ curl -X PUT "https://exemple.fr/api/user?id=1" -H "Authorization: Bearer $TOKEN"
 
 Renvoie l'utilisateur mis à jour.
 
+### `GET /user/notifications`
+
+Canaux de chaque type de notification de l'utilisateur connecté :
+
+```json
+{
+  "preferences": {
+    "sync": {"push": true, "email": false},
+    "rule": {"push": true, "email": false},
+    "expense": {"push": true, "email": true}
+  },
+  "smtp": true,
+  "address": "alice@example.com",
+  "email_available": true
+}
+```
+
+Types : `sync` (résultat d'une synchronisation), `rule` (nouvelle transaction d'une règle
+`notify`), `expense` (dépense au-delà du seuil d'alerte). Sans choix de l'utilisateur, un
+type est envoyé en push et pas par email. `smtp` indique qu'un serveur SMTP est configuré,
+`address` l'adresse du profil (`null` si aucune) et `email_available` que les emails
+peuvent partir (les deux). Les notifications (push et email) sont rédigées dans la langue
+du profil (`language`, `fr` par défaut).
+
+### `PUT /user/notifications`
+
+`preferences` : `{type: {push?, email?}}`, chaque canal `true`/`false` (ou `"true"`,
+`"false"`, `1`, `0`). Les types et canaux absents sont conservés ; type, canal ou valeur
+inconnus : `400`. Renvoie le résultat de `GET /user/notifications`.
+
+```bash
+curl -X PUT "https://exemple.fr/api/user/notifications" -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' -d '{"preferences":{"expense":{"email":true}}}'
+```
+
 ### `DELETE /user` — administrateur
 
 `id` : impossible de se supprimer soi-même (400) ou de supprimer un utilisateur
@@ -234,17 +269,26 @@ prendre plusieurs secondes (connexion aux banques).
 |---|---|
 | `backend` (facultatif) | Seulement les comptes de cette connexion (backend woob, `woob bank list -b <backend>`) ; `400` si le nom est invalide |
 
-### `GET /bank/sync` — flux SSE
+### `GET /bank/sync` — flux SSE { #bank-sync }
 
 Lance la synchronisation de **tous** les comptes, ou d'un seul avec
 `?account=<account_number>@<bank_name>` (`404` s'il n'est pas suivi). La date et le résultat
 sont enregistrés pour chaque compte. Accès autorisé avec :
 
 - un JWT valide (n'importe quel utilisateur), **ou**
-- le `sync_token` de la configuration, dans l'en-tête `X-Sync-Token` ou le paramètre
-  `?token=` ;
+- le `sync_token` de la configuration, dans l'en-tête `X-Sync-Token`.
 
-`401` sinon. `?interactive=true` (avec `account`, pour un utilisateur connecté seulement,
+!!! warning "Paramètre `?token=` obsolète"
+    Le `sync_token` passé dans l'URL (`?token=`) est encore accepté pour les tâches planifiées
+    déjà configurées, mais il est **obsolète** : l'URL est écrite dans les logs du proxy, de
+    nginx et l'historique du shell. La réponse porte alors les en-têtes
+    `Deprecation: @1792108800` (obsolète depuis le 16/10/2026, [RFC 9745](https://www.rfc-editor.org/rfc/rfc9745))
+    et `Link: <https://carbure.org/api/#bank-sync>; rel="deprecation"`, et un avertissement
+    (sans le jeton) est journalisé. Remplacez-le par l'en-tête `X-Sync-Token` ; s'ils sont
+    présents tous les deux, l'en-tête l'emporte.
+
+
+Sans JWT ni jeton valide (en-tête ou URL) : `401`. `?interactive=true` (avec `account`, pour un utilisateur connecté seulement,
 `400` sinon) autorise woob à déclencher une authentification forte : woob est lancé sur un
 pseudo-terminal (`tools/woob-tty.py`) et ses messages sont relayés en
 `data: Bank message <compte>: <message>` pendant qu'il attend la validation dans
@@ -696,7 +740,7 @@ renouveler.
 Le fichier de configuration, par section : `file` (chemin dans l'instance), `writable`, et
 `sections` (`name`, `settings`). Chaque réglage : `key`, `value` (masquée pour les secrets ;
 `true`/`false` pour un interrupteur ; une liste pour `regex_label`), `set`, `secret`,
-`editable`, `kind` (`select`, `bool`, `number`, `text`, `url`, `list`) et, selon le type,
+`editable`, `kind` (`select`, `bool`, `number`, `text`, `url`, `email`, `password`, `list`) et, selon le type,
 `options`, `min`, `max`. Les réglages modifiables absents du fichier sont listés avec
 `set: false`.
 
@@ -705,7 +749,8 @@ Le fichier de configuration, par section : `file` (chemin dans l'instance), `wri
 `values` : les nouvelles valeurs par clé, uniquement parmi les réglages modifiables
 (`log_level`, `log_retention_days`, `savings_category`, `public_url`, `woob_transactions`, `woob_logging`,
 `woob_debug`, `woob_auto_update`, `woob_2fa_wait`, `woob_2fa_retries`, `apns_environment`, `apns_auth_method`, `apns_bundle_id`,
-`apns_key_id`, `apns_team_id`). Toutes les valeurs sont vérifiées avant d'écrire quoi que
+`apns_key_id`, `apns_team_id`, `smtp_host`, `smtp_port`, `smtp_encryption`, `smtp_auth`,
+`smtp_username`, `smtp_password`, `smtp_from`, `smtp_from_name`). Toutes les valeurs sont vérifiées avant d'écrire quoi que
 ce soit (`400` sinon, fichier inchangé) ; l'ancien fichier est gardé en `.bak`. Renvoie la
 configuration comme `GET`.
 
@@ -713,7 +758,17 @@ configuration comme `GET`.
 
 `reveal` (facultatif, `false` par défaut) : `url` de `/api/bank/sync`, `token` (le
 `sync_token`, masqué sauf avec `reveal=true` ; `null` s'il n'y en a pas), `masked` et
-`accounts` (les comptes suivis, pour `?account=`).
+`accounts` (les comptes suivis, pour `?account=`) et `header` (`X-Sync-Token`, l'en-tête
+qui porte le jeton). La requête à planifier est
+`curl -sN -H "<header>: <token>" "<url>"` : le jeton n'est jamais dans l'URL.
+
+### `POST /system/smtp-test` — administrateur
+
+`to` (facultatif, l'adresse de l'administrateur par défaut) : envoie un email de test avec
+le serveur SMTP de la configuration, dans la langue de l'utilisateur de cette adresse (sinon
+celle de l'administrateur). Renvoie `{"sent": true, "to": "…"}` ; `400` sans
+serveur SMTP configuré ou sans destinataire, `502` si le serveur est injoignable ou refuse
+l'email (sa réponse est dans le message d'erreur).
 
 ### `POST /system/sync-token` — administrateur
 
