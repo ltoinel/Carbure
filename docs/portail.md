@@ -382,25 +382,33 @@ onglets et les fenêtres) :
 - graphiques doublés d'un tableau (Tendances, Flux du mois) et animations coupées quand le
   système demande moins de mouvements.
 
-Les tests e2e vérifient automatiquement, à chaque modification :
+### Thèmes et préférences du système
 
-- **contrastes** (`tests/e2e/specs/accessibility.spec.js`) : chaque texte de chaque onglet,
-  des menus et des fenêtres, et chaque bouton au repos et au survol doivent atteindre
-  4,5:1 (3:1 pour une icône ou un grand texte) ; une fenêtre ouverte est mesurée seule (la
-  page dessous est inactive). Les couleurs choisies par les utilisateurs (catégories) et
-  les graphiques SVG ne sont pas mesurés ;
-- **règles WCAG 2.2 A et AA d'axe-core** (`tests/e2e/specs/accessibility-axe.spec.js`) :
-  écran de connexion, chaque onglet d'un administrateur et d'un utilisateur, menus,
-  fenêtres et journal de synchronisation, sans aucune violation (noms accessibles,
-  rôles, structure, tailles de cible, contrastes…) ;
-- **affichage à 320 px de large** (zoom 400 %, critère 1.4.10) : aucun onglet ne défile
-  horizontalement ;
-- **zoom 200 %** (critère 1.4.4, page mise en page sur 640 px) et **espacement du texte**
-  (critère 1.4.12 : interligne 1,5, espacement des lettres et des mots augmenté) : aucun
-  texte de bouton, d'onglet, de libellé ou de titre n'est coupé.
+Le portail suit les réglages d'affichage déjà choisis dans le système, sans thème à
+activer :
 
-Ces tests automatiques ne remplacent pas une vérification avec un lecteur d'écran (NVDA,
-VoiceOver) ni un audit RGAA.
+- **clair ou sombre** : par défaut, le thème suit la préférence du système (et ses
+  changements) ; le profil permet de le fixer (**Thème** : *Comme le système*, *Clair*,
+  *Sombre*), choix enregistré sur le serveur et retrouvé sur un autre navigateur. Le thème
+  est appliqué avant l'affichage de la page (`portal/theme.js`), sans éclair de l'autre
+  thème ;
+- **contraste augmenté** (macOS, iOS, `prefers-contrast: more`) : textes secondaires et
+  bordures plus foncés (plus clairs en sombre), anneau de focus plus épais ;
+- **couleurs forcées** (mode contraste élevé de Windows, `forced-colors`) : les couleurs
+  sont celles du système ; boutons, onglets, champs, bascules, barres de budget, cartes et
+  focus gardent une bordure ou un contour visible.
+
+Le thème sombre respecte les mêmes règles que le thème clair (4,5:1 pour un texte, 3:1
+pour une icône, au repos, au survol et au focus) : les couleurs d'accent y sont plus
+claires et le texte posé dessus foncé ; les couleurs des catégories sont éclaircies
+(`--category-ink`) pour rester lisibles sur fond sombre.
+
+Les contrastes sont vérifiés par les tests e2e (`tests/e2e/specs/accessibility.spec.js`,
+en thème clair et en thème sombre ; `themes.spec.js` pour le contraste augmenté et les
+couleurs forcées) :
+chaque texte de chaque onglet, des menus et des fenêtres, et chaque bouton au repos et au
+survol doivent atteindre 4,5:1 (3:1 pour une icône ou un grand texte). Les couleurs
+choisies par les utilisateurs (catégories) et les graphiques SVG ne sont pas mesurés.
 
 ## Mode debug
 
