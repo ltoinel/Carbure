@@ -5990,6 +5990,11 @@ textarea:focus-visible,
     box-shadow: inset 3px 0 0 var(--warning-color);
 }
 
+/* The tint of a changed setting lowers the contrast of the grey help (4.3:1) */
+.config-row.changed .config-help {
+    color: var(--text-primary);
+}
+
 .config-label {
     display: flex;
     flex-direction: column;
@@ -6163,9 +6168,17 @@ textarea:focus-visible,
     background: var(--background);
 }
 
+.smtp-test .config-value {
+    flex-wrap: wrap;
+}
+
+.smtp-test .config-value input {
+    flex: 1 1 180px;
+    min-width: 0;
+}
+
 .smtp-test-button {
-    flex-shrink: 0;
-    white-space: nowrap;
+    flex: 0 1 auto;
 }
 
 .smtp-test-note,
