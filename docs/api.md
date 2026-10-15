@@ -1,4 +1,6 @@
 ---
+title: "Référence de l'API REST"
+description: "Référence de l'API REST de Carbure : authentification JWT, transactions, comptes, synchronisation bancaire, budgets, catégories, règles et administration."
 icon: material/api
 ---
 
@@ -396,6 +398,17 @@ pour ne pas la pointer).
 ```bash
 curl -X PUT https://exemple.fr/api/transaction/pointed -H "Authorization: Bearer $TOKEN" \
   -H 'Content-Type: application/json' -d '{"id":42,"pointed":false}'
+```
+
+### `DELETE /transaction`
+
+`id` : supprime la transaction (`404` si elle n'existe pas). Son `uuid` est mémorisé
+(table `bank_transaction_deleted`) : la synchronisation de son compte et l'import d'un
+relevé l'ignorent, elle ne revient pas (dans l'aperçu d'un import, la ligne est `known`
+avec `deleted: true`).
+
+```bash
+curl -X DELETE "https://exemple.fr/api/transaction?id=42" -H "Authorization: Bearer $TOKEN"
 ```
 
 ## Budgets et tendances

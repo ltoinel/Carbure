@@ -39,6 +39,19 @@ class ImportTest extends DatabaseTestCase
         $this->assertArrayNotHasKey('uuid', $preview['rows'][1]);
     }
 
+    public function testPreviewOfANeobankExport()
+    {
+        // Revolut: comma separated, dates with a time, rows not booked skipped
+        $this->loginAs(self::USER);
+        $file = base64_encode(file_get_contents(__DIR__ . '/../fixtures/import/revolut.csv'));
+        $preview = Transaction::previewImport($file, 'revolut.csv');
+
+        $this->assertSame('csv', $preview['format']);
+        $this->assertSame(['new' => 3, 'known' => 0, 'duplicate' => 0], $preview['counts']);
+        // Cleaned like the labels of a synchronization (upper case)
+        $this->assertSame(['MONOPRIX', 'TOP-UP BY *1234', 'EXCHANGED TO USD'], array_column($preview['rows'], 'label'));
+    }
+
     public function testImportTheNewTransactions()
     {
         $this->loginAs(self::USER);
@@ -60,6 +73,24 @@ class ImportTest extends DatabaseTestCase
         $this->assertSame(['new' => 0, 'known' => 3, 'duplicate' => 1], $again['counts']);
         $this->assertSame(['duplicate', 'known', 'known', 'known'], array_column($again['rows'], 'status'));
         $this->assertSame(0, Transaction::import($this->statement(), 'releve.csv')['imported']);
+    }
+
+    public function testDeletedTransactionNotImportedAgain()
+    {
+        $this->loginAs(self::USER);
+        Transaction::import($this->statement(), 'releve.csv');
+        $salary = Db::queryOne("SELECT id FROM bank_transaction WHERE label = 'VIR SALAIRE MAI'", "");
+        Transaction::delete($salary['id']);
+
+        // Shown as deleted in the preview, not imported again even when selected
+        $preview = Transaction::previewImport($this->statement(), 'releve.csv');
+        $row = $preview['rows'][2];
+        $this->assertSame('VIR SALAIRE MAI', $row['label']);
+        $this->assertSame('known', $row['status']);
+        $this->assertTrue($row['deleted']);
+        $this->assertSame(['new' => 0, 'known' => 3, 'duplicate' => 1], $preview['counts']);
+        $this->assertSame(0, Transaction::import($this->statement(), 'releve.csv', [2])['imported']);
+        $this->assertNull(Db::queryOne("SELECT id FROM bank_transaction WHERE label = 'VIR SALAIRE MAI'", ""));
     }
 
     public function testImportASelectedDuplicate()

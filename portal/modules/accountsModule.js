@@ -13,6 +13,24 @@
  * @module accountsModule
  */
 
+/**
+ * Followed accounts grouped under their bank connection, in the order of the
+ * connections, then the accounts of no configured connection (removed connection,
+ * imported file) in a last group; a connection without followed account keeps its group.
+ * @param {Array<{name: string}>} backends - Banks connected in woob
+ * @param {Array<{bank_name: string}>} accounts - Followed accounts (their order is kept)
+ * @returns {Array<{key: string, backend: Object|null, accounts: Array}>} The groups
+ */
+export function accountsByBank(backends, accounts) {
+    const groups = (backends || []).map(backend => ({ key: `bank-${backend.name}`, backend, accounts: [] }));
+    const byName = new Map(groups.map(group => [group.backend.name, group]));
+    const others = { key: 'others', backend: null, accounts: [] };
+    for (const account of accounts || []) {
+        (byName.get(account.bank_name) || others).accounts.push(account);
+    }
+    return others.accounts.length ? [...groups, others] : groups;
+}
+
 /** Configuration in woob of a bank being connected, empty */
 const EMPTY_SETUP = { module: '', backend: '', label: '', description: '', fields: [], values: {}, loading: false, busy: false, error: null };
 
@@ -58,6 +76,16 @@ export function createAccountsModule(getApiService) {
                 // error}, its keyring trusted by the administrator, lines written by woob
                 woobUpdate: { ...EMPTY_WOOB_UPDATE }
             };
+        },
+
+        computed: {
+            /**
+             * Followed accounts under their bank connection (Accounts page)
+             * @returns {Array<{key: string, backend: Object|null, accounts: Array}>}
+             */
+            bankGroups() {
+                return accountsByBank(this.bankBackends, this.bankAccounts);
+            }
         },
 
         watch: {
@@ -247,22 +275,28 @@ export function createAccountsModule(getApiService) {
 
             /**
              * Removes a connected bank after confirmation: woob forgets its credentials, its
-             * followed accounts are no longer followed (their transactions are kept)
+             * followed accounts are no longer followed (their transactions are kept). The
+             * confirmation modal stays open, with a loader, until woob has removed it; an
+             * error is shown in the modal
              * @param {{name: string, module: string, label: (string|null)}} backend - Backend of woob
              * @returns {Promise<void>}
              */
             async removeBackend(backend) {
                 const count = this.bankAccounts.filter(a => a.bank_name === backend.name).length;
-                if (!confirm(this.t('confirmDeleteBankConnection', { bank: this.backendName(backend), count }))) {
+                const removed = await this.askConfirm({
+                    title: this.t('deleteBankConnection'),
+                    message: this.t('confirmDeleteBankConnection', { bank: this.backendName(backend), count }),
+                    confirmLabel: this.t('bankConnectionDeleteButton'),
+                    busyLabel: this.t('bankConnectionDeleting'),
+                    icon: 'delete',
+                    danger: true,
+                    action: () => getApiService().deleteBankBackend(backend.name)
+                });
+                if (!removed) {
                     return;
                 }
-                try {
-                    await getApiService().deleteBankBackend(backend.name);
-                    this.showToast(this.t('bankConnectionDeleted'));
-                    await Promise.all([this.loadBankBackends(), this.loadBankAccounts()]);
-                } catch (error) {
-                    this.showToast(error.message);
-                }
+                this.showToast(this.t('bankConnectionDeleted'));
+                await Promise.all([this.loadBankBackends(), this.loadBankAccounts()]);
             },
 
             /**

@@ -3,7 +3,7 @@ import './setup.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createBudgetModule } from '../../portal/modules/budgetModule.js';
-import { createTransactionModule } from '../../portal/modules/transactionModule.js';
+import { createTransactionModule, similarLabelQuery } from '../../portal/modules/transactionModule.js';
 import { createRulesModule } from '../../portal/modules/rulesModule.js';
 import { agentConfigurations } from '../../portal/modules/agentsModule.js';
 
@@ -148,6 +148,38 @@ test('recurring transactions: ids, filter and expected series', () => {
     assert.deepEqual(transactions.computed.displayedTransactions.call({ ...context, transactionFilter: 'unchecked' }).map(t => t.id), [3]);
     // Not applied to the search results (other months)
     assert.equal(transactions.computed.displayedTransactions.call({ ...context, isSearching: true }).length, 3);
+});
+
+test('similarLabelQuery: the merchant, without the kind of operation nor the references', () => {
+    // Labels of the data set (tests/e2e/server/seed.php) and as woob gives them
+    assert.equal(similarLabelQuery('CB BOULANGERIE PAUL'), 'BOULANGERIE PAUL');
+    assert.equal(similarLabelQuery('CB BOULANGERIE DU MARCHE'), 'BOULANGERIE DU MARCHE');
+    assert.equal(similarLabelQuery('CB NETFLIX.COM'), 'NETFLIX.COM');
+    assert.equal(similarLabelQuery('PRLV EDF CLIENTS PARTICULIERS'), 'EDF CLIENTS PARTICULIERS');
+    assert.equal(similarLabelQuery('VIR SALAIRE ACME'), 'SALAIRE ACME');
+    assert.equal(similarLabelQuery('VIR LIVRET A'), 'LIVRET A');
+    assert.equal(similarLabelQuery('FACTURE CARTE DU 040126 BOULANGERIE CARTE 4974'), 'BOULANGERIE');
+    assert.equal(similarLabelQuery('PRLV SEPA EDF MDT/123'), 'EDF');
+    assert.equal(similarLabelQuery('VIR SEPA INST LOYER 12/01 REF 998877'), 'LOYER');
+    assert.equal(similarLabelQuery('  cb   sushi shop  '), 'SUSHI SHOP');
+    // Nothing meaningful left: the label itself
+    assert.equal(similarLabelQuery('CB 123456'), 'CB 123456');
+    assert.equal(similarLabelQuery('LOYER'), 'LOYER');
+    assert.equal(similarLabelQuery(''), '');
+});
+
+test('searchSimilarTransactions: closes the detail and searches like a typed search', async () => {
+    const searched = [];
+    const context = {
+        transactionDetail: { id: 1, label: 'CB BOULANGERIE PAUL' },
+        searchQuery: '',
+        searchTimer: null,
+        runSearch() { searched.push(this.searchQuery); },
+    };
+    await transactions.methods.searchSimilarTransactions.call(context);
+    assert.equal(context.transactionDetail, null);
+    assert.equal(context.searchQuery, 'BOULANGERIE PAUL');
+    assert.deepEqual(searched, ['BOULANGERIE PAUL']);
 });
 
 test('isSearching: from 2 characters', () => {
@@ -306,13 +338,14 @@ test('accounts: renaming a connected bank updates it in the list', async () => {
     assert.deepEqual(toasts, ['bankConnectionRenamed']);
 });
 
-test('accounts: removing a connected bank asks first, with the number of its followed accounts', async () => {
+test('accounts: removing a connected bank asks first in a modal, with the number of its followed accounts', async () => {
     const { createAccountsModule } = await import('../../portal/modules/accountsModule.js');
     const removed = [];
     const api = { deleteBankBackend: async backend => { removed.push(backend); } };
     const { methods } = createAccountsModule(() => api);
     const toasts = [];
     const asked = [];
+    let answer = false;
     let reloaded = 0;
     const context = {
         bankAccounts: [{ bank_name: 'bnp' }, { bank_name: 'bnp' }, { bank_name: 'cic_pro' }],
@@ -321,27 +354,78 @@ test('accounts: removing a connected bank asks first, with the number of its fol
         t: (key, params) => `${key} ${JSON.stringify(params || {})}`,
         loadBankBackends: async () => { reloaded++; },
         loadBankAccounts: async () => { reloaded++; },
+        // The confirmation modal: the action (removal) runs only when confirmed
+        askConfirm: async options => {
+            asked.push(options);
+            if (answer) {
+                await options.action();
+            }
+            return answer;
+        },
     };
     for (const name of ['removeBackend', 'backendName']) {
         context[name] = methods[name].bind(context);
     }
     const backend = { name: 'bnp', module: 'bnp', label: null };
-    const confirm = globalThis.confirm;
-    try {
-        // Cancelled: nothing removed
-        globalThis.confirm = message => { asked.push(message); return false; };
-        await context.removeBackend(backend);
-        assert.deepEqual(removed, []);
-        assert.deepEqual(asked, ['confirmDeleteBankConnection {"bank":"BNP Paribas (bnp)","count":2}']);
 
-        globalThis.confirm = () => true;
-        await context.removeBackend(backend);
-        assert.deepEqual(removed, ['bnp']);
-        assert.equal(reloaded, 2);
-        assert.deepEqual(toasts, ['bankConnectionDeleted {}']);
-    } finally {
-        globalThis.confirm = confirm;
+    // Cancelled: nothing removed
+    await context.removeBackend(backend);
+    assert.deepEqual(removed, []);
+    assert.equal(asked[0].message, 'confirmDeleteBankConnection {"bank":"BNP Paribas (bnp)","count":2}');
+    assert.equal(asked[0].busyLabel, 'bankConnectionDeleting {}');
+    assert.equal(asked[0].danger, true);
+    assert.equal(reloaded, 0);
+
+    // Confirmed: removed by the action of the modal, then the lists reloaded
+    answer = true;
+    await context.removeBackend(backend);
+    assert.deepEqual(removed, ['bnp']);
+    assert.equal(reloaded, 2);
+    assert.deepEqual(toasts, ['bankConnectionDeleted {}']);
+});
+
+test('confirm: answered by the buttons, the action kept running and its error shown in the modal', async () => {
+    const { createConfirmModule } = await import('../../portal/modules/confirmModule.js');
+    const { data, methods } = createConfirmModule();
+    const context = { ...data() };
+    for (const [name, method] of Object.entries(methods)) {
+        context[name] = method.bind(context);
     }
+
+    // Cancelled
+    let asked = context.askConfirm({ title: 'T', message: 'M', confirmLabel: 'OK' });
+    assert.equal(context.confirmDialog.message, 'M');
+    context.cancelConfirm();
+    assert.equal(await asked, false);
+    assert.equal(context.confirmDialog, null);
+
+    // Without action: confirmed at once
+    asked = context.askConfirm({ title: 'T', message: 'M', confirmLabel: 'OK' });
+    await context.acceptConfirm();
+    assert.equal(await asked, true);
+
+    // With an action: busy while it runs (no cancel, no second run), then closed
+    let finish;
+    let runs = 0;
+    asked = context.askConfirm({ title: 'T', message: 'M', confirmLabel: 'OK', action: () => { runs++; return new Promise(resolve => { finish = resolve; }); } });
+    const accepting = context.acceptConfirm();
+    assert.equal(context.confirmDialog.busy, true);
+    context.cancelConfirm();
+    await context.acceptConfirm();
+    assert.equal(runs, 1);
+    assert.equal(context.confirmDialog.busy, true);
+    finish();
+    await accepting;
+    assert.equal(await asked, true);
+    assert.equal(context.confirmDialog, null);
+
+    // A failed action: its error in the modal, which stays open and can be cancelled
+    asked = context.askConfirm({ title: 'T', message: 'M', confirmLabel: 'OK', action: async () => { throw new Error('woob could not remove the bank'); } });
+    await context.acceptConfirm();
+    assert.equal(context.confirmDialog.busy, false);
+    assert.equal(context.confirmDialog.error, 'woob could not remove the bank');
+    context.cancelConfirm();
+    assert.equal(await asked, false);
 });
 
 test('accounts: the woob repository is trusted only with the fingerprint shown, then updated', async () => {
@@ -425,4 +509,26 @@ test('accounts: the accounts found by woob, the followed ones ticked and not fol
 
     assert.equal(context.backendName({ name: 'bnp_2', module: 'bnp' }), 'BNP Paribas (bnp_2)');
     assert.equal(context.backendName({ name: 'cic_pro', module: 'cic' }), 'cic_pro');
+});
+
+test('accountsByBank: the followed accounts under their bank, then the others', async () => {
+    const { accountsByBank } = await import('../../portal/modules/accountsModule.js');
+    const backends = [{ name: 'bnp', module: 'bnp' }, { name: 'cic_pro', module: 'cic' }, { name: 'bnp_2', module: 'bnp' }];
+    const accounts = [
+        { id: 1, bank_name: 'bank', bankId: 'fail@bank' },
+        { id: 2, bank_name: 'bnp', bankId: '1@bnp' },
+        { id: 3, bank_name: 'bnp_2', bankId: '2@bnp_2' },
+        { id: 4, bank_name: 'bnp', bankId: '3@bnp' },
+    ];
+    const groups = accountsByBank(backends, accounts);
+    // In the order of the connections, a connection without account kept, the others last
+    assert.deepEqual(groups.map(g => g.key), ['bank-bnp', 'bank-cic_pro', 'bank-bnp_2', 'others']);
+    assert.deepEqual(groups.map(g => g.accounts.map(a => a.id)), [[2, 4], [], [3], [1]]);
+    assert.equal(groups[0].backend.name, 'bnp');
+    assert.equal(groups[3].backend, null);
+
+    // No account of an unknown bank: no "others" group; nothing at all: no group
+    assert.deepEqual(accountsByBank(backends, accounts.slice(1)).map(g => g.key), ['bank-bnp', 'bank-cic_pro', 'bank-bnp_2']);
+    assert.deepEqual(accountsByBank([], []), []);
+    assert.deepEqual(accountsByBank(undefined, [{ id: 9, bank_name: 'x' }]).map(g => g.key), ['others']);
 });

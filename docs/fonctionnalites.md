@@ -1,4 +1,6 @@
 ---
+title: "Fonctionnalités : suivi des dépenses, budgets et tendances"
+description: "Tout ce que fait Carbure : synchronisation bancaire, catégorisation par règles, budgets par catégorie, flux du mois, tendances, notifications et agent IA."
 icon: material/star-shooting-outline
 ---
 
@@ -9,7 +11,7 @@ transactions, comment elles sont classées, comment sont calculés les budgets, 
 et les tendances, qui reçoit quelle notification et ce que chacun peut faire. Pour
 l'utilisation écran par écran, voir [Portail web](portail.md).
 
-![Transactions du mois](assets/screenshot-transactions.png)
+![Liste des transactions du mois dans le portail Carbure, avec leur catégorie](assets/screenshot-transactions.png)
 
 ## Le foyer
 
@@ -136,9 +138,33 @@ Pour une banque que woob ne couvre pas, ou pour reprendre l'historique d'avant C
    dernier mois importé.
 
 Les colonnes d'un CSV sont reconnues d'après leur en-tête (date, libellé, montant, ou débit et
-crédit), y compris les formats français (`;`, `1 234,56`, encodage Windows-1252). Le libellé
-est nettoyé comme à la synchronisation. Le contenu du fichier n'est jamais écrit dans les
-logs.
+crédit), y compris les formats français (`;`, `1 234,56`, encodage Windows-1252) et les
+lignes sur le compte avant l'en-tête. Les lignes non passées des néobanques (en attente,
+annulées, refusées) et les montants nuls (autorisations de carte) sont ignorés ; les frais
+donnés à part (Revolut) sont déduits. Le libellé est nettoyé comme à la synchronisation. Le
+contenu du fichier n'est jamais écrit dans les logs.
+
+Exports CSV vérifiés (formats relevés dans des projets open source qui les importent, puis
+testés sur un fichier anonymisé de même structure) :
+
+| Banque | Fichier à choisir | Particularités lues |
+|---|---|---|
+| Boursorama / BoursoBank | export CSV des mouvements | colonne `amount` signée |
+| Crédit Agricole | export CSV | lignes du compte avant l'en-tête, débit et crédit |
+| La Banque Postale | « Téléchargement des opérations », CSV | lignes du compte, `Montant(EUROS)`, Windows-1252 |
+| Société Générale | « Télécharger les opérations », CSV | ligne du compte, libellé et détail de l'écriture |
+| Crédit Mutuel / CIC | export CSV | débit négatif et crédit, ISO-8859-15 |
+| Caisse d'Épargne / Banque Populaire | export CSV | libellé de l'opération et informations complémentaires |
+| BNP Paribas / Hello bank! | export CSV | lignes de résumé avant l'en-tête, dates `jj-mm-aaaa` |
+| Fortuneo | `HistoriqueOperations….csv` | débit et crédit, ISO-8859-1 |
+| N26 | export CSV (ancien et nouveau format) | nom du bénéficiaire et référence de paiement |
+| Revolut | relevé « Excel » (un CSV) | dates avec l'heure, frais, état des opérations |
+| Qonto | export CSV (anglais ou français) | statut, nom de la contrepartie et référence |
+
+Pour une autre banque, ou si l'export CSV n'est pas reconnu, choisissez **OFX** (souvent
+appelé « Money » ou « Quicken ») : c'est le format le plus homogène d'une banque à l'autre.
+LCL, Shine, Lydia/Sumeria, BforBank et Monabanq n'ont pas pu être vérifiés faute d'exemple
+public de leurs exports.
 
 ### Transactions récurrentes
 
@@ -163,7 +189,7 @@ abonnements, factures, remboursements…
 
 ## Catégories
 
-![Catégories](assets/screenshot-categories.png)
+![Catégories hiérarchiques de dépenses et de revenus, avec leur icône et leur couleur](assets/screenshot-categories.png)
 
 - **Deux niveaux** : des catégories (Alimentation) et leurs sous-catégories (Supermarché,
   Restaurant). Les transactions d'une sous-catégorie comptent aussi pour son parent.
@@ -203,7 +229,7 @@ Une règle associe un **mot-clé** à une catégorie : toute transaction dont le
 
 ## Budgets
 
-![Budgets](assets/screenshot-budget.png)
+![Budgets du mois par catégorie, avec le reste à dépenser ou le dépassement](assets/screenshot-budget.png)
 
 Un budget est un **montant par catégorie et par mois**.
 
@@ -229,7 +255,7 @@ Un budget est un **montant par catégorie et par mois**.
 
 ## Flux du mois
 
-![Flux du mois](assets/screenshot-flow.png)
+![Flux du mois : diagramme de Sankey des revenus vers les dépenses, l'épargne et le reste](assets/screenshot-flow.png)
 
 Un diagramme (Sankey) montre **d'où vient l'argent du mois et où il part** :
 
@@ -250,7 +276,7 @@ transactions non catégorisées restent visibles. Les mêmes flux existent en ta
 
 ## Tendances
 
-![Tendances](assets/screenshot-trends.png)
+![Tendances des dépenses, des revenus et de l'épargne sur plusieurs mois](assets/screenshot-trends.png)
 
 Sur **3, 6 ou 12 mois** jusqu'au mois courant, éventuellement **comparés** à la période
 précédente ou à la même période l'an dernier :
@@ -271,7 +297,7 @@ existe aussi en tableau.
 
 ## Insights
 
-![Insights](assets/screenshot-insights.png)
+![Insights : indicateurs mensuels du budget du foyer et leur historique](assets/screenshot-insights.png)
 
 Des **indicateurs du mois** que le foyer définit lui-même : courses, carburant, abonnements,
 revenus, épargne… Chaque insight a un nom, une couleur, une icône et une **requête SQL** qui
@@ -302,7 +328,7 @@ langue de chacun.
 
 ## Agents IA
 
-![Agent IA](assets/screenshot-agents.png)
+![Agent IA connecté au serveur MCP de Carbure pour interroger le budget du foyer](assets/screenshot-agents.png)
 
 Un **serveur MCP** intégré permet à un agent IA de répondre à des questions sur le budget du
 foyer : « Combien avons-nous dépensé en restaurants cette année ? », « Quelles catégories

@@ -15,6 +15,28 @@ test('lists the followed accounts with their last synchronization', async ({ adm
     await expect(account(page, 'fail@bank').locator('.account-sync-state')).toHaveText(tr('lastSyncNever'));
 });
 
+test('shows each followed account under its bank, the others in a last group', async ({ adminPage: page }) => {
+    await openTab(page, tr('tabAccounts'));
+
+    // bnp and cic_pro connected in woob, then the accounts of no connected bank
+    const groups = page.locator('.bank-group');
+    await expect(groups).toHaveCount(3);
+    await expect(groups.nth(0).locator('.bank-group-title')).toHaveText('BNP Paribas');
+    await expect(groups.nth(1).locator('.bank-connection code')).toHaveText('cic_pro');
+    await expect(groups.nth(2).locator('.bank-group-title')).toHaveText(tr('otherAccountsTitle'));
+
+    // The BNP account under BNP, with its actions
+    const bnpAccounts = groups.nth(0).getByRole('list', { name: tr('followedAccountsOf', { bank: 'BNP Paribas (bnp)' }) });
+    await expect(bnpAccounts.locator('.account-item')).toHaveCount(1);
+    await expect(account(page, '00012345678@bnp').getByRole('button', { name: tr('syncAccount') })).toBeVisible();
+    await expect(groups.nth(0).locator('.account-item code')).toHaveText('00012345678@bnp');
+    // No account followed for cic_pro: a hint, its button to add some stays in its header
+    await expect(groups.nth(1).locator('.bank-group-empty')).toHaveText(tr('noFollowedAccountInBank'));
+    await expect(groups.nth(1).locator('.account-item')).toHaveCount(0);
+    // fail@bank: its bank is not connected in woob
+    await expect(groups.nth(2).locator('.account-item code')).toHaveText('fail@bank');
+});
+
 test('synchronizes one account', async ({ adminPage: page }) => {
     await openTab(page, tr('tabAccounts'));
     await account(page, '00012345678@bnp').getByRole('button', { name: tr('syncAccount') }).click();
@@ -63,7 +85,11 @@ test('shows the debug logs of woob in the synchronization log', async ({ adminPa
 
 test('synchronizes every account at once', async ({ adminPage: page }) => {
     await openTab(page, tr('tabAccounts'));
-    await page.getByRole('button', { name: tr('syncAllAccounts') }).click();
+    // An icon button: its name is in its label and its tooltip, no visible text
+    const syncAll = page.getByRole('button', { name: tr('syncAllAccounts') });
+    await expect(syncAll).toHaveAttribute('title', tr('syncAllAccounts'));
+    await expect(syncAll).not.toContainText(tr('syncAllAccounts'));
+    await syncAll.click();
 
     // Both followed accounts: fail@bank ends in error, the BNP account is synchronized
     await expect(page.locator('.sync-status')).toContainText(tr('syncStatus_error'));
@@ -291,10 +317,39 @@ test('removes a connected bank, with its followed accounts', async ({ adminPage:
     await openTab(page, tr('tabAccounts'));
     await expect(page.locator('.bank-connection')).toHaveCount(2);
     await expect(account(page, '00012345678@bnp')).toBeVisible();
+    const remove = page.getByRole('button', { name: tr('deleteBankConnectionOf', { bank: 'BNP Paribas (bnp)' }) });
+    const dialog = page.getByRole('dialog', { name: tr('deleteBankConnection') });
 
-    // The confirmation is accepted (fixtures)
-    await page.getByRole('button', { name: tr('deleteBankConnectionOf', { bank: 'BNP Paribas (bnp)' }) }).click();
+    // Asked in a modal of the portal, the focus on "Cancel": cancelled, nothing removed
+    await remove.click();
+    await expect(dialog).toContainText(tr('confirmDeleteBankConnection', { bank: 'BNP Paribas (bnp)', count: 1 }));
+    await expect(dialog.getByRole('button', { name: tr('cancel') })).toBeFocused();
+    await dialog.getByRole('button', { name: tr('cancel') }).click();
+    await expect(dialog).toHaveCount(0);
+    await expect(remove).toBeFocused();
+    await expect(page.locator('.bank-connection')).toHaveCount(2);
 
+    // Confirmed: the modal stays open with a loader until woob has removed the bank
+    // (the request is held to see it), Escape does not close it meanwhile
+    let release;
+    const held = new Promise(resolve => { release = resolve; });
+    await page.route('**/api/bank/backend?backend=bnp', async route => {
+        await held;
+        await route.continue();
+    });
+    await remove.click();
+    await dialog.getByRole('button', { name: tr('bankConnectionDeleteButton') }).click();
+    const busy = dialog.getByRole('button', { name: tr('bankConnectionDeleting') });
+    await expect(busy).toBeVisible();
+    await expect(busy).toHaveAttribute('aria-disabled', 'true');
+    await expect(busy.locator('.material-icons.spin')).toBeVisible();
+    await expect(dialog.getByRole('button', { name: tr('cancel') })).toBeDisabled();
+    await expect(page.locator('.modal-confirm')).toHaveAttribute('aria-busy', 'true');
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeVisible();
+    release();
+
+    await expect(dialog).toHaveCount(0);
     await expect(page.locator('.toast')).toHaveText(tr('bankConnectionDeleted'));
     await expect(page.locator('.bank-connection')).toHaveCount(1);
     await expect(page.locator('.bank-connection code')).toHaveText('cic_pro');
@@ -306,6 +361,24 @@ test('removes a connected bank, with its followed accounts', async ({ adminPage:
     await page.reload();
     await openTab(page, tr('tabAccounts'));
     await expect(page.locator('.bank-connection')).toHaveCount(1);
+});
+
+test('a failed removal of a bank is shown in its confirmation modal', async ({ adminPage: page }) => {
+    await openTab(page, tr('tabAccounts'));
+    await page.route('**/api/bank/backend?backend=bnp', route => route.fulfill({
+        status: 500, contentType: 'application/json', body: JSON.stringify({ error: 'woob could not remove the bank bnp', code: 500 }),
+    }));
+    await page.getByRole('button', { name: tr('deleteBankConnectionOf', { bank: 'BNP Paribas (bnp)' }) }).click();
+    const dialog = page.getByRole('dialog', { name: tr('deleteBankConnection') });
+    await dialog.getByRole('button', { name: tr('bankConnectionDeleteButton') }).click();
+
+    // The error in the modal, which can be confirmed again or cancelled
+    await expect(dialog.getByRole('alert')).toHaveText('woob could not remove the bank bnp');
+    await expect(dialog.getByRole('button', { name: tr('bankConnectionDeleteButton') })).not.toHaveAttribute('aria-disabled', 'true');
+    await expect(dialog.getByRole('button', { name: tr('cancel') })).toBeEnabled();
+    await page.keyboard.press('Escape');
+    await expect(dialog).toHaveCount(0);
+    await expect(page.locator('.bank-connection')).toHaveCount(2);
 });
 
 test('a bank refusing the credentials can be connected again', async ({ adminPage: page }) => {

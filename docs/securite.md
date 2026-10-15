@@ -1,4 +1,6 @@
 ---
+title: "Sécurité : authentification, données bancaires et image Docker"
+description: "Comment Carbure protège les données du foyer : mots de passe, JWT, blocage des connexions, identifiants bancaires gardés par woob et analyse de l'image Docker."
 icon: material/shield-lock-outline
 ---
 
@@ -46,6 +48,16 @@ son rôle.
 Les en-têtes de l'API sont posés par PHP (`Webservice::securityHeaders`, et l'assistant
 d'installation), quel que soit le serveur web. Ceux du portail et de Swagger UI sont posés
 par nginx (`docker/nginx.conf`) ; Carbure ne fournit pas de `.htaccess`.
+
+**Aucun CDN externe** : le portail et Swagger UI ne chargent rien depuis un autre site.
+Vue, CodeMirror, les polices (`portal/vendor/`) et Swagger UI (`swagger/vendor/`) sont
+servis avec Carbure ; leurs versions et licences sont listées dans le `README.md` de chaque
+dossier. Leur CSP n'autorise donc que le serveur lui-même (`'self'`, plus `data:` pour les
+images) pour les scripts, styles, polices, images et appels réseau : Swagger UI n'a pas de
+script en ligne ni de badge de validation externe. Un test (`tests/portal/localAssets.test.mjs`)
+échoue si une page ou une feuille de style charge une ressource externe, ou si la CSP
+autorise un autre site. Le site de documentation (carbure.org) héberge lui aussi ses polices,
+téléchargées à la construction (plugin `privacy` de Material for MkDocs).
 
 L'API ne révèle pas la version de PHP (`X-Powered-By` retiré) et nginx pas la sienne
 (`server_tokens off`). **HSTS** est à activer sur le proxy HTTPS placé devant Carbure (proxy

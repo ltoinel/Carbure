@@ -346,9 +346,31 @@ class BankTest extends DatabaseTestCase
             $this->fail('Wrong credentials accepted');
         } catch (Error $e) {
             $this->assertSame(400, $e->getCode());
+            $this->assertStringStartsWith('The bank refused the credentials, check them: ', $e->getMessage());
             $this->assertStringContainsString('Identifiant ou mot de passe incorrect', $e->getMessage());
             // Removed from woob, to try again
             $this->assertSame('mybnp', trim(file_get_contents($removed)));
+        } finally {
+            @unlink($removed);
+            @unlink(sys_get_temp_dir() . '/carbure-fake-woob-add.json');
+        }
+    }
+
+    public function testCreateBackendBlockedByTheBank()
+    {
+        $this->loginAs(self::ADMIN);
+        $removed = sys_get_temp_dir() . '/carbure-fake-woob-removed';
+        @unlink($removed);
+        try {
+            // The bank answers 403 to woob: not a matter of credentials
+            Bank::createBackend('bnp', 'forbidden', ['login' => '12345678', 'password' => '123456']);
+            $this->fail('Connection blocked by the bank accepted');
+        } catch (Error $e) {
+            $this->assertSame(400, $e->getCode());
+            $this->assertStringStartsWith('The bank blocks woob or the woob module "bnp" is broken', $e->getMessage());
+            $this->assertStringContainsString('403 Client Error: Forbidden', $e->getMessage());
+            $this->assertStringNotContainsString('credentials', $e->getMessage());
+            $this->assertSame('forbidden', trim(file_get_contents($removed)));
         } finally {
             @unlink($removed);
             @unlink(sys_get_temp_dir() . '/carbure-fake-woob-add.json');
@@ -515,6 +537,30 @@ class BankTest extends DatabaseTestCase
         // The results are then read by an administrator
         $this->loginAs(self::ADMIN);
         return [$output, $waited];
+    }
+
+    public function testDeletedTransactionNotSynchronizedAgain()
+    {
+        Db::query("DELETE FROM bank_transaction");
+        $this->loginAs(self::ADMIN);
+        $sync = function () {
+            ob_start();
+            try {
+                Bank::getSync(null, '111@bnp');
+            } finally {
+                ob_end_clean();
+            }
+        };
+        $sync();
+        $count = (int)Db::queryOne("SELECT COUNT(*) AS n FROM bank_transaction", "")['n'];
+        $this->assertGreaterThan(1, $count);
+
+        // A transaction deleted by a user does not come back at the next synchronization
+        $deleted = Db::queryOne("SELECT id, uuid FROM bank_transaction ORDER BY id LIMIT 1", "");
+        Transaction::delete($deleted['id']);
+        $sync();
+        $this->assertSame($count - 1, (int)Db::queryOne("SELECT COUNT(*) AS n FROM bank_transaction", "")['n']);
+        $this->assertNull(Db::queryOne("SELECT id FROM bank_transaction WHERE uuid = ?", "s", $deleted['uuid']));
     }
 
     public function testComingFailureKeepsTheHistory()
