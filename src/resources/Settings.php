@@ -212,7 +212,8 @@ final class Settings {
 
     /**
      * Send a test email with the SMTP server of the configuration file (administrators),
-     * to the address of the administrator or to another one.
+     * to the address of the administrator or to another one; in the language of the user
+     * of that address, else of the administrator.
      *
      * @param string|null $to The recipient (optional, the address of the administrator by default)
      * @return array<string, mixed> sent (true), to (the recipient)
@@ -229,10 +230,9 @@ final class Settings {
             throw new Error("No recipient: add an email address to your profile", 400);
         }
 
-        $french = ($user['language'] ?? 'fr') === 'fr';
-        Mailer::send($to, $french ? "[Carbure] Email de test" : "[Carbure] Test email", $french
-            ? "Ce message de test confirme que Carbure peut envoyer les notifications par email.\n"
-            : "This test message confirms that Carbure can send the notifications by email.\n");
+        $recipient = Db::queryOne("SELECT language FROM users WHERE email = ?", "s", $to);
+        $language = (string)(($recipient ?? $user)['language'] ?? '');
+        Notification::sendEmail($to, $language, Messages::t($language, 'smtp_test_title'), Messages::t($language, 'smtp_test_body'), false);
         Logger::info("Test email sent to $to by user " . Jwt::getUserIdFromToken());
         return ['sent' => true, 'to' => $to];
     }

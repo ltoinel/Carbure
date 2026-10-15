@@ -133,6 +133,7 @@ class NotificationTest extends DatabaseTestCase
         // In the language of the user, with the address of the portal
         $this->assertStringContainsString('https://carbure.example.fr/portal/', $text);
         $this->assertStringContainsString('Mon profil > Notifications', $text);
+        $this->assertStringContainsString("\r\n-- \r\nEnvoyé par Carbure\r\nOuvrir Carbure : https://carbure.example.fr/portal/\r\n", $text);
     }
 
     public function testNotifyBothChannelsInEnglish()
@@ -230,7 +231,73 @@ class NotificationTest extends DatabaseTestCase
         $messages = FakeSmtpServer::messages();
         $this->assertCount(1, $messages);
         $this->assertSame(['user@example.com'], $messages[0]['to']);
-        $this->assertStringContainsString('Subject: [Carbure] Bank synchronization failed !', $messages[0]['data']);
+        // In English: the language of the other user
+        $this->assertStringContainsString('Subject: [Carbure] Bank synchronization failed', $messages[0]['data']);
+        $text = quoted_printable_decode($messages[0]['data']);
+        $this->assertStringContainsString("Error of BANK: Bank refused the login\r\n3 transactions to review", $text);
+    }
+
+    public function testEachUserGetsTheSyncResultInHisLanguage()
+    {
+        // admin: French, user: English, legacy: a language Carbure does not have (French)
+        Db::query("UPDATE users SET language = 'de' WHERE id = 3");
+        Db::execute("INSERT INTO devices (name, token, user_id) VALUES ('iPad', ?, 2)", "s", str_repeat('b', 64));
+        foreach ([self::ADMIN, self::USER, self::LEGACY] as $userId) {
+            $this->setPreferences($userId, 'sync', true, true);
+        }
+
+        Bank::notifyBankUsers('111@bnp', true);
+
+        // Pushed: the device of the administrator in French, the one of the user in English
+        $pushed = [];
+        foreach (FakeApnsServer::requests() as $request) {
+            $pushed[$request['token']] = $request['payload']['aps']['alert'];
+        }
+        $this->assertSame('Synchronisation bancaire réussie', $pushed[self::DEVICE_TOKEN]['title']);
+        $this->assertSame('3 transactions à vérifier', $pushed[self::DEVICE_TOKEN]['body']);
+        $this->assertSame('Bank synchronization successful', $pushed[str_repeat('b', 64)]['title']);
+        $this->assertSame('3 transactions to review', $pushed[str_repeat('b', 64)]['body']);
+
+        // Emailed: subject, text and signature in the language of each one
+        $emails = [];
+        foreach (FakeSmtpServer::messages() as $message) {
+            $emails[$message['to'][0]] = quoted_printable_decode($message['data']);
+        }
+        $this->assertCount(3, $emails);
+        $this->assertStringContainsString("\r\nSubject: =?UTF-8?B?", $emails['admin@example.com']);
+        $this->assertStringContainsString("Synchronisation bancaire réussie\r\n\r\n3 transactions à vérifier\r\n\r\n-- \r\nEnvoyé par Carbure", $emails['admin@example.com']);
+        $this->assertStringContainsString("\r\nSubject: [Carbure] Bank synchronization successful\r\n", $emails['user@example.com']);
+        $this->assertStringContainsString("Bank synchronization successful\r\n\r\n3 transactions to review\r\n\r\n-- \r\nSent by Carbure", $emails['user@example.com']);
+        $this->assertStringContainsString('My profile > Notifications', $emails['user@example.com']);
+        // Unknown language: French
+        $this->assertStringContainsString('Envoyé par Carbure', $emails['legacy@example.com']);
+        $this->assertStringContainsString('Mon profil > Notifications', $emails['legacy@example.com']);
+    }
+
+    public function testRuleAndExpenseInTheLanguageOfEachUser()
+    {
+        Db::query("UPDATE users SET alert_threshold = 10");
+        Db::query("UPDATE bank_transaction_category_keyword SET notify = 1 WHERE keyword = 'EDF'");
+        foreach (['rule', 'expense'] as $kind) {
+            $this->setPreferences(self::ADMIN, $kind, false, true);
+            $this->setPreferences(self::USER, $kind, false, true);
+        }
+
+        Bank::alertRuleMatches([['label' => 'PRLV SEPA EDF', 'amount' => -1234.5, 'date' => '2026-10-15']]);
+        Bank::alertLargeExpenses('111@bnp', [['label' => 'CB SHOP', 'amount' => -1234.5, 'date' => '2026-10-15']]);
+
+        $emails = [];
+        foreach (FakeSmtpServer::messages() as $message) {
+            $emails[$message['to'][0]][] = quoted_printable_decode($message['data']);
+        }
+        [$frRule, $frExpense] = $emails['admin@example.com'];
+        $this->assertStringContainsString("Nouvelle transaction : EDF\r\n\r\nPRLV SEPA EDF : -1 234,50 € le 15/10/2026\r\n", $frRule);
+        $this->assertStringContainsString("Dépense importante à vérifier\r\n\r\nCB SHOP : -1 234,50 € le 15/10/2026\r\n", $frExpense);
+        [$enRule, $enExpense] = $emails['user@example.com'];
+        $this->assertStringContainsString("\r\nSubject: [Carbure] New transaction: EDF\r\n", $enRule);
+        $this->assertStringContainsString("New transaction: EDF\r\n\r\nPRLV SEPA EDF: -1,234.50 € on Oct 15, 2026\r\n", $enRule);
+        $this->assertStringContainsString("\r\nSubject: [Carbure] Large expense to check\r\n", $enExpense);
+        $this->assertStringContainsString("CB SHOP: -1,234.50 € on Oct 15, 2026", $enExpense);
     }
 
     /**

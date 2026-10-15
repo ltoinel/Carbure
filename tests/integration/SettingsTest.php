@@ -195,8 +195,14 @@ class SettingsTest extends DatabaseTestCase
             $messages = FakeSmtpServer::messages();
             $this->assertSame(['admin@example.com'], $messages[0]['to']);
             $this->assertSame(['other@example.com'], $messages[1]['to']);
-            // In the language of the administrator
+            // In the language of the administrator, for an address of nobody
             $this->assertStringContainsString('Subject: [Carbure] Email de test', $messages[0]['data']);
+            $this->assertStringContainsString('Subject: [Carbure] Email de test', $messages[1]['data']);
+            $this->assertStringNotContainsString('Mon profil', quoted_printable_decode($messages[0]['data']));
+
+            // In the language of the user of the address
+            Settings::testEmail('user@example.com');
+            $this->assertStringContainsString('Subject: [Carbure] Test email', FakeSmtpServer::messages()[2]['data']);
 
             // The reply of the server that refused it
             try {

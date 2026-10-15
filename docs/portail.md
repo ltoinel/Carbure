@@ -389,7 +389,8 @@ la configuration (`GET /system/sync`, `POST /system/sync-token`).
   montant, détectée lors d'une synchronisation. Vide = désactivé.
 - **Notifications** : un tableau type de notification × canal (push sur l'app iOS, email)
   pour la synchronisation, les règles « Notifier » et les dépenses importantes. Chaque case
-  s'enregistre aussitôt. La colonne email est grisée, avec la raison, tant qu'aucun serveur
+  s'enregistre aussitôt ; les notifications sont envoyées dans la **langue** choisie
+  ci-dessus. La colonne email est grisée, avec la raison, tant qu'aucun serveur
   SMTP n'est configuré ou que le profil n'a pas d'adresse email
   (`GET`/`PUT /user/notifications`).
 - **Mes appareils** : appareils iOS enregistrés à la connexion depuis l'app, avec la

@@ -327,8 +327,14 @@ profil :
 | Une nouvelle transaction correspond à une règle « push » | Tout le foyer | Le mot-clé, le libellé et le montant (une seule notification par transaction) |
 
 Le **badge** de l'app indique le nombre de transactions à vérifier. Le seuil d'alerte se
-règle dans **Mon profil** (vide = pas d'alerte). Les notifications sont rédigées dans la
-langue de chacun.
+règle dans **Mon profil** (vide = pas d'alerte).
+
+Chaque notification est rédigée dans la **langue du profil** de son destinataire (français
+ou anglais ; toute autre valeur donne le français), en push comme par email : titre, texte,
+sujet et signature de l'email. Les montants et les dates suivent cette langue
+(`-1 234,56 €` et `15/10/2026` en français, `-1,234.56 €` et `Oct 15, 2026` en anglais) ;
+l'erreur d'une synchronisation en échec est reprise telle que la banque (woob) la renvoie.
+Les textes du serveur sont regroupés dans `src/lib/Messages.php`.
 
 Chaque utilisateur choisit, dans **Mon profil → Notifications**, les canaux de chaque type
 de notification (résultat d'une synchronisation, règle « Notifier », dépense importante) :

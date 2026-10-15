@@ -160,7 +160,7 @@ final class Notification {
             return false;
         }
         try {
-            Mailer::send((string)$user['email'], "[Carbure] $title", self::emailText((string)$user['language'], $title, $body));
+            self::sendEmail((string)$user['email'], (string)$user['language'], $title, $body);
             return true;
         } catch (Throwable $e) {
             Logger::warn("Email notification to user $userId failed: " . $e->getMessage());
@@ -169,21 +169,42 @@ final class Notification {
     }
 
     /**
-     * Text of a notification email: the notification, then where to change the choice.
+     * Email a message in a language: subject "[Carbure] <title>", the title and the text,
+     * then who sent it, the link to the portal (when public_url is set) and, for a
+     * notification, where to change the choice.
      *
-     * @param string $language The language of the user (fr, en)
-     * @param string $title    Title
-     * @param string $body     Text
+     * @param string      $to       Address of the recipient
+     * @param string|null $language The language of the recipient (see Messages::language())
+     * @param string      $title    Title, already in that language
+     * @param string      $body     Text, already in that language
+     * @param bool        $footer   Tell where the notifications are chosen
+     * @return void
+     * @throws Error If the email cannot be sent (see Mailer::send())
+     */
+    public static function sendEmail(string $to, ?string $language, string $title, string $body, bool $footer = true): void
+    {
+        Mailer::send($to, Messages::t($language, 'email_subject', ['title' => $title]), self::emailText($language, $title, $body, $footer));
+    }
+
+    /**
+     * Text of an email: the message, then a signature in the same language.
+     *
+     * @param string|null $language The language of the recipient
+     * @param string      $title    Title
+     * @param string      $body     Text
+     * @param bool        $footer   Tell where the notifications are chosen
      * @return string
      */
-    public static function emailText(string $language, string $title, string $body): string
+    public static function emailText(?string $language, string $title, string $body, bool $footer = true): string
     {
-        $french = $language === 'fr';
-        $footer = $french
-            ? "Vous recevez cet email selon vos préférences de notification (Mon profil > Notifications)."
-            : "You receive this email according to your notification preferences (My profile > Notifications).";
-        $link = Config::has('public_url') ? "\n" . OAuth::baseUrl() . '/portal/' : '';
-        return "$title\n\n$body\n\n-- \nCarbure$link\n$footer\n";
+        $lines = [Messages::t($language, 'email_sent_by')];
+        if (Config::has('public_url')) {
+            $lines[] = Messages::t($language, 'email_portal', ['url' => OAuth::baseUrl() . '/portal/']);
+        }
+        if ($footer) {
+            $lines[] = Messages::t($language, 'email_footer');
+        }
+        return "$title\n\n$body\n\n-- \n" . implode("\n", $lines) . "\n";
     }
 
     /**

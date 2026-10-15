@@ -30,11 +30,6 @@ keeps track of what was done).
       (existing `prod.ini` files have no `[smtp]` section: it is added on save), then use
       **Send a test email**. Until then nothing changes: notifications are pushed only.
 
-- [ ] The notification of a synchronization result ("Bank synchronization successful",
-      "...failed !", "Strong authentication needed") is in English for every user, push and
-      email, unlike the rule and large expense ones (`Bank::notifyBankUsers()`): write it in
-      the language of each user (check the iOS app does not rely on these titles first).
-
 - [ ] Strong authentication: handle the validations by **code** (SMS OTP, woob
       `BrowserQuestion`), which wait for input on stdin (closed today by
       `tools/woob-tty.py`); and offer the interactive mode to "Find my accounts in woob" /

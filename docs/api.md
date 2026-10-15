@@ -135,7 +135,8 @@ Types : `sync` (résultat d'une synchronisation), `rule` (nouvelle transaction d
 `notify`), `expense` (dépense au-delà du seuil d'alerte). Sans choix de l'utilisateur, un
 type est envoyé en push et pas par email. `smtp` indique qu'un serveur SMTP est configuré,
 `address` l'adresse du profil (`null` si aucune) et `email_available` que les emails
-peuvent partir (les deux).
+peuvent partir (les deux). Les notifications (push et email) sont rédigées dans la langue
+du profil (`language`, `fr` par défaut).
 
 ### `PUT /user/notifications`
 
@@ -746,7 +747,8 @@ configuration comme `GET`.
 ### `POST /system/smtp-test` — administrateur
 
 `to` (facultatif, l'adresse de l'administrateur par défaut) : envoie un email de test avec
-le serveur SMTP de la configuration. Renvoie `{"sent": true, "to": "…"}` ; `400` sans
+le serveur SMTP de la configuration, dans la langue de l'utilisateur de cette adresse (sinon
+celle de l'administrateur). Renvoie `{"sent": true, "to": "…"}` ; `400` sans
 serveur SMTP configuré ou sans destinataire, `502` si le serveur est injoignable ou refuse
 l'email (sa réponse est dans le message d'erreur).
 
