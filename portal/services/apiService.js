@@ -994,6 +994,17 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
         return request(`${baseUrl}/user?id=${encodeURIComponent(userId)}`, { method: 'PUT', body: JSON.stringify(body) }, 'Failed to update user');
     }
     
+    /**
+     * Saves the display theme of a user alone (header toggle), the other fields unchanged
+     * @param {number} userId - User ID
+     * @param {string} theme - Display theme ('system', 'light' or 'dark')
+     * @returns {Promise<Object>} Updated user object
+     * @throws {Error} If request fails
+     */
+    async function updateUserTheme(userId, theme) {
+        return request(`${baseUrl}/user?id=${encodeURIComponent(userId)}`, { method: 'PUT', body: JSON.stringify({ theme }) }, 'Failed to update user');
+    }
+
     return {
         abortAllExcept,
         fetchTransactions,
@@ -1068,6 +1079,7 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
         importTransactions,
         createUser,
         updateUser,
+        updateUserTheme,
         deleteUser
     };
 }

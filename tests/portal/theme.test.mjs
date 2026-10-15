@@ -8,16 +8,16 @@ const source = readFileSync(new URL('../../portal/theme.js', import.meta.url), '
 
 /**
  * Runs theme.js in a fake page
- * @param {{stored?: string|null, systemDark?: boolean}} options
+ * @param {{stored?: string|null, systemDark?: boolean, metas?: Object[]}} options
  * @returns {{window: Object, html: Object, storage: Map, setSystemDark: Function}}
  */
-function load({ stored = null, systemDark = false } = {}) {
+function load({ stored = null, systemDark = false, metas } = {}) {
     const storage = new Map(stored === null ? [] : [['theme', stored]]);
     const listeners = [];
     const media = { matches: systemDark, addEventListener: (type, listener) => listeners.push(listener) };
     const html = { dataset: {} };
     const window = {
-        document: { documentElement: html },
+        document: { documentElement: html, ...(metas ? { querySelectorAll: () => metas } : {}) },
         localStorage: { getItem: key => storage.get(key) ?? null, setItem: (key, value) => storage.set(key, value) },
         matchMedia: () => media,
     };
@@ -63,4 +63,25 @@ test('theme.js: resolve gives the theme of a choice', () => {
     assert.equal(window.carbureTheme.resolve('system', false), 'light');
     assert.equal(window.carbureTheme.resolve('dark', false), 'dark');
     assert.equal(window.carbureTheme.resolve('light', true), 'light');
+});
+
+test('theme.js: the header toggle switches to the other theme displayed', () => {
+    const { window, setSystemDark } = load({ systemDark: true });
+    const seen = [];
+    window.carbureTheme.subscribe(theme => seen.push(theme));
+    // Called at once with the theme displayed, then on each change
+    assert.deepEqual(seen, ['dark']);
+    assert.equal(window.carbureTheme.current(), 'dark');
+    assert.equal(window.carbureTheme.opposite(), 'light');
+
+    window.carbureTheme.apply(window.carbureTheme.opposite());
+    assert.equal(window.carbureTheme.current(), 'light');
+    assert.equal(window.carbureTheme.opposite(), 'dark');
+    assert.deepEqual(seen, ['dark', 'light']);
+
+    // A change of the system preference is followed with the "system" choice only
+    window.carbureTheme.apply('system');
+    setSystemDark(false);
+    assert.deepEqual(seen, ['dark', 'light', 'dark', 'light']);
+    assert.equal(window.carbureTheme.opposite(), 'dark');
 });
