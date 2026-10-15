@@ -6024,6 +6024,8 @@ textarea:focus-visible,
 .config-value select,
 .config-value input[type="text"],
 .config-value input[type="url"],
+.config-value input[type="email"],
+.config-value input[type="password"],
 .config-value input[type="number"] {
     width: 100%;
     padding: 8px 12px;
@@ -6154,6 +6156,93 @@ textarea:focus-visible,
     display: inline-flex;
     align-items: center;
     gap: 6px;
+}
+
+/* Test email of the SMTP settings */
+.smtp-test {
+    background: var(--background);
+}
+
+.smtp-test-button {
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+.smtp-test-note,
+.smtp-test-result {
+    grid-column: 1 / -1;
+    margin: 0;
+}
+
+.smtp-test-result.sync-step-error {
+    margin-left: 0;
+}
+
+.smtp-test-ok {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: var(--border-radius-sm);
+    background: var(--success-light);
+    color: var(--success-color);
+    font-size: 13px;
+}
+
+.smtp-test-ok .material-icons {
+    font-size: 18px;
+}
+
+/* Notifications of the profile: kind x channel */
+.notifications-table {
+    width: 100%;
+    margin-top: 12px;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.notifications-table th,
+.notifications-table td {
+    padding: 12px 8px;
+    border-bottom: 1px solid var(--divider);
+    text-align: center;
+}
+
+.notifications-table thead th {
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.notifications-table th:first-child {
+    text-align: left;
+}
+
+.notifications-table tbody th {
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.notifications-table input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    accent-color: var(--primary-color);
+    cursor: pointer;
+}
+
+.notifications-table input[type="checkbox"]:disabled {
+    cursor: not-allowed;
+}
+
+.notifications-table input[type="checkbox"]:focus-visible {
+    outline: 2px solid var(--primary-dark);
+    outline-offset: 2px;
+}
+
+.notifications-unavailable {
+    margin-top: 12px;
 }
 
 .config-subtitle {

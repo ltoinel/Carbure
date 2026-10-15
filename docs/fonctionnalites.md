@@ -313,7 +313,9 @@ renvoie un montant pour le mois affiché.
 
 ## Notifications
 
-L'**app iPhone** reçoit des notifications push (Apple Push Notification service) :
+Les notifications sont envoyées en **push** sur l'**app iPhone** (Apple Push Notification
+service) et, si un administrateur a configuré un serveur SMTP, par **email** à l'adresse du
+profil :
 
 !!! info "App iPhone"
     L'application iOS Carbure sera prochainement disponible sur l'App Store.
@@ -327,6 +329,13 @@ L'**app iPhone** reçoit des notifications push (Apple Push Notification service
 Le **badge** de l'app indique le nombre de transactions à vérifier. Le seuil d'alerte se
 règle dans **Mon profil** (vide = pas d'alerte). Les notifications sont rédigées dans la
 langue de chacun.
+
+Chaque utilisateur choisit, dans **Mon profil → Notifications**, les canaux de chaque type
+de notification (résultat d'une synchronisation, règle « Notifier », dépense importante) :
+push, email, les deux ou aucun. Par défaut, tout est envoyé en push et rien par email.
+L'email n'est proposé que si un serveur SMTP est configuré (**Administration →
+Paramètres**, section `[smtp]`) et que le profil a une adresse email ; l'échec d'un canal
+n'empêche ni l'autre ni la synchronisation.
 
 ## Agents IA
 

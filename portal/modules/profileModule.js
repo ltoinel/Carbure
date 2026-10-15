@@ -2,7 +2,8 @@
  * Profile Module
  * 
  * Manages the authenticated user: header user menu and profile page
- * (email, names, password, interface language and display theme).
+ * (email, names, password, interface language and display theme; its
+ * notifications in notificationsModule).
  * 
  * @module profileModule
  */
@@ -186,6 +187,7 @@ export function createProfileModule(getApiService) {
                 };
                 this.setActiveTab('profile');
                 this.loadDevices();
+                this.loadNotifications();
             },
 
             /**
@@ -387,6 +389,8 @@ export function createProfileModule(getApiService) {
                     );
                     this.profileForm.password = '';
                     applyTheme(this.currentUser.theme);
+                    // The email channel depends on the address of the profile
+                    this.loadNotifications();
 
                     if (this.currentUser.language !== this.locale) {
                         // Reloads the page in the new language

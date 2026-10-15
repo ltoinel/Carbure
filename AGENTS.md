@@ -17,8 +17,8 @@ built by the GitHub release workflow; committing/pushing is not deploying.
 |---|---|
 | `src/api.php` | HTTP entry (`/api/*`); without `conf/<env>.ini` serves only `/api/setup` |
 | `src/autoload.php` | Loads `src/lib`, `src/resources`, then `Config::load(getenv('APP_ENV') ?: 'prod')` |
-| `src/lib/` | `Config`, `Db` (mysqli), `Logger`, `Jwt`, `Webservice` (+ security headers), `ApiResolver`, `ApiRoute`, `Woob`, `Apns`, `Setup`/`Installer`, `Migrator`, `Setting` |
-| `src/resources/` | `User`, `Bank`, `Transaction`, `Budget`, `Category`, `Insight`, `Device`, `ApiToken`, `Mcp`, `OAuth`, `System` |
+| `src/lib/` | `Config`, `Db` (mysqli), `Logger`, `Jwt`, `Webservice` (+ security headers), `ApiResolver`, `ApiRoute`, `Woob`, `Apns`, `Mailer` (SMTP), `Setup`/`Installer`, `Migrator`, `Setting` |
+| `src/resources/` | `User`, `Bank`, `Transaction`, `Budget`, `Category`, `Insight`, `Device`, `Notification`, `ApiToken`, `Mcp`, `OAuth`, `System` |
 | `portal/` | Mixins in `modules/`, API calls in `services/apiService.js`, i18n in `i18n.js` |
 | `swagger/` | OpenAPI via reflection + Swagger UI |
 | `sql/carbure.sql`, `sql/migrations/` | Full schema; dated migrations (`Migrator`, table `schema_migrations`) |

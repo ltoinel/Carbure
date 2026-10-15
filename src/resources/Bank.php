@@ -934,7 +934,8 @@ final class Bank {
     }
 
     /**
-     * Send notification to all users who own a specific bank account.
+     * Notify all users who own a specific bank account, on the channels each one chose
+     * (push, email).
      *
      * A failure that needs a two-factor authentication asks to approve it in the portal.
      *
@@ -972,13 +973,8 @@ final class Bank {
                     $description = "$unpointed transactions to review";
                 }
                 
-                // Send notification to user
-                Device::sendNotification(
-                    $userId,
-                    $message,
-                    $description,
-                    $unpointed
-                );
+                // Send notification to user, on the channels he chose
+                Notification::notify((int)$userId, 'sync', $message, $description, $unpointed);
 
                 Logger::info("Notification sent to user $userId for bank $bankId with $unpointed unpointed transactions");
             } catch (Exception $e) {
@@ -1037,8 +1033,9 @@ final class Bank {
         foreach ($users as $user) {
             $french = $user['language'] === 'fr';
             $amount = number_format((float)$transaction['amount'], 2, $french ? ',' : '.', $french ? ' ' : ',');
-            Device::sendNotification(
-                $user['id'],
+            Notification::notify(
+                (int)$user['id'],
+                'rule',
                 ($french ? "Nouvelle transaction : " : "New transaction: ") . $keyword,
                 trim($transaction['label']) . " : $amount €",
                 Transaction::countUnpointed()
@@ -1048,8 +1045,9 @@ final class Bank {
     }
 
     /**
-     * Push an alert to the owners of a bank account for each new expense whose
-     * amount reaches their alert threshold (users.alert_threshold, NULL = disabled).
+     * Alert the owners of a bank account of each new expense whose amount reaches
+     * their alert threshold (users.alert_threshold, NULL = disabled), on the channels
+     * each one chose (push, email).
      *
      * @param string                      $bankId       The bank ID (account_number@bank_name)
      * @param array<array<string, mixed>> $transactions The new transactions (label, amount)
@@ -1075,8 +1073,9 @@ final class Bank {
 
                 $french = $user['language'] === 'fr';
                 $amount = number_format($transaction['amount'], 2, $french ? ',' : '.', $french ? ' ' : ',');
-                Device::sendNotification(
-                    $user['id'],
+                Notification::notify(
+                    (int)$user['id'],
+                    'expense',
                     $french ? "Dépense importante à vérifier" : "Large expense to check",
                     trim($transaction['label']) . " : $amount €",
                     Transaction::countUnpointed()
