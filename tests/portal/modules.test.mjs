@@ -589,6 +589,8 @@ test('profile: the header toggle switches the theme at once and saves it in the 
     } finally {
         delete window.carbureTheme;
     }
+});
+
 test('config: a password is never shown, only typed to replace it', async () => {
     const { createConfigModule } = await import('../../portal/modules/configModule.js');
     const { methods, computed } = createConfigModule(() => null);
