@@ -492,9 +492,10 @@ class BankTest extends DatabaseTestCase
         // The history would ask the same validation: not tried
         $this->assertStringNotContainsString('Syncing 2fa@bank (history)', $output);
 
-        // The household is asked to approve the authentication in the portal
+        // The household is asked to approve the authentication in the portal (the device is
+        // of the administrator: French)
         $alerts = array_map(fn($r) => $r['payload']['aps']['alert'], FakeApnsServer::requests());
-        $this->assertContains(['title' => 'Strong authentication needed', 'body' => 'Open Carbure (Accounts) to approve the connection to BANK'],
+        $this->assertContains(['title' => 'Authentification forte requise', 'body' => 'Ouvrez Carbure (Comptes) pour approuver la connexion à BANK'],
             array_map(fn($a) => array_intersect_key($a, ['title' => 1, 'body' => 1]), $alerts));
 
         ob_start();
@@ -586,8 +587,8 @@ class BankTest extends DatabaseTestCase
         $this->assertSame('OK', $account['last_sync_status']);
         $this->assertStringStartsWith('3 new (coming failed: Error while calling woob', $account['last_sync_message']);
         $titles = array_map(fn($r) => $r['payload']['aps']['alert']['title'], FakeApnsServer::requests());
-        $this->assertContains('Bank synchronization successful', $titles);
-        $this->assertNotContains('Bank synchronization failed !', $titles);
+        $this->assertContains(Messages::t('fr', 'sync_success_title'), $titles);
+        $this->assertNotContains(Messages::t('fr', 'sync_error_title'), $titles);
 
         // The history fails too: the account fails
         $this->loginAs(self::ADMIN);
@@ -627,8 +628,8 @@ class BankTest extends DatabaseTestCase
         $this->assertSame('4 new', $account['last_sync_message']);
         // Only the result of the last attempt is notified
         $titles = array_map(fn($r) => $r['payload']['aps']['alert']['title'], FakeApnsServer::requests());
-        $this->assertContains('Bank synchronization successful', $titles);
-        $this->assertNotContains('Strong authentication needed', $titles);
+        $this->assertContains(Messages::t('fr', 'sync_success_title'), $titles);
+        $this->assertNotContains(Messages::t('fr', 'sync_2fa_title'), $titles);
     }
 
     public function testScheduledSyncRecordsTheValidationWhenTheRetriesRunOut()
@@ -647,7 +648,7 @@ class BankTest extends DatabaseTestCase
         $this->assertSame('ERROR', $account['last_sync_status']);
         $this->assertTrue(Woob::needsTwoFactor($account['last_sync_message']));
         $titles = array_map(fn($r) => $r['payload']['aps']['alert']['title'], FakeApnsServer::requests());
-        $this->assertSame(1, count(array_filter($titles, fn($t) => $t === 'Strong authentication needed')));
+        $this->assertSame(1, count(array_filter($titles, fn($t) => $t === Messages::t('fr', 'sync_2fa_title'))));
 
         // No retry: woob_2fa_retries=0
         [$output, $waited] = $this->scheduledSync('validate@bank', 0);
@@ -800,8 +801,8 @@ class BankTest extends DatabaseTestCase
 
         // The admin device is notified for each of his accounts (success and failure)
         $titles = array_map(fn($r) => $r['payload']['aps']['alert']['title'], FakeApnsServer::requests());
-        $this->assertContains('Bank synchronization successful', $titles);
-        $this->assertContains('Bank synchronization failed !', $titles);
+        $this->assertContains(Messages::t('fr', 'sync_success_title'), $titles);
+        $this->assertContains(Messages::t('fr', 'sync_error_title'), $titles);
     }
 
     public function testLargeExpenseAlert()
@@ -816,7 +817,8 @@ class BankTest extends DatabaseTestCase
         $alerts = array_values(array_filter(FakeApnsServer::requests(),
             fn($r) => $r['payload']['aps']['alert']['title'] === 'Dépense importante à vérifier'));
         $this->assertCount(1, $alerts);
-        $this->assertSame('PRLV SEPA EDF : -60,10 €', $alerts[0]['payload']['aps']['alert']['body']);
+        // With the real date of the transaction
+        $this->assertMatchesRegularExpression('#^PRLV SEPA EDF : -60,10 € le \d{2}/\d{2}/\d{4}$#', $alerts[0]['payload']['aps']['alert']['body']);
 
         // Known transactions do not trigger the alert again
         FakeApnsServer::start();
@@ -830,24 +832,60 @@ class BankTest extends DatabaseTestCase
         Db::query("UPDATE users SET alert_threshold = 10, language = 'en' WHERE id = 1");
 
         $this->assertSame(1, Bank::alertLargeExpenses('111@bnp', [['label' => 'CB SHOP', 'amount' => -12.5]]));
-        $this->assertSame('CB SHOP : -12.50 €', FakeApnsServer::requests()[0]['payload']['aps']['alert']['body']);
+        $this->assertSame('CB SHOP: -12.50 €', FakeApnsServer::requests()[0]['payload']['aps']['alert']['body']);
         $this->assertSame(0, Bank::alertLargeExpenses('111@bnp', []));
 
         Db::query("UPDATE users SET alert_threshold = NULL");
         $this->assertSame(0, Bank::alertLargeExpenses('111@bnp', [['label' => 'CB SHOP', 'amount' => -500]]));
     }
 
+    /**
+     * Entries of the log of the tests containing a text
+     */
+    private function logEntries(string $text): array
+    {
+        Logger::flush();
+        $file = Config::get('data_dir') . '/logs/carbure_test_' . date('Ymd') . '.log';
+        return array_values(array_filter(is_file($file) ? file($file) : [], fn($line) => str_contains($line, $text)));
+    }
+
     public function testSyncWithToken()
     {
+        $deprecated = 'The sync token passed in the URL is deprecated';
         Config::set('sync_token', 'scheduler-secret');
         try {
-            $this->assertStringContainsString('Synchronization complete', $this->sync('scheduler-secret'));
-
+            // The header: no deprecation warning
+            $before = count($this->logEntries($deprecated));
             $_SERVER['HTTP_X_SYNC_TOKEN'] = 'scheduler-secret';
             $this->assertStringContainsString('Synchronization complete', $this->sync());
+            $this->assertCount($before, $this->logEntries($deprecated));
+
+            // The header wins over the query parameter
+            $this->assertStringContainsString('Synchronization complete', $this->sync('wrong'));
+            $this->assertCount($before, $this->logEntries($deprecated));
+            unset($_SERVER['HTTP_X_SYNC_TOKEN']);
+
+            // The query parameter still works (schedulers already configured), with one
+            // warning that never contains the token
+            $this->assertStringContainsString('Synchronization complete', $this->sync('scheduler-secret'));
+            $entries = $this->logEntries($deprecated);
+            $this->assertCount($before + 1, $entries);
+            $entry = json_decode(end($entries), true);
+            $this->assertSame('WARNING', $entry['level']);
+            $this->assertSame('The sync token passed in the URL is deprecated, use the X-Sync-Token header', $entry['message']);
+            $this->assertStringNotContainsString('scheduler-secret', end($entries));
         } finally {
+            unset($_SERVER['HTTP_X_SYNC_TOKEN']);
             Config::set('sync_token', '');
         }
+    }
+
+    public function testDeprecationHeadersOfTheTokenInTheUrl()
+    {
+        // RFC 9745: a date (@ + Unix time) and the page of the header to use instead
+        $this->assertSame(['Deprecation: @1792108800', 'Link: <https://carbure.org/api/#bank-sync>; rel="deprecation"; type="text/html"'],
+            Bank::TOKEN_IN_URL_HEADERS);
+        $this->assertSame('2026-10-16T00:00:00+00:00', gmdate('c', 1792108800));
     }
 
     public function testSyncRefusedWithoutCredentials()
@@ -859,6 +897,37 @@ class BankTest extends DatabaseTestCase
             $this->sync('wrong');
         } finally {
             Config::set('sync_token', '');
+        }
+    }
+
+    public function testSyncRefusedWithAWrongHeader()
+    {
+        Config::set('sync_token', 'scheduler-secret');
+        $_SERVER['HTTP_X_SYNC_TOKEN'] = 'wrong';
+        try {
+            // Same error as a wrong token in the URL, and the right token in the URL does
+            // not replace a wrong header
+            $this->expectException(Error::class);
+            $this->expectExceptionCode(401);
+            $this->expectExceptionMessage('Unauthorized - Invalid or missing JWT token or sync token');
+            $this->sync('scheduler-secret');
+        } finally {
+            unset($_SERVER['HTTP_X_SYNC_TOKEN']);
+            Config::set('sync_token', '');
+        }
+    }
+
+    public function testSyncRefusedWithAnEmptyToken()
+    {
+        // No token configured: an empty token never matches
+        Config::set('sync_token', '');
+        $_SERVER['HTTP_X_SYNC_TOKEN'] = '';
+        try {
+            $this->expectException(Error::class);
+            $this->expectExceptionCode(401);
+            $this->sync('');
+        } finally {
+            unset($_SERVER['HTTP_X_SYNC_TOKEN']);
         }
     }
 

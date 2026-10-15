@@ -14,6 +14,14 @@ keeps track of what was done).
       `X-Forwarded-For`). Set `log_retention_days` (missing from existing configurations:
       logs kept forever) in **Administration → Settings**.
 
+- [ ] **Production** (sync token in the URL deprecated, #149): if a scheduled task of the
+      NAS (DSM Task Scheduler, cron) calls `/api/bank/sync?token=…`, replace it by
+      `curl -fsS -H "X-Sync-Token: <sync_token>" <url>/api/bank/sync > /dev/null` (the
+      command of **Administration → Synchro**). Then check that the Logs page no longer shows
+      the warning "The sync token passed in the URL is deprecated". Later: once no
+      scheduler uses it, remove `?token=` from `GET /bank/sync` (the MCP server keeps its
+      `?token=` for the agents that cannot send a header).
+
 - [ ] **GitHub settings** (owner, after the merge of the workflow hardening, #125): in
       **Settings → Actions → General**, tick "Require actions to be pinned to a full-length
       commit SHA" and restrict the allowed actions to those of GitHub, verified creators
@@ -23,6 +31,12 @@ keeps track of what was done).
       required checks and set **GitHub Actions** as the source of every required check (not
       "any source"). After the next release, check on the NAS
       `gh attestation verify oci://docker.io/ltoinel/carbure:<version> --owner ltoinel`.
+
+- [ ] **Production**: the migration `2026-10-20_user_notification` (table of the
+      notification channels chosen by each user) is applied at container start. To send the
+      notifications by email, set the `[smtp]` settings in **Administration → Settings**
+      (existing `prod.ini` files have no `[smtp]` section: it is added on save), then use
+      **Send a test email**. Until then nothing changes: notifications are pushed only.
 
 - [ ] Strong authentication: handle the validations by **code** (SMS OTP, woob
       `BrowserQuestion`), which wait for input on stdin (closed today by
@@ -56,6 +70,12 @@ keeps track of what was done).
       enough. Repetitions of an identical transaction have the UUID `md5(uuid . '#n')`
       (`Transaction::prepareAll()`): the migration must recompute them from the base UUID,
       rank by rank.
+- [ ] Bank profiles of the import (`src/lib/import/banks/`) kept the reading of the former
+      heuristics: the French Qonto export is booked on its operation date (the English one
+      on its settlement date), Boursorama ignores its value date and `comment`. Aligning
+      them changes the dates (not the UUID, made of the real date): check with real files
+      first. Variants without a fixture are still read by the generic reader: BNP Paribas
+      with `,`, the former N26 export in English or German (no public sample yet).
 - [ ] The account is not part of the UUID: the same operation (real date, label, amount) on
       two synchronized accounts is stored only once. Adding it changes every UUID (migration,
       or unique key `(account_number, uuid)`); only worth doing if accounts of the household
