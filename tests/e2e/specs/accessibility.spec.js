@@ -3,6 +3,7 @@
 const { test, expect, tr, openTab, trustWoobRepository } = require('../fixtures');
 const { contrastProblems } = require('../a11y');
 const { startFakeSmtp } = require('../fake-smtp');
+const path = require('path');
 
 // Hovering every button of every screen takes time
 test.describe.configure({ timeout: 180_000 });
@@ -100,6 +101,15 @@ test('the menus, modals and the synchronization log are readable', async ({ admi
     problems.push(...await contrastProblems(page, tr('transactionDetail')));
     await page.keyboard.press('Escape');
     await expect(detail).toHaveCount(0);
+
+    // Preview of the import of a statement file read with the profile of its bank
+    await page.getByRole('button', { name: tr('importButton') }).click();
+    const importModal = page.getByRole('dialog', { name: tr('importTitle') });
+    await importModal.locator('input[type="file"]').setInputFiles(path.join(__dirname, '../../fixtures/import/boursorama.csv'));
+    await expect(importModal.locator('.import-bank')).toBeVisible();
+    problems.push(...await contrastProblems(page, tr('importTitle')));
+    await page.keyboard.press('Escape');
+    await expect(importModal).toHaveCount(0);
 
     // Copy of the budgets of the previous month (Budgets view)
     await openTab(page, tr('tabBudget'));
