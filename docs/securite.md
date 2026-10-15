@@ -147,6 +147,10 @@ Seules ces routes ne demandent pas de JWT (un test unitaire le vérifie) :
 - La pile d'appels d'une erreur est journalisée **sans les arguments** des fonctions (qui
   contiennent les paramètres de la requête : mot de passe, jeton…), et l'image Docker
   active `zend.exception_ignore_args`.
+- Le mot de passe SMTP (`smtp_password`) n'est jamais renvoyé au portail ni journalisé
+  (champ masqué dans les logs) ; il n'apparaît pas dans les erreurs d'envoi. Les emails
+  sont en texte brut, les adresses et le sujet refusent les retours à la ligne (pas
+  d'injection d'en-têtes) et le certificat du serveur SMTP est vérifié en STARTTLS/TLS.
 - Les messages d'erreur ne renvoient ni hachage ni secret ; l'`uid` permet de retrouver
   le détail dans les logs serveur.
 - **Format des logs** : une entrée par ligne JSON (JSON Lines), avec l'heure ISO 8601

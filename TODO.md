@@ -32,6 +32,12 @@ keeps track of what was done).
       "any source"). After the next release, check on the NAS
       `gh attestation verify oci://docker.io/ltoinel/carbure:<version> --owner ltoinel`.
 
+- [ ] **Production**: the migration `2026-10-20_user_notification` (table of the
+      notification channels chosen by each user) is applied at container start. To send the
+      notifications by email, set the `[smtp]` settings in **Administration → Settings**
+      (existing `prod.ini` files have no `[smtp]` section: it is added on save), then use
+      **Send a test email**. Until then nothing changes: notifications are pushed only.
+
 - [ ] Strong authentication: handle the validations by **code** (SMS OTP, woob
       `BrowserQuestion`), which wait for input on stdin (closed today by
       `tools/woob-tty.py`); and offer the interactive mode to "Find my accounts in woob" /
@@ -64,6 +70,12 @@ keeps track of what was done).
       enough. Repetitions of an identical transaction have the UUID `md5(uuid . '#n')`
       (`Transaction::prepareAll()`): the migration must recompute them from the base UUID,
       rank by rank.
+- [ ] Bank profiles of the import (`src/lib/import/banks/`) kept the reading of the former
+      heuristics: the French Qonto export is booked on its operation date (the English one
+      on its settlement date), Boursorama ignores its value date and `comment`. Aligning
+      them changes the dates (not the UUID, made of the real date): check with real files
+      first. Variants without a fixture are still read by the generic reader: BNP Paribas
+      with `,`, the former N26 export in English or German (no public sample yet).
 - [ ] The account is not part of the UUID: the same operation (real date, label, amount) on
       two synchronized accounts is stored only once. Adding it changes every UUID (migration,
       or unique key `(account_number, uuid)`); only worth doing if accounts of the household
