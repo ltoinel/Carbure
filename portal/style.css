@@ -6280,6 +6280,8 @@ textarea:focus-visible,
     .material-icons {
         forced-color-adjust: auto;
     }
+}
+
 /* ===== Confirmation modal (askConfirm) ===== */
 .modal-confirm .confirm-error {
     margin: 0;
