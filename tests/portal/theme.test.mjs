@@ -65,25 +65,23 @@ test('theme.js: resolve gives the theme of a choice', () => {
     assert.equal(window.carbureTheme.resolve('light', true), 'light');
 });
 
-test('theme.js: the color of the app window follows the theme displayed', () => {
-    const meta = () => ({ content: '', setAttribute(name, value) { this[name] = value; } });
-    const metas = [meta(), meta()];
-    const { window, setSystemDark } = load({ systemDark: true, metas });
-    const { light, dark } = window.carbureTheme.THEME_COLORS;
-    assert.deepEqual(metas.map(m => m.content), [dark, dark]);
-    setSystemDark(false);
-    assert.deepEqual(metas.map(m => m.content), [light, light]);
-    // The theme of the profile wins over the system
-    window.carbureTheme.apply('dark');
-    assert.deepEqual(metas.map(m => m.content), [dark, dark]);
-});
+test('theme.js: the header toggle switches to the other theme displayed', () => {
+    const { window, setSystemDark } = load({ systemDark: true });
+    const seen = [];
+    window.carbureTheme.subscribe(theme => seen.push(theme));
+    // Called at once with the theme displayed, then on each change
+    assert.deepEqual(seen, ['dark']);
+    assert.equal(window.carbureTheme.current(), 'dark');
+    assert.equal(window.carbureTheme.opposite(), 'light');
 
-test('theme.js: the colors of the app window are the ones of index.html and the manifest', () => {
-    const { window } = load();
-    const html = readFileSync(new URL('../../portal/index.html', import.meta.url), 'utf8');
-    const manifest = JSON.parse(readFileSync(new URL('../../portal/manifest.webmanifest', import.meta.url), 'utf8'));
-    const { light, dark } = window.carbureTheme.THEME_COLORS;
-    assert.ok(html.includes(`<meta name="theme-color" content="${light}" media="(prefers-color-scheme: light)">`));
-    assert.ok(html.includes(`<meta name="theme-color" content="${dark}" media="(prefers-color-scheme: dark)">`));
-    assert.equal(manifest.theme_color, light);
+    window.carbureTheme.apply(window.carbureTheme.opposite());
+    assert.equal(window.carbureTheme.current(), 'light');
+    assert.equal(window.carbureTheme.opposite(), 'dark');
+    assert.deepEqual(seen, ['dark', 'light']);
+
+    // A change of the system preference is followed with the "system" choice only
+    window.carbureTheme.apply('system');
+    setSystemDark(false);
+    assert.deepEqual(seen, ['dark', 'light', 'dark', 'light']);
+    assert.equal(window.carbureTheme.opposite(), 'dark');
 });

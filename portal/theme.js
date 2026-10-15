@@ -15,6 +15,8 @@
     // Color of the window of the installed app (and of the mobile browser bar), as the
     // <meta name="theme-color"> of index.html and the theme_color of manifest.webmanifest
     const THEME_COLORS = { light: '#D12C48', dark: '#1a0b14' };
+    // Called with the theme displayed each time it is applied (the header toggle)
+    const listeners = [];
 
     /**
      * Theme to display for a choice
@@ -29,15 +31,38 @@
         return systemDark ? 'dark' : 'light';
     }
 
+    /**
+     * Theme displayed by the page
+     * @returns {string} light or dark
+     */
+    function current() {
+        return resolve(choice, !!(media && media.matches));
+    }
+
+    /**
+     * Theme to choose to switch the page to the other one (header toggle)
+     * @returns {string} dark when the light theme is displayed, light otherwise
+     */
+    function opposite() {
+        return current() === 'dark' ? 'light' : 'dark';
+    }
+
+    /**
+     * Calls a function with the theme displayed, now and on each change
+     * @param {Function} listener - Called with light or dark
+     */
+    function subscribe(listener) {
+        listeners.push(listener);
+        listener(current());
+    }
+
     /** Applies the current choice to the page */
     function render() {
         const html = root.document.documentElement;
-        const theme = resolve(choice, !!(media && media.matches));
+        const theme = current();
         html.dataset.theme = theme;
         html.dataset.themeChoice = choice;
-        // The theme chosen in the profile wins over the preference of the system
-        const metas = root.document.querySelectorAll ? root.document.querySelectorAll('meta[name="theme-color"]') : [];
-        metas.forEach(meta => meta.setAttribute('content', THEME_COLORS[theme]));
+        listeners.forEach(listener => listener(theme));
     }
 
     /**
@@ -73,5 +98,5 @@
     }
     apply(cached);
 
-    root.carbureTheme = { apply, resolve, choice: () => choice, CHOICES, THEME_COLORS };
+    root.carbureTheme = { apply, resolve, current, opposite, subscribe, choice: () => choice, CHOICES };
 })(window);
