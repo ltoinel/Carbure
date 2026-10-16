@@ -77,8 +77,42 @@ class MfaTest extends DatabaseTestCase
         // Not logged in yet
         $this->assertNull(Db::queryOne("SELECT last_login FROM users WHERE id = 2", "")['last_login']);
 
-        // The secret of the registration started is kept until confirmed
-        $this->assertSame($challenge['secret'], User::login('user', 'userpass', null, true)['secret']);
+        // A new secret at each challenge: the one given earlier no longer registers
+        $next = User::login('user', 'userpass', null, true);
+        $this->assertNotSame($challenge['secret'], $next['secret']);
+        try {
+            Mfa::login($next['mfa_token'], Totp::code($challenge['secret'], time()));
+            $this->fail('Registered with the secret of an earlier challenge');
+        } catch (Error $e) {
+            $this->assertSame(401, $e->getCode());
+        }
+    }
+
+    public function testPendingProfileSecretIsNotGivenAtLogin()
+    {
+        // The user started the registration in his profile (not finished)
+        $this->loginAs(self::USER);
+        $pending = Mfa::setup()['secret'];
+        unset($_SERVER['HTTP_AUTHORIZATION']);
+        $this->enforce();
+
+        $this->assertNotSame($pending, User::login('user', 'userpass', null, true)['secret']);
+    }
+
+    public function testEnabledSecretIsNeverReplaced()
+    {
+        $secret = $this->enroll(self::USER);
+        $this->enforce();
+
+        $method = new ReflectionMethod(Mfa::class, 'newPendingSecret');
+        try {
+            $method->invoke(null, self::USER);
+            $this->fail('Enabled authenticator replaced');
+        } catch (Error $e) {
+            $this->assertSame(409, $e->getCode());
+        }
+        $this->assertSame($secret, Db::queryOne("SELECT secret FROM user_mfa WHERE user_id = 2", "")['secret']);
+        $this->assertSame('verify', User::login('user', 'userpass', null, true)['mfa']);
     }
 
     public function testRegisteredAtLoginWithTheFirstCode()
@@ -156,6 +190,18 @@ class MfaTest extends DatabaseTestCase
         } catch (Error $e) {
             $this->assertSame(423, $e->getCode());
         }
+    }
+
+    public function testConcurrentFailuresAllCount()
+    {
+        // Rows read before the other failures were written (requests in parallel)
+        $stale = Db::queryOne("SELECT * FROM users WHERE id = ?", "i", self::USER);
+        for ($i = 1; $i < User::MAX_FAILED_LOGINS; $i++) {
+            $this->assertFalse(User::recordFailedLogin($stale));
+            $this->assertSame($i, $this->failedLogins(self::USER));
+        }
+        $this->assertTrue(User::recordFailedLogin($stale), 'Locked at the limit');
+        $this->assertNotNull(Db::queryOne("SELECT locked_until FROM users WHERE id = ?", "i", self::USER)['locked_until']);
     }
 
     public function testSuccessResetsTheFailures()

@@ -293,9 +293,10 @@ final class Mfa {
         $challenge = MfaChallenge::create((int)$user['id']);
         $result = ['mfa' => $state !== null ? 'verify' : 'enroll', 'mfa_token' => $challenge['token'], 'exp' => $challenge['exp']];
         if ($state === null) {
-            // The secret of a registration already started is kept (scanned already)
-            $pending = self::state((int)$user['id']);
-            $secret = $pending !== null ? (string)$pending['secret'] : self::newPendingSecret((int)$user['id']);
+            // A new secret at each challenge, never the one of a registration already
+            // started: whoever got it earlier with the password (or the profile setup
+            // left pending) cannot keep a valid second factor once the user registers
+            $secret = self::newPendingSecret((int)$user['id']);
             $result += ['secret' => $secret, 'otpauth' => Totp::uri($secret, (string)$user['username'], self::ISSUER)];
         }
         return $result;
@@ -439,17 +440,23 @@ final class Mfa {
     }
 
     /**
-     * A new secret, pending until confirmed by a first code (replaces a pending one).
+     * A new secret, pending until confirmed by a first code (replaces a pending one,
+     * never an enabled one: two concurrent requests cannot replace the authenticator
+     * just registered).
      *
      * @param int $userId The user
      * @return string The secret (base32)
+     * @throws Error If the second factor of the user is enabled (409)
      */
     private static function newPendingSecret(int $userId): string
     {
         $secret = Totp::generateSecret();
-        Db::execute("INSERT INTO user_mfa (user_id, secret, enabled, last_step, created_at) VALUES (?, ?, 0, NULL, NOW())
-            ON DUPLICATE KEY UPDATE secret = VALUES(secret), enabled = 0, last_step = NULL, created_at = NOW(), enabled_at = NULL",
-            "is", $userId, $secret);
+        $inserted = Db::execute("INSERT IGNORE INTO user_mfa (user_id, secret, enabled, last_step, created_at)
+            VALUES (?, ?, 0, NULL, NOW())", "is", $userId, $secret)->affected_rows > 0;
+        if (!$inserted && Db::execute("UPDATE user_mfa SET secret = ?, last_step = NULL, created_at = NOW(), enabled_at = NULL
+                WHERE user_id = ? AND enabled = 0", "si", $secret, $userId)->affected_rows === 0) {
+            throw new Error("Two-factor authentication is already enabled: disable it first", 409);
+        }
         return $secret;
     }
 
