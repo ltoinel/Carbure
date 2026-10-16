@@ -225,13 +225,15 @@ final class User {
      */
     public static function recordFailedLogin(array $user): bool
     {
-        $failures = (int)$user['failed_logins'] + 1;
+        // Counted by the database: concurrent failures (codes of 6 digits tried in parallel)
+        // each count, instead of all writing the same value read before
+        Db::execute("UPDATE users SET failed_logins = failed_logins + 1 WHERE id = ?", "i", $user['id']);
+        $failures = (int)(Db::queryOne("SELECT failed_logins FROM users WHERE id = ?", "i", $user['id'])['failed_logins'] ?? 0);
         if ($failures >= self::MAX_FAILED_LOGINS) {
             Db::execute("UPDATE users SET failed_logins = 0, locked_until = NOW() + INTERVAL " . self::LOCK_HOURS . " HOUR WHERE id = ?", "i", $user['id']);
             Logger::warn("Account {$user['username']} locked after " . self::MAX_FAILED_LOGINS . " failed logins");
             return true;
         }
-        Db::execute("UPDATE users SET failed_logins = ? WHERE id = ?", "ii", $failures, $user['id']);
         return false;
     }
 
