@@ -17,6 +17,7 @@ erDiagram
     users ||--o{ user_notification : "choisit"
     users ||--o{ budget_alert : "alerté"
     bank_transaction_category ||--o{ budget_alert : "alerte"
+    bank_transaction_category |o--o{ users : "budget surveillé"
     users ||--o{ bank_account : "a ajouté"
     users ||--o{ bank_transaction : "rattachement"
     bank_transaction_category ||--o{ bank_transaction : "catégorise"
@@ -41,6 +42,7 @@ erDiagram
         varchar theme "system, light ou dark"
         decimal alert_threshold "seuil d'alerte, NULL = désactivé"
         smallint budget_threshold "seuil des budgets en %, 100"
+        tinyint budget_alert_category FK "budget surveillé, NULL = tous"
         datetime last_login
         tinyint failed_logins
         datetime locked_until "NULL = non bloqué"
@@ -170,7 +172,7 @@ erDiagram
 
 | Table | Rôle |
 |---|---|
-| `users` | Comptes. `is_admin` donne le profil administrateur ; `language` la langue du portail ; `theme` son thème (`system` : celui du système, `light`, `dark`) ; `alert_threshold` le montant à partir duquel une nouvelle dépense déclenche une notification (`NULL` = désactivé) ; `budget_threshold` le pourcentage du budget du mois d'une catégorie à partir duquel ses dépenses l'alertent (50 à 200, 100 par défaut) ; `last_login` la dernière connexion réussie ; `failed_logins` les échecs de connexion d'affilée et `locked_until` la fin du blocage (24 h après 5 échecs). |
+| `users` | Comptes. `is_admin` donne le profil administrateur ; `language` la langue du portail ; `theme` son thème (`system` : celui du système, `light`, `dark`) ; `alert_threshold` le montant à partir duquel une nouvelle dépense déclenche une notification (`NULL` = désactivé) ; `budget_threshold` le pourcentage du budget du mois d'une catégorie à partir duquel ses dépenses l'alertent (50 à 200, 100 par défaut) ; `budget_alert_category` la catégorie dont le budget est surveillé par ces alertes (`NULL` = tous les budgets, remis à `NULL` à la suppression de la catégorie) ; `last_login` la dernière connexion réussie ; `failed_logins` les échecs de connexion d'affilée et `locked_until` la fin du blocage (24 h après 5 échecs). |
 | `devices` | Appareils iOS (token APNs), enregistrés à la connexion. Supprimés avec l'utilisateur. |
 | `user_notification` | Canaux choisis par un utilisateur pour un type de notification (`kind` : `sync`, `rule`, `expense`, `budget`) : `push` vers ses appareils, `email` vers l'adresse de son profil. Sans ligne pour un type : push oui, email non, sauf `budget` (ni l'un ni l'autre). Supprimés avec l'utilisateur. |
 | `budget_alert` | Alertes de budget envoyées : une par utilisateur, catégorie et mois (`month`, premier jour), avec le budget (`budget`), les dépenses (`spent`) et le pourcentage (`percent`) au moment de l'alerte. Une nouvelle alerte ne part que si le budget du mois dépasse celui déjà alerté. Supprimées avec l'utilisateur ou la catégorie. |
