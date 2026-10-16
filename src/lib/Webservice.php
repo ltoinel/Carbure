@@ -325,9 +325,10 @@ final class Webservice {
     {
         foreach ($data as $key => $value) {
             // settings: the bank credentials sent to woob, whatever their names;
-            // file: an imported bank statement (household data, large)
+            // file: an imported bank statement (household data, large);
+            // datasets: the rows of an imported backup (household data, large)
             if (in_array(strtolower((string)$key), ['password', 'token', 'settings', 'admin_password', 'db_password',
-                    'code', 'code_verifier', 'refresh_token', 'access_token', 'client_secret', 'file', 'smtp_password'], true)) {
+                    'code', 'code_verifier', 'refresh_token', 'access_token', 'client_secret', 'file', 'smtp_password', 'datasets'], true)) {
                 $data[$key] = '***';
             } elseif (is_array($value)) {
                 $data[$key] = self::maskSensitive($value);

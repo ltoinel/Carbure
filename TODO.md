@@ -53,6 +53,13 @@ keeps track of what was done).
       applied at container start. Until then the budget alerts watch every budget and
       choosing one in **My profile → Notifications** answers 409.
 
+- [ ] Backup (Administration → Backup, #162): the import is limited to 32 MB of JSON (nginx
+      `client_max_body_size` of `/api/backup/import`, PHP `post_max_size`) and decoded in
+      memory (`memory_limit` 256M): enough for about 100,000 transactions. If a household
+      needs more, send the datasets in several requests (one transaction per request would
+      then no longer cover the whole import) or stream the rows. The bank accounts (labels,
+      owners) and connections are not in a backup: their credentials live in woob.
+
 - [ ] Budget alerts only check the current month (an import of past months alerts
       nothing) and the spending as the Budgets screen computes it (absolute value of the
       sum of the month, refunds included): if alerts on past months are wanted, add a
