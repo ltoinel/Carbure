@@ -6351,12 +6351,6 @@ textarea:focus-visible,
     margin-top: 12px;
 }
 
-/* Sub-tabs of the profile page, aligned with its cards */
-.profile-subtabs {
-    max-width: 600px;
-    margin: 0 auto;
-}
-
 /* Label of a kind of notification, its settings under it (large expense, budget) */
 .notifications-table tbody th {
     width: 100%;

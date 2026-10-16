@@ -416,6 +416,14 @@
                     <span class="material-icons" aria-hidden="true">{{ tab.icon }}</span>{{ t(tab.label) }}
                 </button>
             </div>
+            <!-- Sub-tabs of the profile page, at the same place as those of the administration -->
+            <div v-if="activeTab === 'profile'" class="sub-tabs" role="tablist" :aria-label="t('myProfile')">
+                <button v-for="tab in profileTabs" :key="tab.key" type="button" role="tab" class="sub-tab"
+                        :class="{ active: profileView === tab.key }" :aria-selected="profileView === tab.key ? 'true' : 'false'"
+                        @click="profileView = tab.key">
+                    <span class="material-icons" aria-hidden="true">{{ tab.icon }}</span>{{ t(tab.label) }}
+                </button>
+            </div>
             <!-- Transactions Tab -->
             <transition name="fade" mode="out-in">
                 <div v-if="activeTab === 'transactions'" key="transactions" class="tab-panel">
@@ -1685,16 +1693,6 @@
                 <!-- Profile Page: profile, notifications and devices sub-tabs -->
                 <div v-else-if="activeTab === 'profile'" key="profile" class="tab-panel">
                     <div class="content-wrapper">
-                        <div class="profile-subtabs">
-                            <div class="sub-tabs" role="tablist" :aria-label="t('myProfile')">
-                                <button v-for="tab in profileTabs" :key="tab.key" type="button" role="tab" class="sub-tab"
-                                        :class="{ active: profileView === tab.key }" :aria-selected="profileView === tab.key ? 'true' : 'false'"
-                                        @click="profileView = tab.key">
-                                    <span class="material-icons" aria-hidden="true">{{ tab.icon }}</span>{{ t(tab.label) }}
-                                </button>
-                            </div>
-                        </div>
-
                         <form v-if="profileView === 'profile'" class="profile-container" @submit.prevent="saveProfile">
                             <div class="users-header">
                                 <h2>{{ t('myProfile') }}</h2>
