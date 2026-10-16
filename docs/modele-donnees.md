@@ -213,6 +213,7 @@ main, ou par `sql/carbure.sql`). Voir [Développement](developpement.md#migratio
 | `2026-10-20_user_notification` | Canaux de chaque notification (table `user_notification`) |
 | `2026-10-21_user_budget_threshold` | Seuil des alertes de budget (`users.budget_threshold`) |
 | `2026-10-22_budget_alert` | Alertes de budget envoyées (table `budget_alert`) |
+| `2026-10-23_user_budget_alert_category` | Budget surveillé par les alertes de budget (`users.budget_alert_category`, `NULL` = tous) |
 
 ## Modèle « foyer »
 
