@@ -33,6 +33,9 @@ const UTF8_NAMES = 0x0800;
 /** Largest content read from an entry (bytes) */
 export const ZIP_MAX_ENTRY_SIZE = 200 * 1024 * 1024;
 
+/** Largest content read from all the entries of a ZIP (bytes) */
+export const ZIP_MAX_TOTAL_SIZE = 400 * 1024 * 1024;
+
 /**
  * CRC-32 of bytes
  * @param {Uint8Array} bytes - Content
@@ -54,6 +57,33 @@ export function crc32(bytes) {
  */
 async function transform(bytes, stream) {
     return new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(stream)).arrayBuffer());
+}
+
+/**
+ * Inflates raw deflate data, stopped as soon as the output exceeds a size: the size
+ * written in the ZIP is not trusted (a small file could inflate to gigabytes)
+ * @param {Uint8Array} bytes - Compressed data
+ * @param {number} limit - Largest output (bytes)
+ * @param {string} name - Name of the entry, for the error
+ * @returns {Promise<Uint8Array>} Output
+ * @throws {Error} If the output exceeds the limit
+ */
+async function inflate(bytes, limit, name) {
+    const reader = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw')).getReader();
+    const chunks = [];
+    let total = 0;
+    for (;;) {
+        const { done, value } = await reader.read();
+        if (done) {
+            return concat(chunks);
+        }
+        total += value.length;
+        if (total > limit) {
+            await reader.cancel().catch(() => {});
+            throw new Error(`${name}: file too large`);
+        }
+        chunks.push(value);
+    }
 }
 
 /**
@@ -198,7 +228,8 @@ function findEnd(view) {
  * Reads the files of a ZIP file (folders skipped)
  * @param {ArrayBuffer|Uint8Array} buffer - The ZIP file
  * @returns {Promise<Array<{name: string, data: Uint8Array}>>} The files
- * @throws {Error} If not a ZIP file, or an entry is encrypted, ZIP64 or compressed otherwise than with deflate
+ * @throws {Error} If not a ZIP file, or an entry is encrypted, ZIP64, compressed otherwise than with deflate,
+ *   damaged (size or CRC-32 that differs) or too large (ZIP_MAX_ENTRY_SIZE, ZIP_MAX_TOTAL_SIZE in all)
  */
 export async function readZip(buffer) {
     const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
@@ -208,6 +239,7 @@ export async function readZip(buffer) {
     let position = view.getUint32(end + 16, true);
     const decoder = new TextDecoder();
     const files = [];
+    let total = 0;
 
     for (let i = 0; i < count; i++) {
         if (view.getUint32(position, true) !== 0x02014b50) {
@@ -216,6 +248,7 @@ export async function readZip(buffer) {
         const entry = {
             flags: view.getUint16(position + 8, true),
             method: view.getUint16(position + 10, true),
+            crc: view.getUint32(position + 16, true),
             compressed: view.getUint32(position + 20, true),
             size: view.getUint32(position + 24, true),
             offset: view.getUint32(position + 42, true)
@@ -224,7 +257,9 @@ export async function readZip(buffer) {
         const name = decoder.decode(bytes.subarray(position + 46, position + 46 + nameLength));
         position += 46 + nameLength + view.getUint16(position + 30, true) + view.getUint16(position + 32, true);
         if (!name.endsWith('/')) {
-            files.push({ name, data: await readEntry(bytes, view, name, entry) });
+            const data = await readEntry(bytes, view, name, entry, Math.min(ZIP_MAX_ENTRY_SIZE, ZIP_MAX_TOTAL_SIZE - total));
+            total += data.length;
+            files.push({ name, data });
         }
     }
     return files;
@@ -235,17 +270,37 @@ export async function readZip(buffer) {
  * @param {Uint8Array} bytes - The ZIP file
  * @param {DataView} view - The ZIP file
  * @param {string} name - Name of the entry
- * @param {Object} entry - flags, method, compressed, size, offset (central directory)
+ * @param {Object} entry - flags, method, crc, compressed, size, offset (central directory)
+ * @param {number} limit - Largest content (bytes)
  * @returns {Promise<Uint8Array>}
- * @throws {Error} If the entry cannot be read
+ * @throws {Error} If the entry cannot be read, is too large or damaged
  */
-async function readEntry(bytes, view, name, entry) {
+async function readEntry(bytes, view, name, entry, limit) {
     if (entry.flags & 1) {
         throw new Error(`${name}: encrypted entries are not supported`);
     }
-    if (entry.compressed === 0xFFFFFFFF || entry.size === 0xFFFFFFFF || entry.size > ZIP_MAX_ENTRY_SIZE) {
+    if (entry.compressed === 0xFFFFFFFF || entry.size === 0xFFFFFFFF || entry.size > limit) {
         throw new Error(`${name}: file too large`);
     }
+    // Never more than the size written in the ZIP (checked above)
+    const data = await entryData(bytes, view, name, entry, entry.size);
+    if (data.length !== entry.size || crc32(data) !== entry.crc) {
+        throw new Error(`${name}: damaged file`);
+    }
+    return data;
+}
+
+/**
+ * Stored or inflated content of an entry
+ * @param {Uint8Array} bytes - The ZIP file
+ * @param {DataView} view - The ZIP file
+ * @param {string} name - Name of the entry
+ * @param {Object} entry - method, compressed, offset (central directory)
+ * @param {number} limit - Largest content (bytes)
+ * @returns {Promise<Uint8Array>}
+ * @throws {Error} If the entry cannot be read
+ */
+async function entryData(bytes, view, name, entry, limit) {
     if (view.getUint32(entry.offset, true) !== 0x04034b50) {
         throw new Error('Invalid ZIP file');
     }
@@ -255,7 +310,7 @@ async function readEntry(bytes, view, name, entry) {
         return data;
     }
     if (entry.method === DEFLATE) {
-        return transform(data, new DecompressionStream('deflate-raw'));
+        return inflate(data, limit, name);
     }
     throw new Error(`${name}: compression method ${entry.method} not supported`);
 }

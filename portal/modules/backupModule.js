@@ -15,6 +15,9 @@ import { createZip, readZip, isZip } from '../utils/zip.js';
 /** Name of the format of the backups (BackupData::FORMAT) */
 export const BACKUP_FORMAT = 'carbure-backup';
 
+/** Latest version of the format read (BackupData::VERSION): a later one may change the rows */
+export const BACKUP_VERSION = 1;
+
 /** Datasets, in the order of their dependencies, with their icon and label */
 export const BACKUP_DATASETS = {
     categories: { icon: 'category', label: 'backupDatasetCategories' },
@@ -95,6 +98,10 @@ export function parseBackupJson(file, text) {
     }
     if (!content || typeof content !== 'object' || content.format !== BACKUP_FORMAT) {
         return { entries: [{ file, dataset: null, rows: null, count: 0, error: 'backupFileInvalid' }], manifest: null };
+    }
+    // Made by a later version of Carbure: its rows may not mean the same thing here
+    if (!(Number(content.version ?? BACKUP_VERSION) <= BACKUP_VERSION)) {
+        return { entries: [{ file, dataset: null, rows: null, count: 0, error: 'backupFileVersion' }], manifest: null };
     }
     if (typeof content.dataset === 'string' && Array.isArray(content.rows)) {
         return { entries: [datasetEntry(file, content.dataset, content.rows)], manifest: null };

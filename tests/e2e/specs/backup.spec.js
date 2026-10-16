@@ -125,6 +125,14 @@ test('a file that is not a backup cannot be imported', async ({ adminPage: page 
     await expect(page.locator('.backup-dataset.invalid')).toContainText(tr('backupFileInvalid'));
     await expect(page.locator('input[data-file="notes.json"]')).toBeDisabled();
     await expect(page.locator('.backup-import-button')).toBeDisabled();
+
+    // A backup of a later version of Carbure: not read
+    await page.getByRole('button', { name: tr('backupOtherFile') }).click();
+    const later = { ...datasetFile('rules', []), buffer: Buffer.from(JSON.stringify({ format: 'carbure-backup', version: 2, dataset: 'rules', rows: [] })) };
+    await page.locator('#backup-file').setInputFiles(later);
+    await expect(page.locator('.backup-dataset.invalid')).toContainText(tr('backupFileVersion'));
+    await expect(page.locator('input[data-file="rules.json"]')).toBeDisabled();
+    await expect(page.locator('.backup-import-button')).toBeDisabled();
 });
 
 test('a user has no backup', async ({ userPage: page }) => {

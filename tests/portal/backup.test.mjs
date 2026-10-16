@@ -3,8 +3,8 @@
 import { mockFetch, json } from './setup.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createZip, readZip, crc32, isZip } from '../../portal/utils/zip.js';
-import { backupFiles, backupFileName, parseBackupJson, readBackupFile, backupImportDatasets, createBackupModule } from '../../portal/modules/backupModule.js';
+import { createZip, readZip, crc32, isZip, ZIP_MAX_ENTRY_SIZE } from '../../portal/utils/zip.js';
+import { BACKUP_VERSION, backupFiles, backupFileName, parseBackupJson, readBackupFile, backupImportDatasets, createBackupModule } from '../../portal/modules/backupModule.js';
 import { createApiService } from '../../portal/services/apiService.js';
 
 const text = bytes => new TextDecoder().decode(bytes);
@@ -118,4 +118,60 @@ test('API calls of the backup', async () => {
     assert.deepEqual(await api.importBackup({ rules: [] }), { imported: { rules: 2 } });
     assert.equal(calls[2].options.method, 'POST');
     assert.deepEqual(JSON.parse(calls[2].options.body), { datasets: { rules: [] } });
+});
+
+/**
+ * Changes a field of the first entry of the central directory of a ZIP
+ * @param {Uint8Array} zip - ZIP file (changed)
+ * @param {number} field - Position in the entry (16: CRC-32, 24: size)
+ * @param {number} value - New value
+ */
+function patchCentral(zip, field, value) {
+    const view = new DataView(zip.buffer, zip.byteOffset, zip.byteLength);
+    const central = view.getUint32(zip.length - 22 + 16, true);
+    view.setUint32(central + field, value, true);
+}
+
+test('a deflated entry larger than its declared size is stopped (zip bomb)', async () => {
+    const zip = await createZip([{ name: 'bomb.json', data: '0'.repeat(1024 * 1024) }]);
+    // 1 MB compressed in a few KB, written as 100 bytes
+    assert.ok(zip.length < 5000);
+    patchCentral(zip, 24, 100);
+    await assert.rejects(readZip(zip), { message: 'bomb.json: file too large' });
+});
+
+test('a declared size above the limit is refused before inflating', async () => {
+    const zip = await createZip([{ name: 'big.json', data: 'x' }]);
+    patchCentral(zip, 24, ZIP_MAX_ENTRY_SIZE + 1);
+    await assert.rejects(readZip(zip), { message: 'big.json: file too large' });
+});
+
+test('a damaged entry is refused: CRC-32 or size that differs', async () => {
+    const zip = await createZip([{ name: 'rules.json', data: '{"a":1}' }]);
+    patchCentral(zip, 16, 12345);
+    await assert.rejects(readZip(zip), { message: 'rules.json: damaged file' });
+
+    // Deflated content longer than the size written
+    const longer = await createZip([{ name: 'rules.json', data: '{"a":1}' }]);
+    patchCentral(longer, 24, 3);
+    await assert.rejects(readZip(longer), { message: 'rules.json: file too large' });
+
+    // Stored entry (empty content) shorter than the size written
+    const stored = await createZip([{ name: 'a.json', data: '' }]);
+    patchCentral(stored, 24, 1);
+    await assert.rejects(readZip(stored), { message: 'a.json: damaged file' });
+});
+
+test('a truncated ZIP is refused', async () => {
+    const zip = await createZip([{ name: 'rules.json', data: 'x'.repeat(1000) }]);
+    await assert.rejects(readZip(zip.subarray(0, zip.length - 30)));
+});
+
+test('a backup of a later version of the format is refused', () => {
+    const later = { format: 'carbure-backup', version: BACKUP_VERSION + 1, dataset: 'rules', rows: [] };
+    assert.equal(parseBackupJson('rules.json', JSON.stringify(later)).entries[0].error, 'backupFileVersion');
+    assert.equal(parseBackupJson('x.json', JSON.stringify({ ...later, version: 'two' })).entries[0].error, 'backupFileVersion');
+    // The version of this Carbure, or none given: read
+    assert.equal(parseBackupJson('rules.json', JSON.stringify({ ...later, version: BACKUP_VERSION })).entries[0].error, null);
+    assert.equal(parseBackupJson('rules.json', JSON.stringify({ ...later, version: undefined })).entries[0].error, null);
 });

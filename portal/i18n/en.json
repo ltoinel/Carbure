@@ -700,6 +700,7 @@
     "backupOtherFile": "Other file",
     "backupFileInvalid": "File not recognized",
     "backupFileUnknown": "Unknown kind of data",
+    "backupFileVersion": "File of a later version of Carbure",
     "backupFileEmpty": "This file contains no data to import.",
     "backupFileUnreadable": "The file cannot be read: {error}",
     "backupTooLarge": "The file is larger than {size} MB.",
