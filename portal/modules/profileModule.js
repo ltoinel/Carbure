@@ -254,6 +254,7 @@ export function createProfileModule(getApiService) {
                 this.setActiveTab('profile');
                 this.loadDevices();
                 this.loadNotifications();
+                this.loadMfaStatus();
             },
 
             /**

@@ -282,7 +282,8 @@ final class Webservice {
             return (string)$response;
         }
 
-        Logger::debug("Result", $response);
+        // The secrets of the answer (session, second factor) are not written
+        Logger::debug("Result", is_array($response) && Config::get('log_level') === 'debug' ? self::maskSensitive($response) : $response);
 
         // Return JSON response with pretty print in debug mode
         $flags = Config::get('log_level') === 'debug' ? JSON_PRETTY_PRINT : 0;
@@ -327,7 +328,8 @@ final class Webservice {
             // settings: the bank credentials sent to woob, whatever their names;
             // file: an imported bank statement (household data, large)
             if (in_array(strtolower((string)$key), ['password', 'token', 'settings', 'admin_password', 'db_password',
-                    'code', 'code_verifier', 'refresh_token', 'access_token', 'client_secret', 'file', 'smtp_password'], true)) {
+                    'code', 'code_verifier', 'refresh_token', 'access_token', 'client_secret', 'file', 'smtp_password',
+                    'mfa_token', 'secret', 'otpauth', 'recovery_codes'], true)) {
                 $data[$key] = '***';
             } elseif (is_array($value)) {
                 $data[$key] = self::maskSensitive($value);

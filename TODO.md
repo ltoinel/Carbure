@@ -43,6 +43,25 @@ keeps track of what was done).
       (alerts already sent) are applied at container start. Nothing changes until a user
       turns on "Budget of the month exceeded" in **My profile → Notifications** (opt-in).
 
+- [ ] **Production** (two-factor authentication, #166): the migration `2026-10-24_user_mfa`
+      (tables `user_mfa`, `mfa_recovery_code`, `mfa_trusted_browser`) is applied at
+      container start; until it is, the second factor is never asked. Nothing changes until
+      an administrator turns on `mfa_required` in **Administration → Settings** (off by
+      default; existing `prod.ini` files get the line on save). Before turning it on: set up
+      your own authenticator app from **My profile** and keep the recovery codes (an
+      administrator who loses both sets `mfa_required=false` in `data/conf/prod.ini`), and
+      make sure every iPhone of the household has logged in once (a known device skips the
+      code; a new one is refused, see the iOS item below).
+
+- [ ] **iOS app** (two-factor authentication, #166): support the second step of the login.
+      Send `mfa: true` to `POST /user/login`; on `{mfa: "verify"|"enroll", mfa_token, …}`
+      ask the 6-digit code (or a recovery code; for `enroll`, show the `otpauth` URI /
+      `secret` to add it to an authenticator app, then the `recovery_codes` returned) and
+      call `POST /user/login/mfa` with `mfa_token`, `code` and the same `device` (registered
+      only then). Until then, the current app logs in only from an iPhone already
+      registered for that user: a new iPhone gets `403` "Two-factor authentication is
+      required and this device is not known yet" while `mfa_required` is on.
+
 - [ ] Budget alerts only check the current month (an import of past months alerts
       nothing) and the spending as the Budgets screen computes it (absolute value of the
       sum of the month, refunds included): if alerts on past months are wanted, add a
