@@ -193,7 +193,7 @@ final class Device {
         $results = PushRelay::sendToMultiple($deviceTokens, $title, $body, $badge, $data);
         foreach ($results as $token => $result) {
             if (($result['status'] ?? null) === 'unregistered') {
-                Db::execute("DELETE FROM devices WHERE token=?", "s", (string)$token);
+                Db::execute("DELETE FROM devices WHERE token=? AND user_id=?", "si", (string)$token, $userId);
                 Logger::info("Device of user $userId removed: unregistered from the push notifications");
             }
         }

@@ -99,7 +99,7 @@ final class User {
 
         // Update or create the device (the web portal does not send one)
         if (!empty($device['token'])) {
-            Device::createOrUpdate($user['id'], $device['name'] ?? '', $device['token'], (string)($device['platform'] ?? 'ios'));
+            Device::createOrUpdate($user['id'], $device['name'] ?? '', $device['token'], strtolower(trim((string)($device['platform'] ?? 'ios'))));
         }
              
         $token = Jwt::createJwt($user['id']);

@@ -38,6 +38,16 @@ class PushRelayTest extends TestCase
         $this->assertSame(12, $request['payload']['transactionId']);
     }
 
+    public function testInvalidUtf8IsReplaced()
+    {
+        // Data that is not valid UTF-8 (a bank label) must not empty the request
+        $results = PushRelay::sendToMultiple([self::TOKEN => 'ios'], "Caf\xE9", 'Body', 0, ['label' => "Caf\xE9"]);
+        $this->assertTrue($results[self::TOKEN]['success']);
+        $payload = FakePushRelay::requests()[0]['payload'];
+        $this->assertSame('Caf?', $payload['aps']['alert']['title']);
+        $this->assertSame("Caf\u{FFFD}", $payload['label']);
+    }
+
     public function testTokensAreSentByTwenty()
     {
         $tokens = array_map(fn($i) => str_pad(dechex($i + 1), 64, 'a', STR_PAD_LEFT), range(0, 44));

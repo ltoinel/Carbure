@@ -262,7 +262,9 @@ final class PushRelay {
             CURLOPT_TIMEOUT => 30,
         ]);
         if ($body !== null) {
-            curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($body));
+            // Data that is not valid UTF-8 (label of a bank) must not empty the request (the
+            // title and the text are already made valid by mb_substr())
+            curl_setopt($curl, CURLOPT_POSTFIELDS, (string)json_encode($body, JSON_INVALID_UTF8_SUBSTITUTE));
         }
         $response = curl_exec($curl);
         if (!is_string($response)) {

@@ -19,6 +19,16 @@ keeps track of what was done).
       5. remove the `[apns]` section and `data/conf/certs/*.p8` from the NAS (no longer used);
       6. later: a release workflow publishing the image of Carbure Push to a registry.
 
+- [ ] **Push relay — release the device bindings**: Carbure never calls
+      `DELETE /v1/devices/{token}` of the relay. A device deleted from an instance (or
+      moved to another instance) stays bound to the key of the first instance, so a second
+      instance gets `forbidden` for it until `binding_ttl_days` (60 days) without push or
+      an operator `devices:release`. Call it, best effort, when a device is deleted.
+- [ ] **Push relay — key renewal answer lost**: `POST /system/push-register` with a key
+      renews it; if the answer of `POST /v1/keys/rotate` is lost (timeout after the relay
+      committed), the old key is revoked and the new one unknown: register again, and ask
+      the operator to `devices:release` the devices (or wait 60 days).
+
 - [ ] **Android app**: the backend is ready (devices with a `platform`, login
       `device.platform=android`, FCM provider in Carbure Push); to do: the app itself, the
       Firebase project and its service account on the relay.

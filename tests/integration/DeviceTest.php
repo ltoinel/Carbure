@@ -122,6 +122,14 @@ class DeviceTest extends DatabaseTestCase
         $this->assertSame([[$token, 'android']], array_map(fn($r) => [$r['token'], $r['platform']], FakePushRelay::requests()));
     }
 
+    public function testPlatformIsNotCaseSensitive()
+    {
+        $token = 'fcm_token-0123456789:APA91bOtherAndroidToken';
+        User::login('user', 'userpass', ['name' => 'Pixel', 'token' => $token, 'platform' => ' Android ']);
+        $this->loginAs(self::USER);
+        $this->assertSame('android', Device::getMine()[0]['platform']);
+    }
+
     public function testUnknownPlatform()
     {
         $this->expectException(Error::class);
