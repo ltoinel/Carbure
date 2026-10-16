@@ -180,4 +180,10 @@ class ApnsTest extends TestCase
             FakeApnsServer::stop();
         }
     }
+
+    public function testDeviceTokenMaskedInTheLogs()
+    {
+        // A known device skips the second factor: its token is never written whole
+        $this->assertSame('a1b2c3d4…', Apns::maskToken(self::TOKEN));
+    }
 }

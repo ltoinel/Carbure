@@ -37,7 +37,10 @@ l'activer pour lui seul depuis **Mon profil**.
   passe seul ne remet pas le compteur à zéro tant que le code n'est pas donné.
 - **Enrôlement** : un utilisateur sans application configure la sienne à cette étape
   (QR code et clé en texte, confirmés par un premier code) ou à l'avance depuis son
-  profil. Il reçoit alors **10 codes de secours** à usage unique (seule leur empreinte
+  profil. Chaque défi d'enrôlement porte une **nouvelle** clé (jamais celle d'un
+  enrôlement commencé) : qui l'a obtenue plus tôt avec le mot de passe ne garde pas un
+  second facteur valable une fois l'utilisateur enrôlé, et une application déjà activée
+  n'est jamais remplacée. Il reçoit alors **10 codes de secours** à usage unique (seule leur empreinte
   SHA-256 est stockée), qui remplacent le code si le téléphone est perdu. Un
   administrateur **réinitialise** la double authentification d'un utilisateur (onglet
   Utilisateurs) ; s'il perd lui-même son téléphone sans code de secours, il repasse
@@ -57,7 +60,13 @@ l'activer pour lui seul depuis **Mon profil**.
   l'appareil, d'Apple, du serveur, et visible par l'utilisateur dans son profil) ; un
   attaquant qui a le mot de passe doit **aussi** l'obtenir, ce qui suppose l'accès au
   téléphone, à la base ou à une session déjà ouverte. Un nouvel appareil n'est
-  enregistré qu'**après** le second facteur : un token inventé ne contourne rien.
+  enregistré qu'**après** le second facteur : un token inventé ne contourne rien. Le
+  token n'est jamais écrit en entier dans les logs (8 premiers caractères). Limites :
+  un appareil enregistré **avant** l'activation du second facteur (par exemple par un
+  attaquant qui avait déjà le mot de passe) reste connu, et la réinitialisation par
+  l'administrateur ne supprime pas les appareils : avant d'imposer la double
+  authentification, et après la perte d'un iPhone, chaque utilisateur vérifie et
+  supprime les appareils inconnus ou perdus dans son profil.
 - **Clients sans double authentification** : seuls les clients qui l'annoncent
   (`mfa=true`, le portail) reçoivent le défi ; les autres reçoivent `403` avec un message
   explicite, plutôt qu'une réponse d'un format qu'ils ne connaissent pas. L'**app iOS**

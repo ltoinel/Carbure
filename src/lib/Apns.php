@@ -70,7 +70,7 @@ final class Apns {
         
         $url = $endpoint . '/3/device/' . $deviceToken;
         
-        Logger::info("Sending APNs notification to $deviceToken", [
+        Logger::info("Sending APNs notification to " . self::maskToken($deviceToken), [
             'title' => $title,
             'environment' => $environment
         ]);
@@ -412,6 +412,18 @@ final class Apns {
     }
 
     /**
+     * Device token for the logs: its first characters only. A device known for a user
+     * skips the second factor of his login (Mfa), so the whole token is never written.
+     *
+     * @param string $token The device token
+     * @return string The masked token
+     */
+    public static function maskToken(string $token): string
+    {
+        return substr($token, 0, 8) . '…';
+    }
+
+    /**
      * Send notification to multiple devices.
      *
      * @param list<string>         $deviceTokens Array of device tokens
@@ -430,7 +442,7 @@ final class Apns {
                 $result = self::send($token, $title, $body, $badge, $data);
                 $results[$token] = $result;
             } catch (Error $e) {
-                Logger::warn("Failed to send to $token: " . $e->getMessage());
+                Logger::warn("Failed to send to " . self::maskToken($token) . ": " . $e->getMessage());
                 $results[$token] = [
                     'success' => false,
                     'error' => $e->getMessage()

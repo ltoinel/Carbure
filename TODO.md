@@ -62,6 +62,13 @@ keeps track of what was done).
       registered for that user: a new iPhone gets `403` "Two-factor authentication is
       required and this device is not known yet" while `mfa_required` is on.
 
+- [ ] **Two-factor authentication, known devices** (#166 review): a device registered in
+      `devices` skips the code, also one registered before `mfa_required` was turned on,
+      and the administrator reset of the second factor does not remove the devices of the
+      user (a lost iPhone stays known until the user deletes it in his profile). Once the
+      iOS app supports the second step, consider removing the devices on reset (or letting
+      the administrator remove them) and dropping the known-device bypass.
+
 - [ ] Budget alerts only check the current month (an import of past months alerts
       nothing) and the spending as the Budgets screen computes it (absolute value of the
       sum of the month, refunds included): if alerts on past months are wanted, add a
