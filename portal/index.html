@@ -1876,7 +1876,7 @@
 
                             <!-- Browsers trusted for 6 months at the second step of a login -->
                             <h3 class="mfa-subtitle">{{ t('mfaBrowsersTitle') }}</h3>
-                            <p v-if="!mfaStatus.trusted_browsers.length" class="transactions-hint">{{ t('mfaNoBrowsers') }}</p>
+                            <p v-if="!mfaStatus.trusted_browsers.length" class="rules-help mfa-no-browsers">{{ t('mfaNoBrowsers') }}</p>
                             <ul v-else class="device-list">
                                 <li v-for="browser in mfaStatus.trusted_browsers" :key="browser.id" class="device-item">
                                     <span class="material-icons device-icon" aria-hidden="true">web</span>

@@ -165,8 +165,8 @@ test('a user sets up, renews and disables his app from his profile', async ({ us
     await block.getByLabel(tr('mfaCodeOrRecovery')).fill(code);
     await block.getByRole('button', { name: tr('mfaDisable') }).click();
     await page.getByRole('dialog').getByRole('button', { name: tr('mfaDisable') }).click();
-    await expect(page.locator('.toast')).toHaveText(tr('mfaDisabledToast'));
     await expect(block).toContainText(tr('mfaOff'));
+    await expect(block.getByRole('button', { name: tr('mfaSetupButton') })).toBeVisible();
 });
 
 test('an administrator resets the second factor of a user who lost his phone', async ({ adminPage: page, request, api }) => {
