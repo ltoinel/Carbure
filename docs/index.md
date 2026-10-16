@@ -15,7 +15,7 @@ vous. Les opérations sont récupérées automatiquement auprès des banques fra
 - dans le **portail web** (`portal/`, Vue 3) : transactions, pointage, recherche,
   transactions récurrentes, import de relevés, budgets, insights, tendances, et pour les administrateurs règles, catégories, comptes
   et utilisateurs ;
-- dans l'**application iOS** Carbure, qui reçoit aussi des notifications push (APNs)
+- dans l'**application iOS** Carbure, qui reçoit aussi des notifications push (par le service Carbure Push ; Android à venir)
   après chaque synchronisation et pour les dépenses importantes — bientôt disponible sur
   l'App Store ;
 - par un **agent IA** (Claude, ChatGPT, Cursor, Copilot, Gemini…) grâce au serveur MCP
@@ -47,7 +47,7 @@ insights, notifications, agent IA et foyer.*
 | Tendances | Débit, crédit, hors budget, budget planifié et épargne (catégorie « Epargne ») sur 3, 6 ou 12 mois, comparaison avec une autre période |
 | Catégorisation | Catégories hiérarchiques (icône, couleur), règles par mots-clés appliquées à chaque synchronisation ou à la demande |
 | Insights | Indicateurs mensuels définis par une requête SQL encadrée, historique annuel |
-| Notifications | Push APNs après chaque synchronisation, et alerte pour toute nouvelle dépense au-dessus du seuil de l'utilisateur |
+| Notifications | Push (service Carbure Push : APNs, FCM) après chaque synchronisation, et alerte pour toute nouvelle dépense au-dessus du seuil de l'utilisateur |
 | Agents IA | Serveur MCP en lecture seule, activable par un administrateur ; Claude (web, Desktop, mobile) connecté par OAuth sans jeton, les autres agents avec un jeton d'accès à durée de validité |
 | Utilisateurs | Profils utilisateur et administrateur, langue fr/en, seuil d'alerte, appareils, dernière connexion, blocage après 5 échecs de connexion |
 
