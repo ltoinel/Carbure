@@ -155,8 +155,6 @@ final class Webservice {
         
         // Remove /api prefix from request path
         $requestPath = (string)preg_replace('#^/api#', '', $requestPath);
-        
-        $data = self::getPayload();
 
         // Find the matching route
         $route = ApiResolver::findRoute($requestPath, $httpMethod);
@@ -170,6 +168,10 @@ final class Webservice {
 
         // Check access control
         self::checkAccess($route['apiRoute']);
+
+        // The body read once the caller is allowed: an anonymous request cannot make the
+        // server decode a large body (up to 32 MB on /api/backup/import)
+        $data = self::getPayload();
 
         // Call the service
         $response = self::callService($route['class'], $route['method'], $data, $route['apiRoute']->raw);
