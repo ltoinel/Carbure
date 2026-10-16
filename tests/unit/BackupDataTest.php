@@ -91,6 +91,14 @@ class BackupDataTest extends TestCase
             'long label' => ['transactions', [['label' => str_repeat('x', 301)] + self::TRANSACTION], 'invalid label'],
             'bad datetime' => ['transactions', [['imported' => '2026-10-01'] + self::TRANSACTION], 'invalid imported'],
             'bad user' => ['transactions', [['user' => ['admin']] + self::TRANSACTION], 'invalid user'],
+            'long user' => ['deleted_transactions', [['uuid' => 'u1', 'deleted_at' => '2026-01-01 00:00:00', 'user_id' => str_repeat('u', 21)]], 'invalid user_id'],
+            'repeated uuid' => ['deleted_transactions', [['uuid' => 'u1', 'deleted_at' => '2026-01-01 00:00:00', 'user_id' => null],
+                ['uuid' => 'u1', 'deleted_at' => '2026-01-02 00:00:00', 'user_id' => null]], 'deleted_transactions: repeated uuid: u1'],
+            'impossible datetime' => ['transactions', [['imported' => '2026-02-29 10:00:00'] + self::TRANSACTION], 'invalid imported'],
+            'number as date' => ['budgets', [['id' => 1, 'category' => 1, 'amount' => 1, 'date' => 20260201]], 'invalid date'],
+            'float id' => ['budgets', [['id' => 1.5, 'category' => 1, 'amount' => 1, 'date' => '2026-02-01']], 'invalid id'],
+            'bool amount' => ['budgets', [['id' => 1, 'category' => 1, 'amount' => true, 'date' => '2026-02-01']], 'invalid amount'],
+            'invalid UTF-8' => ['transactions', [['label' => "CB \xff"] + self::TRANSACTION], 'invalid label'],
             'unknown' => ['users', [], 'Unknown dataset: users'],
         ];
     }
@@ -114,6 +122,8 @@ class BackupDataTest extends TestCase
         $this->assertSame(5, BackupData::value('int:255', '5'));
         $this->assertSame(1, BackupData::value('bool', '1'));
         $this->assertNull(BackupData::value('user', null));
+        $this->assertNull(BackupData::value('?user', null));
+        $this->assertSame('admin', BackupData::value('?user', 'admin'));
 
         $this->expectException(InvalidArgumentException::class);
         BackupData::value('string:5', null);

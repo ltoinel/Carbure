@@ -115,9 +115,13 @@ final class Backup {
             }
         }
         self::checkCategories($rows['categories'] ?? null);
-        self::checkInsights($rows['insights'] ?? []);
+        if (isset($rows['insights'])) {
+            $rows['insights'] = self::checkInsights($rows['insights']);
+        }
 
-        $imported = self::replace(self::resolveUsers($rows));
+        // In place: the rows of a large import are not copied
+        self::resolveUsers($rows);
+        $imported = self::replace($rows);
         Logger::info("Backup imported", $imported);
 
         return ['imported' => $imported];
@@ -171,12 +175,13 @@ final class Backup {
     }
 
     /**
-     * Check the hierarchy of imported categories: one level of sub-categories, the
-     * parent of a sub-category being a top-level category of the import.
+     * Check the imported categories as when they are saved: one level of
+     * sub-categories, the parent of a sub-category being a top-level category of the
+     * import, and an icon and a color accepted by Category.
      *
-     * @param list<list<mixed>>|null $categories The values of the categories (id, name, parent...), null if not imported
+     * @param list<list<mixed>>|null $categories The values of the categories (id, name, parent, type, icon, color), null if not imported
      * @return void
-     * @throws Error 400 If a parent is not a top-level category of the import
+     * @throws Error 400 If a parent is not a top-level category of the import, or an icon or a color is invalid
      */
     private static function checkCategories(?array $categories): void
     {
@@ -184,53 +189,60 @@ final class Backup {
             return;
         }
         $parents = array_column($categories, 2, 0);
-        foreach ($parents as $id => $parent) {
+        foreach ($categories as $index => [$id, , $parent, , $icon, $color]) {
             if ($parent !== 0 && ($parents[$parent] ?? null) !== 0) {
                 throw new Error("categories: the parent of category $id must be a top-level category of the import", 400);
+            }
+            if (!preg_match(Category::ICON_PATTERN, (string)$icon) || !preg_match(Category::COLOR_PATTERN, (string)$color)) {
+                throw new Error("categories, row " . ($index + 1) . ": invalid icon or color", 400);
             }
         }
     }
 
     /**
      * Check the imported insights as when they are saved in the portal (their query is
-     * stored and run by the server).
+     * stored and run by the server), and normalize them the same way.
      *
      * @param list<list<mixed>> $insights The values of the insights (id, name, color, icon, sql)
-     * @return void
+     * @return list<list<mixed>> The values as saved by Insight (name and query trimmed, empty icon as null)
      * @throws Error 400 If an insight is invalid
      */
-    private static function checkInsights(array $insights): void
+    private static function checkInsights(array $insights): array
     {
-        foreach ($insights as $index => [, $name, $color, , $sql]) {
+        foreach ($insights as $index => [$id, $name, $color, $icon, $sql]) {
             try {
-                Insight::validate((string)$name, (string)$color, (string)$sql);
+                [$name, $color, $sql] = Insight::validate((string)$name, (string)$color, (string)$sql);
+                $insights[$index] = [$id, $name, $color, Insight::icon($icon === null ? null : (string)$icon), $sql];
             } catch (Error $e) {
                 throw new Error("insights, row " . ($index + 1) . ": " . $e->getMessage(), 400);
             }
         }
+        return $insights;
     }
 
     /**
-     * Replace the usernames of the rows by user ids: a username unknown here (or none)
-     * becomes the administrator who imports.
+     * Replace the usernames of the rows by user ids, in place: a username unknown here
+     * becomes the administrator who imports; no user stays none where a column accepts
+     * it (deleted transactions), the administrator otherwise.
      *
-     * @param array<string, list<list<mixed>>> $rows The values of the rows by dataset
-     * @return array<string, list<list<mixed>>> The rows with user ids
+     * @param array<string, list<list<mixed>>> $rows The values of the rows by dataset, changed in place
+     * @return void
      */
-    private static function resolveUsers(array $rows): array
+    private static function resolveUsers(array &$rows): void
     {
         $ids = array_flip(self::usernames());
         $admin = Jwt::getUserIdFromToken();
-        foreach ($rows as $name => $values) {
-            $columns = array_keys(BackupData::DATASETS[$name]['columns']);
+        foreach (array_keys($rows) as $name) {
+            $columns = BackupData::DATASETS[$name]['columns'];
             foreach (BackupData::userColumns($name) as $column) {
-                $position = (int)array_search($column, $columns, true);
-                foreach ($values as $index => $row) {
-                    $rows[$name][$index][$position] = $ids[$row[$position]] ?? $admin;
+                $position = (int)array_search($column, array_keys($columns), true);
+                $nullable = str_starts_with($columns[$column], '?');
+                foreach ($rows[$name] as &$row) {
+                    $row[$position] = $row[$position] === null && $nullable ? null : ($ids[(string)$row[$position]] ?? $admin);
                 }
+                unset($row);
             }
         }
-        return $rows;
     }
 
     /**

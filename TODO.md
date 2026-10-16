@@ -55,7 +55,9 @@ keeps track of what was done).
 
 - [ ] Backup (Administration → Backup, #162): the import is limited to 32 MB of JSON (nginx
       `client_max_body_size` of `/api/backup/import`, PHP `post_max_size`) and decoded in
-      memory (`memory_limit` 256M): enough for about 100,000 transactions. If a household
+      memory (`memory_limit` 256M). Measured: 31 MB of JSON (95,000 transactions) reach
+      about 230 MB of peak memory once decoded and checked, close to the limit; the usual
+      household (10,000 to 20,000 transactions, 3 to 7 MB) is far below. If a household
       needs more, send the datasets in several requests (one transaction per request would
       then no longer cover the whole import) or stream the rows. The bank accounts (labels,
       owners) and connections are not in a backup: their credentials live in woob.

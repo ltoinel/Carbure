@@ -745,13 +745,14 @@ chaque donnée, colonnes de sa table).
 Corps : `{"datasets": {"rules": [{"id":1,"keyword":"EDF","category":3,"notify":false}], …}}`.
 **Supprime et remplace** les lignes de chaque donnée fournie (une liste vide la vide) ; les
 autres sont conservées. Toutes les lignes sont vérifiées avant toute suppression (types,
-longueurs, dates, identifiants uniques, hiérarchie des catégories, requête des insights
-comme à leur enregistrement), puis l'import se fait en une transaction : `400` avec le
+longueurs, dates, identifiants uniques, hiérarchie, icône et couleur des catégories,
+requête, couleur et icône des insights comme à leur enregistrement), puis l'import se fait en une transaction : `400` avec le
 détail (donnée, ligne, colonne) et rien n'est modifié si une ligne est invalide, si une
 contrainte de la base est violée, ou si une donnée conservée ou importée renvoie à une
 catégorie absente. La catégorie 0 (par défaut) est recréée si elle manque ; les alertes de
 budget des catégories disparues sont supprimées. Un identifiant de connexion inconnu devient
-l'administrateur qui importe. Réponse : `{"imported": {"rules": 1}}`. Corps limité à 32 Mo
+l'administrateur qui importe ; une suppression sans auteur (`user_id` à `null`) le reste.
+Le portail refuse un fichier d'une version du format plus récente que la sienne. Réponse : `{"imported": {"rules": 1}}`. Corps limité à 32 Mo
 par nginx (2 Mo pour les autres routes).
 
 ## Système

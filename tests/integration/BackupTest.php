@@ -2,6 +2,7 @@
 
 use Carbure\Lib\Db;
 use Carbure\Resources\Backup;
+use Carbure\Resources\Category;
 
 class BackupTest extends DatabaseTestCase
 {
@@ -58,6 +59,8 @@ class BackupTest extends DatabaseTestCase
 
     public function testExportThenImportRestoresTheData()
     {
+        // Deleted transactions of a user, and of a user since removed (no user)
+        Db::query("INSERT INTO bank_transaction_deleted (uuid, deleted_at, user_id) VALUES ('d1', '2026-01-02 03:04:05', 2), ('d2', '2026-01-03 00:00:00', NULL)");
         $backup = $this->export();
         $before = $backup['datasets'];
 
@@ -68,7 +71,13 @@ class BackupTest extends DatabaseTestCase
         Db::query("INSERT INTO bank_transaction_deleted (uuid) VALUES ('gone')");
 
         $result = Backup::import($before);
-        $this->assertSame(['categories' => 5, 'rules' => 3, 'budgets' => 2, 'insights' => 1, 'transactions' => 5, 'deleted_transactions' => 0], $result['imported']);
+        $this->assertSame(['categories' => 5, 'rules' => 3, 'budgets' => 2, 'insights' => 1, 'transactions' => 5, 'deleted_transactions' => 2], $result['imported']);
+        $this->assertSame($before, $this->export()['datasets']);
+        $this->assertSame([['uuid' => 'd1', 'deleted_at' => '2026-01-02 03:04:05', 'user_id' => 'user'],
+            ['uuid' => 'd2', 'deleted_at' => '2026-01-03 00:00:00', 'user_id' => null]], $before['deleted_transactions']);
+
+        // Imported again: the same data (idempotent)
+        Backup::import($before);
         $this->assertSame($before, $this->export()['datasets']);
     }
 
@@ -98,7 +107,12 @@ class BackupTest extends DatabaseTestCase
         $users = array_column(Db::execute("SELECT uuid, user FROM bank_transaction", "")->get_result()->fetch_all(MYSQLI_ASSOC), 'user', 'uuid');
         // Unknown here: the administrator who imports
         $this->assertSame(['a' => self::USER, 'b' => self::ADMIN], array_map('intval', $users));
-        $this->assertSame(self::ADMIN, (int)Db::queryOne("SELECT user_id FROM bank_transaction_deleted", "")['user_id']);
+        // No user (removed since): kept so for a deleted transaction
+        $this->assertNull(Db::queryOne("SELECT user_id FROM bank_transaction_deleted", "")['user_id']);
+
+        // A transaction must have an owner: none becomes the administrator who imports
+        Backup::import(['transactions' => [['user' => null] + $transaction]]);
+        $this->assertSame(self::ADMIN, (int)Db::queryOne("SELECT user FROM bank_transaction", "")['user']);
     }
 
     public function testCategoriesStillUsedCannotDisappear()
@@ -156,6 +170,117 @@ class BackupTest extends DatabaseTestCase
         }
         $this->assertSame(3, $this->rowCount('bank_transaction_category_keyword'));
         $this->assertSame(1, (int)Db::queryOne("SELECT @@FOREIGN_KEY_CHECKS AS f", "")['f']);
+    }
+
+    public function testFailureOfALaterDatasetRollsBackTheEarlierOnes()
+    {
+        $transactions = $this->export('transactions')['datasets']['transactions'];
+        $mode = Db::queryOne("SELECT @@SESSION.sql_mode AS m", "")['m'];
+        try {
+            // The categories are valid and written first; the transactions repeat a UUID
+            Backup::import([
+                'categories' => [['id' => 0, 'name' => 'Aucune', 'parent_category' => 0, 'type' => 'HORS-BUDGET', 'icon' => 'help', 'color' => 'grey'],
+                    ['id' => 9, 'name' => 'Nouvelle', 'parent_category' => 0, 'type' => 'DEBIT', 'icon' => '', 'color' => '']],
+                'rules' => [],
+                'budgets' => [],
+                'transactions' => [['id' => 1, 'uuid' => 'same', 'category' => 9] + $transactions[0], ['id' => 2, 'uuid' => 'same', 'category' => 9] + $transactions[1]],
+            ]);
+            $this->fail('Accepted');
+        } catch (Error $e) {
+            $this->assertSame(400, $e->getCode());
+            $this->assertStringContainsString('The import failed, nothing was changed', $e->getMessage());
+        }
+        $this->assertSame(5, $this->rowCount('bank_transaction_category'));
+        $this->assertNull(Db::queryOne("SELECT id FROM bank_transaction_category WHERE id = 9", ""));
+        $this->assertSame(3, $this->rowCount('bank_transaction_category_keyword'));
+        $this->assertSame(2, $this->rowCount('budget'));
+        $this->assertSame(5, $this->rowCount('bank_transaction'));
+        // The session is restored
+        $this->assertSame(1, (int)Db::queryOne("SELECT @@FOREIGN_KEY_CHECKS AS f", "")['f']);
+        $this->assertSame($mode, Db::queryOne("SELECT @@SESSION.sql_mode AS m", "")['m']);
+    }
+
+    public function testNewRowsAfterAnImportGetFreeIds()
+    {
+        $categories = $this->export('categories')['datasets']['categories'];
+        $categories[] = ['id' => 40, 'name' => 'Loisirs', 'parent_category' => 0, 'type' => 'DEBIT', 'icon' => '', 'color' => ''];
+        Backup::import(['categories' => $categories, 'rules' => [['id' => 500, 'keyword' => 'CINEMA', 'category' => 40, 'notify' => false]]]);
+
+        $this->assertSame(41, Category::create('Voyages', 'DEBIT')['id']);
+        $this->assertSame(501, Category::createKeyword('THEATRE', 40)['id']);
+        // Category 0 kept its id (NO_AUTO_VALUE_ON_ZERO during the import)
+        $this->assertSame('Aucune', Db::queryOne("SELECT name FROM bank_transaction_category WHERE id = 0", "")['name']);
+    }
+
+    public function testImportedInsightsAreCheckedAndNormalizedAsWhenSaved()
+    {
+        $insight = ['id' => 7, 'name' => ' Courses ', 'color' => 'blue', 'icon' => '', 'sql' => ' SELECT SUM(amount) AS amount FROM bank_transaction; '];
+        Backup::import(['insights' => [$insight]]);
+        $this->assertSame(['id' => 7, 'name' => 'Courses', 'color' => 'blue', 'icon' => null, 'sql' => 'SELECT SUM(amount) AS amount FROM bank_transaction'],
+            $this->export('insights')['datasets']['insights'][0]);
+
+        $cases = [
+            [['sql' => 'SELECT COUNT(*) AS amount FROM users'] + $insight, 'The query cannot read users'],
+            [['sql' => 'SELECT 1 AS amount; DROP TABLE budget'] + $insight, 'The query must be a single statement'],
+            [['sql' => 'SELECT 1 AS amount /* x */'] + $insight, 'The query must be a single statement without comments'],
+            [['sql' => 'SELECT SLEEP(10) AS amount'] + $insight, 'Forbidden keyword'],
+            [['color' => 'black'] + $insight, 'Invalid color'],
+            [['icon' => '<img src=x>'] + $insight, 'Invalid icon'],
+        ];
+        foreach ($cases as [$row, $message]) {
+            try {
+                Backup::import(['insights' => [$row]]);
+                $this->fail("Accepted: $message");
+            } catch (Error $e) {
+                $this->assertSame(400, $e->getCode(), $e->getMessage());
+                $this->assertStringContainsString("insights, row 1: $message", $e->getMessage());
+            }
+        }
+        $this->assertSame(1, $this->rowCount('budget_insight'));
+    }
+
+    public function testImportedCategoriesAreCheckedAsWhenSaved()
+    {
+        $categories = $this->export('categories')['datasets']['categories'];
+        $cases = [
+            [['icon' => 'x"><script>'] + $categories[1], 'categories, row 2: invalid icon or color'],
+            [['color' => 'red;background:url(x)'] + $categories[1], 'categories, row 2: invalid icon or color'],
+            // Its own parent, or a sub-category as parent
+            [['parent_category' => 1] + $categories[1], 'the parent of category 1 must be a top-level category'],
+            [['parent_category' => 2] + $categories[3], 'the parent of category 3 must be a top-level category'],
+        ];
+        foreach ($cases as [$row, $message]) {
+            $rows = $categories;
+            $rows[array_search($row['id'], array_column($categories, 'id'), true)] = $row;
+            try {
+                Backup::import(['categories' => $rows]);
+                $this->fail("Accepted: $message");
+            } catch (Error $e) {
+                $this->assertSame(400, $e->getCode(), $e->getMessage());
+                $this->assertStringContainsString($message, $e->getMessage());
+            }
+        }
+        $this->assertSame($categories, $this->export('categories')['datasets']['categories']);
+    }
+
+    public function testTransactionsAloneMustFindTheirCategories()
+    {
+        $transaction = $this->export('transactions')['datasets']['transactions'][0];
+        try {
+            Backup::import(['transactions' => [['category' => 99] + $transaction]]);
+            $this->fail('Accepted');
+        } catch (Error $e) {
+            $this->assertSame(400, $e->getCode());
+            $this->assertStringContainsString('The transactions refer to categories that do not exist: 99', $e->getMessage());
+        }
+        $this->assertSame(5, $this->rowCount('bank_transaction'));
+    }
+
+    public function testExportOfAnUnknownDataset()
+    {
+        $this->expectException(Error::class);
+        $this->expectExceptionCode(400);
+        Backup::export('categories,users');
     }
 
     public function testUserCannotBackup()

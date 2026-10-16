@@ -43,7 +43,8 @@ final class BackupData {
      *
      * Types: int:<max>, string:<max length> (may be empty), name:<max length> (not
      * empty), enum:<a|b>, decimal (10,2), date (Y-m-d), datetime (Y-m-d H:i:s), bool,
-     * user (username, or null); a leading ? accepts null.
+     * user (username; none or unknown here: the administrator who imports, kept none with
+     * ?user); a leading ? accepts null.
      */
     public const DATASETS = [
         'categories' => [
@@ -82,7 +83,7 @@ final class BackupData {
         'deleted_transactions' => [
             'table' => 'bank_transaction_deleted',
             'key' => 'uuid',
-            'columns' => ['uuid' => 'name:32', 'deleted_at' => 'datetime', 'user_id' => 'user'],
+            'columns' => ['uuid' => 'name:32', 'deleted_at' => 'datetime', 'user_id' => '?user'],
         ],
     ];
 
@@ -124,7 +125,7 @@ final class BackupData {
      */
     public static function userColumns(string $dataset): array
     {
-        return array_keys(array_filter(self::DATASETS[$dataset]['columns'], fn(string $type): bool => $type === 'user'));
+        return array_keys(array_filter(self::DATASETS[$dataset]['columns'], fn(string $type): bool => ltrim($type, '?') === 'user'));
     }
 
     /**
