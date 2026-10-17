@@ -155,7 +155,8 @@ fixez-la dans `docker/docker-compose.yml` (`image: mariadb:11`).
 
 La migration `2026-10-25_device_model` est appliquée au démarrage : modèle, version du
 système et version de l'application de chaque appareil mobile (inconnus pour les appareils
-existants jusqu'à leur prochaine connexion).
+existants jusqu'à leur prochaine connexion). Elle corrige aussi la plateforme des appareils
+Android déjà enregistrés, notés iOS jusque-là : leurs notifications push repartent.
 
 ### Passer à la 1.5.0
 

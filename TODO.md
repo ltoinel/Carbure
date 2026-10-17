@@ -43,7 +43,9 @@ keeps track of what was done).
 
 - [ ] **Production** (device model, #218): the migration `2026-10-25_device_model`
       (nullable `devices.model`, `os_version`, `app_version`) is applied at container start;
-      until it is, these fields are ignored at login and returned as `null`.
+      until it is, these fields are ignored at login and returned as `null`. It also sets
+      `platform = 'android'` on the devices whose token is not an APNs one (Android devices
+      stored as iOS before).
 - [ ] **Android app** (#218): send `platform: "android"` in the `device` object of
       `POST /user/login` and `POST /user/login/mfa` (the server now deduces it from the FCM
       token for the released versions that do not), plus `model` (e.g. "Google Pixel 8"),
