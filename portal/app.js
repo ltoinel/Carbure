@@ -30,6 +30,7 @@ import { createImportModule } from './modules/importModule.js';
 import { createConfigModule } from './modules/configModule.js';
 import { createConfirmModule } from './modules/confirmModule.js';
 import { createNotificationsModule } from './modules/notificationsModule.js';
+import { createBackupModule } from './modules/backupModule.js';
 
 /**
  * Base URL of the API: the portal is served at <server>/portal/ and the API at
@@ -38,7 +39,7 @@ import { createNotificationsModule } from './modules/notificationsModule.js';
 const API_BASE_URL = new URL('../api', new URL('.', window.location.href)).href;
 
 /** Tabs reserved to administrators */
-const ADMIN_TABS = ['rules', 'categories', 'accounts', 'users', 'logs', 'config', 'sync'];
+const ADMIN_TABS = ['rules', 'categories', 'accounts', 'users', 'logs', 'config', 'sync', 'backup', 'api'];
 
 /**
  * Tabs grouped under "Administration" in the navigation of the administrators (the
@@ -49,7 +50,10 @@ const ADMINISTRATION_TABS = [
     { key: 'sync', icon: 'sync', label: 'tabSync' },
     { key: 'agents', icon: 'smart_toy', label: 'tabAgents' },
     { key: 'logs', icon: 'receipt_long', label: 'tabLogs' },
-    { key: 'config', icon: 'tune', label: 'tabSettings' }
+    { key: 'config', icon: 'tune', label: 'tabSettings' },
+    { key: 'backup', icon: 'backup', label: 'tabBackup' },
+    // Swagger UI of the API (/swagger/), framed by the portal
+    { key: 'api', icon: 'api', label: 'tabApi' }
 ];
 import * as formatters from './utils/formatters.js';
 import { badgeStyle } from './utils/categoryIcons.js';
@@ -93,7 +97,8 @@ const app = createApp({
         createImportModule(() => apiService),
         createConfigModule(() => apiService),
         createConfirmModule(),
-        createNotificationsModule(() => apiService)
+        createNotificationsModule(() => apiService),
+        createBackupModule(() => apiService)
     ],
 
     data() {
@@ -394,6 +399,9 @@ const app = createApp({
                     break;
                 case 'sync':
                     this.loadSyncInfo();
+                    break;
+                case 'backup':
+                    this.loadBackupInfo();
                     break;
                 case 'agents':
                     this.loadAgents();

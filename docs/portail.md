@@ -44,7 +44,7 @@ Deux profils existent :
 | Profil | Onglets |
 |---|---|
 | **Utilisateur** | Transactions, Budget, Insights, Tendances ; **Agent IA** et **Mon profil** dans le menu utilisateur |
-| **Administrateur** | En plus : Règles, Catégories, Comptes, et le menu **Administration** (Utilisateurs, Synchro, Agent IA, Logs, Paramètres) ; ajout et modification des insights ; activation du serveur MCP ; mise à jour de la base de données |
+| **Administrateur** | En plus : Règles, Catégories, Comptes, et le menu **Administration** (Utilisateurs, Synchro, Agent IA, Logs, Paramètres, Sauvegarde, API) ; ajout et modification des insights ; activation du serveur MCP ; mise à jour de la base de données |
 
 Les pages d'administration (Règles, Catégories, Comptes, Utilisateurs) et les onglets
 Insights et Agent IA suivent la même présentation : un en-tête avec le titre et l'aide, et
@@ -190,6 +190,7 @@ remplacés par le mois affiché. L'éditeur colore la syntaxe SQL et fait vérif
 par le serveur pendant la saisie : erreur (mot-clé interdit, syntaxe MariaDB…) ou résultat
 pour le mois affiché. La requête est exécutée en lecture seule et ne peut pas lire les
 tables `users`, `api_tokens` et `devices` (voir [Sécurité](securite.md#insights-sql-stocke)).
+Des exemples de requêtes sont dans [Recettes d'insights](insights.md).
 
 ## Tendances
 
@@ -383,6 +384,37 @@ ligne crontab correspondante, à copier pour une tâche planifiée (cron, tâche
 Synology). Le `sync_token` y est masqué jusqu'à **Afficher** ; le bouton copier copie
 toujours la commande complète. **Créer un jeton** / **Renouveler** en écrit un nouveau dans
 la configuration (`GET /system/sync`, `POST /system/sync-token`).
+
+## Sauvegarde (menu Administration)
+
+- **Exporter les données** : on coche les données à sauvegarder (catégories, règles de
+  catégorisation, budgets, insights, transactions, transactions supprimées), chacune avec son
+  nombre de lignes, puis **Exporter** télécharge `carbure-backup-AAAA-MM-JJ.zip`. Le ZIP
+  contient un fichier JSON par type de données et un `manifest.json` (version du format,
+  version de Carbure et du schéma, date, nombre de lignes). Les utilisateurs, mots de passe,
+  jetons, appareils, réglages, connexions et comptes bancaires n'y figurent jamais.
+- **Importer une sauvegarde** : on dépose un ZIP exporté par Carbure, ou un seul de ses
+  fichiers JSON. Pour un ZIP, ses fichiers sont listés avec leur nombre de lignes et on coche
+  ceux à importer (un fichier non reconnu est signalé et ne peut pas être coché).
+  **Importer et remplacer** demande une confirmation : **l'import supprime toutes les
+  données de chaque type importé et les remplace** par celles du fichier ; les types non
+  importés sont conservés.
+- Le serveur vérifie tout le fichier avant de supprimer quoi que ce soit, puis remplace les
+  données en une seule transaction : en cas d'erreur, rien n'est modifié et l'erreur
+  s'affiche dans la confirmation. Une catégorie encore utilisée par des données conservées
+  (transactions, règles, budgets non importés) ne peut pas disparaître : on importe alors ces
+  données avec les catégories. Les identifiants (dont l'UUID des transactions) sont
+  conservés ; le propriétaire d'une transaction est retrouvé par son identifiant de
+  connexion, à défaut c'est l'administrateur qui importe.
+
+## API (menu Administration)
+
+La documentation de l'API REST (Swagger UI de `/swagger/`, décrite par
+`swagger/swagger.php`) affichée dans le portail, dans le thème clair ou sombre de celui-ci.
+Swagger UI reprend la session de l'administrateur connecté : **Try it out** appelle
+l'API (`/api/...`) avec son jeton dans l'en-tête `Authorization`, jamais dans l'URL ; les
+requêtes s'exécutent réellement (une route `POST`/`PUT`/`DELETE` modifie les données).
+**Ouvrir Swagger UI** l'ouvre dans un nouvel onglet.
 
 ## Mon profil
 

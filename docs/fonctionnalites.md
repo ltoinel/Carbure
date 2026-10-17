@@ -329,6 +329,11 @@ renvoie un montant pour le mois affiché.
   sans accès aux comptes utilisateurs ni aux jetons (voir [Sécurité](securite.md)).
 - L'historique de chaque insight mois par mois est disponible par l'API, pour l'app iPhone.
 
+Des **recettes prêtes à l'emploi** (une catégorie et ses sous-catégories, abonnements,
+comparaison avec l'an dernier, taux d'épargne, matelas de sécurité, budget restant,
+doublons…) sont rassemblées dans [Recettes d'insights](insights.md), avec la requête et la
+lecture du résultat de chacune.
+
 ### Matelas de sécurité
 
 Le pack de départ comprend l'insight **Matelas de sécurité** : les dépenses des **6 mois
@@ -445,7 +450,7 @@ Détails : [Portail web](portail.md#accessibilite).
 ## Administration
 
 Les onglets **Règles**, **Catégories** et **Comptes**, et le menu **Administration**
-(**Utilisateurs**, **Logs**, **Paramètres**, **Synchro**, **Agent IA**) sont réservés aux administrateurs ; les autres
+(**Utilisateurs**, **Logs**, **Paramètres**, **Synchro**, **Agent IA**, **Sauvegarde**, **API**) sont réservés aux administrateurs ; les autres
 utilisateurs ouvrent **Agent IA** depuis leur menu.
 
 - **Utilisateurs** : création, modification (dont le profil), suppression, dernière
@@ -462,6 +467,13 @@ utilisateurs ouvrent **Agent IA** depuis leur menu.
 - **Synchro** : la commande `curl` (pour tous les comptes ou un seul) et la ligne crontab qui
   lancent la synchronisation, avec le jeton masqué jusqu'à « Afficher » ; l'onglet crée ou
   renouvelle ce jeton.
+- **Sauvegarde** : export des données choisies (catégories, règles, budgets, insights,
+  transactions, transactions supprimées) dans un ZIP, un fichier JSON par type ; import d'un
+  ZIP (en choisissant ses fichiers) ou d'un seul fichier, qui **supprime et remplace** les
+  données de chaque type importé, après confirmation, tout ou rien. Ni utilisateurs, ni mots
+  de passe, ni jetons, ni connexions bancaires dans une sauvegarde.
+- **API** : la documentation de l'API (Swagger UI) dans le portail ; « Try it out » appelle
+  l'API avec la session de l'administrateur.
 - **Mise à jour de la base** : quand une nouvelle version modifie la base, un bandeau le
   signale et l'applique en un clic (automatique avec Docker).
 - **Clé des sessions** : un bandeau signale une clé trop faible et la renouvelle en un clic

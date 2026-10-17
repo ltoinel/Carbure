@@ -52,6 +52,11 @@ keeps track of what was done).
       scheduler uses it, remove `?token=` from `GET /bank/sync` (the MCP server keeps its
       `?token=` for the agents that cannot send a header).
 
+- [ ] **Production** (API sub-tab, #163): after the deployment, open **Administration → API**
+      and check that Swagger UI is shown. A blank frame means the DSM reverse proxy adds its
+      own `X-Frame-Options: DENY` (or `frame-ancestors 'none'`) to `/swagger/`: let it pass
+      the headers of the container (`SAMEORIGIN`, `frame-ancestors 'self'`).
+
 - [ ] **GitHub settings** (owner, after the merge of the workflow hardening, #125): in
       **Settings → Actions → General**, tick "Require actions to be pinned to a full-length
       commit SHA" and restrict the allowed actions to those of GitHub, verified creators
@@ -77,6 +82,15 @@ keeps track of what was done).
       `users.budget_alert_category`, NULL = all the budgets for the existing users) is
       applied at container start. Until then the budget alerts watch every budget and
       choosing one in **My profile → Notifications** answers 409.
+
+- [ ] Backup (Administration → Backup, #162): the import is limited to 32 MB of JSON (nginx
+      `client_max_body_size` of `/api/backup/import`, PHP `post_max_size`) and decoded in
+      memory (`memory_limit` 256M). Measured: 31 MB of JSON (95,000 transactions) reach
+      about 230 MB of peak memory once decoded and checked, close to the limit; the usual
+      household (10,000 to 20,000 transactions, 3 to 7 MB) is far below. If a household
+      needs more, send the datasets in several requests (one transaction per request would
+      then no longer cover the whole import) or stream the rows. The bank accounts (labels,
+      owners) and connections are not in a backup: their credentials live in woob.
 
 - [ ] Budget alerts only check the current month (an import of past months alerts
       nothing) and the spending as the Budgets screen computes it (absolute value of the
