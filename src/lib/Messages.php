@@ -102,6 +102,8 @@ final class Messages {
             'email_portal' => 'Abrir Carbure: {url}',
             'smtp_test_title' => 'Correo de prueba',
             'smtp_test_body' => 'Este mensaje de prueba confirma que Carbure puede enviar las notificaciones por correo.',
+            'push_test_title' => 'Notificación de prueba',
+            'push_test_body' => 'Esta notificación de prueba confirma que Carbure puede enviar las notificaciones push.',
         ],
         'it' => [
             'sync_success_title' => 'Sincronizzazione bancaria riuscita',
@@ -124,6 +126,8 @@ final class Messages {
             'email_portal' => 'Apri Carbure: {url}',
             'smtp_test_title' => 'Email di prova',
             'smtp_test_body' => 'Questo messaggio di prova conferma che Carbure può inviare le notifiche via email.',
+            'push_test_title' => 'Notifica di prova',
+            'push_test_body' => 'Questa notifica di prova conferma che Carbure può inviare le notifiche push.',
         ],
         'de' => [
             'sync_success_title' => 'Banksynchronisierung erfolgreich',
@@ -146,6 +150,8 @@ final class Messages {
             'email_portal' => 'Carbure öffnen: {url}',
             'smtp_test_title' => 'Test-E-Mail',
             'smtp_test_body' => 'Diese Testnachricht bestätigt, dass Carbure Benachrichtigungen per E-Mail senden kann.',
+            'push_test_title' => 'Testbenachrichtigung',
+            'push_test_body' => 'Diese Testbenachrichtigung bestätigt, dass Carbure Push-Benachrichtigungen senden kann.',
         ],
         'pt' => [
             'sync_success_title' => 'Sincronização bancária concluída',
@@ -168,6 +174,8 @@ final class Messages {
             'email_portal' => 'Abrir o Carbure: {url}',
             'smtp_test_title' => 'Email de teste',
             'smtp_test_body' => 'Esta mensagem de teste confirma que o Carbure consegue enviar as notificações por email.',
+            'push_test_title' => 'Notificação de teste',
+            'push_test_body' => 'Esta notificação de teste confirma que o Carbure consegue enviar as notificações push.',
         ],
     ];
 
