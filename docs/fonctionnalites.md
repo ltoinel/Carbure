@@ -22,8 +22,8 @@ qui consultent les mêmes données.
   insights sont communs à tous les utilisateurs. Une transaction appartient techniquement au
   premier utilisateur qui suit le compte, mais tous la voient et la pointent.
 - **Données personnelles** : chaque utilisateur a son identifiant, son mot de passe, sa
-  langue (français ou anglais), son seuil d'alerte, ses appareils iPhone et ses jetons d'accès
-  pour les agents IA.
+  langue (français ou anglais), son thème d'affichage, ses seuils d'alerte, les canaux de ses
+  notifications (push, email), ses appareils iPhone et ses jetons d'accès pour les agents IA.
 - **Deux profils** :
 
 | | Utilisateur | Administrateur |
@@ -34,10 +34,10 @@ qui consultent les mêmes données.
 | Gérer son profil, ses appareils, ses jetons d'accès | ✅ | ✅ |
 | Créer et modifier les règles de catégorisation | ➖ | ✅ |
 | Créer et modifier les catégories | ➖ | ✅ |
-| Suivre des comptes bancaires, configurer les banques, synchroniser depuis le portail | ➖ | ✅ |
+| Suivre des comptes bancaires, configurer les banques, synchroniser depuis le portail, mettre à jour les modules woob | ➖ | ✅ |
 | Créer et modifier les insights (requêtes SQL) | ➖ | ✅ |
 | Activer le serveur MCP pour les agents IA | ➖ | ✅ |
-| Gérer les utilisateurs, consulter les logs, mettre à jour la base | ➖ | ✅ |
+| Gérer les utilisateurs, les paramètres du serveur (dont les emails), consulter les logs, mettre à jour la base | ➖ | ✅ |
 
 Le dernier administrateur ne peut pas perdre son rôle.
 
@@ -58,6 +58,14 @@ bancaire tiers, pas de cloud. Les modules woob couvrent surtout les **banques fr
   **ajouter des comptes** parmi ceux que woob liste (`woob bank list -b <banque>`, avec leur
   libellé et leur solde) : on coche ceux à suivre et ils sont ajoutés d'un coup. Seul un
   compte trouvé par woob peut être suivi.
+- **Plusieurs connexions** à une même banque (compte joint, professionnel…), chacune avec
+  ses identifiants ; une connexion et un compte suivi peuvent recevoir un **nom lisible**
+  (« Compte joint »). **Supprimer une connexion** fait oublier ses identifiants à woob et ne
+  suit plus ses comptes ; leurs transactions sont conservées.
+- **Modules bancaires** : quand le site d'une banque change, woob publie un correctif de son
+  module ; un administrateur met à jour les modules depuis l'onglet Comptes (aussi proposé
+  sous le journal d'une synchronisation en échec), après avoir approuvé la clé du dépôt de
+  woob la première fois (voir [Sécurité](securite.md)).
 - Les **comptes suivis** sont communs au foyer : chacun indique qui l'a ajouté, la date et le
   résultat de sa dernière synchronisation (Synchronisé, Échec avec le message, ou Jamais
   synchronisé). Ne plus suivre un compte conserve ses transactions déjà importées.
@@ -89,8 +97,8 @@ transactions du dernier mois restées sans catégorie.
 
 - **Quand** : chaque jour avec Docker (`SYNC_INTERVAL`), par une tâche planifiée (cron avec
   le `sync_token` : l'onglet **Administration → Synchro** donne la commande `curl` et
-  la ligne crontab toutes prêtes), ou à la demande depuis l'onglet Comptes, pour un compte à
-  la fois.
+  la ligne crontab toutes prêtes), ou à la demande depuis l'onglet Comptes, pour tous les
+  comptes ou un seul.
 - **Sans synchronisation** (banque non couverte par woob, reprise de l'historique) : les
   relevés téléchargés depuis la banque s'**importent** depuis l'onglet Transactions (voir
   plus bas).
@@ -114,7 +122,11 @@ transactions du dernier mois restées sans catégorie.
   transactions trouvées.
 - **Détail** : montant, libellé complet, date et date réelle, type (carte, virement,
   prélèvement…), carte, banque d'origine, date d'import ; la catégorie et le pointage s'y
-  modifient.
+  modifient. **Transactions similaires** y lance la recherche sur le nom du commerçant
+  (« PRLV SEPA EDF MDT/123 » cherche « EDF »).
+- **Supprimer** une transaction (depuis son détail, après confirmation) : elle disparaît
+  pour tout le foyer et n'est plus réimportée, ni par la synchronisation ni par l'import
+  d'un relevé.
 - **Catégoriser à la main** une transaction sans catégorie : un sélecteur avec recherche,
   icônes et couleurs. Pour un administrateur, Carbure propose ensuite de **créer la règle**
   correspondante, pour que les prochaines soient classées toutes seules.
@@ -230,9 +242,10 @@ Une règle associe un **mot-clé** à une catégorie : toute transaction dont le
 - À chaque synchronisation, les règles classent les nouvelles transactions sans catégorie.
 - **Resynchroniser** applique toutes les règles à toute la base et indique le nombre de
   transactions recatégorisées.
-- **Envoyer un push notification** sur une règle : chaque nouvelle transaction qui
-  correspond est signalée à tout le foyer (une cloche marque ces règles). Utile pour un loyer,
-  un remboursement ou un abonnement à surveiller.
+- **Envoyer une notification** sur une règle : chaque nouvelle transaction qui
+  correspond est signalée à tout le foyer, en push ou par email selon les préférences de
+  chacun (voir [Notifications](#notifications) ; une cloche marque ces règles). Utile pour
+  un loyer, un remboursement ou un abonnement à surveiller.
 
 ## Budgets
 
@@ -316,6 +329,24 @@ renvoie un montant pour le mois affiché.
   sans accès aux comptes utilisateurs ni aux jetons (voir [Sécurité](securite.md)).
 - L'historique de chaque insight mois par mois est disponible par l'API, pour l'app iPhone.
 
+Des **recettes prêtes à l'emploi** (une catégorie et ses sous-catégories, abonnements,
+comparaison avec l'an dernier, taux d'épargne, matelas de sécurité, budget restant,
+doublons…) sont rassemblées dans [Recettes d'insights](insights.md), avec la requête et la
+lecture du résultat de chacune.
+
+### Matelas de sécurité
+
+Le pack de départ comprend l'insight **Matelas de sécurité** : les dépenses des **6 mois
+complets précédant le mois affiché** (débits, hors catégories « hors budget » comme
+l'épargne), en montant positif. C'est l'ordre de grandeur de l'épargne de précaution à
+garder de côté pour faire face à 6 mois de dépenses ; le mois en cours n'est pas compté,
+pour que la valeur ne bouge pas au fil du mois. Sur une instance existante, un
+administrateur l'ajoute depuis l'écran **Insights** avec cette requête :
+
+```sql
+SELECT -SUM(amount) AS amount FROM bank_transaction WHERE amount < 0 AND category NOT IN (SELECT id FROM bank_transaction_category WHERE type = 'HORS-BUDGET' AND id <> 0) AND date >= MAKEDATE({year}, 1) + INTERVAL {month} - 7 MONTH AND date < MAKEDATE({year}, 1) + INTERVAL {month} - 1 MONTH
+```
+
 ## Notifications
 
 Les notifications sont envoyées en **push** sur l'**app iPhone** (Apple Push Notification
@@ -329,11 +360,11 @@ profil :
 |---|---|---|
 | Après la synchronisation de chaque compte | Tout le foyer | Réussite ou échec, et nombre de transactions à vérifier |
 | Une nouvelle dépense dépasse le seuil d'alerte | Chaque utilisateur dont le seuil est dépassé | « Dépense importante à vérifier », libellé et montant |
-| Une nouvelle transaction correspond à une règle « push » | Tout le foyer | Le mot-clé, le libellé et le montant (une seule notification par transaction) |
+| Une nouvelle transaction correspond à une règle « Envoyer une notification » | Tout le foyer | Le mot-clé, le libellé et le montant (une seule notification par transaction) |
 | Les dépenses du mois d'une catégorie budgétée atteignent le seuil des budgets | Chaque utilisateur qui a activé ces alertes | « Budget dépassé : Courses », « 312,40 € sur 300,00 € (104 %) » |
 
 Le **badge** de l'app indique le nombre de transactions à vérifier. Le seuil d'alerte se
-règle dans **Mon profil** (vide = pas d'alerte).
+règle dans **Mon profil → Notifications**, sous « Dépense importante » (vide = pas d'alerte).
 
 Chaque notification est rédigée dans la **langue du profil** de son destinataire (français
 ou anglais ; toute autre valeur donne le français), en push comme par email : titre, texte,
@@ -359,6 +390,9 @@ n'empêche ni l'autre ni la synchronisation.
 - **Quoi** : les dépenses du mois de chaque catégorie de dépenses qui a un budget,
   sous-catégories comprises, calculées comme l'écran **Budgets** ; une sous-catégorie qui a
   son propre budget est vérifiée aussi.
+- **Budget surveillé** : tous les budgets (par défaut) ou l'un d'eux, choisi par chacun
+  dans **Mon profil → Notifications** parmi les budgets du mois de l'onglet **Budget** ;
+  la suppression de la catégorie revient à tous les budgets.
 - **Seuil** : choisi par chacun dans **Mon profil → Notifications**, en pourcentage du
   budget, de 50 à 200 % (100 % par défaut ; 80 % pour être prévenu avant). Sous 100 %, le
   titre devient « Budget presque atteint ».
@@ -391,8 +425,10 @@ dépassent leur budget ce mois-ci ? », « Comment évolue notre épargne ? ».
 
 ## Profil et sécurité des comptes
 
-- **Mon profil** : e-mail, prénom, nom, mot de passe, langue (appliquée à chaque connexion,
-  sur tous les navigateurs), seuil d'alerte, appareils iPhone enregistrés (supprimables).
+- **Mon profil**, en trois sous-onglets : **Profil** (e-mail, prénom, nom, mot de passe,
+  langue appliquée à chaque connexion sur tous les navigateurs, thème), **Notifications**
+  (canaux, seuil d'alerte, budget surveillé et son seuil) et **Appareils** (iPhone
+  enregistrés, supprimables).
 - **Mots de passe** chiffrés (bcrypt) ; session valable 30 jours.
 - **Blocage** : après 5 échecs de connexion d'affilée, le compte est bloqué 24 heures ; un
   administrateur peut le débloquer.
@@ -403,10 +439,24 @@ dépassent leur budget ce mois-ci ? », « Comment évolue notre épargne ? ».
   l'utilisateur a fait confiance pendant 6 mois. Un administrateur la réinitialise pour
   un utilisateur qui a perdu son téléphone (voir [Sécurité](securite.md#double-authentification-totp)).
 
+## Affichage et accessibilité
+
+- **Thème clair ou sombre** : par défaut, celui du système ; l'icône de l'en-tête passe d'un
+  clic à l'autre thème, et le choix est enregistré dans le profil (retrouvé sur un autre
+  navigateur).
+- **Préférences du système** respectées : contraste augmenté (macOS, iOS) et couleurs forcées
+  (contraste élevé de Windows), animations réduites.
+- **Accessibilité** au niveau AA des WCAG, vérifiée par des tests automatiques sur chaque
+  écran, en thème clair et en thème sombre.
+- **Application installée** : le portail s'installe comme une application (Chrome, Edge,
+  Safari, Android), en HTTPS, sans mode hors ligne.
+
+Détails : [Portail web](portail.md#accessibilite).
+
 ## Administration
 
 Les onglets **Règles**, **Catégories** et **Comptes**, et le menu **Administration**
-(**Utilisateurs**, **Logs**, **Paramètres**, **Synchro**, **Agent IA**) sont réservés aux administrateurs ; les autres
+(**Utilisateurs**, **Logs**, **Paramètres**, **Synchro**, **Agent IA**, **Sauvegarde**, **API**) sont réservés aux administrateurs ; les autres
 utilisateurs ouvrent **Agent IA** depuis leur menu.
 
 - **Utilisateurs** : création, modification (dont le profil), suppression, dernière
@@ -417,12 +467,19 @@ utilisateurs ouvrent **Agent IA** depuis leur menu.
   y sont masqués.
 - **Paramètres** : le fichier de configuration du serveur, section par section, les secrets
   masqués. Les réglages sans risque (niveau de log, catégorie d'épargne, adresse publique,
-  options de woob, notifications iOS) se modifient dans le portail, chaque valeur étant
-  vérifiée ; la base, les secrets, la commande woob et le nettoyage des libellés restent en
+  options de woob, notifications iOS, serveur SMTP des emails, avec un **email de test**)
+  se modifient dans le portail, chaque valeur étant vérifiée ; la base, les secrets, la commande woob et le nettoyage des libellés restent en
   lecture seule.
 - **Synchro** : la commande `curl` (pour tous les comptes ou un seul) et la ligne crontab qui
   lancent la synchronisation, avec le jeton masqué jusqu'à « Afficher » ; l'onglet crée ou
   renouvelle ce jeton.
+- **Sauvegarde** : export des données choisies (catégories, règles, budgets, insights,
+  transactions, transactions supprimées) dans un ZIP, un fichier JSON par type ; import d'un
+  ZIP (en choisissant ses fichiers) ou d'un seul fichier, qui **supprime et remplace** les
+  données de chaque type importé, après confirmation, tout ou rien. Ni utilisateurs, ni mots
+  de passe, ni jetons, ni connexions bancaires dans une sauvegarde.
+- **API** : la documentation de l'API (Swagger UI) dans le portail ; « Try it out » appelle
+  l'API avec la session de l'administrateur.
 - **Mise à jour de la base** : quand une nouvelle version modifie la base, un bandeau le
   signale et l'applique en un clic (automatique avec Docker).
 - **Clé des sessions** : un bandeau signale une clé trop faible et la renouvelle en un clic
@@ -434,7 +491,8 @@ utilisateurs ouvrent **Agent IA** depuis leur menu.
   tables (ou mise à jour d'une base existante), compte administrateur, langue. Sur une base
   neuve, il propose un **pack de départ** : une trentaine de catégories, une centaine de
   règles (enseignes, fournisseurs d'énergie, opérateurs…) et des insights (dépenses,
-  revenus, reste du mois, épargne, dépassement du budget, frais bancaires…). Exposé sur
+  revenus, reste du mois, épargne, matelas de sécurité, dépassement du budget, frais
+  bancaires…). Exposé sur
   Internet, il demande en plus un code d'installation.
 - **Image Docker** tout compris (nginx, PHP, woob), avec MariaDB : voir
   [Installation](installation.md) et le [tutoriel Synology](synology.md).

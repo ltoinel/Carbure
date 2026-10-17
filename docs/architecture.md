@@ -1,6 +1,6 @@
 ---
 title: "Architecture : portail web, API REST PHP et woob"
-description: "Comment fonctionne Carbure : portail web Vue 3, API REST PHP sans framework, MariaDB, synchronisation bancaire par woob, notifications APNs et serveur MCP."
+description: "Comment fonctionne Carbure : portail web Vue 3, API REST PHP sans framework, MariaDB, synchronisation bancaire par woob, notifications push (Carbure Push) et serveur MCP."
 icon: material/sitemap-outline
 ---
 
@@ -21,10 +21,14 @@ flowchart LR
         resolver --> res["src/resources/*"]
         res --> db[(MariaDB / MySQL)]
         res --> woob[Woob<br/>commande shell]
-        res --> apns[Apns<br/>HTTP/2]
+        res --> relay[PushRelay<br/>HTTPS + clé d'API]
+        res --> mailer[Mailer<br/>SMTP]
     end
     woob --> banque[(Banque)]
-    apns --> apple[Apple Push<br/>Notification service]
+    relay --> push[Carbure Push<br/>service externe]
+    push --> apple[APNs iOS]
+    push --> fcm[FCM Android]
+    mailer --> smtp[(Serveur SMTP)]
 ```
 
 | Couche | Rôle |
@@ -33,13 +37,17 @@ flowchart LR
 | `src/api.php` | Point d'entrée : sans configuration, ne sert que l'assistant d'installation (`Setup`) ; sinon toute URL sans point est traitée comme un appel d'API ; convertit les erreurs en réponse JSON avec code HTTP |
 | `Webservice` | Lit le corps JSON et la query string, positionne les en-têtes (sécurité, JSON ou SSE), contrôle l'accès (JWT), appelle la ressource |
 | `ApiResolver` | Découvre les routes par réflexion sur l'attribut `#[ApiRoute(path, method, public, stream, raw, admin)]`, avec cache APCu invalidé quand un fichier de ressource change ; `Webservice` vérifie le JWT et, pour `admin: true`, le profil administrateur avant d'appeler la méthode |
-| `src/resources/` | Logique métier (espace de noms `Carbure\Resources`, classes chargées à la demande) : `User`, `Bank`, `Transaction`, `Budget`, `Category`, `Insight`, `Device`, `ApiToken`, `Mcp`, `System` |
+| `src/resources/` | Logique métier (espace de noms `Carbure\Resources`, classes chargées à la demande) : `User`, `Bank`, `Transaction`, `Budget`, `BudgetAlert` (alertes de budget), `Category`, `Insight`, `Notification` (canaux choisis par chaque utilisateur), `Device`, `ApiToken`, `Mcp`, `OAuth` (agents IA), `Settings` (Paramètres, Synchro), `System` |
 | `Setup`, `Installer` | Assistant d'installation (`/api/setup`) : base, schéma, premier administrateur, `data/conf/prod.ini` |
 | `Migrator` | Versionnement du schéma (table `schema_migrations`) et application des migrations |
 | `Setting` | Réglages modifiés depuis le portail (table `settings`) |
 | `Db` | Connexion `mysqli` unique, requêtes préparées |
 | `Woob` | Exécution de woob (`proc_open`) avec envoi de *heartbeats* SSE pendant l'attente |
-| `Apns` | Envoi des notifications (authentification par clé `.p8` ou certificat) |
+| `PushRelay` | Client du service externe **Carbure Push** (dépôt privé `ltoinel/Carbure-push`), qui détient les identifiants d'Apple (APNs) et de Firebase (FCM) : inscription de l'instance (preuve de travail, clé d'API `push_api_key`), envoi des notifications avec la plateforme de chaque token (`ios`, `android`), tokens morts signalés puis supprimés ; sans clé, aucun push |
+| `Mailer` | Client SMTP intégré (sans dépendance) : envoi des notifications par email |
+| `Messages` | Textes des notifications (push et email) dans la langue du destinataire |
+| `BankFile`, `import/` | Lecture des relevés importés (OFX/QFX, QIF, CAMT.053, CSV avec un profil par banque) |
+| `WoobRepository` | Dépôt des modules bancaires de woob : empreinte de sa clé, approbation par un administrateur |
 | `Logger` | Logs bufferisés dans `data/logs/carbure_AAAAMMJJ.log`, une entrée JSON par ligne : heure ISO 8601, niveau, identifiant de requête (`uid`), IP du client, utilisateur, méthode et chemin, message et contexte ; une ligne de fin par requête (statut, durée) ; purge après `log_retention_days` jours |
 
 ## Traitement d'une requête
@@ -73,7 +81,7 @@ sequenceDiagram
     participant B as Bank::getSync
     participant W as Woob
     participant T as Transaction
-    participant D as Device / Apns
+    participant D as Notification<br/>(PushRelay, Mailer)
     P->>B: GET /api/bank/sync (JWT ou sync_token)
     B->>B: GET_LOCK('bank_sync') — une seule synchro à la fois
     loop Pour chaque compte (numéro@banque)
@@ -88,8 +96,10 @@ sequenceDiagram
         B->>B: date et résultat dans bank_account.last_sync_*
         B->>D: notification à chaque utilisateur du foyer<br/>(nombre de transactions non pointées)
         B->>D: alerte « dépense importante » pour chaque nouvelle dépense<br/>au-delà du seuil alert_threshold d'un utilisateur
+        B->>D: notification des nouvelles transactions d'une règle « notify »
     end
     B->>T: updateMissingCategories() (mots-clés)
+    B->>D: BudgetAlert::check() : budgets du mois atteints
     B-->>P: flux SSE « Synchronization complete »
 ```
 
@@ -110,6 +120,10 @@ sequenceDiagram
 - La **catégorisation** recherche les mots-clés de `bank_transaction_category_keyword`
   dans le libellé des transactions sans catégorie du dernier mois (ou de tout
   l'historique avec `POST /category/keyword/apply`).
+- Chaque notification passe par `Notification::notify()`, qui l'envoie sur les canaux
+  choisis par le destinataire pour ce type (`sync`, `rule`, `expense`, `budget`) : push
+  (`Apns`) et/ou email (`Mailer`, si un serveur SMTP est configuré). L'échec d'un canal
+  n'empêche ni l'autre ni la synchronisation.
 - Une transaction est **nouvelle** quand son UUID n'existait pas (l'`INSERT` crée une
   ligne). Seules les nouvelles dépenses déclenchent l'alerte de seuil : une
   resynchronisation ou le passage d'une opération « en cours » à « débitée » ne
@@ -169,4 +183,4 @@ l'identité de l'utilisateur du jeton. Voir [Agents IA (MCP)](mcp.md).
 | `docker/nginx.conf` | Site nginx (portail, Swagger, API, en-têtes de sécurité) |
 | `docker/php.ini`, `docker/php-fpm.conf` | Réglages PHP et PHP-FPM |
 | `docker/entrypoint.sh` | Prépare `/data`, attend la base et applique les migrations si Carbure est installé, lance la synchronisation périodique (`SYNC_INTERVAL`), puis PHP-FPM et nginx |
-| Volume `/data` (le dossier `data/` du projet) | `conf/prod.ini`, `conf/setup.code`, `conf/certs/`, `logs/`, `cache/`, configuration woob (`woob/`) |
+| Volume `/data` (le dossier `data/` du projet) | `conf/prod.ini`, `conf/setup.code`, `logs/`, `cache/`, configuration woob (`woob/`) |

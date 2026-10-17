@@ -162,6 +162,7 @@ CREATE TABLE `devices` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `name` varchar(50) NOT NULL,
   `token` varchar(200) NOT NULL,
+  `platform` varchar(10) NOT NULL DEFAULT 'ios' COMMENT 'ios (APNs) or android (FCM)',
   `lastLogin` timestamp NOT NULL DEFAULT current_timestamp(),
   `user_id` int(10) unsigned NOT NULL,
   PRIMARY KEY (`id`),
@@ -194,12 +195,15 @@ CREATE TABLE `users` (
   `theme` varchar(10) NOT NULL DEFAULT 'system' COMMENT 'Display theme of the portal: system, light or dark',
   `alert_threshold` decimal(10,2) DEFAULT NULL,
   `budget_threshold` smallint(5) unsigned NOT NULL DEFAULT 100 COMMENT 'Percent of a budget whose spending of the month alerts (50 to 200)',
+  `budget_alert_category` tinyint(3) unsigned DEFAULT NULL COMMENT 'Category whose budget alerts (NULL: all the budgets)',
   `last_login` datetime DEFAULT NULL,
   `failed_logins` tinyint(3) unsigned NOT NULL DEFAULT 0,
   `locked_until` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `username` (`username`),
-  UNIQUE KEY `email` (`email`)
+  UNIQUE KEY `email` (`email`),
+  KEY `fk_users_budget_alert_category` (`budget_alert_category`),
+  CONSTRAINT `fk_users_budget_alert_category` FOREIGN KEY (`budget_alert_category`) REFERENCES `bank_transaction_category` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -316,6 +320,8 @@ INSERT IGNORE INTO `schema_migrations` (`version`) VALUES
 ('2026-10-20_user_notification'),
 ('2026-10-21_user_budget_threshold'),
 ('2026-10-22_budget_alert'),
+('2026-10-23_device_platform'),
+('2026-10-23_user_budget_alert_category'),
 ('2026-10-24_user_mfa');
 
 SET FOREIGN_KEY_CHECKS = 1;

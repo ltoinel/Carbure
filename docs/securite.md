@@ -60,8 +60,7 @@ l'activer pour lui seul depuis **Mon profil**.
   l'appareil, d'Apple, du serveur, et visible par l'utilisateur dans son profil) ; un
   attaquant qui a le mot de passe doit **aussi** l'obtenir, ce qui suppose l'accès au
   téléphone, à la base ou à une session déjà ouverte. Un nouvel appareil n'est
-  enregistré qu'**après** le second facteur : un token inventé ne contourne rien. Le
-  token n'est jamais écrit en entier dans les logs (8 premiers caractères). Limites :
+  enregistré qu'**après** le second facteur : un token inventé ne contourne rien. Limites :
   un appareil enregistré **avant** l'activation du second facteur (par exemple par un
   attaquant qui avait déjà le mot de passe) reste connu, et la réinitialisation par
   l'administrateur ne supprime pas les appareils : avant d'imposer la double
@@ -87,7 +86,7 @@ l'activer pour lui seul depuis **Mon profil**.
 | Rôle | Droits |
 |---|---|
 | Utilisateur | Données du foyer (comptes, transactions, budgets, insights, tendances), pointage et catégorie des transactions, montants des budgets, synchronisation par l'API, son profil, ses appareils, ses jetons d'accès MCP |
-| Administrateur (`users.is_admin = 1`) | En plus : règles de catégorisation, catégories, comptes bancaires suivis (et leur synchronisation depuis le portail), insights (requêtes SQL), activation du serveur MCP, mise à jour de la base de données, utilisateurs (profil, déblocage, réinitialisation de la double authentification), double authentification imposée |
+| Administrateur (`users.is_admin = 1`) | En plus : règles de catégorisation, catégories, connexions bancaires et comptes suivis (et leur synchronisation depuis le portail), mise à jour des modules woob, insights (requêtes SQL), activation du serveur MCP, paramètres du serveur (dont SMTP) et logs, mise à jour de la base de données, utilisateurs (profil, déblocage, réinitialisation de la double authentification), double authentification imposée |
 
 Les routes réservées sont déclarées dans leur attribut (`#[ApiRoute(..., admin: true)]`) et
 renvoient `403` avant l'appel de la méthode ; un test unitaire fixe le niveau d'accès de
@@ -117,6 +116,13 @@ son rôle.
 Les en-têtes de l'API sont posés par PHP (`Webservice::securityHeaders`, et l'assistant
 d'installation), quel que soit le serveur web. Ceux du portail et de Swagger UI sont posés
 par nginx (`docker/nginx.conf`) ; Carbure ne fournit pas de `.htaccess`.
+
+Swagger UI (`/swagger/`) a les mêmes en-têtes que le portail, sauf l'affichage dans un
+cadre : `frame-ancestors 'self'` et `X-Frame-Options: SAMEORIGIN`, pour l'onglet
+**Administration → API** du portail ; aucun autre site ne peut l'afficher dans un cadre, et
+le portail lui-même garde `frame-ancestors 'none'` / `DENY`. Swagger UI lit le jeton de
+session du portail dans le stockage du navigateur (même origine) et ne l'envoie que dans
+l'en-tête `Authorization` des appels à `/api`.
 
 **Aucun CDN externe** : le portail et Swagger UI ne chargent rien depuis un autre site.
 Vue, CodeMirror, les polices (`portal/vendor/`) et Swagger UI (`swagger/vendor/`) sont
@@ -240,7 +246,7 @@ Seules ces routes ne demandent pas de JWT (un test unitaire le vérifie) :
 - Une adresse IP est une **donnée personnelle** : les fichiers de log sont supprimés après
   `log_retention_days` jours (90 dans une nouvelle installation, voir
   [Configuration](configuration.md)).
-- `data/` : `conf/prod.ini`, `conf/certs/*.p8`, `logs/`, `woob/` (identifiants bancaires woob)
+- `data/` : `conf/prod.ini` (dont `push_api_key`, la clé d'API du service de notifications push), `logs/`, `woob/` (identifiants bancaires woob)
   sont exclus du dépôt Git.
 
 ## Recommandations de déploiement

@@ -32,9 +32,25 @@ class NotificationTest extends DatabaseTestCase
         $off = ['push' => false, 'email' => false];
         $this->assertSame(['sync' => $default, 'rule' => $default, 'expense' => $default, 'budget' => $off], $notifications['preferences']);
         $this->assertSame(100, $notifications['budget_threshold']);
+        $this->assertNull($notifications['alert_threshold']);
+        $this->assertNull($notifications['budget_category']);
         $this->assertTrue($notifications['smtp']);
         $this->assertSame('admin@example.com', $notifications['address']);
         $this->assertTrue($notifications['email_available']);
+        $this->assertTrue($notifications['push_available']);
+    }
+
+    public function testPushUnavailableWithoutApiKey()
+    {
+        Config::set('push_api_key', '');
+        $this->loginAs(self::ADMIN);
+        $this->assertFalse(Notification::get()['push_available']);
+
+        // Not pushed, nothing fails: the email is still sent
+        $this->setPreferences(self::ADMIN, 'sync', true, true);
+        $this->assertSame(['push' => false, 'email' => true], Notification::notify(self::ADMIN, 'sync', 'Title', 'Body'));
+        $this->assertSame([], FakePushRelay::requests());
+        $this->assertCount(1, FakeSmtpServer::messages());
     }
 
     public function testEmailUnavailableWithoutSmtpOrAddress()
@@ -105,6 +121,28 @@ class NotificationTest extends DatabaseTestCase
         $this->assertSame(0, (int)Db::queryOne("SELECT COUNT(*) AS n FROM user_notification", "")['n']);
     }
 
+    public function testLargeExpenseThresholdSavedWithThePreferences()
+    {
+        $this->loginAs(self::USER);
+        $notifications = Notification::update(['expense' => ['email' => true]], null, '250.5');
+        $this->assertSame(250.5, $notifications['alert_threshold']);
+        $this->assertTrue($notifications['preferences']['expense']['email']);
+        $this->assertSame('250.50', Db::queryOne("SELECT alert_threshold FROM users WHERE id = 2", "")['alert_threshold']);
+
+        // Kept when not sent; "" turns it off
+        $this->assertSame(250.5, Notification::update([], 80)['alert_threshold']);
+        $this->assertNull(Notification::update([], null, '')['alert_threshold']);
+
+        try {
+            Notification::update([], 90, '-10');
+            $this->fail('Negative threshold accepted');
+        } catch (Error $e) {
+            $this->assertSame(400, $e->getCode());
+        }
+        // Nothing saved, not even the valid budget threshold
+        $this->assertSame(80, Notification::get()['budget_threshold']);
+    }
+
     public function testRowsDeletedWithTheUser()
     {
         $this->loginAs(self::USER);
@@ -117,8 +155,8 @@ class NotificationTest extends DatabaseTestCase
     {
         $this->assertSame(['push' => true, 'email' => false], Notification::notify(self::ADMIN, 'sync', 'Title', 'Body', 3));
 
-        $this->assertCount(1, FakeApnsServer::requests());
-        $this->assertSame(3, FakeApnsServer::requests()[0]['payload']['aps']['badge']);
+        $this->assertCount(1, FakePushRelay::requests());
+        $this->assertSame(3, FakePushRelay::requests()[0]['payload']['aps']['badge']);
         $this->assertSame([], FakeSmtpServer::messages());
     }
 
@@ -132,7 +170,7 @@ class NotificationTest extends DatabaseTestCase
             Config::set('public_url', '');
         }
 
-        $this->assertSame([], FakeApnsServer::requests());
+        $this->assertSame([], FakePushRelay::requests());
         $messages = FakeSmtpServer::messages();
         $this->assertCount(1, $messages);
         $this->assertSame(['admin@example.com'], $messages[0]['to']);
@@ -152,7 +190,7 @@ class NotificationTest extends DatabaseTestCase
 
         $this->assertSame(['push' => true, 'email' => true], Notification::notify(self::USER, 'expense', 'Large expense to check', 'CB SHOP : -500.00 €'));
 
-        $this->assertCount(1, FakeApnsServer::requests());
+        $this->assertCount(1, FakePushRelay::requests());
         $message = FakeSmtpServer::messages()[0];
         $this->assertSame(['user@example.com'], $message['to']);
         $this->assertStringContainsString('Subject: [Carbure] Large expense to check', $message['data']);
@@ -163,7 +201,7 @@ class NotificationTest extends DatabaseTestCase
     {
         $this->setPreferences(self::ADMIN, 'sync', false, false);
         $this->assertSame(['push' => false, 'email' => false], Notification::notify(self::ADMIN, 'sync', 'Title', 'Body'));
-        $this->assertSame([], FakeApnsServer::requests());
+        $this->assertSame([], FakePushRelay::requests());
         $this->assertSame([], FakeSmtpServer::messages());
     }
 
@@ -185,7 +223,7 @@ class NotificationTest extends DatabaseTestCase
         FakeSmtpServer::start('busy');
 
         $this->assertSame(['push' => true, 'email' => false], Notification::notify(self::ADMIN, 'sync', 'Title', 'Body'));
-        $this->assertCount(1, FakeApnsServer::requests());
+        $this->assertCount(1, FakePushRelay::requests());
     }
 
     public function testPushFailureDoesNotStopTheEmail()
@@ -220,18 +258,18 @@ class NotificationTest extends DatabaseTestCase
         $this->setPreferences(self::ADMIN, 'expense', false, true);
 
         $this->assertSame(1, Bank::alertLargeExpenses('111@bnp', [['label' => 'CB SHOP', 'amount' => -12.5]]));
-        $this->assertSame([], FakeApnsServer::requests());
+        $this->assertSame([], FakePushRelay::requests());
         $message = FakeSmtpServer::messages()[0];
         $this->assertSame(['admin@example.com'], $message['to']);
         $this->assertStringContainsString('CB SHOP : -12,50 €', quoted_printable_decode($message['data']));
 
         // The rules marked "notify" and the synchronization: pushed only (default)
-        FakeApnsServer::start();
+        FakePushRelay::start();
         FakeSmtpServer::start();
         Db::query("UPDATE bank_transaction_category_keyword SET notify = 1 WHERE keyword = 'EDF'");
         Bank::alertRuleMatches([['label' => 'PRLV SEPA EDF', 'amount' => -50.0]]);
         Bank::notifyBankUsers('111@bnp', true);
-        $this->assertCount(2, FakeApnsServer::requests());
+        $this->assertCount(2, FakePushRelay::requests());
         $this->assertSame([], FakeSmtpServer::messages());
 
         // The synchronization by email too: every user who chose it
@@ -259,7 +297,7 @@ class NotificationTest extends DatabaseTestCase
 
         // Pushed: the device of the administrator in French, the one of the user in English
         $pushed = [];
-        foreach (FakeApnsServer::requests() as $request) {
+        foreach (FakePushRelay::requests() as $request) {
             $pushed[$request['token']] = $request['payload']['aps']['alert'];
         }
         $this->assertSame('Synchronisation bancaire réussie', $pushed[self::DEVICE_TOKEN]['title']);

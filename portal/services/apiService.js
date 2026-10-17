@@ -432,8 +432,26 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
     }
 
     /**
+     * Registers the instance on the push service and saves its API key, or renews the
+     * key already saved (administrators)
+     * @returns {Promise<Object>} {registered, renewed, key_id, limits}
+     */
+    async function registerPush() {
+        return request(`${baseUrl}/system/push-register`, { method: 'POST' }, 'Failed to register on the push service');
+    }
+
+    /**
+     * Sends a test push notification to the devices of the administrator
+     * @returns {Promise<Object>} {sent, devices, results: [{device, sent, status, error}]}
+     */
+    async function sendTestPush() {
+        return request(`${baseUrl}/system/push-test`, { method: 'POST' }, 'Failed to send the test notification');
+    }
+
+    /**
      * Channels of each kind of notification of the authenticated user
-     * @returns {Promise<Object>} {preferences: {kind: {push, email}}, smtp, address, email_available, budget_threshold}
+     * @returns {Promise<Object>} {preferences: {kind: {push, email}}, smtp, address, email_available,
+     *          push_available, budget_threshold, alert_threshold, budget_category, budgets: [{id, name}]}
      */
     async function fetchNotifications() {
         return request(`${baseUrl}/user/notifications`, {}, 'Failed to read the notifications');
@@ -446,6 +464,22 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
      */
     async function updateNotifications(preferences) {
         return request(`${baseUrl}/user/notifications`, { method: 'PUT', body: JSON.stringify({ preferences }) }, 'Failed to save the notifications');
+    }
+
+    /**
+     * Changes settings of the alerts of the authenticated user, the others kept
+     * @param {Object} settings - alertThreshold (amount of a large expense, '' turns it
+     *                            off) and/or budgetCategory (budget watched, '' for all)
+     * @returns {Promise<Object>} The notifications, as fetchNotifications
+     */
+    async function updateAlertSettings(settings) {
+        const body = {};
+        for (const key of ['alertThreshold', 'budgetCategory']) {
+            if (settings[key] !== undefined && settings[key] !== null) {
+                body[key] = String(settings[key]);
+            }
+        }
+        return request(`${baseUrl}/user/notifications`, { method: 'PUT', body: JSON.stringify(body) }, 'Failed to save the notifications');
     }
 
     /**
@@ -1075,6 +1109,39 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
         return request(`${baseUrl}/user?id=${encodeURIComponent(userId)}`, { method: 'PUT', body: JSON.stringify({ theme }) }, 'Failed to update user');
     }
 
+    /**
+     * Fetches the datasets of a backup and their number of rows (administrators)
+     * @returns {Promise<Array>} [{name, count}]
+     * @throws {Error} If request fails
+     */
+    async function fetchBackupInfo() {
+        const data = await request(`${baseUrl}/backup`, {}, 'Failed to fetch the backup datasets');
+        return Array.isArray(data) ? data : [];
+    }
+
+    /**
+     * Exports datasets (administrators)
+     * @param {Array<string>} datasets - Names of the datasets
+     * @returns {Promise<Object>} {format, version, created_at, carbure, schema, counts, datasets}
+     * @throws {Error} If request fails
+     */
+    async function exportBackup(datasets) {
+        return request(`${baseUrl}/backup/export?datasets=${encodeURIComponent(datasets.join(','))}`, {}, 'Failed to export the backup');
+    }
+
+    /**
+     * Imports datasets, which delete and replace their data (administrators)
+     * @param {Object} datasets - Rows by dataset: {categories: [...], ...}
+     * @returns {Promise<Object>} {imported: {name: count}}
+     * @throws {Error} If request fails (nothing changed)
+     */
+    async function importBackup(datasets) {
+        return request(`${baseUrl}/backup/import`, {
+            method: 'POST',
+            body: JSON.stringify({ datasets })
+        }, 'Failed to import the backup');
+    }
+
     return {
         abortAllExcept,
         fetchTransactions,
@@ -1095,8 +1162,11 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
         fetchSyncInfo,
         renewSyncToken,
         sendTestEmail,
+        registerPush,
+        sendTestPush,
         fetchNotifications,
         updateNotifications,
+        updateAlertSettings,
         updateBudgetThreshold,
         fetchFlowTransactions,
         unlockUser,
@@ -1158,6 +1228,9 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
         createUser,
         updateUser,
         updateUserTheme,
-        deleteUser
+        deleteUser,
+        fetchBackupInfo,
+        exportBackup,
+        importBackup
     };
 }

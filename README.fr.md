@@ -71,12 +71,16 @@
 - 🔁 **Opérations récurrentes** : salaire, loyer, abonnements et factures sont repérés tout
   seuls ; voyez d'un coup d'œil celles encore attendues ce mois-ci.
 - 🔔 **Alertes sur iPhone et par email** : après chaque synchronisation, dès qu'une dépense
-  dépasse le seuil que vous avez choisi, ou quand une règle que vous avez désignée
-  s'applique ; chacun choisit push, email ou les deux pour chaque type d'alerte.
+  dépasse le seuil que vous avez choisi, quand une règle que vous avez désignée s'applique,
+  ou quand les dépenses d'un budget atteignent le pourcentage choisi ; chacun choisit push,
+  email ou les deux pour chaque type d'alerte.
 - 📊 **Insights** : vos propres indicateurs du mois (courses, carburant, abonnements…).
+- 🌗 **Clair ou sombre, accessible** : le portail suit le thème du système ou en change d'un
+  clic, respecte ses réglages de contraste élevé et vise le niveau AA des WCAG 2.2.
 - 👨‍👩‍👧 **Pensé pour le foyer** : plusieurs utilisateurs, des comptes et des données partagés,
   chacun sa langue et ses appareils ; un administrateur gère comptes, catégories, règles,
-  utilisateurs et configuration, et copie la commande toute prête qui planifie la synchro.
+  utilisateurs et configuration, copie la commande toute prête qui planifie la synchro, et
+  sauvegarde ou restaure les données (catégories, règles, budgets, transactions…) dans un ZIP.
 - 🤖 **Interrogez vos comptes avec votre agent IA** : un serveur MCP intégré, en lecture seule
   et désactivable, répond à « combien en restaurants cette année ? » ou « où dépasse-t-on le
   budget ? ». Claude (web, Desktop, mobile) se connecte avec la seule URL du serveur, après
@@ -91,7 +95,9 @@
 > couvrent surtout les banques françaises. Le portail existe en français et en anglais ; les
 > montants sont en euros.
 
-> 📱 **App iPhone** : l'application iOS Carbure sera prochainement disponible sur l'App Store.
+> 📱 **App iPhone** : l'application iOS Carbure sera prochainement disponible sur l'App Store. En
+> attendant, le portail web s'installe comme une application sur ordinateur ou téléphone
+> (Chrome/Edge « Installer », Safari « Ajouter au Dock » ou « Sur l'écran d'accueil »), en HTTPS.
 
 ## Comment se situe Carbure ?
 
@@ -121,7 +127,7 @@ flowchart LR
     portal[Portail web] <--> api
     ios[App iOS] <--> api
     ai[Agent IA] <-->|MCP| api
-    sync -->|APNs| push[Notifications iPhone]
+    sync -->|relais Carbure Push| push[Notifications iPhone]
 ```
 
 ## Démarrage rapide

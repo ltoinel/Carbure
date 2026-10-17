@@ -53,7 +53,7 @@ Deux profils existent :
 | Profil | Onglets |
 |---|---|
 | **Utilisateur** | Transactions, Budget, Insights, Tendances ; **Agent IA** et **Mon profil** dans le menu utilisateur |
-| **Administrateur** | En plus : Règles, Catégories, Comptes, et le menu **Administration** (Utilisateurs, Synchro, Agent IA, Logs, Paramètres) ; ajout et modification des insights ; activation du serveur MCP ; mise à jour de la base de données |
+| **Administrateur** | En plus : Règles, Catégories, Comptes, et le menu **Administration** (Utilisateurs, Synchro, Agent IA, Logs, Paramètres, Sauvegarde, API) ; ajout et modification des insights ; activation du serveur MCP ; mise à jour de la base de données |
 
 Les pages d'administration (Règles, Catégories, Comptes, Utilisateurs) et les onglets
 Insights et Agent IA suivent la même présentation : un en-tête avec le titre et l'aide, et
@@ -92,7 +92,8 @@ tâches ou l'écran d'accueil.
 - Le titre **Carbure** ramène à l'accueil : transactions du mois en cours.
 - En haut à droite, le bouton affiche le **login** de l'utilisateur connecté ; son menu
   donne accès à **Mon profil**, à **Agent IA** (utilisateurs non administrateurs) et à
-  **Déconnexion**.
+  **Déconnexion**. Juste avant, l'icône de **thème** passe au thème clair ou sombre (voir
+  [Thèmes](#themes-et-preferences-du-systeme)).
 - Dans la barre du haut, le sélecteur de **mois** et d'**année** et le bouton rond
   **Actualiser** (icône seule) s'appliquent aux onglets Transactions, Budget et Insights.
   Ils ne proposent que les mois qui ont des transactions, plus le mois en cours ; une autre
@@ -198,6 +199,7 @@ remplacés par le mois affiché. L'éditeur colore la syntaxe SQL et fait vérif
 par le serveur pendant la saisie : erreur (mot-clé interdit, syntaxe MariaDB…) ou résultat
 pour le mois affiché. La requête est exécutée en lecture seule et ne peut pas lire les
 tables `users`, `api_tokens` et `devices` (voir [Sécurité](securite.md#insights-sql-stocke)).
+Des exemples de requêtes sont dans [Recettes d'insights](insights.md).
 
 ## Tendances
 
@@ -235,9 +237,10 @@ la catégorie choisie.
   sont catégorisées à chaque synchronisation.
 - Un clic sur une règle ouvre sa fenêtre : modifier le mot-clé et la catégorie, voir combien
   de transactions contiennent le mot-clé (et combien sont déjà dans la catégorie), la
-  supprimer (corbeille), et cocher **Notifier le foyer** : chaque nouvelle transaction
-  synchronisée qui correspond à la règle envoie une notification à tous les utilisateurs du
-  foyer (cloche sur la règle).
+  supprimer (corbeille), et cocher **Envoyer une notification** : chaque nouvelle
+  transaction synchronisée qui correspond à la règle envoie une notification à tous les
+  utilisateurs du foyer (cloche sur la règle), en push ou par email selon les
+  **Notifications** du profil de chacun.
 
 ## Catégories (administrateurs)
 
@@ -264,8 +267,9 @@ ou importés depuis un fichier, sont regroupés à la fin sous **Autres comptes*
   déjà importées sont conservées). Un compte s'affiche « BANQUE ···1234 » (banque et fin
   de l'identifiant), ou sous le **nom** qui lui a été donné (facultatif, ex. « Compte
   joint »), aussi dans la synchronisation et le détail d'une transaction.
-- **Synchroniser tous les comptes** (en haut de la page) : lance la synchronisation de
-  tous les comptes suivis, avec le même suivi en direct qu'un compte seul.
+- **Synchroniser tous les comptes** (icône de synchronisation en haut de la page) : lance
+  la synchronisation de tous les comptes suivis, avec le même suivi en direct qu'un compte
+  seul.
 - **Ajout en deux étapes** :
     1. **Connecter une banque** (fenêtre modale) : choisir la banque parmi celles que
        woob supporte ; le formulaire demande les identifiants attendus par son module woob
@@ -373,8 +377,8 @@ Le fichier de configuration (`data/conf/prod.ini`) section par section,
 avec une description de chaque réglage. Les secrets (`db_password`, `jwtsecret`,
 `password_salt`, `sync_token`…) ne sont jamais affichés. Seuls les réglages sans risque
 sont modifiables — `log_level`, `log_retention_days`, `savings_category`, `public_url`, `mfa_required` (double authentification imposée), `woob_transactions`,
-`woob_logging`, `woob_debug`, `woob_auto_update`, les identifiants APNs et le serveur
-SMTP des emails — avec des
+`woob_logging`, `woob_debug`, `woob_auto_update`, le service de notifications push
+(`push_url`, `push_api_key`) et le serveur SMTP des emails — avec des
 listes, des interrupteurs et des champs vérifiés par le serveur ; les autres portent un
 cadenas. Les réglages modifiés sont surlignés ; la barre du bas les enregistre ou les
 annule. Le fichier précédent est gardé en `prod.ini.bak` (`GET`/`PUT /system/config`).
@@ -392,40 +396,80 @@ Synology). Le `sync_token` y est masqué jusqu'à **Afficher** ; le bouton copie
 toujours la commande complète. **Créer un jeton** / **Renouveler** en écrit un nouveau dans
 la configuration (`GET /system/sync`, `POST /system/sync-token`).
 
+## Sauvegarde (menu Administration)
+
+- **Exporter les données** : on coche les données à sauvegarder (catégories, règles de
+  catégorisation, budgets, insights, transactions, transactions supprimées), chacune avec son
+  nombre de lignes, puis **Exporter** télécharge `carbure-backup-AAAA-MM-JJ.zip`. Le ZIP
+  contient un fichier JSON par type de données et un `manifest.json` (version du format,
+  version de Carbure et du schéma, date, nombre de lignes). Les utilisateurs, mots de passe,
+  jetons, appareils, réglages, connexions et comptes bancaires n'y figurent jamais.
+- **Importer une sauvegarde** : on dépose un ZIP exporté par Carbure, ou un seul de ses
+  fichiers JSON. Pour un ZIP, ses fichiers sont listés avec leur nombre de lignes et on coche
+  ceux à importer (un fichier non reconnu est signalé et ne peut pas être coché).
+  **Importer et remplacer** demande une confirmation : **l'import supprime toutes les
+  données de chaque type importé et les remplace** par celles du fichier ; les types non
+  importés sont conservés.
+- Le serveur vérifie tout le fichier avant de supprimer quoi que ce soit, puis remplace les
+  données en une seule transaction : en cas d'erreur, rien n'est modifié et l'erreur
+  s'affiche dans la confirmation. Une catégorie encore utilisée par des données conservées
+  (transactions, règles, budgets non importés) ne peut pas disparaître : on importe alors ces
+  données avec les catégories. Les identifiants (dont l'UUID des transactions) sont
+  conservés ; le propriétaire d'une transaction est retrouvé par son identifiant de
+  connexion, à défaut c'est l'administrateur qui importe.
+
+## API (menu Administration)
+
+La documentation de l'API REST (Swagger UI de `/swagger/`, décrite par
+`swagger/swagger.php`) affichée dans le portail, dans le thème clair ou sombre de celui-ci.
+Swagger UI reprend la session de l'administrateur connecté : **Try it out** appelle
+l'API (`/api/...`) avec son jeton dans l'en-tête `Authorization`, jamais dans l'URL ; les
+requêtes s'exécutent réellement (une route `POST`/`PUT`/`DELETE` modifie les données).
+**Ouvrir Swagger UI** l'ouvre dans un nouvel onglet.
+
 ## Mon profil
 
-- Modification de l'e-mail, du prénom, du nom et du mot de passe (laisser vide pour le
-  conserver). L'identifiant n'est pas modifiable.
-- **Langue** (français / anglais) : enregistrée sur le compte et appliquée à chaque
-  connexion, sur tous les navigateurs.
-- **Seuil d'alerte (€)** : notification pour toute nouvelle dépense supérieure à ce
-  montant, détectée lors d'une synchronisation. Vide = désactivé.
+Trois sous-onglets, comme l'administration : **Profil**, **Notifications** et **Appareils**
+(ouvert sur **Profil** depuis le menu utilisateur).
+
+- **Profil** : modification de l'e-mail, du prénom, du nom et du mot de passe (laisser
+  vide pour le conserver). L'identifiant n'est pas modifiable. **Langue** (français /
+  anglais) : enregistrée sur le compte et appliquée à chaque connexion, sur tous les
+  navigateurs. **Thème** (*Comme le système*, *Clair*, *Sombre*), comme le choix fait avec
+  l'icône de l'en-tête (voir [Thèmes](#themes-et-preferences-du-systeme)).
 - **Notifications** : un tableau type de notification × canal (push sur l'app iOS, email)
   pour la synchronisation, les règles « Notifier », les dépenses importantes et les budgets
   dépassés (désactivés par défaut). Chaque case s'enregistre aussitôt ; les notifications
-  sont envoyées dans la **langue** choisie ci-dessus. Dessous, le **seuil d'alerte des
-  budgets (%)** : pourcentage du budget du mois d'une catégorie à partir duquel l'alerte
-  part (entier de 50 à 200, 100 par défaut), enregistré à la validation ou en quittant le
-  champ ; une valeur hors limites est signalée sous le champ et n'est pas envoyée. La
-  colonne email est grisée, avec la raison, tant qu'aucun serveur SMTP n'est configuré ou
-  que le profil n'a pas d'adresse email
+  sont envoyées dans la **langue** du profil. Les réglages d'une alerte sont sous son
+  libellé, dans le tableau, et s'enregistrent à la validation ou en quittant le champ (une
+  valeur invalide est signalée sous le champ et n'est pas envoyée) :
+  - **Dépense importante** : montant **à partir duquel** une nouvelle dépense, détectée
+    lors d'une synchronisation, est notifiée (vide = désactivé) ;
+  - **Budget dépassé** : le **budget surveillé**, *Tous les budgets* (par défaut) ou l'un
+    des budgets du mois définis dans l'onglet **Budget**, dans son ordre (une sous-catégorie est présentée
+    « Catégorie › Sous-catégorie »), et le pourcentage de ce budget auquel **alerter**
+    (entier de 50 à 200, 100 par défaut).
+
+  La colonne push est grisée, avec la raison, tant que l'administrateur n'a pas inscrit
+  l'instance au service Carbure Push (pas de `push_api_key`) ; la colonne email, tant
+  qu'aucun serveur SMTP n'est configuré ou que le profil n'a pas d'adresse email
   (`GET`/`PUT /user/notifications`).
-- **Double authentification** : état (activée ou non, imposée ou non par
+- **Double authentification** (sous le formulaire du sous-onglet **Profil**) : état (activée ou non, imposée ou non par
   l'administrateur). **Configurer une application** affiche le QR code et la clé, à
   confirmer par un premier code ; les 10 codes de secours s'affichent alors une seule
   fois. Une fois activée, un code de l'application permet d'obtenir de **nouveaux codes de
   secours**, et un code de l'application ou de secours de la **désactiver** (après
   confirmation). Dessous, les **navigateurs de confiance** (navigateur, système, échéance)
   et leur bouton **Révoquer**.
-- **Mes appareils** : appareils iOS enregistrés à la connexion depuis l'app, avec la
-  date de dernière connexion et le token APNs, masqué par défaut. Les boutons permettent
+- **Appareils** : appareils mobiles enregistrés à la connexion depuis l'app, avec la
+  date de dernière connexion et le token de notification, masqué par défaut. Les boutons permettent
   de l'afficher en entier, de le copier (HTTPS requis ; sinon le token est affiché) ou
   de **supprimer** un ancien appareil.
 
 ## Pied de page
 
-Lien vers le dépôt GitHub de Carbure et **version** de l'instance (`v1.2.0`, ou `dev` hors
-release), lue dans `GET /api/health`.
+Lien vers le site de Carbure ([carbure.org](https://carbure.org/)), licence et **version**
+de l'instance (`v1.2.0`, ou `dev` hors release), lue dans `GET /api/health`.
 
 ## Accessibilité
 
@@ -497,7 +541,7 @@ des logs dans la console du navigateur.
 |---|---|
 | `index.html` | Gabarit Vue (tous les écrans, dont l'assistant d'installation) |
 | `app.js` | Application racine : authentification, onglets (onglets d'administration réservés), initialisation |
-| `modules/*.js` | Mixins par domaine : `setup` (assistant), `transaction`, `budget`, `insights`, `trends`, `rules`, `categories`, `accounts`, `sync`, `agents`, `oauth` (consentement des agents IA), `logs`, `user`, `profile` (profil, appareils, mise à jour de la base) |
+| `modules/*.js` | Mixins par domaine : `setup` (assistant), `transaction`, `import` (import de relevés), `budget`, `insights`, `trends`, `rules`, `categories`, `accounts`, `sync`, `agents`, `oauth` (consentement des agents IA), `logs`, `config` (Paramètres, email de test, Synchro), `user`, `profile` (profil, appareils, mise à jour de la base), `notifications` (canaux des notifications du profil), `confirm` (fenêtre de confirmation) |
 | `services/apiService.js` | Appels HTTP vers l'API |
 | `stores/budgetStore.js` | Navigation dans l'arborescence des budgets |
 | `components/*.js` | Composants : diagramme de flux (`FlowChart`), sélecteur de catégorie (`CategoryPicker`, compact dans les listes), éditeur SQL (`SqlEditor`) |
@@ -505,4 +549,5 @@ des logs dans la console du navigateur.
 | `utils/formatters.js`, `utils/categoryIcons.js` | Formatage des montants, dates, icônes ; icônes et couleurs des catégories |
 | `vendor/` | Vue, CodeMirror (éditeur SQL) et polices, servis localement |
 | `manifest.webmanifest`, `icons/` | Manifeste et icônes de l'application installée |
-| `style.css` | Styles (variables CSS dans `:root`) |
+| `theme.js` | Thème clair ou sombre appliqué avant l'affichage de la page |
+| `style.css` | Styles (variables CSS dans `:root`, thème sombre, contraste augmenté, couleurs forcées) |

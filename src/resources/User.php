@@ -72,7 +72,8 @@ final class User {
      *
      * @param string $username The username
      * @param string $password The password
-     * @param array<string, mixed>|null $device Associative array with 'name' and 'token' (mobile app only)
+     * @param array<string, mixed>|null $device Associative array with 'name', 'token' and, optional,
+     *                                          'platform' (ios by default, or android) (mobile apps only)
      * @param bool|int|string|null $mfa The client supports the second step of the login: true, "true", 1...
      * @return array<string, mixed> The JWT token data (exp, sub, iat, token), or the challenge
      *               of the second factor (mfa, mfa_token, exp; secret and otpauth to register it)
@@ -124,7 +125,8 @@ final class User {
      * of the iOS app registered, date of the last login.
      *
      * @param array<string, mixed>      $user   The user row
-     * @param array<string, mixed>|null $device Associative array with 'name' and 'token' (mobile app only)
+     * @param array<string, mixed>|null $device Associative array with 'name', 'token' and, optional,
+     *                                        'platform' (ios by default, or android) (mobile apps only)
      * @return array{exp: int, sub: int, iat: int, token: string} The JWT token data
      */
     public static function completeLogin(array $user, ?array $device): array
@@ -135,7 +137,7 @@ final class User {
 
         // Update or create the device (the web portal does not send one)
         if (!empty($device['token'])) {
-            Device::createOrUpdate($user['id'], $device['name'] ?? '', $device['token']);
+            Device::createOrUpdate($user['id'], $device['name'] ?? '', $device['token'], strtolower(trim((string)($device['platform'] ?? 'ios'))));
         }
 
         $token = Jwt::createJwt($user['id']);
@@ -593,7 +595,7 @@ final class User {
      * @return float|null The threshold rounded to cents, null when disabled
      * @throws Error If the threshold is not a positive amount
      */
-    private static function alertThresholdValue(float|int|string $alertThreshold): ?float
+    public static function alertThresholdValue(float|int|string $alertThreshold): ?float
     {
         if ($alertThreshold !== '' && (!is_numeric($alertThreshold) || $alertThreshold < 0)) {
             throw new Error("The alert threshold must be a positive amount", 400);

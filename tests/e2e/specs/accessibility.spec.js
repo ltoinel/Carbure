@@ -3,6 +3,7 @@
 const { test, expect, tr, openTab, trustWoobRepository } = require('../fixtures');
 const { contrastProblems } = require('../a11y');
 const { startFakeSmtp } = require('../fake-smtp');
+const { startFakePushRelay } = require('../fake-push-relay');
 const path = require('path');
 
 // Hovering every button of every screen takes time
@@ -32,7 +33,7 @@ test('every tab is readable, buttons on hover included', async ({ adminPage: pag
     }
 
     await page.locator('.tabs').getByRole('button', { name: tr('tabAdministration'), exact: true }).click();
-    for (const tab of ['tabUsers', 'tabSync', 'tabAgents', 'tabLogs', 'tabSettings']) {
+    for (const tab of ['tabUsers', 'tabSync', 'tabAgents', 'tabLogs', 'tabSettings', 'tabBackup']) {
         await page.getByRole('tab', { name: tr(tab), exact: true }).click();
         await expect(page.getByRole('tab', { name: tr(tab), exact: true })).toHaveAttribute('aria-selected', 'true');
         await page.waitForLoadState('networkidle');
@@ -43,14 +44,51 @@ test('every tab is readable, buttons on hover included', async ({ adminPage: pag
     expect(problems).toEqual([]);
 });
 
+test('the import of a backup is readable: its files, an invalid one, the confirmation', async ({ adminPage: page }) => {
+    const problems = [];
+    await page.locator('.tabs').getByRole('button', { name: tr('tabAdministration'), exact: true }).click();
+    await page.getByRole('tab', { name: tr('tabBackup'), exact: true }).click();
+    await expect(page.locator('#backup-file')).toBeAttached();
+
+    // A whole export saved as JSON (its datasets listed) is accepted like a ZIP
+    const rules = { format: 'carbure-backup', version: 1, datasets: { rules: [], budgets: [] } };
+    await page.locator('#backup-file').setInputFiles({ name: 'backup.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(rules)) });
+    await expect(page.locator('input[data-file]')).toHaveCount(2);
+    problems.push(...await contrastProblems(page, tr('backupImportChoose')));
+
+    await page.locator('.backup-import-button').click();
+    await expect(page.getByRole('dialog', { name: tr('backupImportConfirmTitle') })).toBeVisible();
+    problems.push(...await contrastProblems(page, tr('backupImportConfirmTitle')));
+    await page.getByRole('dialog').getByRole('button', { name: tr('cancel') }).click();
+
+    await page.getByRole('button', { name: tr('backupOtherFile') }).click();
+    await page.locator('#backup-file').setInputFiles({ name: 'notes.json', mimeType: 'application/json', buffer: Buffer.from('not json') });
+    await expect(page.locator('.backup-dataset.invalid')).toBeVisible();
+    problems.push(...await contrastProblems(page, tr('backupFileInvalid')));
+
+    expect(problems).toEqual([]);
+});
+
 test('the notifications of the profile and the test email are readable', async ({ adminPage: page }) => {
     const problems = [];
 
-    // Profile: the notifications without SMTP server (email disabled, its reason)
+    // Profile: its sub-tabs, the notifications without SMTP server (email disabled, its
+    // reason) with the settings of the alerts under their label
     await page.locator('.user-menu-toggle').click();
     await page.getByRole('menuitem', { name: tr('myProfile') }).click();
+    problems.push(...await contrastProblems(page, tr('profileTabProfile')));
+    await page.getByRole('tab', { name: tr('myDevices'), exact: true }).click();
+    await expect(page.getByRole('heading', { name: tr('myDevices') })).toBeVisible();
+    problems.push(...await contrastProblems(page, tr('myDevices')));
+    await page.getByRole('tab', { name: tr('notificationsTitle'), exact: true }).click();
     await expect(page.locator('#notifications-email-unavailable')).toBeVisible();
+    await expect(page.locator('#notifications-push-unavailable')).toBeVisible();
     problems.push(...await contrastProblems(page, tr('notificationsTitle')));
+    // The large expense threshold refused: its error message
+    await page.getByLabel(tr('alertThreshold')).fill('-1');
+    await page.getByLabel(tr('alertThreshold')).press('Enter');
+    await expect(page.locator('#alert-threshold-error')).toBeVisible();
+    problems.push(...await contrastProblems(page, `${tr('alertThreshold')} (error)`));
     // The budget alert threshold refused: its error message
     await page.getByLabel(tr('budgetThreshold')).fill('20');
     await page.getByLabel(tr('budgetThreshold')).press('Enter');
@@ -82,6 +120,48 @@ test('the notifications of the profile and the test email are readable', async (
     }
 
     expect(problems).toEqual([]);
+});
+
+test('the registration on the push service and the test push are readable', async ({ adminPage: page }) => {
+    const problems = [];
+    const relay = await startFakePushRelay();
+    try {
+        await page.locator('.tabs').getByRole('button', { name: tr('tabAdministration'), exact: true }).click();
+        await page.getByRole('tab', { name: tr('tabSettings'), exact: true }).click();
+        // Not registered yet: the note, the disabled test button
+        await expect(page.getByText(tr('pushUnavailableAdmin'))).toBeVisible();
+        problems.push(...await contrastProblems(page, `${tr('pushRegisterTitle')} (no key)`));
+
+        await page.locator('#config-push_url').fill(relay.url);
+        await page.getByRole('button', { name: tr('save') }).click();
+        await expect(page.locator('.toast')).toHaveText(tr('configSaved'));
+        await page.getByRole('button', { name: tr('pushRegisterButton') }).click();
+        await expect(page.locator('.push-register .push-ok')).toBeVisible();
+        await page.getByRole('button', { name: tr('pushTestButton') }).click();
+        await expect(page.locator('.push-test .push-ok')).toBeVisible();
+        problems.push(...await contrastProblems(page, `${tr('pushTestTitle')} (sent)`));
+
+        // The push service unreachable: the error of the registration
+        await page.locator('#config-push_url').fill('http://127.0.0.1:9');
+        await page.getByRole('button', { name: tr('save') }).click();
+        await expect(page.locator('.toast')).toHaveText(tr('configSaved'));
+        await page.getByRole('button', { name: tr('pushRenewButton') }).click();
+        await expect(page.locator('.push-register .push-result[role="alert"]')).toBeVisible();
+        problems.push(...await contrastProblems(page, `${tr('pushRegisterTitle')} (error)`));
+    } finally {
+        await relay.close();
+    }
+
+    expect(problems).toEqual([]);
+});
+
+test('the API tab is readable, its link on hover included', async ({ adminPage: page }) => {
+    // A test of its own: Swagger UI, framed by the tab, is long to load
+    await page.locator('.tabs').getByRole('button', { name: tr('tabAdministration'), exact: true }).click();
+    await page.getByRole('tab', { name: tr('tabApi'), exact: true }).click();
+    await expect(page.getByRole('tab', { name: tr('tabApi'), exact: true })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.frameLocator('iframe.api-docs-frame').locator('.opblock').first()).toBeVisible({ timeout: 15_000 });
+    expect(await contrastProblems(page, tr('tabApi'))).toEqual([]);
 });
 
 test('the accounts grouped under their bank are readable', async ({ adminPage: page }) => {

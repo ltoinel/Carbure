@@ -3,6 +3,36 @@
 Remaining tasks on Carbure. A finished task is removed from this list (the Git history
 keeps track of what was done).
 
+- [ ] **Production — push notifications moved to Carbure Push (#170), BEFORE upgrading
+      Carbure**, otherwise the push notifications stop (Carbure no longer reads `[apns]` nor
+      the `.p8` key):
+      1. deploy the relay (private repo `ltoinel/Carbure-push`, README "Déploiement"): its
+         own container with the APNs `.p8` key and, for Android later, the Firebase service
+         account; serve it in HTTPS (e.g. `https://push.carbure.org`, the default
+         `push_url` of Carbure: confirm the final URL or change `PushRelay::DEFAULT_URL`);
+      2. check `bin/push-admin check` and `GET /v1/health` on the relay;
+      3. upgrade Carbure; the migration `2026-10-23_device_platform` (`devices.platform`,
+         default `ios`) is applied at container start (the code works before it);
+      4. **Administration → Settings → Notifications iOS (Carbure Push)**: set `push_url` if
+         not the default, click **Register the instance** (stores `push_api_key`), then
+         **Send a test notification** to an iPhone;
+      5. remove the `[apns]` section and `data/conf/certs/*.p8` from the NAS (no longer used);
+      6. later: a release workflow publishing the image of Carbure Push to a registry.
+
+- [ ] **Push relay — release the device bindings**: Carbure never calls
+      `DELETE /v1/devices/{token}` of the relay. A device deleted from an instance (or
+      moved to another instance) stays bound to the key of the first instance, so a second
+      instance gets `forbidden` for it until `binding_ttl_days` (60 days) without push or
+      an operator `devices:release`. Call it, best effort, when a device is deleted.
+- [ ] **Push relay — key renewal answer lost**: `POST /system/push-register` with a key
+      renews it; if the answer of `POST /v1/keys/rotate` is lost (timeout after the relay
+      committed), the old key is revoked and the new one unknown: register again, and ask
+      the operator to `devices:release` the devices (or wait 60 days).
+
+- [ ] **Android app**: the backend is ready (devices with a `platform`, login
+      `device.platform=android`, FCM provider in Carbure Push); to do: the app itself, the
+      Firebase project and its service account on the relay.
+
 - [ ] **Production**: test the connection of Claude to the MCP server from claude.ai
       (Settings → Connectors → Add custom connector). The Docker image applies the OAuth
       migration at startup and routes `/.well-known/oauth-*`; set `public_url`
@@ -21,6 +51,11 @@ keeps track of what was done).
       the warning "The sync token passed in the URL is deprecated". Later: once no
       scheduler uses it, remove `?token=` from `GET /bank/sync` (the MCP server keeps its
       `?token=` for the agents that cannot send a header).
+
+- [ ] **Production** (API sub-tab, #163): after the deployment, open **Administration → API**
+      and check that Swagger UI is shown. A blank frame means the DSM reverse proxy adds its
+      own `X-Frame-Options: DENY` (or `frame-ancestors 'none'`) to `/swagger/`: let it pass
+      the headers of the container (`SAMEORIGIN`, `frame-ancestors 'self'`).
 
 - [ ] **GitHub settings** (owner, after the merge of the workflow hardening, #125): in
       **Settings → Actions → General**, tick "Require actions to be pinned to a full-length
@@ -42,6 +77,20 @@ keeps track of what was done).
       `users.budget_threshold`, 100 for the existing users) and `2026-10-22_budget_alert`
       (alerts already sent) are applied at container start. Nothing changes until a user
       turns on "Budget of the month exceeded" in **My profile → Notifications** (opt-in).
+
+- [ ] **Production**: the migration `2026-10-23_user_budget_alert_category` (column
+      `users.budget_alert_category`, NULL = all the budgets for the existing users) is
+      applied at container start. Until then the budget alerts watch every budget and
+      choosing one in **My profile → Notifications** answers 409.
+
+- [ ] Backup (Administration → Backup, #162): the import is limited to 32 MB of JSON (nginx
+      `client_max_body_size` of `/api/backup/import`, PHP `post_max_size`) and decoded in
+      memory (`memory_limit` 256M). Measured: 31 MB of JSON (95,000 transactions) reach
+      about 230 MB of peak memory once decoded and checked, close to the limit; the usual
+      household (10,000 to 20,000 transactions, 3 to 7 MB) is far below. If a household
+      needs more, send the datasets in several requests (one transaction per request would
+      then no longer cover the whole import) or stream the rows. The bank accounts (labels,
+      owners) and connections are not in a backup: their credentials live in woob.
 
 - [ ] **Production** (two-factor authentication, #166): the migration `2026-10-24_user_mfa`
       (tables `user_mfa`, `mfa_recovery_code`, `mfa_trusted_browser`) is applied at
@@ -116,7 +165,7 @@ keeps track of what was done).
       two synchronized accounts is stored only once. Adding it changes every UUID (migration,
       or unique key `(account_number, uuid)`); only worth doing if accounts of the household
       can have identical operations.
-- [ ] The PHP notifications and emails (APNs pushes, e-mails) read the same translation files
+- [ ] The PHP notifications and emails (push notifications, e-mails) read the same translation files
       as the portal (`portal/i18n/<locale>.json`) instead of their `$french ? … : …` strings
       (separate issue to create).
 - [ ] Once the branches started before the split of the translations (#139) are merged

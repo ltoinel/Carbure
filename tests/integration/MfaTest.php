@@ -304,6 +304,21 @@ class MfaTest extends DatabaseTestCase
         $this->assertArrayHasKey('token', User::login('user', 'userpass', $device));
     }
 
+    public function testAndroidDeviceRegisteredAfterTheSecondStep()
+    {
+        $this->enforce();
+        $secret = $this->enroll(self::USER);
+        $device = ['name' => 'Pixel', 'token' => 'fcm-token:' . str_repeat('e', 40), 'platform' => 'android'];
+
+        $challenge = User::login('user', 'userpass', $device, true);
+        $this->assertSame('verify', $challenge['mfa']);
+        Mfa::login($challenge['mfa_token'], Totp::code($secret, time()), false, $device);
+        $row = Db::queryOne("SELECT user_id, platform FROM devices WHERE token = ?", "s", $device['token']);
+        $this->assertSame([2, 'android'], [(int)$row['user_id'], $row['platform']]);
+        // Known now, whatever the platform sent
+        $this->assertArrayHasKey('token', User::login('user', 'userpass', $device));
+    }
+
     public function testTrustedBrowserSkipsTheSecondFactorForSixMonths()
     {
         $this->enforce();

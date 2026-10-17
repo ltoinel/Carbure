@@ -19,7 +19,8 @@ icon: material/api
   méthode PHP. Une clé inconnue renvoie une erreur 400.
 - **Profils** : un **utilisateur** consulte et pointe les transactions, les budgets, les
   insights et les tendances. Un **administrateur** gère en plus les règles, les
-  catégories, les comptes, les insights, le serveur MCP et les utilisateurs : les routes
+  catégories, les comptes, les insights, le serveur MCP, les utilisateurs, la configuration
+  et les logs : les routes
   marquées « administrateur » renvoient `403` aux autres. Elles sont déclarées dans leur
   attribut (`#[ApiRoute(..., admin: true)]`) et vérifiées avant l'appel de la méthode ;
   un test unitaire fixe le niveau d'accès (public, utilisateur, administrateur) de chaque
@@ -36,7 +37,7 @@ icon: material/api
 | 405 | `GET /mcp` (le serveur MCP n'ouvre pas de flux) |
 | 409 | Conflit (doublon, suppression d'un utilisateur propriétaire de transactions, dernier administrateur…) |
 | 423 | Compte bloqué après trop d'échecs de connexion |
-| 500 | Erreur serveur (base de données, woob, APNs, migration…) |
+| 500 | Erreur serveur (base de données, woob, migration…) |
 | 503 | Carbure n'est pas encore installé (voir [Assistant d'installation](#assistant-dinstallation)) |
 
 ```json
@@ -53,13 +54,14 @@ icon: material/api
 |---|---|---|---|
 | `username` | string | oui | Identifiant |
 | `password` | string | oui | Mot de passe |
-| `device` | objet `{name, token}` | non | Appareil iOS à enregistrer pour les notifications |
+| `device` | objet `{name, token, platform?}` | non | Appareil mobile à enregistrer pour les notifications ; `platform` : `ios` (par défaut : l'app iOS ne l'envoie pas) ou `android` (`400` sinon) |
 | `mfa` | booléen | non | Le client gère la double authentification (`true` pour le portail) |
 
 ```bash
 curl -X POST https://exemple.fr/api/user/login \
   -H 'Content-Type: application/json' \
   -d '{"username":"alice","password":"…","device":{"name":"iPhone","token":"<token APNs>"}}'
+# Android (app à venir) : "device":{"name":"Pixel","token":"<token FCM>","platform":"android"}
 ```
 
 ```json
@@ -190,7 +192,11 @@ Canaux de chaque type de notification de l'utilisateur connecté :
   "smtp": true,
   "address": "alice@example.com",
   "email_available": true,
-  "budget_threshold": 100
+  "push_available": true,
+  "budget_threshold": 100,
+  "alert_threshold": 200.0,
+  "budget_category": null,
+  "budgets": [{"id": 1, "name": "Alimentation"}, {"id": 2, "name": "Alimentation › Supermarché"}]
 }
 ```
 
@@ -199,8 +205,15 @@ Types : `sync` (résultat d'une synchronisation), `rule` (nouvelle transaction d
 catégorie budgétée au-delà du seuil des budgets). Sans choix de l'utilisateur, un type est
 envoyé en push et pas par email, sauf `budget`, désactivé sur tous les canaux (à activer).
 `smtp` indique qu'un serveur SMTP est configuré, `address` l'adresse du profil (`null` si
-aucune), `email_available` que les emails peuvent partir (les deux) et `budget_threshold`
-le seuil des alertes de budget, en pourcentage du budget (100 par défaut). Les notifications (push et email) sont
+aucune), `email_available` que les emails peuvent partir (les deux), `push_available`
+qu'une clé d'API du service de notifications push est configurée (sinon aucune
+notification push n'est envoyée) et `budget_threshold`
+le seuil des alertes de budget, en pourcentage du budget (100 par défaut). `alert_threshold`
+est le montant d'une dépense importante (type `expense`, `null` : désactivé, le même que
+`GET /user/me`), `budget_category` la catégorie dont le budget est surveillé par les alertes
+de budget (`null` : tous les budgets) et `budgets` les catégories de dépenses qui ont un
+budget ce mois-ci (une sous-catégorie nommée « Catégorie › Sous-catégorie »), plus celle
+surveillée si elle n'en a pas. Les notifications (push et email) sont
 rédigées dans la langue du profil (`language`, `fr` par défaut).
 
 ### `PUT /user/notifications`
@@ -209,9 +222,12 @@ rédigées dans la langue du profil (`language`, `fr` par défaut).
 |---|---|---|
 | `preferences` | non | `{type: {push?, email?}}`, chaque canal `true`/`false` (ou `"true"`, `"false"`, `1`, `0`) |
 | `budgetThreshold` | non | Seuil des alertes de budget (type `budget`) en pourcentage du budget : entier de 50 à 200 (nombre ou chaîne) |
+| `alertThreshold` | non | Montant d'une dépense importante (type `expense`) en euros ; `""` ou `0` désactive l'alerte |
+| `budgetCategory` | non | Catégorie de dépenses dont le budget est surveillé (type `budget`) ; `0` ou `""` : tous les budgets |
 
-Les types, canaux et seuil absents sont conservés ; type, canal, valeur ou seuil invalides :
-`400`, sans rien enregistrer. Renvoie le résultat de `GET /user/notifications`.
+Les types, canaux et réglages absents sont conservés ; type, canal, valeur ou réglage
+invalides (dont une catégorie inconnue ou de revenus) : `400`, sans rien enregistrer ;
+`budgetCategory` avant la migration `2026-10-23_user_budget_alert_category` : `409`. Renvoie le résultat de `GET /user/notifications`.
 
 ```bash
 curl -X PUT "https://exemple.fr/api/user/notifications" -H "Authorization: Bearer $TOKEN" \
@@ -220,6 +236,10 @@ curl -X PUT "https://exemple.fr/api/user/notifications" -H "Authorization: Beare
 # Alertes de budget par email, dès 90 % du budget
 curl -X PUT "https://exemple.fr/api/user/notifications" -H "Authorization: Bearer $TOKEN" \
   -H 'Content-Type: application/json' -d '{"preferences":{"budget":{"email":true}},"budgetThreshold":"90"}'
+
+# Seulement le budget de la catégorie 4, et les dépenses à partir de 150 €
+curl -X PUT "https://exemple.fr/api/user/notifications" -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' -d '{"budgetCategory":"4","alertThreshold":"150"}'
 ```
 
 ### `DELETE /user` — administrateur
@@ -393,13 +413,18 @@ data: Syncing 12345678@bnp (history)...
 data: Done 12345678@bnp (history): 100 received, 4 new
 data: Notifying users of 12345678@bnp...
 data: Updating missing categories...
+data: Checking the budgets...
 data: Synchronization complete
 ```
 
 Après chaque compte, **tous les utilisateurs** du foyer reçoivent une notification (succès
-ou échec, nombre de transactions à vérifier), et chaque **nouvelle** dépense (transaction
+ou échec, nombre de transactions à vérifier), chaque **nouvelle** dépense (transaction
 absente jusque-là) dont le montant atteint le seuil `alert_threshold` d'un utilisateur lui
-envoie une notification « Dépense importante à vérifier » (dans sa langue).
+envoie une notification « Dépense importante à vérifier », et chaque nouvelle transaction
+d'une règle `notify` est signalée au foyer. Une fois les transactions catégorisées, les
+**budgets du mois en cours** sont vérifiés (alerte `budget`, aussi après un import). Chaque
+notification part dans la langue de son destinataire, sur les canaux (push, email) qu'il a
+choisis (voir [`GET /user/notifications`](#get-usernotifications)).
 
 ## Transactions
 
@@ -705,7 +730,9 @@ renvoie `applied`, le nombre de transactions recatégorisées.
 
 ### `GET /device`
 
-Appareils de l'utilisateur connecté : `id`, `user_id`, `name`, `token`, `lastLogin`.
+Appareils de l'utilisateur connecté : `id`, `user_id`, `name`, `token`, `platform` (`ios` ou
+`android` ; `ios` tant que la migration `2026-10-23_device_platform` n'est pas appliquée),
+`lastLogin`.
 
 ### `DELETE /device`
 
@@ -714,7 +741,12 @@ notifications). 404 si l'appareil n'existe pas ou appartient à un autre utilisa
 
 ### `POST /device/push`
 
-Envoie une notification de test à tous les appareils de l'utilisateur connecté.
+Envoie une notification de test à tous les appareils de l'utilisateur connecté, par le
+service Carbure Push. Renvoie le résultat de chaque token : `success`, `http_code`,
+`status` (`sent`, `unregistered`, `invalid_token`, `forbidden`, `device_limit`, `error`),
+`response` et, s'il n'est pas envoyé, `error` (sans clé d'API : `Push service not
+configured (push_api_key)`). Un appareil `unregistered` (application supprimée, token
+expiré) est supprimé.
 
 ## Agents IA (MCP)
 
@@ -757,14 +789,54 @@ l'API.
 
 Toutes répondent `403` (`access_denied`) quand le serveur MCP est désactivé.
 
+## Sauvegarde
+
+Le portail fabrique le ZIP d'un export et lit celui d'un import : l'API n'échange que du
+JSON. Données (dans l'ordre de leurs dépendances) : `categories`, `rules`, `budgets`,
+`insights`, `transactions`, `deleted_transactions`. Le propriétaire d'une transaction
+(`user`) et l'auteur d'une suppression (`user_id`) sont écrits par leur identifiant de
+connexion. Jamais exportés : utilisateurs, mots de passe, jetons, OAuth, appareils,
+réglages, connexions et comptes bancaires, alertes de budget envoyées.
+
+### `GET /backup` — administrateur
+
+Les données sauvegardables et leur nombre de lignes : `[{"name":"categories","count":12}, …]`.
+
+### `GET /backup/export` — administrateur
+
+Paramètre facultatif `datasets` : noms séparés par des virgules (toutes par défaut ; `400`
+pour un nom inconnu). Réponse : `format` (`carbure-backup`), `version` (1), `created_at`,
+`carbure` (version), `schema` (dernière migration), `counts` et `datasets` (les lignes de
+chaque donnée, colonnes de sa table).
+
+### `POST /backup/import` — administrateur
+
+Corps : `{"datasets": {"rules": [{"id":1,"keyword":"EDF","category":3,"notify":false}], …}}`.
+**Supprime et remplace** les lignes de chaque donnée fournie (une liste vide la vide) ; les
+autres sont conservées. Toutes les lignes sont vérifiées avant toute suppression (types,
+longueurs, dates, identifiants uniques, hiérarchie, icône et couleur des catégories,
+requête, couleur et icône des insights comme à leur enregistrement), puis l'import se fait en une transaction : `400` avec le
+détail (donnée, ligne, colonne) et rien n'est modifié si une ligne est invalide, si une
+contrainte de la base est violée, ou si une donnée conservée ou importée renvoie à une
+catégorie absente. La catégorie 0 (par défaut) est recréée si elle manque ; les alertes de
+budget des catégories disparues sont supprimées. Un identifiant de connexion inconnu devient
+l'administrateur qui importe ; une suppression sans auteur (`user_id` à `null`) le reste.
+Le portail refuse un fichier d'une version du format plus récente que la sienne. Réponse : `{"imported": {"rules": 1}}`. Corps limité à 32 Mo
+par nginx (2 Mo pour les autres routes).
+
 ## Système
 
 ### `GET /health` — publique
 
 État de l'instance pour le `HEALTHCHECK` Docker et les outils de supervision, sans
-authentification ni donnée : `{"status":"ok","version":"1.2.0","database":"ok","schema":"<version du schéma>"}`,
-`500` si la base ne répond pas, `{"status":"setup","version":"…"}` tant que Carbure n'est
+authentification ni donnée : `{"status":"ok","version":"1.2.0","database":"ok","schema":"<version du schéma>","min_mobile_version":"1.0"}`,
+`500` si la base ne répond pas, `{"status":"setup","version":"…","min_mobile_version":"1.0"}` tant que Carbure n'est
 pas installé. `version` est la version de Carbure (fichier `VERSION`, `dev` hors release).
+`min_mobile_version` est la plus ancienne version de l'app iOS (son `MARKETING_VERSION`)
+que le serveur prend en charge : une app plus ancienne invite son utilisateur à la mettre
+à jour. Elle est fixée dans le code (`Carbure\Lib\MobileApp::MIN_VERSION`) et n'est relevée
+que lorsqu'une évolution de l'API ne peut plus être lue par les anciennes versions de l'app,
+une fois la nouvelle version publiée sur l'App Store.
 
 ### `GET /system/logs` — administrateur
 
@@ -818,8 +890,7 @@ Le fichier de configuration, par section : `file` (chemin dans l'instance), `wri
 
 `values` : les nouvelles valeurs par clé, uniquement parmi les réglages modifiables
 (`log_level`, `log_retention_days`, `savings_category`, `public_url`, `woob_transactions`, `woob_logging`,
-`woob_debug`, `woob_auto_update`, `woob_2fa_wait`, `woob_2fa_retries`, `apns_environment`, `apns_auth_method`, `apns_bundle_id`,
-`apns_key_id`, `apns_team_id`, `smtp_host`, `smtp_port`, `smtp_encryption`, `smtp_auth`,
+`woob_debug`, `woob_auto_update`, `woob_2fa_wait`, `woob_2fa_retries`, `push_url`, `push_api_key`, `smtp_host`, `smtp_port`, `smtp_encryption`, `smtp_auth`,
 `smtp_username`, `smtp_password`, `smtp_from`, `smtp_from_name`). Toutes les valeurs sont vérifiées avant d'écrire quoi que
 ce soit (`400` sinon, fichier inchangé) ; l'ancien fichier est gardé en `.bak`. Renvoie la
 configuration comme `GET`.
@@ -840,6 +911,22 @@ celle de l'administrateur). Renvoie `{"sent": true, "to": "…"}` ; `400` sans
 serveur SMTP configuré ou sans destinataire, `502` si le serveur est injoignable ou refuse
 l'email (sa réponse est dans le message d'erreur).
 
+### `POST /system/push-register` — administrateur
+
+Inscrit l'instance sur le service de notifications push (`push_url`, le service officiel
+par défaut) : résout sa preuve de travail, obtient une clé d'API et l'écrit dans
+`push_api_key`. Avec une clé déjà configurée, la **renouvelle** (les appareils continuent
+de recevoir les notifications). La clé n'est jamais renvoyée :
+`{"registered": true, "renewed": false, "key_id": "…", "limits": {…}}`. `502` si le service
+est injoignable ou refuse, `429` au-delà de ses limites d'inscription ; le fichier de
+configuration doit être modifiable (vérifié avant l'appel).
+
+### `POST /system/push-test` — administrateur
+
+Envoie une notification de test aux appareils de l'administrateur, dans sa langue :
+`{"sent": 1, "devices": 2, "results": [{"device": "iPhone", "sent": true, "status": "sent", "error": null}, …]}`
+(sans les tokens). `400` sans clé d'API ou sans appareil.
+
 ### `POST /system/sync-token` — administrateur
 
 Écrit un nouveau `sync_token` aléatoire dans la configuration et le renvoie : `{"token": "…"}`.
@@ -855,7 +942,7 @@ renvoient `503` avec `"setup": true`) :
 | `GET /setup` | État de l'assistant : `codeRequired`, `dbPasswordFromEnvironment` et valeurs par défaut (`db_host`, `db_port`, `db_name`, `db_user`, `admin_user`, `language`) issues de l'environnement Docker |
 | `POST /setup/database` | Teste la connexion (`db_host`, `db_port`, `db_name`, `db_user`, `db_password`) et décrit l'installation : `state` (`none` = base vide, `current` = à jour, `outdated` = migrations à appliquer), `version`, `pending`, `hasAdmin` |
 | `POST /setup/install` | Crée ou migre le schéma, crée le premier administrateur s'il n'y en a pas (`admin_user`, `admin_password` de 8 caractères minimum, `admin_email`, `language`) et écrit la configuration ; `409` sans `backup_confirmed` quand des migrations sont à appliquer. Sur une base vide, `starter_categories` (facultatif) ajoute les catégories et règles de `sql/starter.json`, et `starter_insights` ses insights |
-| `GET /health` | `{"status":"setup"}` |
+| `GET /health` | `{"status":"setup","version":"…","min_mobile_version":"…"}` |
 
 Depuis Internet, ou si `data/conf/setup.code` existe, les requêtes `POST` exigent le paramètre
 `code` (code d'installation), sinon `403`. Voir [Sécurité](securite.md#assistant-dinstallation).
@@ -863,4 +950,9 @@ Depuis Internet, ou si `data/conf/setup.code` existe, les requêtes `POST` exige
 ## Spécification OpenAPI
 
 `swagger/swagger.php` génère une spécification OpenAPI 3 par réflexion sur les
-attributs `#[ApiRoute]` ; `swagger/index.html` l'affiche avec Swagger UI.
+attributs `#[ApiRoute]` ; `swagger/index.html` l'affiche avec Swagger UI, aussi dans le
+portail (**Administration → API**), authentifié avec la session de l'administrateur. Les
+chemins de la spécification commencent par `/api` (serveur `/`) : **Try it out** appelle
+`/api/...` sur le serveur qui sert Swagger UI. `swagger/carbure.css` fonce les couleurs du
+thème clair de Swagger UI (contraste WCAG AA) ; son thème sombre suit celui du portail, ou
+la préférence du système quand Swagger UI est ouvert seul.

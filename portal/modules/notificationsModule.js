@@ -3,9 +3,10 @@
  *
  * Notifications section of the profile page: for each kind of notification
  * (synchronization result, rule marked "notify", large expense, budget exceeded), the
- * channels it is sent on (push to the iOS app, email to the address of the profile),
- * and the threshold of the budget alerts (percent of a budget). Each change is saved
- * at once.
+ * channels it is sent on (push to the iOS app, when the administrator configured the
+ * push service; email to the address of the profile), and the settings shown under the
+ * label of their kind: the amount of a large expense, the budget watched and the
+ * threshold of the budget alerts (percent of a budget). Each change is saved at once.
  *
  * @module notificationsModule
  */
@@ -32,6 +33,21 @@ export function budgetThresholdError(value) {
     return '';
 }
 
+/**
+ * Why a large expense threshold is refused ('' when it is valid): empty (off) or a
+ * positive amount
+ * @param {number|string} value - Amount typed
+ * @returns {string} Translation key of the error, or ''
+ */
+export function alertThresholdError(value) {
+    const text = String(value ?? '').trim();
+    if (text === '') {
+        return '';
+    }
+    const number = Number(text);
+    return Number.isFinite(number) && number >= 0 ? '' : 'alertThresholdInvalid';
+}
+
 /** Channels of a notification, in the order of the columns */
 export const NOTIFICATION_CHANNELS = ['push', 'email'];
 
@@ -45,6 +61,19 @@ export function emailUnavailableReason(notifications) {
         return '';
     }
     return notifications.smtp ? 'notificationsEmailNoAddress' : 'notificationsEmailNoSmtp';
+}
+
+/**
+ * Why the push channel cannot be used ('' when it can): no API key of the push service
+ * @param {Object|null} notifications - Answer of GET /user/notifications
+ * @returns {string} Translation key of the reason, or ''
+ */
+export function pushUnavailableReason(notifications) {
+    // Servers older than the push service do not send push_available: push available
+    if (!notifications || notifications.push_available !== false) {
+        return '';
+    }
+    return 'notificationsPushUnavailable';
 }
 
 /**
@@ -68,7 +97,14 @@ export function createNotificationsModule(getApiService) {
                 budgetThresholdErrorKey: '',
                 savingBudgetThreshold: false,
                 budgetThresholdMin: BUDGET_THRESHOLD_MIN,
-                budgetThresholdMax: BUDGET_THRESHOLD_MAX
+                budgetThresholdMax: BUDGET_THRESHOLD_MAX,
+                // Large expense threshold typed (amount, '' = off) and its error
+                alertThreshold: '',
+                alertThresholdErrorKey: '',
+                savingAlertThreshold: false,
+                // Budget watched by the budget alerts ('' = all the budgets)
+                budgetCategory: '',
+                savingBudgetCategory: false
             };
         },
 
@@ -79,6 +115,14 @@ export function createNotificationsModule(getApiService) {
              */
             emailUnavailable() {
                 return emailUnavailableReason(this.notifications);
+            },
+
+            /**
+             * Translation key of the reason why the push channel is disabled ('' if usable)
+             * @returns {string}
+             */
+            pushUnavailable() {
+                return pushUnavailableReason(this.notifications);
             }
         },
 
@@ -93,6 +137,7 @@ export function createNotificationsModule(getApiService) {
                     this.notifications = await getApiService().fetchNotifications();
                     this.budgetThreshold = this.notifications.budget_threshold ?? 100;
                     this.budgetThresholdErrorKey = '';
+                    this.readAlertSettings();
                 } catch (error) {
                     this.notifications = null;
                     this.showToast(error.message);
@@ -102,14 +147,35 @@ export function createNotificationsModule(getApiService) {
             },
 
             /**
-             * Whether a channel can be changed: email only when it can be sent (a channel
-             * on stays changeable, to turn it off)
+             * Copies the settings of the alerts answered by the server into the fields
+             */
+            readAlertSettings() {
+                const amount = this.notifications.alert_threshold;
+                this.alertThreshold = amount ? String(Number(amount)) : '';
+                this.alertThresholdErrorKey = '';
+                this.budgetCategory = this.notifications.budget_category ? String(this.notifications.budget_category) : '';
+            },
+
+            /**
+             * Whether a channel can be changed: only when it can be sent (a channel on
+             * stays changeable, to turn it off)
              * @param {string} kind - Kind of notification
              * @param {string} channel - push or email
              * @returns {boolean}
              */
             notificationDisabled(kind, channel) {
-                return channel === 'email' && !!this.emailUnavailable && !this.notifications.preferences[kind].email;
+                const unavailable = channel === 'email' ? this.emailUnavailable : this.pushUnavailable;
+                return !!unavailable && !this.notifications.preferences[kind][channel];
+            },
+
+            /**
+             * Id of the reason why a channel is unavailable, for aria-describedby (null if usable)
+             * @param {string} channel - push or email
+             * @returns {string|null}
+             */
+            notificationUnavailableId(channel) {
+                const unavailable = channel === 'email' ? this.emailUnavailable : this.pushUnavailable;
+                return unavailable ? `notifications-${channel}-unavailable` : null;
             },
 
             /**
@@ -153,6 +219,46 @@ export function createNotificationsModule(getApiService) {
                     this.showToast(error.message);
                 } finally {
                     this.savingBudgetThreshold = false;
+                }
+            },
+
+            /**
+             * Checks and saves the large expense threshold typed ('' turns the alert off);
+             * an invalid one is not sent and its error is shown next to the field
+             * @returns {Promise<void>}
+             */
+            async saveAlertThreshold() {
+                this.alertThresholdErrorKey = alertThresholdError(this.alertThreshold);
+                if (this.alertThresholdErrorKey) {
+                    return;
+                }
+                this.savingAlertThreshold = true;
+                try {
+                    this.notifications = await getApiService().updateAlertSettings({ alertThreshold: String(this.alertThreshold ?? '').trim() });
+                    this.readAlertSettings();
+                    this.showToast(this.t('notificationsSaved'));
+                } catch (error) {
+                    this.showToast(error.message);
+                } finally {
+                    this.savingAlertThreshold = false;
+                }
+            },
+
+            /**
+             * Saves the budget watched by the budget alerts ('' = all the budgets); back
+             * to the previous one if refused
+             * @returns {Promise<void>}
+             */
+            async saveBudgetCategory() {
+                this.savingBudgetCategory = true;
+                try {
+                    this.notifications = await getApiService().updateAlertSettings({ budgetCategory: this.budgetCategory });
+                    this.showToast(this.t('notificationsSaved'));
+                } catch (error) {
+                    this.showToast(error.message);
+                } finally {
+                    this.readAlertSettings();
+                    this.savingBudgetCategory = false;
                 }
             }
         }

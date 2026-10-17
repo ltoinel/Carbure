@@ -47,7 +47,7 @@ class BudgetAlertTest extends DatabaseTestCase
         $this->spend(2, -150);
 
         $this->assertSame(0, BudgetAlert::check());
-        $this->assertSame([], FakeApnsServer::requests());
+        $this->assertSame([], FakePushRelay::requests());
         $this->assertSame([], FakeSmtpServer::messages());
         $this->assertSame(0, $this->alerts());
     }
@@ -59,7 +59,7 @@ class BudgetAlertTest extends DatabaseTestCase
         $this->spend(2, -130);
 
         $this->assertSame(1, BudgetAlert::check());
-        $requests = FakeApnsServer::requests();
+        $requests = FakePushRelay::requests();
         $this->assertCount(1, $requests);
         $this->assertSame('Budget dépassé : Alimentation', $requests[0]['payload']['aps']['alert']['title']);
         $this->assertSame('210,00 € sur 200,00 € (105 %)', $requests[0]['payload']['aps']['alert']['body']);
@@ -69,10 +69,10 @@ class BudgetAlertTest extends DatabaseTestCase
         $this->assertSame(['category' => 1, 'month' => $this->day(0), 'budget' => '200.00', 'spent' => '210.00', 'percent' => 105], $row);
 
         // Not again this month, even with more spending
-        FakeApnsServer::start();
+        FakePushRelay::start();
         $this->spend(2, -20);
         $this->assertSame(0, BudgetAlert::check());
-        $this->assertSame([], FakeApnsServer::requests());
+        $this->assertSame([], FakePushRelay::requests());
     }
 
     public function testAlertedAgainWhenTheBudgetIsRaisedAndReached()
@@ -86,10 +86,10 @@ class BudgetAlertTest extends DatabaseTestCase
         $this->assertSame(0, BudgetAlert::check());
 
         // Reached again: alerted for the new amount
-        FakeApnsServer::start();
+        FakePushRelay::start();
         $this->spend(2, -100);
         $this->assertSame(1, BudgetAlert::check());
-        $this->assertSame('310,00 € sur 300,00 € (103 %)', FakeApnsServer::requests()[0]['payload']['aps']['alert']['body']);
+        $this->assertSame('310,00 € sur 300,00 € (103 %)', FakePushRelay::requests()[0]['payload']['aps']['alert']['body']);
         $this->assertSame('300.00', Db::queryOne("SELECT budget FROM budget_alert WHERE user_id = 1", "")['budget']);
 
         // Lowered: already alerted for a higher budget
@@ -107,7 +107,7 @@ class BudgetAlertTest extends DatabaseTestCase
         $this->subscribe(self::ADMIN, true, true);
 
         $this->assertSame(1, BudgetAlert::check());
-        $this->assertSame([], FakeApnsServer::requests());
+        $this->assertSame([], FakePushRelay::requests());
         $messages = FakeSmtpServer::messages();
         $this->assertCount(1, $messages);
         $this->assertSame(['user@example.com'], $messages[0]['to']);
@@ -128,7 +128,7 @@ class BudgetAlertTest extends DatabaseTestCase
             $output = ob_get_clean();
         }
         $this->assertStringContainsString('Checking the budgets...', $output);
-        $titles = array_map(fn($request) => $request['payload']['aps']['alert']['title'], FakeApnsServer::requests());
+        $titles = array_map(fn($request) => $request['payload']['aps']['alert']['title'], FakePushRelay::requests());
         $this->assertContains('Budget dépassé : Énergie', $titles);
         $this->assertSame(1, $this->alerts());
     }
@@ -143,7 +143,7 @@ class BudgetAlertTest extends DatabaseTestCase
         $date = date('d/m/Y', strtotime($this->day(4)));
         Transaction::import(base64_encode("Date;Libellé;Montant\n$date;CB SUPERMARCHE IMPORT;-150,00\n"), 'releve.csv');
 
-        $requests = FakeApnsServer::requests();
+        $requests = FakePushRelay::requests();
         $this->assertCount(1, $requests);
         $this->assertSame('Budget exceeded: Alimentation', $requests[0]['payload']['aps']['alert']['title']);
         $this->assertSame('230.00 € of 200.00 € (115%)', $requests[0]['payload']['aps']['alert']['body']);
@@ -157,7 +157,7 @@ class BudgetAlertTest extends DatabaseTestCase
 
         // Only an old month: the budgets of the current month are not checked
         Transaction::import(base64_encode("Date;Libellé;Montant\n10/05/2019;CB SUPERMARCHE ANCIEN BIS;-500,00\n"), 'releve.csv');
-        $this->assertSame([], FakeApnsServer::requests());
+        $this->assertSame([], FakePushRelay::requests());
         $this->assertSame(0, $this->alerts());
     }
 
@@ -214,7 +214,7 @@ class BudgetAlertTest extends DatabaseTestCase
             Db::query("RENAME TABLE user_notification_hidden TO user_notification");
         }
         $this->assertSame(['push' => false, 'email' => false], $sent);
-        $this->assertSame([], FakeApnsServer::requests());
+        $this->assertSame([], FakePushRelay::requests());
     }
 
     public function testDefaultThresholdBeforeTheMigration()
@@ -239,6 +239,109 @@ class BudgetAlertTest extends DatabaseTestCase
         } finally {
             Db::query("RENAME TABLE budget_alert_hidden TO budget_alert");
         }
+    }
+
+    public function testOnlyTheBudgetWatched()
+    {
+        // Both reached at 50 %: the administrator watches Énergie only
+        $this->subscribe(self::ADMIN, true, false);
+        Db::query("UPDATE users SET budget_threshold = 50, budget_alert_category = 3 WHERE id = 1");
+
+        $this->assertSame(1, BudgetAlert::check());
+        $requests = FakePushRelay::requests();
+        $this->assertCount(1, $requests);
+        $this->assertSame('Budget presque atteint : Énergie', $requests[0]['payload']['aps']['alert']['title']);
+        $this->assertSame(3, (int)Db::queryOne("SELECT category FROM budget_alert", "")['category']);
+    }
+
+    public function testBudgetsThatCanBeWatched()
+    {
+        // The expense categories with a budget this month, a sub-category after its parent
+        Db::execute("INSERT INTO budget (category, amount, date) VALUES (2, 60, ?), (4, 1000, ?)", "ss", $this->day(0), $this->day(0));
+        $this->assertSame([
+            ['id' => 1, 'name' => 'Alimentation'],
+            ['id' => 2, 'name' => 'Alimentation › Supermarché'],
+            ['id' => 3, 'name' => 'Énergie'],
+        ], BudgetAlert::budgets((int)date('n'), (int)date('Y')));
+    }
+
+    public function testBudgetWatchedSavedWithThePreferences()
+    {
+        $this->loginAs(self::USER);
+        $notifications = Notification::get();
+        $this->assertNull($notifications['budget_category']);
+        $this->assertSame([['id' => 1, 'name' => 'Alimentation'], ['id' => 3, 'name' => 'Énergie']], $notifications['budgets']);
+
+        $notifications = Notification::update([], null, null, '3');
+        $this->assertSame(3, $notifications['budget_category']);
+        $this->assertSame(3, (int)Db::queryOne("SELECT budget_alert_category FROM users WHERE id = 2", "")['budget_alert_category']);
+
+        // A category without a budget this month stays listed while it is watched
+        Notification::update([], null, null, 2);
+        $this->assertSame(['id' => 2, 'name' => 'Supermarché'], Notification::get()['budgets'][2]);
+
+        // 0 or "": back to all the budgets
+        $this->assertNull(Notification::update([], null, null, '')['budget_category']);
+        Notification::update([], null, null, 3);
+        $this->assertNull(Notification::update([], null, null, 0)['budget_category']);
+    }
+
+    /**
+     * @return array Budgets watched refused: an income category, unknown, not a number
+     */
+    public static function refusedCategories(): array
+    {
+        return ['income' => [4], 'unknown' => ['99'], 'not a number' => ['abc']];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('refusedCategories')]
+    public function testRefusedCategories($category)
+    {
+        $this->loginAs(self::USER);
+        try {
+            Notification::update(['budget' => ['push' => true]], 80, null, $category);
+            $this->fail('Invalid category accepted');
+        } catch (Error $e) {
+            $this->assertSame(400, $e->getCode());
+        }
+        // Nothing saved
+        $user = Db::queryOne("SELECT budget_threshold, budget_alert_category FROM users WHERE id = 2", "");
+        $this->assertSame(['budget_threshold' => 100, 'budget_alert_category' => null], $user);
+        $this->assertSame(0, (int)Db::queryOne("SELECT COUNT(*) AS n FROM user_notification", "")['n']);
+    }
+
+    public function testBackToAllTheBudgetsWhenTheCategoryIsDeleted()
+    {
+        Db::query("UPDATE users SET budget_alert_category = 3 WHERE id = 2");
+        Db::query("DELETE FROM budget WHERE category = 3");
+        Db::query("DELETE FROM bank_transaction WHERE category = 3");
+        Db::query("DELETE FROM bank_transaction_category WHERE id = 3");
+        $this->assertNull(BudgetAlert::watchedCategory(self::USER));
+    }
+
+    public function testAllTheBudgetsBeforeTheMigration()
+    {
+        $this->loginAs(self::USER);
+        $this->subscribe(self::USER, true, false);
+        Db::query("UPDATE users SET budget_threshold = 40");
+        Db::query("ALTER TABLE users DROP FOREIGN KEY fk_users_budget_alert_category");
+        Db::query("ALTER TABLE users DROP COLUMN budget_alert_category");
+        try {
+            $notifications = Notification::get();
+            $sent = BudgetAlert::check();
+            try {
+                Notification::update([], null, null, 3);
+                $this->fail('Budget watched saved without its column');
+            } catch (Error $e) {
+                $this->assertSame(409, $e->getCode());
+            }
+        } finally {
+            Db::query("ALTER TABLE users ADD COLUMN budget_alert_category tinyint(3) unsigned DEFAULT NULL AFTER budget_threshold,
+                ADD CONSTRAINT fk_users_budget_alert_category FOREIGN KEY (budget_alert_category) REFERENCES bank_transaction_category (id) ON DELETE SET NULL");
+        }
+        $this->assertNull($notifications['budget_category']);
+        // Alimentation (40 %) and Énergie (50 %), both reached at 40 %
+        $this->assertSame(2, $sent);
     }
 
     public function testAlertsDeletedWithTheUser()
