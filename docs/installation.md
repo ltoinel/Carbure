@@ -171,8 +171,10 @@ carte).
 
 Les notifications de l'application iOS passent par le service externe Carbure Push :
 dans **Administration → Paramètres**, section **Notifications iOS (Carbure Push)**,
-cliquez sur **Inscrire l'instance** (la clé d'API obtenue est enregistrée dans
-`/data/conf/prod.ini`), puis sur **Envoyer une notification de test**. Sans clé, aucune
+cliquez sur **Inscrire l'instance**, lisez et acceptez le consentement (les jetons des
+appareils et le contenu des notifications passent par ce relais, qui les transmet à Apple
+et à Google ; la clé d'API obtenue est enregistrée dans `/data/conf/prod.ini`), puis sur
+**Envoyer une notification de test**. Sans clé, aucune
 notification push n'est envoyée. Voir [Configuration](configuration.md#push).
 
 !!! warning "Mise à jour depuis une version qui envoyait elle-même les notifications (APNs)"

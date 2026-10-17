@@ -355,7 +355,9 @@ SELECT -SUM(amount) AS amount FROM bank_transaction WHERE amount < 0 AND categor
 
 Les notifications sont envoyées en **push** sur l'**app iPhone** (Apple Push Notification
 service) et, si un administrateur a configuré un serveur SMTP, par **email** à l'adresse du
-profil :
+profil. Les notifications push passent par le relais **Carbure Push**, auquel un
+administrateur inscrit l'instance après avoir accepté son consentement (voir
+[Configuration](configuration.md#push)) :
 
 !!! info "App iPhone"
     L'application iOS Carbure sera prochainement disponible sur l'App Store.
