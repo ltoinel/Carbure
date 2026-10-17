@@ -326,7 +326,7 @@ final class Settings {
         $userId = Jwt::getUserIdFromToken();
         $devices = Device::get($userId);
         if (!$devices) {
-            throw new Error("No device: log in to the iOS app with your account first", 400);
+            throw new Error("No device: log in to the mobile app with your account first", 400);
         }
 
         $language = (string)(Db::queryOne("SELECT language FROM users WHERE id = ?", "i", $userId)['language'] ?? '');
