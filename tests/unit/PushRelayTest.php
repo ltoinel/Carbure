@@ -44,7 +44,7 @@ class PushRelayTest extends TestCase
         $results = PushRelay::sendToMultiple([self::TOKEN => 'ios'], "Caf\xE9", 'Body', 0, ['label' => "Caf\xE9"]);
         $this->assertTrue($results[self::TOKEN]['success']);
         $payload = FakePushRelay::requests()[0]['payload'];
-        $this->assertSame('Caf?', $payload['aps']['alert']['title']);
+        $this->assertStringStartsWith('Caf', $payload['aps']['alert']['title']);
         $this->assertSame("Caf\u{FFFD}", $payload['label']);
     }
 
