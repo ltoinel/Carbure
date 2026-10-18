@@ -38,6 +38,14 @@ insights, notifications, agent IA et foyer.*
 
 ![Flux du mois : des revenus aux dépenses, à l'épargne et au reste](assets/screenshot-flow.png)
 
+![Transactions du mois dans l'app iPhone](assets/mobile/ios-transactions.png){ loading=lazy }
+![Budgets du mois dans l'app Android](assets/mobile/android-budgets.png){ loading=lazy }
+![Aperçus du mois dans l'app iPhone](assets/mobile/ios-apercus.png){ loading=lazy }
+{ .mobile-screens }
+
+*Les [applications iPhone et Android](applications-mobiles.md) : transactions, budgets et
+aperçus du mois.*
+
 ## Fonctionnalités
 
 | Domaine | Ce que fait Carbure |

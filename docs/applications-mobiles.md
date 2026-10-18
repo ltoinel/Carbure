@@ -11,9 +11,10 @@ Carbure existe en **application native** pour **iPhone** (SwiftUI) et pour **And
 Carbure, par la même [API](api.md) que le portail web : aucune donnée ne passe par un
 service tiers, sauf les notifications push (voir [plus bas](#notifications-push)).
 
-![Transactions du mois dans l'app iPhone](assets/mobile/ios-transactions.png){ width="240" loading=lazy }
-![Budgets du mois dans l'app Android](assets/mobile/android-budgets.png){ width="240" loading=lazy }
-![Tendances sur 24 mois dans l'app iPhone](assets/mobile/ios-tendances.png){ width="240" loading=lazy }
+![Transactions du mois dans l'app iPhone](assets/mobile/ios-transactions.png){ loading=lazy }
+![Budgets du mois dans l'app Android](assets/mobile/android-budgets.png){ loading=lazy }
+![Tendances sur 24 mois dans l'app iPhone](assets/mobile/ios-tendances.png){ loading=lazy }
+{ .mobile-screens }
 
 !!! info "Disponibilité"
     Les applications seront prochainement disponibles sur l'**App Store** et sur
@@ -37,6 +38,10 @@ catégories, insights, utilisateurs, paramètres) et l'import de relevés resten
 ## Connexion
 
 L'écran de connexion demande l'**identifiant** et le **mot de passe** du compte Carbure.
+
+![Écran de connexion de l'app iPhone, avec le bouton Essayer la démo](assets/mobile/ios-votre-serveur.png){ loading=lazy }
+![Écran de connexion de l'app Android](assets/mobile/android-votre-serveur.png){ loading=lazy }
+{ .mobile-screens }
 
 - **Adresse du serveur** : le bouton ⚙ en haut à droite affiche le champ de l'adresse de
   l'API (`https://<serveur>/api/`) ; elle doit être en `http` ou `https`, sans identifiant
@@ -95,8 +100,6 @@ aperçus) en affichant chaque étape ; en cas d'échec, **Réessayer** relance l
 
 ## Écran principal
 
-![Aperçus du mois dans l'app Android](assets/mobile/android-apercus.png){ width="240" align=right loading=lazy }
-
 - **En-tête** : le menu (☰), le **mois** affiché avec ses flèches précédent / suivant, et
   un interrupteur qui **masque les transactions pointées** (dans toutes les listes et le
   compteur) pour ne garder que celles à vérifier.
@@ -108,6 +111,9 @@ aperçus) en affichant chaque étape ; en cas d'échec, **Réessayer** relance l
 La liste des transactions du mois : icône et couleur de la catégorie, coche si la
 transaction est pointée, libellé, date et montant (vert pour un crédit, rouge pour une
 dépense de plus de 100 €).
+
+![Transactions du mois dans l'app Android](assets/mobile/android-transactions.png){ loading=lazy }
+{ .mobile-screens }
 
 Une transaction ouvre son **détail** (catégorie, montant, libellé, date, carte) avec deux
 actions :
@@ -129,12 +135,19 @@ Une catégorie ouvre son **détail** : un **anneau** du budget consommé, puis s
 **sous-budgets** (si elle a des sous-catégories) ou ses **transactions** du mois. Le
 bouton ⚙ **modifie le montant du budget** de ce mois (montant entier en euros).
 
+![Budgets du mois dans l'app iPhone](assets/mobile/ios-budgets.png){ loading=lazy }
+{ .mobile-screens }
+
 ### Aperçus
 
 Les [insights](insights.md) du mois définis sur le serveur (dépenses, revenus, reste,
 épargne…), en tuiles, et un **graphique en carrés** du mois : chaque carré vaut 100 €
 (l'échelle s'adapte), en rouge ce qui est dépensé, en bleu le budget prévu restant et en
 vert le reste des revenus.
+
+![Aperçus du mois dans l'app iPhone](assets/mobile/ios-apercus.png){ loading=lazy }
+![Aperçus du mois dans l'app Android](assets/mobile/android-apercus.png){ loading=lazy }
+{ .mobile-screens }
 
 ## Menu
 
@@ -148,6 +161,9 @@ solde (bleu quand le mois a permis de mettre de côté, orange en cas de dépass
 - Sous le graphique : l'évolution des dépenses (moitié récente de la période comparée à la
   plus ancienne), les dépenses et revenus moyens, le solde cumulé, le nombre de mois en
   dépassement, et les mois aux dépenses les plus fortes et les plus faibles.
+
+![Tendances sur 24 mois dans l'app Android](assets/mobile/android-tendances.png){ loading=lazy }
+{ .mobile-screens }
 
 ### Synchronisation
 
@@ -170,6 +186,10 @@ succès, avertissement, erreur). Quitter l'écran l'interrompt.
 - **Sécurité** : la [connexion biométrique](#face-id-et-empreinte).
 - **Notifications** : **Tester la notification push** envoie une notification de test à
   chaque appareil du compte et indique le résultat.
+
+![Budgets en thème sombre dans l'app iPhone](assets/mobile/ios-mode-sombre.png){ loading=lazy }
+![Budgets en thème sombre dans l'app Android](assets/mobile/android-mode-sombre.png){ loading=lazy }
+{ .mobile-screens }
 
 **À propos** donne la version de l'app ; **Déconnexion** ferme la session après
 confirmation.
