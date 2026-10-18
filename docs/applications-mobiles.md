@@ -39,8 +39,8 @@ catégories, insights, utilisateurs, paramètres) et l'import de relevés resten
 
 L'écran de connexion demande l'**identifiant** et le **mot de passe** du compte Carbure.
 
-![Écran de connexion de l'app iPhone, avec le bouton Essayer la démo](assets/mobile/ios-votre-serveur.png){ loading=lazy }
-![Écran de connexion de l'app Android](assets/mobile/android-votre-serveur.png){ loading=lazy }
+![Écran de connexion de l'app iPhone, avec le bouton Essayer la démo](assets/mobile/ios-connexion.png){ loading=lazy }
+![Écran de connexion de l'app Android](assets/mobile/android-connexion.png){ loading=lazy }
 { .mobile-screens }
 
 - **Adresse du serveur** : le bouton ⚙ en haut à droite affiche le champ de l'adresse de
