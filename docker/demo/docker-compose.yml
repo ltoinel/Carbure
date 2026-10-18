@@ -19,6 +19,8 @@ services:
     tmpfs:
       - /data
       - /run
+      # nginx.pid (empty folder on the /run tmpfs of images up to 1.6.0)
+      - /run/nginx
       - /tmp
       - /var/tmp
       - /var/lib/mysql
