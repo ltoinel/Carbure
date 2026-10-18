@@ -689,6 +689,7 @@ test('config: registration on the push service after consent, renewal after conf
         },
         fetchPushInfo: async () => ({ url: relay, official: false, registered, api_key: registered ? KEY : '', consent, consent_valid: !!consent && consent.url === relay }),
         fetchConfig: async () => configWithKey(registered),
+        fetchPushStatus: async () => ({ relay: { reachable: true, status: 'ok', version: '1.0.0', error: null }, key: { state: registered ? 'valid' : 'none' } }),
         sendTestPush: async () => testAnswer(),
     };
     const { methods, data, computed } = createConfigModule(() => api);
@@ -963,4 +964,37 @@ test('notifications: a change is saved at once, undone if refused', async () => 
     await context.loadNotifications();
     assert.equal(context.notifications, null);
     assert.equal(toasts.at(-1), 'Failed to read the notifications (500)');
+});
+
+test('config: status of the push service, the relay and the API key as shown', async () => {
+    const { createConfigModule, pushRelayState, pushKeyState } = await import('../../portal/modules/configModule.js');
+    assert.deepEqual(pushRelayState({ status: 'ok', version: '1.0.0' }), { level: 'ok', icon: 'check_circle', label: 'pushRelayOk' });
+    assert.deepEqual(pushRelayState({ status: 'unreachable' }), { level: 'error', icon: 'error', label: 'pushRelayUnreachable' });
+    assert.deepEqual(pushRelayState({ status: 'error' }), { level: 'error', icon: 'error', label: 'pushRelayError' });
+    assert.equal(pushRelayState(null).label, 'pushStatusLoading');
+
+    assert.deepEqual(pushKeyState({ state: 'valid', key_id: 'abc', devices: 2, used_today: 7, limits: { devices: 20, notifications_per_day: 500 } }),
+        { level: 'ok', icon: 'check_circle', label: 'pushKeyValid', params: { id: 'abc', devices: 2, devicesLimit: 20, used: 7, usedLimit: 500 } });
+    assert.equal(pushKeyState({ state: 'valid', key_id: 'abc', devices: 0, used_today: 0, limits: null }).params.devicesLimit, '?');
+    assert.deepEqual(pushKeyState({ state: 'invalid', error: 'revoked' }), { level: 'error', icon: 'error', label: 'pushKeyInvalid', params: {} });
+    assert.deepEqual(pushKeyState({ state: 'none' }), { level: 'warning', icon: 'warning', label: 'pushKeyNone', params: {} });
+    assert.equal(pushKeyState({ state: 'unknown' }).label, 'pushKeyUnknown');
+    assert.equal(pushKeyState(null).level, 'unknown');
+
+    let answer = async () => ({ relay: { status: 'ok' }, key: { state: 'none' } });
+    const api = {
+        fetchPushInfo: async () => ({ url: 'https://api.carbure.org', registered: false, api_key: '', config_writable: true }),
+        fetchPushStatus: () => answer(),
+    };
+    const { methods, data } = createConfigModule(() => api);
+    const context = { ...data(), ...methods, t: key => key };
+    await context.loadPushTab();
+    assert.equal(context.pushInfo.url, 'https://api.carbure.org');
+    assert.deepEqual(context.pushStatus.key, { state: 'none' });
+    assert.equal(context.loadingPushStatus, false);
+
+    answer = async () => { throw new Error('Failed to load the status of the push service'); };
+    await context.loadPushStatus();
+    assert.equal(context.pushStatus, null);
+    assert.equal(context.pushStatusError, 'Failed to load the status of the push service');
 });

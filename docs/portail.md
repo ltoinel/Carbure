@@ -53,7 +53,7 @@ Deux profils existent :
 | Profil | Onglets |
 |---|---|
 | **Utilisateur** | Transactions, Budget, Insights, Tendances ; **Agent IA** et **Mon profil** dans le menu utilisateur |
-| **Administrateur** | En plus : Règles, Comptes, et le menu **Administration** (Utilisateurs, Catégories, Synchro, Agent IA, Logs, Paramètres, Sauvegarde, API) ; ajout et modification des insights ; activation du serveur MCP ; mise à jour de la base de données |
+| **Administrateur** | En plus : Règles, Comptes, et le menu **Administration** (Utilisateurs, Catégories, Synchro, Push mobile, Agent IA, Logs, Paramètres, Sauvegarde, API) ; ajout et modification des insights ; activation du serveur MCP ; mise à jour de la base de données |
 
 Les pages d'administration (Règles, Catégories, Comptes, Utilisateurs) et les onglets
 Insights et Agent IA suivent la même présentation : un en-tête avec le titre et l'aide, et
@@ -395,6 +395,25 @@ ligne crontab correspondante, à copier pour une tâche planifiée (cron, tâche
 Synology). Le `sync_token` y est masqué jusqu'à **Afficher** ; le bouton copier copie
 toujours la commande complète. **Créer un jeton** / **Renouveler** en écrit un nouveau dans
 la configuration (`GET /system/sync`, `POST /system/sync-token`).
+
+## Push mobile (menu Administration)
+
+Le service de notifications push des applications mobiles (Carbure Push,
+`https://api.carbure.org`), en trois blocs :
+
+- **État du service** : le relais (opérationnel avec sa version, en erreur ou injoignable)
+  et la clé d'API de l'instance (valide, avec son identifiant, ses appareils et ses
+  notifications du jour sur ses limites ; refusée si elle est révoquée ; absente). Le
+  bouton **Vérifier** interroge de nouveau le relais (`GET /system/push-status`, qui
+  appelle `GET /v1/health` et `GET /v1/keys/current`).
+- **Inscription** : la clé d'API de l'instance, réduite à son identifiant public
+  (`cpk_<id>_••••`) et affichée en entier avec **Afficher la clé d'API**, le bouton
+  **Copier** ; **Inscrire l'instance** (ou **Renouveler la clé**), après le consentement,
+  qui est rappelé avec sa date.
+- **Notification de test**, envoyée aux appareils de l'administrateur.
+
+Le champ `push_api_key` reste dans **Paramètres** (pour coller une clé), avec un lien vers
+cet onglet ; voir [Configuration](configuration.md#push).
 
 ## Sauvegarde (menu Administration)
 

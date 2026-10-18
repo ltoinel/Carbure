@@ -264,7 +264,7 @@ final class Settings {
      * @return array<string, mixed> url (of the relay), official (the relay of Carbure),
      *               registered (an API key is saved), api_key (the key, '' if none),
      *               consent ({at (ISO 8601 date), url} or null), consent_valid (given for
-     *               the current relay)
+     *               the current relay), config_writable (the key can be saved)
      */
     #[ApiRoute('/system/push', method: 'GET', admin: true)]
     public static function push(): array
@@ -277,7 +277,21 @@ final class Settings {
             'api_key' => PushRelay::apiKey(),
             'consent' => $consent,
             'consent_valid' => $consent !== null && $consent['url'] === PushRelay::url(),
+            'config_writable' => is_writable(self::file()),
         ];
+    }
+
+    /**
+     * Status of the push service (administrators): the relay answers (its health) and
+     * accepts the key of the instance (its devices and notifications of the day).
+     *
+     * @return array<string, mixed> relay {reachable, status, version, error}, key {state:
+     *               valid, invalid, none or unknown, key_id, devices, used_today, limits, error}
+     */
+    #[ApiRoute('/system/push-status', method: 'GET', admin: true)]
+    public static function pushStatus(): array
+    {
+        return PushRelay::status();
     }
 
     /**

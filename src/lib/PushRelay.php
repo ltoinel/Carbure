@@ -142,6 +142,20 @@ final class PushRelay {
     }
 
     /**
+     * Status of the relay and of the key of the instance: the relay answers
+     * (GET /v1/health), the key is accepted (GET /v1/keys/current) and its use.
+     *
+     * @return array{relay: array<string, mixed>, key: array<string, mixed>} relay: reachable,
+     *               status (ok, error, unreachable), version, error; key: state (valid,
+     *               invalid, none, unknown) and, when valid, key_id, devices, used_today,
+     *               limits; error when invalid or unknown
+     */
+    public static function status(): array
+    {
+        return ['relay' => self::relayHealth(), 'key' => self::keyStatus()];
+    }
+
+    /**
      * Find the nonce of a proof-of-work challenge: SHA-256("<challenge>:<nonce>")
      * starts with <difficulty> zero bits.
      *
@@ -160,6 +174,48 @@ final class PushRelay {
                 return (string)$nonce;
             }
         }
+    }
+
+    /**
+     * Health of the relay (GET /v1/health, without key).
+     *
+     * @return array<string, mixed> reachable, status (ok, error, unreachable), version, error
+     */
+    private static function relayHealth(): array
+    {
+        try {
+            $answer = self::request('GET', '/v1/health');
+        } catch (Error $e) {
+            return ['reachable' => false, 'status' => 'unreachable', 'version' => '', 'error' => $e->getMessage()];
+        }
+        $ok = $answer['status'] === 200 && ($answer['data']['status'] ?? '') === 'ok';
+        return ['reachable' => true, 'status' => $ok ? 'ok' : 'error', 'version' => (string)($answer['data']['version'] ?? ''),
+            'error' => $ok ? null : (string)($answer['data']['error'] ?? "HTTP {$answer['status']}")];
+    }
+
+    /**
+     * Status of the key of the instance (GET /v1/keys/current).
+     *
+     * @return array<string, mixed> state (valid, invalid, none, unknown), key_id, devices,
+     *               used_today, limits when valid, error when invalid or unknown
+     */
+    private static function keyStatus(): array
+    {
+        if (!self::isConfigured()) {
+            return ['state' => 'none'];
+        }
+        try {
+            $answer = self::request('GET', '/v1/keys/current', null, self::apiKey());
+        } catch (Error $e) {
+            return ['state' => 'unknown', 'error' => $e->getMessage()];
+        }
+        $error = (string)($answer['data']['error'] ?? "HTTP {$answer['status']}");
+        if ($answer['status'] !== 200) {
+            return ['state' => $answer['status'] === 401 ? 'invalid' : 'unknown', 'error' => $error];
+        }
+        $data = $answer['data'];
+        return ['state' => 'valid', 'key_id' => (string)($data['key_id'] ?? ''), 'devices' => (int)($data['devices'] ?? 0),
+            'used_today' => (int)($data['used_today'] ?? 0), 'limits' => is_array($data['limits'] ?? null) ? $data['limits'] : null];
     }
 
     /**

@@ -38,6 +38,42 @@ export function pushTestOutcome(result) {
     return { ok: false, key: 'pushTestFailed', params: { errors } };
 }
 
+/** Level of a state: its icon */
+const STATE_ICONS = { ok: 'check_circle', warning: 'warning', error: 'error', unknown: 'help' };
+
+/**
+ * State of the relay as shown, from GET /system/push-status
+ * @param {Object|null} relay - {reachable, status, version, error}
+ * @returns {{level: string, icon: string, label: string}} Level, icon and translation key
+ */
+export function pushRelayState(relay) {
+    const level = !relay ? 'unknown' : { ok: 'ok', error: 'error', unreachable: 'error' }[relay.status] || 'unknown';
+    const label = !relay ? 'pushStatusLoading'
+        : { ok: 'pushRelayOk', error: 'pushRelayError', unreachable: 'pushRelayUnreachable' }[relay.status] || 'pushRelayError';
+    return { level, icon: STATE_ICONS[level], label };
+}
+
+/**
+ * State of the API key as shown, from GET /system/push-status
+ * @param {Object|null} key - {state, key_id, devices, used_today, limits, error}
+ * @returns {{level: string, icon: string, label: string, params: Object}} Level, icon,
+ *     translation key and its parameters
+ */
+export function pushKeyState(key) {
+    if (!key) {
+        return { level: 'unknown', icon: STATE_ICONS.unknown, label: 'pushStatusLoading', params: {} };
+    }
+    const limits = key.limits || {};
+    const states = {
+        valid: ['ok', 'pushKeyValid', { id: key.key_id, devices: key.devices, devicesLimit: limits.devices ?? '?',
+            used: key.used_today, usedLimit: limits.notifications_per_day ?? '?' }],
+        invalid: ['error', 'pushKeyInvalid', {}],
+        none: ['warning', 'pushKeyNone', {}],
+    };
+    const [level, label, params] = states[key.state] || ['unknown', 'pushKeyUnknown', {}];
+    return { level, icon: STATE_ICONS[level], label, params };
+}
+
 /**
  * Creates the config module mixin for Vue components
  * @param {Function} getApiService - Function that returns the API service instance
@@ -71,6 +107,10 @@ export function createConfigModule(getApiService) {
                 pushInfo: null,
                 // Whether the API key of the push service is shown in full
                 pushKeyRevealed: false,
+                // Answer of GET /system/push-status: health of the relay, status of the key
+                pushStatus: null,
+                loadingPushStatus: false,
+                pushStatusError: null,
                 // Consent dialog of the push service: {accepted, trigger}; null when closed
                 pushConsent: null
             };
@@ -115,10 +155,29 @@ export function createConfigModule(getApiService) {
             },
 
             /**
+             * State of the relay as shown: level (ok, warning, error), icon, text key
+             * @returns {{level: string, icon: string, label: string}}
+             */
+            pushRelayState() {
+                return pushRelayState(this.pushStatus ? this.pushStatus.relay : null);
+            },
+
+            /**
+             * State of the API key as shown: level, icon, text key and its parameters
+             * @returns {{level: string, icon: string, label: string, params: Object}}
+             */
+            pushKeyState() {
+                return pushKeyState(this.pushStatus ? this.pushStatus.key : null);
+            },
+
+            /**
              * Whether an API key of the push service is saved
              * @returns {boolean}
              */
             pushKeySet() {
+                if (this.pushInfo) {
+                    return !!this.pushInfo.registered;
+                }
                 const push = this.configData ? this.configData.sections.find(section => section.name === 'push') : null;
                 const key = push ? push.settings.find(setting => setting.key === 'push_api_key') : null;
                 return !!(key && key.set);
@@ -171,6 +230,32 @@ export function createConfigModule(getApiService) {
                 } catch (error) {
                     this.pushInfo = null;
                     return false;
+                }
+            },
+
+            /**
+             * Loads the Push tab: the service and the consent, then its status
+             * @returns {Promise<void>}
+             */
+            async loadPushTab() {
+                await this.loadPushInfo();
+                await this.loadPushStatus();
+            },
+
+            /**
+             * Asks the relay for its health and the status of the API key
+             * @returns {Promise<void>}
+             */
+            async loadPushStatus() {
+                this.loadingPushStatus = true;
+                this.pushStatusError = null;
+                try {
+                    this.pushStatus = await getApiService().fetchPushStatus();
+                } catch (error) {
+                    this.pushStatus = null;
+                    this.pushStatusError = error.message;
+                } finally {
+                    this.loadingPushStatus = false;
                 }
             },
 
@@ -410,6 +495,7 @@ export function createConfigModule(getApiService) {
                     this.registeringPush = false;
                 }
                 await this.loadPushInfo();
+                await this.loadPushStatus();
             },
 
             /**
@@ -429,6 +515,10 @@ export function createConfigModule(getApiService) {
                     this.pushTestResult = { ok: false, message: error.message };
                 } finally {
                     this.sendingTestPush = false;
+                }
+                // The notifications of the day of the key changed
+                if (this.pushStatus) {
+                    await this.loadPushStatus();
                 }
             },
 

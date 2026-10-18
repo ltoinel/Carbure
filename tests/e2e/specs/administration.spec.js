@@ -161,18 +161,30 @@ test('an administrator configures the SMTP server and sends a test email', async
     }
 });
 
+test('the Settings tab keeps the API key field and sends to the Mobile push tab', async ({ adminPage: page }) => {
+    await openAdministration(page, 'tabSettings');
+    // No push_url setting: the relay is always the one of Carbure
+    await expect(page.locator('#config-push_url')).toHaveCount(0);
+    await expect(page.locator('#config-push_api_key')).toBeVisible();
+    await expect(page.getByRole('button', { name: tr('pushRegisterButton') })).toHaveCount(0);
+    await page.getByRole('button', { name: tr('pushOpenTab') }).click();
+    await expect(page.getByRole('heading', { name: tr('pushStatusTitle') })).toBeVisible();
+});
+
 test('an administrator registers the instance on the push service and sends a test push', async ({ adminPage: page }) => {
     const relay = await startFakePushRelay();
     try {
-        await openAdministration(page, 'tabSettings');
+        await openAdministration(page, 'tabPush');
+        // The relay answers (the fake one here, CARBURE_PUSH_URL of the server); no key yet
+        const relayStatus = page.locator('.push-status-item').nth(0);
+        const keyStatus = page.locator('.push-status-item').nth(1);
+        await expect(relayStatus).toContainText(tr('pushRelayOk', { version: 'e2e' }));
+        await expect(relayStatus).toContainText(relay.url);
+        await expect(keyStatus).toContainText(tr('pushKeyNone'));
         // No API key: the test push cannot be sent, the registration is offered
         await expect(page.getByText(tr('pushUnavailableAdmin'))).toBeVisible();
         await expect(page.getByRole('button', { name: tr('pushTestButton') })).toBeDisabled();
-
-        // No key to show yet; no push_url setting: the relay is always the one of Carbure
-        // (the fake one here, CARBURE_PUSH_URL of the server)
         await expect(page.locator('.push-key')).toHaveCount(0);
-        await expect(page.locator('#config-push_url')).toHaveCount(0);
 
         // The consent first: what goes through the relay, the register button disabled
         // until it is accepted; cancelled, nothing is registered
@@ -201,9 +213,9 @@ test('an administrator registers the instance on the push service and sends a te
         await expect(consent).toHaveCount(0);
         await expect.poll(() => relay.keys.length).toBe(1);
         await expect(page.getByRole('status').filter({ hasText: tr('pushRegistered', { key: relay.keys[0].slice(4, 20) }) })).toBeVisible();
-        // The key is saved: masked in its field, shown with its public id only until revealed
-        await expect(page.locator('#config-push_api_key')).toHaveValue('');
-        await expect(page.locator('#config-push_api_key')).toHaveAttribute('placeholder', tr('configPasswordKeep'));
+        // The key accepted by the relay
+        await expect(keyStatus).toContainText(tr('pushKeyValid', { id: relay.keys[0].slice(4, 20), devices: 1, devicesLimit: 20, used: 0, usedLimit: 500 }));
+        // The key: its public id only until revealed
         const key = page.locator('.push-key-value');
         await expect(key).toHaveText(`${relay.keys[0].slice(0, 21)}${'•'.repeat(12)}`);
         await expect(page.locator('.tab-panel')).not.toContainText(relay.keys[0]);
@@ -221,6 +233,8 @@ test('an administrator registers the instance on the push service and sends a te
         expect(relay.notifications).toHaveLength(1);
         expect(relay.notifications[0].title).toBe('Notification de test');
         expect(relay.notifications[0].key).toBe(relay.keys[0]);
+        // The notification of the day counted
+        await expect(keyStatus).toContainText(tr('pushKeyValid', { id: relay.keys[0].slice(4, 20), devices: 1, devicesLimit: 20, used: 1, usedLimit: 500 }));
 
         // Renewed after confirmation (accepted by the fixtures), the consent already given
         // for this relay: the new key is used
@@ -237,9 +251,10 @@ test('an administrator registers the instance on the push service and sends a te
     }
 });
 
-test('the push service unreachable: the registration tells why', async ({ adminPage: page }) => {
+test('the push service unreachable: the status and the registration tell why', async ({ adminPage: page }) => {
     // No fake push service started: nothing listens where the server sends
-    await openAdministration(page, 'tabSettings');
+    await openAdministration(page, 'tabPush');
+    await expect(page.locator('.push-status-item').nth(0)).toContainText(tr('pushRelayUnreachable'));
     await page.getByRole('button', { name: tr('pushRegisterButton') }).click();
     const consent = page.getByRole('dialog', { name: tr('pushConsentTitle') });
     await consent.getByLabel(tr('pushConsentAccept')).check();

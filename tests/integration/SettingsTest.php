@@ -114,6 +114,10 @@ class SettingsTest extends DatabaseTestCase
     {
         $this->loginAs(self::ADMIN);
         $this->assertSame(FakePushRelay::API_KEY, Settings::push()['api_key']);
+        $this->assertTrue(Settings::push()['config_writable']);
+        $status = Settings::pushStatus();
+        $this->assertSame('ok', $status['relay']['status']);
+        $this->assertSame('valid', $status['key']['state']);
         Config::set('push_api_key', '');
         $this->assertSame('', Settings::push()['api_key']);
     }

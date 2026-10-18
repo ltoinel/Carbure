@@ -155,6 +155,32 @@ class PushRelayTest extends TestCase
         $this->assertSame('https://relay.example', PushRelay::url());
     }
 
+    public function testStatus()
+    {
+        $this->assertSame(['relay' => ['reachable' => true, 'status' => 'ok', 'version' => 'test', 'error' => null],
+            'key' => ['state' => 'valid', 'key_id' => '0123456789abcdef', 'devices' => 3, 'used_today' => 12,
+                'limits' => ['notifications_per_day' => 500, 'devices' => 20]]], PushRelay::status());
+
+        Config::set('push_api_key', 'cpk_deadbeefdeadbeef_' . str_repeat('0', 64));
+        $this->assertSame(['state' => 'invalid', 'error' => 'API key revoked'], PushRelay::status()['key']);
+
+        Config::set('push_api_key', '');
+        $this->assertSame(['state' => 'none'], PushRelay::status()['key']);
+
+        Config::set('push_api_key', FakePushRelay::API_KEY);
+        FakePushRelay::point(FakePushRelay::url() . '/nowhere');
+        $status = PushRelay::status();
+        $this->assertSame(['reachable' => true, 'status' => 'error', 'version' => '', 'error' => 'Not found'], $status['relay']);
+        $this->assertSame(['state' => 'unknown', 'error' => 'Not found'], $status['key']);
+
+        FakePushRelay::point('http://127.0.0.1:1');
+        $status = PushRelay::status();
+        $this->assertFalse($status['relay']['reachable']);
+        $this->assertSame('unreachable', $status['relay']['status']);
+        $this->assertSame('unknown', $status['key']['state']);
+        $this->assertStringStartsWith('Push service unreachable', $status['key']['error']);
+    }
+
     public function testApiKey()
     {
         $this->assertSame(FakePushRelay::API_KEY, PushRelay::apiKey());

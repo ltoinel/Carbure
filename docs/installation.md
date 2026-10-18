@@ -266,11 +266,11 @@ carte).
 ### Notifications push (Carbure Push)
 
 Les notifications des applications iOS et Android passent par le service externe Carbure Push :
-dans **Administration → Paramètres**, section **Push Notification Mobile** (Carbure Push),
+dans **Administration → Push mobile**, vérifiez que le relais est opérationnel,
 cliquez sur **Inscrire l'instance**, lisez et acceptez le consentement (les jetons des
 appareils et le contenu des notifications passent par ce relais, qui les transmet à Apple
 et à Google ; la clé d'API obtenue est enregistrée dans `/data/conf/prod.ini`), puis sur
-**Envoyer une notification de test**. Sans clé, aucune
+**Envoyer une notification de test** (l'état de la clé passe à « Valide »). Sans clé, aucune
 notification push n'est envoyée. Voir [Configuration](configuration.md#push).
 
 !!! warning "Mise à jour depuis une version qui envoyait elle-même les notifications (APNs)"

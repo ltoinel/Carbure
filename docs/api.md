@@ -955,12 +955,25 @@ l'email (sa réponse est dans le message d'erreur).
 
 Le service de notifications push de l'instance, sa clé d'API et le consentement de
 l'administrateur :
-`{"url": "https://api.carbure.org", "official": true, "registered": true, "api_key": "cpk_…", "consent": {"at": "2026-10-17T08:00:00Z", "url": "https://api.carbure.org"}, "consent_valid": true}`.
+`{"url": "https://api.carbure.org", "official": true, "registered": true, "api_key": "cpk_…", "consent": {"at": "2026-10-17T08:00:00Z", "url": "https://api.carbure.org"}, "consent_valid": true, "config_writable": true}`.
 `url` est le relais utilisé (toujours `https://api.carbure.org`), `official` s'il s'agit
 du service officiel (toujours vrai), `registered` si une clé d'API est configurée,
 `api_key` la clé (`""` sans inscription ; réservée aux administrateurs, jamais dans
 `GET /system/config`), `consent` le dernier consentement enregistré (`null` s'il n'y en a
-pas) et `consent_valid` s'il a été donné pour ce relais.
+pas), `consent_valid` s'il a été donné pour ce relais et `config_writable` si le fichier
+de configuration peut recevoir la clé.
+
+### `GET /system/push-status` — administrateur
+
+L'état du service de notifications push, vérifié auprès du relais à chaque appel :
+`{"relay": {"reachable": true, "status": "ok", "version": "1.0.0", "error": null}, "key": {"state": "valid", "key_id": "0123456789abcdef", "devices": 3, "used_today": 12, "limits": {"notifications_per_day": 500, "devices": 20}}}`.
+
+- `relay` : réponse de `GET /v1/health` ; `status` vaut `ok`, `error` (le relais répond
+  mais pas « ok » : `error` donne la raison) ou `unreachable` (`reachable` à `false`).
+- `key` : réponse de `GET /v1/keys/current` avec la clé de l'instance ; `state` vaut
+  `valid` (avec `key_id`, `devices`, `used_today`, `limits`), `invalid` (refusée :
+  révoquée ou inconnue), `none` (pas de clé) ou `unknown` (relais injoignable ou réponse
+  inattendue), avec `error` pour ces deux derniers cas et `invalid`.
 
 ### `POST /system/push-register` — administrateur
 

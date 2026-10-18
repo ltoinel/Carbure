@@ -37,6 +37,9 @@ function startFakePushRelay() {
             };
             const known = keys.includes(key) && !revoked.has(key);
 
+            if (request.url === '/v1/health') {
+                return answer(200, { status: 'ok', version: 'e2e' });
+            }
             if (request.url === '/v1/register/challenge') {
                 return answer(200, { challenge: `e2e.${crypto.randomBytes(4).toString('hex')}`, difficulty: 4, algorithm: 'sha256', expires_at: 0 });
             }
@@ -51,6 +54,10 @@ function startFakePushRelay() {
             }
             if (!known) {
                 return answer(401, { error: 'Missing or invalid API key', code: 401 });
+            }
+            if (request.url === '/v1/keys/current') {
+                return answer(200, { key_id: key.slice(4, 20), name: 'carbure.e2e', created_at: 0,
+                    limits: { notifications_per_day: 500, devices: 20 }, devices: 1, used_today: notifications.filter(n => n.key === key).length });
             }
             if (request.url === '/v1/keys/rotate') {
                 revoked.add(key);

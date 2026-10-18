@@ -103,7 +103,7 @@ Les notifications push des applications mobiles (iOS et Android, voir [Applicati
 par **Carbure Push** (`https://api.carbure.org`, toujours ce service : pas de réglage
 d'adresse), un service externe qui détient les identifiants des fournisseurs (clé
 APNs d'Apple, compte de service Firebase) : l'instance n'en a besoin d'aucun. Elle s'y
-inscrit une fois (bouton **Inscrire l'instance** de **Administration → Paramètres**, qui
+inscrit une fois (bouton **Inscrire l'instance** de **Administration → Push mobile**, qui
 résout une preuve de travail et enregistre la clé obtenue ici) puis lui envoie chaque
 notification avec sa clé d'API.
 
@@ -120,14 +120,17 @@ n'est envoyée au relais.
 
 | Clé | Description |
 |---|---|
-| `push_api_key` ✏️ | Clé d'API de l'instance (`cpk_<id>_<secret>`) : un secret, jamais journalisé ; masquée dans son champ, affichée aux administrateurs sous **Clé d'API de l'instance** (identifiant public seul, en entier avec **Afficher la clé**, bouton **Copier**) ; renseignée par **Inscrire l'instance** (ou collée). Vide : **aucune notification push n'est envoyée** (journalisé en info, le profil des utilisateurs l'indique) |
+| `push_api_key` ✏️ | Clé d'API de l'instance (`cpk_<id>_<secret>`) : un secret, jamais journalisé ; masquée dans son champ, affichée aux administrateurs dans **Administration → Push mobile** (identifiant public seul, en entier avec **Afficher la clé d'API**, bouton **Copier**) ; renseignée par **Inscrire l'instance** (ou collée). Vide : **aucune notification push n'est envoyée** (journalisé en info, le profil des utilisateurs l'indique) |
 
 Un ancien fichier qui contient encore `push_url` reste valable : ce réglage n'est plus lu
 ni affiché.
 
-Le bouton **Renouveler la clé** remplace une clé (fuitée par exemple) par une nouvelle,
-les appareils continuant de recevoir les notifications. **Envoyer une notification de
-test** l'envoie aux appareils de l'administrateur. Les appareils que le service déclare
+L'onglet **Push mobile** affiche aussi l'**état du service** : le relais répond-il
+(`GET /v1/health`, avec sa version) et accepte-t-il la clé de l'instance
+(`GET /v1/keys/current` : valide avec ses appareils et ses notifications du jour, refusée
+si elle est révoquée). Le bouton **Renouveler la clé** remplace une clé (fuitée par
+exemple) par une nouvelle, les appareils continuant de recevoir les notifications.
+**Envoyer une notification de test** l'envoie aux appareils de l'administrateur. Les appareils que le service déclare
 désinscrits (application supprimée, jeton expiré) sont oubliés.
 
 Une ancienne section `[apns]` est ignorée (affichée en lecture seule) : elle peut être
