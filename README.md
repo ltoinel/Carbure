@@ -218,12 +218,13 @@ Toutes les façons d'obtenir de l'aide, et la FAQ : [Assistance](https://carbure
 
 ## Contribuer
 
-Les contributions sont les bienvenues : lisez [AGENTS.md](AGENTS.md) (conventions, tests,
-définition de « terminé ») et la liste des tâches ouvertes dans [TODO.md](TODO.md). Si Carbure
-vous est utile, une ⭐ aide d'autres personnes à le découvrir.
+Les contributions sont les bienvenues :
 
-Pour mettre en place l'environnement de développement, voir
-[Le lancer en local pour développer](#3-le-lancer-en-local-pour-développer).
+- lisez [AGENTS.md](AGENTS.md) : conventions, tests et définition de « terminé » ;
+- choisissez une tâche parmi celles ouvertes dans [TODO.md](TODO.md) ;
+- mettez en place l'environnement de développement :
+  [Le lancer en local pour développer](#3-le-lancer-en-local-pour-développer) ;
+- si Carbure vous est utile, une ⭐ aide d'autres personnes à le découvrir.
 
 ## Licence
 

@@ -215,12 +215,13 @@ All the ways to get help, and the FAQ: [Support](https://carbure.org/en/assistan
 
 ## Contributing
 
-Contributions are welcome: read [AGENTS.md](AGENTS.md) (conventions, tests, definition of
-done) and the open tasks in [TODO.md](TODO.md). If Carbure is useful to you, a ⭐ helps
-others find it.
+Contributions are welcome:
 
-To set up the development environment, see
-[Run it locally to develop](#3-run-it-locally-to-develop).
+- read [AGENTS.md](AGENTS.md): conventions, tests and definition of done;
+- pick a task among the open ones in [TODO.md](TODO.md);
+- set up the development environment:
+  [Run it locally to develop](#3-run-it-locally-to-develop);
+- if Carbure is useful to you, a ⭐ helps others find it.
 
 ## License
 
