@@ -28,10 +28,10 @@ home. Transactions are fetched automatically from French banks thanks to
 
 All of them rely on the same **PHP REST API** (`src/`).
 
-<video class="teaser" controls playsinline preload="none" poster="assets/carbure-header.jpg">
-  <source src="assets/videos/carbure-teaser.mp4" type="video/mp4">
-  Your browser cannot play this video: <a href="assets/videos/carbure-teaser.mp4">download it</a>.
-</video>
+<a class="teaser" href="https://www.youtube.com/watch?v=PUCd27oJkig" data-youtube="PUCd27oJkig" title="Carbure teaser (1 min, in French) on YouTube">
+  <img src="assets/teaser-youtube.jpg" alt="Play the Carbure teaser (1 min, in French, YouTube)" width="1280" height="720">
+  <span class="teaser__play" aria-hidden="true"></span>
+</a>
 
 *Carbure in one minute: synchronization, categorization, budgets, monthly flow, trends,
 insights, notifications, AI agent and household.*
