@@ -566,20 +566,3 @@ chosen by users (categories) and SVG charts are not measured.
 
 Adding `?debug=true` to the URL shows a panel with the last API request and enables
 logs in the browser console.
-
-## Code organization { #organisation-du-code }
-
-| File | Role |
-|---|---|
-| `index.html` | Vue template (all the screens, including the setup wizard) |
-| `app.js` | Root application: authentication, tabs (administration tabs restricted), initialization |
-| `modules/*.js` | Mixins by domain: `setup` (wizard), `transaction`, `import` (statement import), `budget`, `insights`, `trends`, `rules`, `categories`, `accounts`, `sync`, `agents`, `oauth` (AI agent consent), `logs`, `config` (Settings, test email, Sync), `user`, `profile` (profile and its sub-tabs, devices, database update), `notifications` (channels of the profile's notifications), `confirm` (confirmation window) |
-| `services/apiService.js` | HTTP calls to the API |
-| `stores/budgetStore.js` | Navigation in the budget tree |
-| `components/*.js` | Components: flow diagram (`FlowChart`), category picker (`CategoryPicker`, compact in lists), SQL editor (`SqlEditor`) |
-| `i18n.js`, `i18n/*.json` | Loading of the translations, and one JSON file per language (`fr` as reference, `en`, `es`, `it`, `de`, `pt`) |
-| `utils/formatters.js`, `utils/categoryIcons.js` | Formatting of amounts, dates, icons; category icons and colors |
-| `vendor/` | Vue, CodeMirror (SQL editor) and fonts, served locally |
-| `manifest.webmanifest`, `icons/` | Manifest and icons of the installed app |
-| `theme.js` | Light or dark theme applied before the page is displayed |
-| `style.css` | Styles (CSS variables in `:root`, dark theme, increased contrast, forced colors) |
