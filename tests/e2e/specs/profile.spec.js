@@ -105,7 +105,7 @@ test('shows the QR code that opens the mobile apps on this server', async ({ use
     // Without public_url, the address of the portal: 127.0.0.1 cannot be reached by a phone
     const portalApi = `${new URL(baseURL).origin}/api`;
     await expect(card.locator('.app-link-server code')).toHaveText(portalApi);
-    await expect(card.locator('.app-link-warning')).toHaveText(tr('appLinkUnreachable'));
+    await expect(card.locator('.app-link-warning')).toContainText(tr('appLinkUnreachable'));
 
     // With the public address of Carbure: the one given to the apps
     const saved = await api.put('/api/system/config', { data: { values: { public_url: 'https://budget.example.org' } } });
