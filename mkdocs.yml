@@ -50,6 +50,7 @@ exclude_docs: |
   !.well-known/
 not_in_nav: |
   /app.md
+  /app.en.md
 
 plugins:
   - search:
@@ -108,6 +109,25 @@ plugins:
             Modèle de données: Data model
             Développement: Development
             Sécurité: Security
+            FAQ: FAQ
+            Assistance: Support
+          extra:
+            generator: false
+            demo_url: https://demo.carbure.org/
+            discord_url: https://discord.gg/QsxYw4Rx9D
+            social:
+              - icon: fontawesome/brands/github
+                link: https://github.com/ltoinel/Carbure
+                name: Source code on GitHub
+              - icon: fontawesome/brands/discord
+                link: https://discord.gg/QsxYw4Rx9D
+                name: "Discord: help and chat"
+              - icon: material/forum-outline
+                link: https://github.com/ltoinel/Carbure/discussions
+                name: "Discussions: questions and ideas"
+              - icon: fontawesome/brands/youtube
+                link: https://www.youtube.com/@carbure-org
+                name: "Carbure videos on YouTube"
   # No external CDN: the fonts (Google Fonts) and any other external asset are
   # downloaded at build time and served with the site
   - privacy
@@ -128,6 +148,9 @@ extra:
     - icon: material/forum-outline
       link: https://github.com/ltoinel/Carbure/discussions
       name: "Discussions : questions et idées"
+    - icon: fontawesome/brands/youtube
+      link: https://www.youtube.com/@carbure-org
+      name: "Vidéos de Carbure sur YouTube"
 
 extra_css:
   - stylesheets/extra.css

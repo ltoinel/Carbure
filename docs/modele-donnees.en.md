@@ -16,6 +16,7 @@ erDiagram
     users ||--o| user_mfa : "authenticates"
     users ||--o{ mfa_recovery_code : "recovery"
     users ||--o{ mfa_trusted_browser : "trusts"
+    users ||--o{ user_browser : "logs in from"
     users ||--o{ api_tokens : "owns"
     users ||--o{ user_notification : "chooses"
     users ||--o{ budget_alert : "alerted"
@@ -181,6 +182,7 @@ erDiagram
 | `user_mfa` | Two-factor authentication of a user: TOTP `secret` (base32), `enabled` (0 until enrollment is confirmed by a first code), `last_step` the last accepted time step (a code can be used only once). Deleted with the user. |
 | `mfa_recovery_code` | Two-factor authentication recovery codes: only the SHA-256 hash (`code_hash`) is stored, the row is deleted when used. Deleted with the user. |
 | `mfa_trusted_browser` | Trusted browsers (6 months): SHA-256 hash of the cookie token (`token_hash`), `label` (User-Agent), `created_at`, `expires_at`, `last_used_at`. Deleted with the user, when their password changes or when their two-factor authentication is disabled or reset. |
+| `user_browser` | Web browsers of the portal logins: SHA-256 hash of the token of the `carbure_browser` cookie (`token_hash`, unique per user: several users of the household share the cookie of a browser), `label` (User-Agent), `created_at`, `last_login`. Forgotten after 6 months without a login or when the user asks, deleted with the user. Neither notifications nor exemption from two-factor authentication. |
 | `user_notification` | Channels chosen by a user for a notification type (`kind`: `sync`, `rule`, `expense`, `budget`): `push` to their devices, `email` to the address in their profile. With no row for a type: push yes, email no, except `budget` (neither). Deleted with the user. |
 | `budget_alert` | Budget alerts sent: one per user, category and month (`month`, first day), with the budget (`budget`), the expenses (`spent`) and the percentage (`percent`) at the time of the alert. A new alert is sent only if the month's budget exceeds the one already alerted. Deleted with the user or the category. |
 | `api_tokens` | Access tokens of AI agents (MCP server): only the SHA-256 hash (`token_hash`) is stored, `token_hint` (start of the token) is used to recognize it; `expires_at` `NULL` = no expiration. A token obtained through OAuth carries its `client_id` and the hash of its refresh token (`refresh_hash`); `client_id` `NULL` = created in the portal. Deleted with the user. |

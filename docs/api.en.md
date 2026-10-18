@@ -770,10 +770,28 @@ Devices of the logged-in user: `id`, `user_id`, `name`, `token`, `platform` (`io
 `lastLogin`, `model`, `os_version`, `app_version` (`null` if the app did not send them
 or until the `2026-10-25_device_model` migration is applied).
 
+### `GET /device/link`
+
+Address of the API given to the mobile apps by the QR code of **My devices**:
+`{ "server": "https://carbure.example.com/api/" }`, that is `public_url` followed by
+`/api/`, or `null` without this setting (the portal then uses its own address).
+
 ### `DELETE /device` { #delete-device }
 
 `id`: deletes a device of the logged-in user (it will no longer receive
 notifications). 404 if the device does not exist or belongs to another user.
+
+### `GET /user/browser`, `DELETE /user/browser?id=`
+
+Web browsers from which the authenticated user logged in to the portal (a login without
+a `device` object), the last used first: `id`, `label` (User-Agent), `created_at` (first
+login), `last_login`, `current` (`true` for the browser of the request). An HttpOnly
+cookie `carbure_browser` (sent only to the `/user` routes) recognizes the browser; the
+database keeps only its SHA-256 hash; a browser unused for 6 months is forgotten. It is
+not a device: it receives no notification and does not exempt from two-factor
+authentication. `DELETE` forgets it (`404` if it does not exist or belongs to another
+user) without closing its session: it shows up again at its next login. Empty list as
+long as the migration `2026-10-26_user_browser` is not applied.
 
 ### `POST /device/push` { #post-devicepush }
 

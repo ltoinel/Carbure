@@ -487,12 +487,23 @@ Four sub-tabs, like the administration: **Profile**, **Two-factor authentication
   codes**, and a code from the app or a recovery code can **Disable** it (after
   confirmation). Trusted browsers are in **My devices**.
 - **My devices**:
+  - **Connect the mobile app**: QR code
+    `https://carbure.org/app/?server=<API URL>` to scan with the camera of the phone,
+    which opens the app on this server (see
+    [Mobile apps](applications-mobiles.md#lien-de-connexion)), the address shown and a
+    **Copy the link** button; the address is the one of `public_url` when it is set
+    (`GET /device/link`), otherwise the one of the portal, and a warning is shown for
+    `localhost`;
   - **Mobile apps**: devices registered at login from the app, with
     their platform (icon and **iOS** or **Android** label), the date of last login,
     the model, the system version and the app version when the app sends them
     ("iPhone16,1 · iOS 26.0 · app 1.2") and the notification token, masked by default. The buttons let you show it in
     full, copy it (HTTPS required; otherwise the token is shown) or **delete** an
     old device (`GET`/`DELETE /device`);
+  - **Web browsers**: browsers from which the user logged in to the portal, with a
+    readable name taken from the User-Agent, the **This browser** badge for the current
+    one, the dates of last and first login, and a **Remove the browser** button (after
+    confirmation) that forgets it without closing its session (`GET`/`DELETE /user/browser`);
   - **Trusted browsers**: web browsers where the two-factor authentication code
     is not asked again for 6 months, with a readable name taken from the User-Agent ("Firefox
     on Windows"), the date of last use and the expiration, and their

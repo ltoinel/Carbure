@@ -89,6 +89,11 @@ the phone (or scanned as a QR code with the camera), opens the app and pre-fills
 server and the username, after confirmation: the app warns that the password will be sent
 to this server and that the current session will be closed.
 
+The portal shows this QR code in **My profile → My devices** (**Connect the mobile
+app**): it holds the address of the API, the one of the `public_url` setting when it is
+set (otherwise the address the portal is opened with), with no username nor password. A
+`localhost` or `127.0.0.1` address, which a phone cannot reach, is flagged.
+
 ## Loading { #chargement }
 
 After login, the app loads the current month (categories, budgets, transactions,

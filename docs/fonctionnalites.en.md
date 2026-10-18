@@ -24,8 +24,8 @@ who view the same data.
   first user who follows the account, but everyone sees it and checks it off.
 - **Personal data**: each user has their own login, password,
   language (French, English, Spanish, Italian, German or Portuguese), display theme, alert thresholds, the channels of their
-  notifications (push, email), their mobile devices (iOS, Android), their trusted
-  browsers and their access tokens for AI agents.
+  notifications (push, email), their mobile devices (iOS, Android), their web
+  browsers, their trusted browsers and their access tokens for AI agents.
 - **Two profiles**:
 
 | | User | Administrator |
@@ -442,6 +442,7 @@ are over budget this month?", "How are our savings evolving?".
   authentication** (authenticator app, backup codes),
   **Notifications** (push channels of the mobile app and email, alert threshold, watched budget
   and its threshold) and **My devices** (iOS and Android mobile apps, which can be removed;
+  web browsers of the portal logins, the current one marked, which can be removed;
   trusted web browsers, which can be revoked).
 - **Passwords** hashed (bcrypt); session valid for 30 days.
 - **Lockout**: after 5 failed sign-in attempts in a row, the account is locked for 24 hours; an

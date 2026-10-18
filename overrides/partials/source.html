@@ -10,7 +10,7 @@
   </span>
   {{ 'Demo' if english else 'Démo' }}
 </a>
-<a href="{{ config.extra.discord_url }}" title="Rejoindre le serveur Discord de Carbure : entraide et échanges" class="carbure-demo carbure-discord">
+<a href="{{ config.extra.discord_url }}" title="{{ 'Join the Carbure Discord server: help and chat' if english else 'Rejoindre le serveur Discord de Carbure : entraide et échanges' }}" class="carbure-demo carbure-discord">
   <span class="carbure-demo__icon md-icon">
     {% include ".icons/fontawesome/brands/discord.svg" %}
   </span>

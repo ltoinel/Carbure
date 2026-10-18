@@ -203,8 +203,7 @@ done) and the open tasks in [TODO.md](TODO.md). A question? Join the
 [Discord server](https://discord.gg/QsxYw4Rx9D) or ask in
 [Discussions](https://github.com/ltoinel/Carbure/discussions). Found a bug?
 [Open an issue](https://github.com/ltoinel/Carbure/issues). If Carbure is useful to you,
-a ⭐ helps others find it. All the ways to get help: [Support](https://carbure.org/assistance/)
-(in French).
+a ⭐ helps others find it. All the ways to get help: [Support](https://carbure.org/en/assistance/).
 
 To set up the development environment, see
 [Run it locally to develop](#3-run-it-locally-to-develop).

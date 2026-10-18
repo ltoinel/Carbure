@@ -429,7 +429,8 @@ after that module crashes, and Carbure cannot answer its prompt.
 
 ## Need help? { #besoin-daide }
 
-A question about installation, configuration or usage? Ask it in
-[GitHub Discussions](https://github.com/ltoinel/Carbure/discussions) (**Q&A** category): the answer will help other
-users. Keep [issues](https://github.com/ltoinel/Carbure/issues) for confirmed
+A question about installation, configuration or usage? Check the [FAQ](faq.md)
+first, then ask it on the [Discord server](https://discord.gg/QsxYw4Rx9D) or in
+[GitHub Discussions](https://github.com/ltoinel/Carbure/discussions) (**Q&A** category):
+the answer will help other users (see [Support](assistance.md)). Keep [issues](https://github.com/ltoinel/Carbure/issues) for confirmed
 bugs, and report a security vulnerability privately (see [Security](securite.md)).

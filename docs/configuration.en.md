@@ -47,7 +47,7 @@ this file (see [Settings in the database](#reglages-en-base)).
 | `development` | `true` / `false` | Development mode flag, written as `false` by the wizard (currently has no effect) |
 | `demo` | `true` / `false` | Demo instance (written by the `ltoinel/carbure:demo` image): the login screen shows the public demo account. Missing by default; never on an instance with real data |
 | `savings_category` ✏️ | name | Category whose transactions (including its subcategories) make up the savings in the Trends tab; `Epargne` by default, case and accents ignored |
-| `public_url` ✏️ | URL | Optional: public address of Carbure (`https://carbure.exemple.fr`), advertised to AI agents that connect through OAuth. By default, inferred from the request: set it if the HTTPS proxy does not send `X-Forwarded-Proto` |
+| `public_url` ✏️ | URL | Optional: public address of Carbure (`https://carbure.exemple.fr`), advertised to AI agents that connect through OAuth and to the mobile apps by the QR code of **My devices**. By default, inferred from the request: set it if the HTTPS proxy does not send `X-Forwarded-Proto` |
 
 ## `[database]` { #database }
 
