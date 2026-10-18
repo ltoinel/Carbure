@@ -38,9 +38,10 @@ log "started with $(docker inspect -f '{{.Config.Image}} ({{.Image}})' "$after" 
 # Previous images of the demo, now untagged (other images are left alone)
 docker image prune -f --filter 'label=org.opencontainers.image.title=Carbure (demo)' > /dev/null
 
-# Administrator password, printed by the container once its data is loaded
+# Administrator password, printed by the container once its data is loaded (Login: up
+# to 1.6.0)
 for i in $(seq 1 90); do
-    line=$(docker logs "$after" 2>&1 | grep 'Administrator:' | tail -1 || true)
+    line=$(docker logs "$after" 2>&1 | grep -E 'Administrator:|Login:' | tail -1 || true)
     if [ -n "$line" ]; then
         log "$(echo "$line" | sed 's/^ *//')"
         exit 0
