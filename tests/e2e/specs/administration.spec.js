@@ -169,10 +169,10 @@ test('an administrator registers the instance on the push service and sends a te
         await expect(page.getByText(tr('pushUnavailableAdmin'))).toBeVisible();
         await expect(page.getByRole('button', { name: tr('pushTestButton') })).toBeDisabled();
 
-        // The fake push service instead of the official one
-        await page.locator('#config-push_url').fill(relay.url);
-        await page.getByRole('button', { name: tr('save') }).click();
-        await expect(page.locator('.toast')).toHaveText(tr('configSaved'));
+        // No key to show yet; no push_url setting: the relay is always the one of Carbure
+        // (the fake one here, CARBURE_PUSH_URL of the server)
+        await expect(page.locator('.push-key')).toHaveCount(0);
+        await expect(page.locator('#config-push_url')).toHaveCount(0);
 
         // The consent first: what goes through the relay, the register button disabled
         // until it is accepted; cancelled, nothing is registered
@@ -182,7 +182,6 @@ test('an administrator registers the instance on the push service and sends a te
         await expect(consent).toBeVisible();
         await expect(consent.locator('.push-consent-url')).toHaveText(relay.url);
         await expect(consent).toContainText(tr('pushConsentForwarded'));
-        await expect(consent).toContainText(tr('pushConsentCustomRelay'));
         await expect(consent.getByRole('button', { name: tr('pushConsentSubmit') })).toBeDisabled();
         // The keyboard focus stays in the dialog
         await expect(consent.getByRole('heading', { name: tr('pushConsentTitle') })).toBeFocused();
@@ -202,9 +201,16 @@ test('an administrator registers the instance on the push service and sends a te
         await expect(consent).toHaveCount(0);
         await expect.poll(() => relay.keys.length).toBe(1);
         await expect(page.getByRole('status').filter({ hasText: tr('pushRegistered', { key: relay.keys[0].slice(4, 20) }) })).toBeVisible();
-        // The key is saved, never shown
+        // The key is saved: masked in its field, shown with its public id only until revealed
         await expect(page.locator('#config-push_api_key')).toHaveValue('');
         await expect(page.locator('#config-push_api_key')).toHaveAttribute('placeholder', tr('configPasswordKeep'));
+        const key = page.locator('.push-key-value');
+        await expect(key).toHaveText(`${relay.keys[0].slice(0, 21)}${'•'.repeat(12)}`);
+        await expect(page.locator('.tab-panel')).not.toContainText(relay.keys[0]);
+        await page.getByRole('button', { name: tr('pushKeyShow') }).click();
+        await expect(key).toHaveText(relay.keys[0]);
+        await expect(page.getByRole('button', { name: tr('pushKeyHide') })).toHaveAttribute('aria-pressed', 'true');
+        await page.getByRole('button', { name: tr('pushKeyHide') }).click();
         await expect(page.locator('.tab-panel')).not.toContainText(relay.keys[0]);
         // The consent recorded, for this relay
         await expect(page.locator('.push-consent-given')).toContainText(relay.url);
@@ -222,6 +228,7 @@ test('an administrator registers the instance on the push service and sends a te
         await expect(page.getByRole('dialog', { name: tr('pushConsentTitle') })).toHaveCount(0);
         await expect.poll(() => relay.keys.length).toBe(2);
         await expect(page.getByRole('status').filter({ hasText: tr('pushRenewed', { key: relay.keys[1].slice(4, 20) }) })).toBeVisible();
+        await expect(page.locator('.push-key-value')).toContainText(relay.keys[1].slice(0, 21));
         await page.getByRole('button', { name: tr('pushTestButton') }).click();
         await expect.poll(() => relay.notifications.length).toBe(2);
         expect(relay.notifications[1].key).toBe(relay.keys[1]);
@@ -231,10 +238,8 @@ test('an administrator registers the instance on the push service and sends a te
 });
 
 test('the push service unreachable: the registration tells why', async ({ adminPage: page }) => {
+    // No fake push service started: nothing listens where the server sends
     await openAdministration(page, 'tabSettings');
-    await page.locator('#config-push_url').fill('http://127.0.0.1:9');
-    await page.getByRole('button', { name: tr('save') }).click();
-    await expect(page.locator('.toast')).toHaveText(tr('configSaved'));
     await page.getByRole('button', { name: tr('pushRegisterButton') }).click();
     const consent = page.getByRole('dialog', { name: tr('pushConsentTitle') });
     await consent.getByLabel(tr('pushConsentAccept')).check();

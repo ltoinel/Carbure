@@ -6383,6 +6383,22 @@ textarea:focus-visible,
     flex: 0 1 auto;
 }
 
+/* API key of the push service: its public id, in full once revealed */
+.push-key .config-value {
+    flex-wrap: wrap;
+}
+
+.push-key-value {
+    flex: 1 1 180px;
+    min-width: 0;
+    font-size: 12px;
+    color: var(--text-primary);
+    background: var(--surface);
+    padding: 4px 8px;
+    border-radius: var(--border-radius-sm);
+    overflow-wrap: anywhere;
+}
+
 /* Title of a row without a field (registration and test of the push service) */
 .config-label-title {
     font-size: 14px;

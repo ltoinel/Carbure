@@ -669,9 +669,9 @@ test('config: the test email shows the recipient, or the error of the server', a
 test('config: registration on the push service after consent, renewal after confirmation, test push', async () => {
     const { createConfigModule, pushTestOutcome } = await import('../../portal/modules/configModule.js');
     const configWithKey = set => ({ file: 'conf/prod.ini', writable: true, sections: [{ name: 'push', settings: [
-        { key: 'push_url', value: '', set: false, editable: true, kind: 'url' },
         { key: 'push_api_key', value: set ? '••••••••••••' : '', set, secret: true, editable: true, kind: 'password' },
     ] }] });
+    const KEY = `cpk_0123456789abcdef_${'ab'.repeat(32)}`;
     const calls = [];
     let registered = false;
     let consent = null;
@@ -687,13 +687,14 @@ test('config: registration on the push service after consent, renewal after conf
             registered = true;
             return { registered: true, renewed, key_id: 'abc' };
         },
-        fetchPushInfo: async () => ({ url: relay, official: false, registered, consent, consent_valid: !!consent && consent.url === relay }),
+        fetchPushInfo: async () => ({ url: relay, official: false, registered, api_key: registered ? KEY : '', consent, consent_valid: !!consent && consent.url === relay }),
         fetchConfig: async () => configWithKey(registered),
         sendTestPush: async () => testAnswer(),
     };
     const { methods, data, computed } = createConfigModule(() => api);
     const context = { ...data(), ...methods, t: (key, params) => `${key} ${JSON.stringify(params || {})}` };
     Object.defineProperty(context, 'pushKeySet', { get: () => computed.pushKeySet.call(context) });
+    Object.defineProperty(context, 'pushKeyDisplay', { get: () => computed.pushKeyDisplay.call(context) });
     context.setConfig(configWithKey(false));
     assert.equal(context.pushKeySet, false);
 
@@ -716,6 +717,12 @@ test('config: registration on the push service after consent, renewal after conf
     assert.equal(context.pushKeySet, true);
     assert.equal(context.registeringPush, false);
     assert.equal(context.pushInfo.consent_valid, true);
+    // The API key: its public id only, in full once revealed, hidden again on reload
+    assert.equal(context.pushKeyDisplay, `cpk_0123456789abcdef_${'•'.repeat(12)}`);
+    context.pushKeyRevealed = true;
+    assert.equal(context.pushKeyDisplay, KEY);
+    await context.loadPushInfo();
+    assert.equal(context.pushKeyRevealed, false);
 
     // A key already saved, the consent given for this relay: renewed only after confirmation
     window.confirm = () => false;

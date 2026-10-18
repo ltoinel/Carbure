@@ -67,8 +67,10 @@ export function createConfigModule(getApiService) {
                 pushRegisterResult: null,
                 sendingTestPush: false,
                 pushTestResult: null,
-                // Answer of GET /system/push: the relay and the consent to it
+                // Answer of GET /system/push: the relay, the API key and the consent to it
                 pushInfo: null,
+                // Whether the API key of the push service is shown in full
+                pushKeyRevealed: false,
                 // Consent dialog of the push service: {accepted, trigger}; null when closed
                 pushConsent: null
             };
@@ -97,6 +99,19 @@ export function createConfigModule(getApiService) {
              */
             configChangeCount() {
                 return Object.keys(this.configChanges).length;
+            },
+
+            /**
+             * API key of the push service as shown: in full once revealed, else its public
+             * id only (cpk_<id>_••••)
+             * @returns {string}
+             */
+            pushKeyDisplay() {
+                const key = this.pushInfo ? this.pushInfo.api_key || '' : '';
+                if (this.pushKeyRevealed || !key.startsWith('cpk_')) {
+                    return key;
+                }
+                return `${key.slice(0, 21)}${'•'.repeat(12)}`;
             },
 
             /**
@@ -149,6 +164,7 @@ export function createConfigModule(getApiService) {
              * @returns {Promise<boolean>} Whether it could be loaded
              */
             async loadPushInfo() {
+                this.pushKeyRevealed = false;
                 try {
                     this.pushInfo = await getApiService().fetchPushInfo();
                     return true;

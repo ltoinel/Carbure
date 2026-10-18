@@ -378,7 +378,7 @@ avec une description de chaque réglage. Les secrets (`db_password`, `jwtsecret`
 `password_salt`, `sync_token`…) ne sont jamais affichés. Seuls les réglages sans risque
 sont modifiables — `log_level`, `log_retention_days`, `savings_category`, `public_url`, `mfa_required` (double authentification imposée), `woob_transactions`,
 `woob_logging`, `woob_debug`, `woob_auto_update`, le service de notifications push
-(`push_url`, `push_api_key`) et le serveur SMTP des emails — avec des
+(`push_api_key`, avec la clé de l'instance affichée à la demande) et le serveur SMTP des emails — avec des
 listes, des interrupteurs et des champs vérifiés par le serveur ; les autres portent un
 cadenas. Les réglages modifiés sont surlignés ; la barre du bas les enregistre ou les
 annule. Le fichier précédent est gardé en `prod.ini.bak` (`GET`/`PUT /system/config`).

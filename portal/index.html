@@ -1486,8 +1486,24 @@
                                     </p>
                                     <p v-else-if="smtpTestResult" class="smtp-test-result sync-step-error" role="alert">{{ smtpTestResult.message }}</p>
                                 </div>
-                                <!-- Push service: registration of the instance (its API key), test push -->
+                                <!-- Push service: API key of the instance, registration, test push -->
                                 <template v-if="section.name === 'push'">
+                                    <div v-if="pushInfo && pushInfo.api_key" class="config-row push-row push-key">
+                                        <div class="config-label">
+                                            <span class="config-label-title" id="push-key-title">{{ t('pushKeyTitle') }}</span>
+                                            <span class="config-help" id="push-key-help">{{ t('pushKeyHelp') }}</span>
+                                        </div>
+                                        <div class="config-value">
+                                            <code class="push-key-value" :class="{ revealed: pushKeyRevealed }" aria-labelledby="push-key-title" aria-describedby="push-key-help">{{ pushKeyDisplay }}</code>
+                                            <button type="button" class="btn-icon push-key-toggle" @click="pushKeyRevealed = !pushKeyRevealed" :aria-pressed="pushKeyRevealed ? 'true' : 'false'"
+                                                    :title="t(pushKeyRevealed ? 'pushKeyHide' : 'pushKeyShow')" :aria-label="t(pushKeyRevealed ? 'pushKeyHide' : 'pushKeyShow')">
+                                                <span class="material-icons" aria-hidden="true">{{ pushKeyRevealed ? 'visibility_off' : 'visibility' }}</span>
+                                            </button>
+                                            <button type="button" class="btn-icon push-key-copy" @click="copyText(pushInfo.api_key)" :title="t('pushKeyCopy')" :aria-label="t('pushKeyCopy')">
+                                                <span class="material-icons" aria-hidden="true">content_copy</span>
+                                            </button>
+                                        </div>
+                                    </div>
                                     <div class="config-row push-row push-register">
                                         <div class="config-label">
                                             <span class="config-label-title" id="push-register-title">{{ t('pushRegisterTitle') }}</span>
@@ -3002,7 +3018,6 @@
                 <div class="modal-body">
                     <p id="push-consent-intro" class="push-consent-text">{{ t('pushConsentIntro') }}</p>
                     <p class="push-consent-url"><code>{{ pushInfo ? pushInfo.url : '' }}</code></p>
-                    <p v-if="pushInfo && !pushInfo.official" class="push-consent-text">{{ t('pushConsentCustomRelay') }}</p>
                     <h4 class="push-consent-heading">{{ t('pushConsentSentTitle') }}</h4>
                     <ul class="push-consent-list">
                         <li>{{ t('pushConsentSentTokens') }}</li>

@@ -433,7 +433,7 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
 
     /**
      * The relay of the push service and the consent of the administrators to it
-     * @returns {Promise<Object>} {url, official, registered, consent: {at, url}|null, consent_valid}
+     * @returns {Promise<Object>} {url, official, registered, api_key, consent: {at, url}|null, consent_valid}
      */
     async function fetchPushInfo() {
         return request(`${baseUrl}/system/push`, {}, 'Failed to load the push service');

@@ -144,9 +144,6 @@ test('the registration on the push service and the test push are readable', asyn
         await expect(page.getByText(tr('pushUnavailableAdmin'))).toBeVisible();
         problems.push(...await contrastProblems(page, `${tr('pushRegisterTitle')} (no key)`));
 
-        await page.locator('#config-push_url').fill(relay.url);
-        await page.getByRole('button', { name: tr('save') }).click();
-        await expect(page.locator('.toast')).toHaveText(tr('configSaved'));
         await page.getByRole('button', { name: tr('pushRegisterButton') }).click();
         // The consent: at rest, then accepted (the register button enabled)
         const consent = page.getByRole('dialog', { name: tr('pushConsentTitle') });
@@ -161,17 +158,15 @@ test('the registration on the push service and the test push are readable', asyn
         await page.getByRole('button', { name: tr('pushTestButton') }).click();
         await expect(page.locator('.push-test .push-ok')).toBeVisible();
         problems.push(...await contrastProblems(page, `${tr('pushTestTitle')} (sent)`));
+        // The API key of the instance, masked then shown
+        await expect(page.locator('.push-key-value')).toBeVisible();
+        problems.push(...await contrastProblems(page, tr('pushKeyTitle')));
+        await page.getByRole('button', { name: tr('pushKeyShow') }).click();
+        problems.push(...await contrastProblems(page, `${tr('pushKeyTitle')} (shown)`));
 
-        // The push service unreachable: the error of the registration
-        await page.locator('#config-push_url').fill('http://127.0.0.1:9');
-        await page.getByRole('button', { name: tr('save') }).click();
-        await expect(page.locator('.toast')).toHaveText(tr('configSaved'));
-        // Another relay: the consent asked again (outdated one shown)
-        await expect(page.locator('.push-consent-given')).toContainText(tr('pushConsentOutdated'));
+        // The push service unreachable: the error of the renewal
+        await relay.close();
         await page.getByRole('button', { name: tr('pushRenewButton') }).click();
-        const again = page.getByRole('dialog', { name: tr('pushConsentTitle') });
-        await again.getByLabel(tr('pushConsentAccept')).check();
-        await again.getByRole('button', { name: tr('pushConsentSubmit') }).click();
         await expect(page.locator('.push-register .push-result[role="alert"]')).toBeVisible();
         problems.push(...await contrastProblems(page, `${tr('pushRegisterTitle')} (error)`));
     } finally {

@@ -5,9 +5,10 @@
  *
  * Client of Carbure Push, the external service that sends the push notifications of
  * the mobile apps: iOS (APNs) and Android (FCM); it holds the credentials of the
- * providers, the instances do not. Settings
- * push_url (the official relay by default) and push_api_key (the key of the instance,
- * a secret: never logged nor sent to the portal). The instance gets its key itself:
+ * providers, the instances do not. The relay is always the official one
+ * (https://api.carbure.org; the tests point CARBURE_PUSH_URL to their fake relay).
+ * Setting push_api_key: the key of the instance, a secret never logged (shown to the
+ * administrators only, GET /system/push). The instance gets its key itself:
  * register() solves the proof of work of the relay and returns a new key; rotate()
  * replaces a known key (the devices follow it). Without a key, no push is sent.
  *
@@ -21,8 +22,11 @@ use Error;
 
 final class PushRelay {
 
-    /** Official relay, used when push_url is not set */
-    public const DEFAULT_URL = 'https://api.carbure.org';
+    /** The relay of Carbure */
+    public const URL = 'https://api.carbure.org';
+
+    /** Environment variable that replaces the relay: tests only (their fake relay) */
+    public const TEST_URL_VARIABLE = 'CARBURE_PUSH_URL';
 
     /** Device tokens per request (limit of the relay) */
     private const TOKENS_PER_REQUEST = 20;
@@ -44,13 +48,25 @@ final class PushRelay {
     }
 
     /**
-     * URL of the relay, without a final slash.
+     * URL of the relay, without a final slash: the relay of Carbure (in the tests, their
+     * fake relay given by CARBURE_PUSH_URL).
      *
      * @return string
      */
     public static function url(): string
     {
-        return rtrim(Config::has('push_url') ? (string)Config::get('push_url') : self::DEFAULT_URL, '/');
+        $test = getenv(self::TEST_URL_VARIABLE);
+        return rtrim(is_string($test) && $test !== '' ? $test : self::URL, '/');
+    }
+
+    /**
+     * API key of the instance.
+     *
+     * @return string '' if the instance is not registered
+     */
+    public static function apiKey(): string
+    {
+        return self::isConfigured() ? (string)Config::get('push_api_key') : '';
     }
 
     /**
