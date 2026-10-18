@@ -91,9 +91,18 @@ location /api/ {
 }
 ```
 
-Les visiteurs peuvent modifier les données : un redémarrage régulier les remet à neuf (par
-exemple chaque nuit, `0 4 * * * docker restart carbure-demo`) et change le mot de passe
-`admin`.
+Les visiteurs peuvent modifier les données : un redémarrage régulier les remet à neuf et
+change le mot de passe `admin`. Le script `docker/demo/run.sh` (à copier à côté du fichier
+compose sur le serveur) démarre la démo, la met à jour quand une nouvelle image est publiée
+(le conteneur n'est recréé que si l'image a changé), avec `--reset` la recrée avec des
+données neuves, et affiche le mot de passe `admin`. Par exemple dans la crontab :
+
+```cron
+0 * * * * /srv/carbure-demo/run.sh >> /var/log/carbure-demo.log 2>&1
+0 4 * * * /srv/carbure-demo/run.sh --reset >> /var/log/carbure-demo.log 2>&1
+```
+
+Le journal contient le mot de passe `admin` : gardez-le lisible par vous seul.
 
 ## Avec Docker (recommandé)
 
