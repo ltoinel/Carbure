@@ -94,6 +94,7 @@ nav:
       - Configuration: configuration.md
   - Utilisation:
       - Portail web: portail.md
+      - Applications mobiles: applications-mobiles.md
       - Agents IA (MCP): mcp.md
   - Technique:
       - Architecture: architecture.md
