@@ -6,7 +6,7 @@ icon: material/shield-account-outline
 
 # Politique de confidentialité
 
-*Dernière mise à jour : 17 octobre 2026*
+*Dernière mise à jour : 19 octobre 2026*
 
 Cette politique s'applique aux applications mobiles **Carbure** pour iPhone et Android
 (« l'application »), éditées par Ludovic Toinel, et au service de notifications
