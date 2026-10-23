@@ -105,7 +105,8 @@
 
 > 🌍 **Banques couvertes** : Carbure s'appuie sur les modules [woob](https://woob.tech/), qui
 > couvrent surtout les banques françaises. Le portail existe en français, anglais, espagnol,
-> italien, allemand et portugais ; les montants sont en euros.
+> italien, allemand et portugais ; les montants sont en euros par défaut, ou dans la devise
+> de l'instance (réglage `currency`, affichage seulement).
 
 > 📱 **Applications mobiles** : les applications Carbure sont disponibles sur
 > l'[**App Store**](https://apps.apple.com/fr/app/carbure/id6824057363) (iPhone, iOS 26 minimum) et sur
@@ -161,7 +162,7 @@ Trois façons de lancer Carbure, selon ce que vous voulez faire :
 | | Pour | En bref |
 |---|---|---|
 | [**1. Démo**](#1-essayer-la-démo) | essayer Carbure avec un foyer d'exemple | `docker run --rm -p 8080:80 ltoinel/carbure:demo` |
-| [**2. Production**](#2-linstaller-pour-de-bon) | gérer le vrai budget de votre foyer | `docker compose up -d`, puis l'assistant d'installation |
+| [**2. Production**](#2-linstaller-pour-de-bon) | gérer le vrai budget de votre foyer | `docker compose pull && docker compose up -d` (image `ltoinel/carbure`), puis l'assistant d'installation |
 | [**3. Développement**](#3-le-lancer-en-local-pour-développer) | modifier le code | `./start.sh` |
 
 ### 1. Essayer la démo
@@ -181,12 +182,19 @@ conteneur).
 
 ### 2. L'installer pour de bon
 
-Avec Docker et l'image de production (nginx, PHP et woob inclus) et MariaDB :
+Avec Docker, l'image de production [`ltoinel/carbure`](https://hub.docker.com/r/ltoinel/carbure)
+(nginx, PHP et woob inclus, sans données d'exemple, à ne pas confondre avec `:demo`) et
+MariaDB. Le dépôt n'apporte que `docker/docker-compose.yml` ; `docker compose pull`
+télécharge l'image publiée de la dernière release (sans lui, Compose construirait l'image à
+partir du code du dépôt) :
 
 ```bash
 git clone https://github.com/ltoinel/Carbure.git && cd Carbure/docker
-docker compose up -d
+docker compose pull && docker compose up -d
 ```
+
+Pour maîtriser les mises à jour, remplacez `latest` par une version
+(`image: ltoinel/carbure:1.9.1`, voir les [tags](https://carbure.org/installation/#recuperer-limage)).
 
 Ouvrez `http://localhost:8080/` : **l'assistant d'installation** s'occupe de tout (base de
 données, compte administrateur, et en option des catégories, règles et insights de
@@ -194,6 +202,12 @@ départ) en trois clics, sans aucune commande. Les mises à jour de la base de d
 elles aussi, automatiques. Sur un NAS Synology, suivez le
 [tutoriel](https://carbure.org/synology/) ; pour y accéder depuis votre téléphone,
 placez-le derrière un proxy inverse en HTTPS ([installation](https://carbure.org/installation/)).
+
+> 🚧 **YunoHost** : un paquet [`carbure_ynh`](https://github.com/ltoinel/carbure_ynh) est en
+> préparation, pour installer Carbure en quelques clics sur un serveur
+> [YunoHost](https://yunohost.org). Il n'est pas encore au catalogue ni testé : il attend
+> Carbure 1.10.0 ([suivi et tests](https://github.com/ltoinel/Carbure/issues/45),
+> [installation](https://carbure.org/installation/#avec-yunohost-en-preparation)).
 
 ### 3. Le lancer en local pour développer
 
