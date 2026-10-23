@@ -21,6 +21,8 @@
  *   --language=CODE      fr, en, es, it, de or pt (fr)
  *   --starter            Starter categories, rules and insights (new database only)
  *   --woob-path=COMMAND  woob command (env HOME=<data>/woob woob)
+ *   --public-url=URL     Public address of Carbure (https://carbure.example.fr), given to
+ *                        the mobile apps and the AI agents
  *   --backup-confirmed   Apply the pending migrations of an existing database (saved before)
  *
  * The passwords come from the environment, never from the command line:

@@ -64,6 +64,7 @@ class InstallCommandIntegrationTest extends TestCase
             'email' => 'marie@example.com',
             'language' => 'en',
             'woob-path' => 'env HOME=/home/yunohost.app/carbure/woob /opt/carbure/woob/bin/woob',
+            'public-url' => 'https://carbure.example.org/',
         ];
     }
 
@@ -91,6 +92,8 @@ class InstallCommandIntegrationTest extends TestCase
         $this->assertSame(self::DB, $ini['db_name']);
         $this->assertSame('env HOME=/home/yunohost.app/carbure/woob /opt/carbure/woob/bin/woob', $ini['woob_path']);
         $this->assertMatchesRegularExpression('/^[0-9a-f]{48}$/', $ini['sync_token']);
+        // In the global section, without its final slash
+        $this->assertSame('https://carbure.example.org', parse_ini_file($this->configFile, true)['global']['public_url']);
 
         $db = new mysqli($ini['db_hostname'], $ini['db_username'], $ini['db_password'], $ini['db_name'], (int)$ini['db_port']);
         $admin = $db->query("SELECT password, is_admin, language, email FROM users WHERE username = 'marie'")->fetch_assoc();

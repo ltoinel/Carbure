@@ -27,7 +27,10 @@ final class InstallCommand {
 
     /** Options of the command (getopt), each one with a value but the flags */
     const OPTIONS = ['db-host:', 'db-port:', 'db-name:', 'db-user:', 'admin:', 'email:', 'language:',
-                     'woob-path:', 'starter', 'backup-confirmed', 'help'];
+                     'woob-path:', 'public-url:', 'starter', 'backup-confirmed', 'help'];
+
+    /** A public address, as Settings accepts it (Administration > Settings) */
+    const PUBLIC_URL = '#^https?://[A-Za-z0-9.\-]+(:\d{1,5})?(/[A-Za-z0-9._~/\-]*)?$#';
 
     /** Shortest administrator password, as the wizard (Installer::createAdmin) */
     const MIN_PASSWORD = 8;
@@ -49,18 +52,11 @@ final class InstallCommand {
         if (is_file($configFile)) {
             return [self::ALREADY_INSTALLED, "Carbure is already installed ($configFile exists): nothing changed"];
         }
-        $missing = array_values(array_filter(self::REQUIRED, fn(string $name): bool => self::option($options, $name) === ''));
-        if ($missing) {
-            return [self::FAILED, "Missing option: --" . implode(', --', $missing)];
+        $error = self::check($options, $env);
+        if ($error !== null) {
+            return [self::FAILED, $error];
         }
-        $password = $env['CARBURE_ADMIN_PASSWORD'] ?? '';
-        if ($password === '') {
-            return [self::FAILED, "Missing administrator password: set CARBURE_ADMIN_PASSWORD"];
-        }
-        // Checked by the wizard too, but after the connection to the database
-        if (strlen($password) < self::MIN_PASSWORD) {
-            return [self::FAILED, "The administrator password must contain at least " . self::MIN_PASSWORD . " characters"];
-        }
+        $publicUrl = rtrim(self::option($options, 'public-url'), '/');
 
         // Read by Setup when it writes the configuration
         $woobPath = self::option($options, 'woob-path');
@@ -74,8 +70,39 @@ final class InstallCommand {
         if ($status !== 200) {
             return [self::FAILED, "Installation failed: " . ($body['error'] ?? "HTTP $status")];
         }
+        if ($publicUrl !== '') {
+            file_put_contents($configFile, Installer::setIni(File::read($configFile), 'public_url', $publicUrl));
+        }
         return [self::DONE, "Carbure installed: schema " . ($body['version'] ?? 'none')
             . ($body['username'] ? ", administrator " . $body['username'] : ", administrator already there")];
+    }
+
+    /**
+     * Checks done before anything is installed.
+     *
+     * @param array<string, string|false|list<string|false>> $options The options
+     * @param array<string, string>                          $env     The environment
+     * @return string|null The error, null when the installation can go on
+     */
+    private static function check(array $options, array $env): ?string
+    {
+        $missing = array_values(array_filter(self::REQUIRED, fn(string $name): bool => self::option($options, $name) === ''));
+        if ($missing) {
+            return "Missing option: --" . implode(', --', $missing);
+        }
+        $password = $env['CARBURE_ADMIN_PASSWORD'] ?? '';
+        if ($password === '') {
+            return "Missing administrator password: set CARBURE_ADMIN_PASSWORD";
+        }
+        // Checked by the wizard too, but after the connection to the database
+        if (strlen($password) < self::MIN_PASSWORD) {
+            return "The administrator password must contain at least " . self::MIN_PASSWORD . " characters";
+        }
+        $publicUrl = rtrim(self::option($options, 'public-url'), '/');
+        if ($publicUrl !== '' && !preg_match(self::PUBLIC_URL, $publicUrl)) {
+            return "Invalid public address (--public-url): an http(s) URL such as https://carbure.example.fr";
+        }
+        return null;
     }
 
     /**

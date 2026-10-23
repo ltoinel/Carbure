@@ -403,7 +403,7 @@ Depuis une adresse publique, l'assistant demande le code d'installation écrit d
     Lancez-le avec l'utilisateur du serveur web, qui doit pouvoir écrire dans `data/`.
     Code de sortie : `0` installé, `1` échec (rien n'est écrit), `2` déjà installé
     (`data/conf/prod.ini` existe : rien ne change). `php tools/install.php --help` liste
-    les options (`--db-host`, `--db-port`, `--woob-path`, `--backup-confirmed` pour migrer
+    les options (`--db-host`, `--db-port`, `--woob-path`, `--public-url`, `--backup-confirmed` pour migrer
     une base existante…).
 
 ### 4. Ajouter une banque

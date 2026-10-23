@@ -403,7 +403,7 @@ From a public address, the wizard asks for the installation code written to
     Run it as the user of the web server, which must be able to write in `data/`.
     Exit code: `0` installed, `1` failed (nothing is written), `2` already installed
     (`data/conf/prod.ini` exists: nothing changes). `php tools/install.php --help` lists
-    the options (`--db-host`, `--db-port`, `--woob-path`, `--backup-confirmed` to migrate
+    the options (`--db-host`, `--db-port`, `--woob-path`, `--public-url`, `--backup-confirmed` to migrate
     an existing database…).
 
 ### 4. Add a bank { #4-ajouter-une-banque }

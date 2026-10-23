@@ -57,6 +57,15 @@ class InstallCommandTest extends TestCase
         $this->assertFileDoesNotExist($file);
     }
 
+    public function testInvalidPublicAddress()
+    {
+        [$code, $message] = InstallCommand::run(self::OPTIONS + ['public-url' => 'javascript:alert(1)'],
+            ['CARBURE_ADMIN_PASSWORD' => 'supersecret'], dirname(__DIR__, 2), $this->configFile());
+
+        $this->assertSame(InstallCommand::FAILED, $code);
+        $this->assertStringContainsString('--public-url', $message);
+    }
+
     public function testOptionGivenTwiceKeepsTheLast()
     {
         $option = new ReflectionMethod(InstallCommand::class, 'option');
