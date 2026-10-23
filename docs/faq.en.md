@@ -232,6 +232,13 @@ A question that isn't here? Ask it on the
     Yes, with Container Manager and MariaDB 10, on Intel and ARM NAS: the
     [Synology NAS tutorial](synology.md) details each step, up to HTTPS access.
 
+??? question "Can it be installed on YunoHost?"
+    Soon: a [`carbure_ynh`](https://github.com/ltoinel/carbure_ynh) package is in
+    preparation to install Carbure in a few clicks on a [YunoHost](https://yunohost.org)
+    server, on a domain of its own. It is not in the catalog nor tested yet: it waits for
+    Carbure 1.10.0. Want to test it? Say so in
+    [issue #45](https://github.com/ltoinel/Carbure/issues/45).
+
 ??? question "How do I reach it from outside or from my phone?"
     Put Carbure behind an **HTTPS reverse proxy** (the one of the NAS, Caddy, Traefik,
     NGINX…) with a domain name, then set its public address (`public_url`) in
