@@ -11,7 +11,7 @@
 <p align="center">
   <strong>Reprenez le contrôle de votre budget.</strong><br>
   Vos comptes bancaires synchronisés automatiquement, vos dépenses catégorisées,<br>
-  vos budgets suivis au jour le jour — sur le web, sur iPhone et bientôt sur Android. Hébergé chez vous, gratuit et open source.
+  vos budgets suivis au jour le jour — sur le web, sur iPhone et sur Android. Hébergé chez vous, gratuit et open source.
 </p>
 
 <p align="center">
@@ -101,11 +101,14 @@
 > couvrent surtout les banques françaises. Le portail existe en français, anglais, espagnol,
 > italien, allemand et portugais ; les montants sont en euros.
 
-> 📱 **Applications mobiles** : les applications Carbure pour **iPhone** et **Android** seront
-> prochainement disponibles sur l'App Store et Google Play : transactions, pointage, budgets,
-> aperçus, tendances, synchronisation, connexion par Face ID ou empreinte et notifications push
-> ([fonctionnalités](https://carbure.org/applications-mobiles/)). En attendant, le portail web
-> s'installe comme une application sur ordinateur ou téléphone (Chrome/Edge « Installer »,
+> 📱 **Applications mobiles** : les applications Carbure sont disponibles sur
+> l'[**App Store**](https://apps.apple.com/fr/app/carbure/id6824057363) (iPhone, iOS 26 minimum) et sur
+> [**Google Play**](https://play.google.com/store/apps/details?id=org.carbure.app) (Android 8.0 minimum) :
+> transactions, pointage, budgets, aperçus, tendances, synchronisation, connexion par Face ID
+> ou empreinte et notifications push ([fonctionnalités](https://carbure.org/applications-mobiles/)).
+> Gratuites, sans publicité ni abonnement, aucune donnée collectée ; disponibles en France pour
+> le moment. Elles se connectent à **votre** serveur Carbure. Le portail web s'installe aussi
+> comme une application sur ordinateur ou téléphone (Chrome/Edge « Installer »,
 > Safari « Ajouter au Dock » ou « Sur l'écran d'accueil »), en HTTPS.
 
 ## Comment se situe Carbure ?

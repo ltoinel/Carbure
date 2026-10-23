@@ -11,7 +11,7 @@
 <p align="center">
   <strong>Take back control of your budget.</strong><br>
   Bank accounts synced automatically, expenses categorized, budgets tracked day by day —<br>
-  on the web, on iPhone and soon on Android. Self-hosted, free and open source.
+  on the web, on iPhone and on Android. Self-hosted, free and open source.
 </p>
 
 <p align="center">
@@ -100,11 +100,13 @@
 > cover French banks. The portal is available in French, English, Spanish,
 > Italian, German and Portuguese; amounts are in euros.
 
-> 📱 **Mobile apps**: the Carbure apps for **iPhone** and **Android** will soon be available on
-> the App Store and Google Play: transactions, check-off, budgets, insights, trends, sync,
-> Face ID or fingerprint login and push notifications
-> ([features](https://carbure.org/en/applications-mobiles/)). Meanwhile, the web portal
-> installs as an app on a computer or a phone
+> 📱 **Mobile apps**: the Carbure apps are available on the
+> [**App Store**](https://apps.apple.com/fr/app/carbure/id6824057363) (iPhone, iOS 26 or later) and on
+> [**Google Play**](https://play.google.com/store/apps/details?id=org.carbure.app) (Android 8.0 or later):
+> transactions, check-off, budgets, insights, trends, sync, Face ID or fingerprint login and
+> push notifications ([features](https://carbure.org/en/applications-mobiles/)).
+> Free, no ads nor subscription, no data collected; available in France for now. They connect
+> to **your** Carbure server. The web portal also installs as an app on a computer or a phone
 > (Chrome/Edge "Install", Safari "Add to Dock" or "Add to Home Screen"), over HTTPS.
 
 ## How does it compare?
