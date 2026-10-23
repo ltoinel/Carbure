@@ -23,6 +23,12 @@
 </p>
 
 <p align="center">
+  <a href="https://apps.apple.com/fr/app/carbure/id6824057363"><img src="https://img.shields.io/badge/App_Store-iPhone-000000?style=for-the-badge&logo=apple&logoColor=white" alt="Télécharger sur l'App Store (iPhone)"></a>
+  <a href="https://play.google.com/store/apps/details?id=org.carbure.app"><img src="https://img.shields.io/badge/Google_Play-Android-01875F?style=for-the-badge&logo=googleplay&logoColor=white" alt="Disponible sur Google Play (Android)"></a><br>
+  <sub>📱 Applications mobiles gratuites, sans publicité ni collecte de données, connectées à <strong>votre</strong> serveur</sub>
+</p>
+
+<p align="center">
   <a href="https://github.com/ltoinel/Carbure/actions/workflows/ci.yml"><img src="https://github.com/ltoinel/Carbure/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://github.com/ltoinel/Carbure/actions/workflows/security.yml"><img src="https://github.com/ltoinel/Carbure/actions/workflows/security.yml/badge.svg?branch=main" alt="Sécurité"></a>
   <a href="https://github.com/ltoinel/Carbure/releases"><img src="https://img.shields.io/github/v/release/ltoinel/Carbure" alt="Release"></a>
@@ -110,6 +116,12 @@
 > le moment. Elles se connectent à **votre** serveur Carbure. Le portail web s'installe aussi
 > comme une application sur ordinateur ou téléphone (Chrome/Edge « Installer »,
 > Safari « Ajouter au Dock » ou « Sur l'écran d'accueil »), en HTTPS.
+
+<p align="center">
+  <img src="docs/assets/mobile/ios-transactions.png" alt="Transactions du mois dans l'app iPhone" width="220">
+  <img src="docs/assets/mobile/android-budgets.png" alt="Budgets du mois dans l'app Android" width="220">
+  <img src="docs/assets/mobile/ios-tendances.png" alt="Tendances sur 24 mois dans l'app iPhone" width="220">
+</p>
 
 ## Comment se situe Carbure ?
 

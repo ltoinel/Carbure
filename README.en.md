@@ -23,6 +23,12 @@
 </p>
 
 <p align="center">
+  <a href="https://apps.apple.com/fr/app/carbure/id6824057363"><img src="https://img.shields.io/badge/App_Store-iPhone-000000?style=for-the-badge&logo=apple&logoColor=white" alt="Download on the App Store (iPhone)"></a>
+  <a href="https://play.google.com/store/apps/details?id=org.carbure.app"><img src="https://img.shields.io/badge/Google_Play-Android-01875F?style=for-the-badge&logo=googleplay&logoColor=white" alt="Get it on Google Play (Android)"></a><br>
+  <sub>📱 Free mobile apps, no ads nor data collection, connected to <strong>your</strong> server</sub>
+</p>
+
+<p align="center">
   <a href="https://github.com/ltoinel/Carbure/actions/workflows/ci.yml"><img src="https://github.com/ltoinel/Carbure/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://github.com/ltoinel/Carbure/actions/workflows/security.yml"><img src="https://github.com/ltoinel/Carbure/actions/workflows/security.yml/badge.svg?branch=main" alt="Security"></a>
   <a href="https://github.com/ltoinel/Carbure/releases"><img src="https://img.shields.io/github/v/release/ltoinel/Carbure" alt="Release"></a>
@@ -108,6 +114,12 @@
 > Free, no ads nor subscription, no data collected; available in France for now. They connect
 > to **your** Carbure server. The web portal also installs as an app on a computer or a phone
 > (Chrome/Edge "Install", Safari "Add to Dock" or "Add to Home Screen"), over HTTPS.
+
+<p align="center">
+  <img src="docs/assets/mobile/ios-transactions.png" alt="Transactions of the month in the iPhone app" width="220">
+  <img src="docs/assets/mobile/android-budgets.png" alt="Budgets of the month in the Android app" width="220">
+  <img src="docs/assets/mobile/ios-tendances.png" alt="Trends over 24 months in the iPhone app" width="220">
+</p>
 
 ## How does it compare?
 
