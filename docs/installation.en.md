@@ -111,8 +111,12 @@ The log contains the `admin` password: keep it readable by you only.
 
 ```bash
 git clone https://github.com/ltoinel/Carbure.git && cd Carbure/docker
-docker compose up -d
+docker compose pull && docker compose up -d
 ```
+
+`docker compose pull` downloads the published image of the
+[latest release](#recuperer-limage): without it, Compose would build the image from the code of
+the repository (`docker/docker-compose.yml` is also used by the tests).
 
 Open `http://<host>:8080/`: the setup wizard appears, already filled in with the
 database from `docker/docker-compose.yml`. Click **Continue**, choose the administrator
@@ -388,6 +392,23 @@ random secrets (`jwtsecret`, `sync_token`…). The woob command there is `woob`:
 From a public address, the wizard asks for the installation code written to
 `data/conf/setup.code` (and to the PHP error log). See
 [Security](securite.md#assistant-dinstallation).
+
+!!! tip "Install without the wizard (script)"
+    `tools/install.php` does the same installation from the command line, for a script
+    (package of a distribution, YunoHost…). The passwords go through the environment,
+    never the command line (visible in the list of the processes):
+
+    ```bash
+    CARBURE_DB_PASSWORD='…' CARBURE_ADMIN_PASSWORD='…' \
+      php tools/install.php --db-name=carbure --db-user=carbure --admin=marie \
+        --email=marie@example.org --language=en --starter
+    ```
+
+    Run it as the user of the web server, which must be able to write in `data/`.
+    Exit code: `0` installed, `1` failed (nothing is written), `2` already installed
+    (`data/conf/prod.ini` exists: nothing changes). `php tools/install.php --help` lists
+    the options (`--db-host`, `--db-port`, `--woob-path`, `--public-url`, `--backup-confirmed` to migrate
+    an existing database…).
 
 ### 4. Add a bank { #4-ajouter-une-banque }
 
