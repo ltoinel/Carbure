@@ -404,12 +404,14 @@ prevents neither the other nor the synchronization.
 - **What**: the month's expenses of each expense category that has a budget,
   subcategories included, calculated like the **Budgets** screen; a subcategory that has
   its own budget is checked too.
-- **Watched budget**: all budgets (by default) or one of them, chosen by each person
-  in **My profile → Notifications** among the month's budgets of the **Budget** tab;
-  deleting the category falls back to all budgets.
-- **Threshold**: chosen by each person in **My profile → Notifications**, as a percentage of the
-  budget, from 50 to 200% (100% by default; 80% to be warned ahead of time). Below 100%, the
-  title becomes "Budget almost reached".
+- **Thresholds**, chosen by each person in **My profile → Notifications**, as a percentage
+  of the budget, from 50 to 200% (80% to be warned ahead of time). Below 100%, the title
+  becomes "Budget almost reached".
+    - **All the budgets**: a global threshold (100% by default), which can be turned off;
+    - **Thresholds per category**: a category with a budget gets its own threshold, which
+      replaces the global one for it. For instance 100% everywhere and 80% on groceries and
+      leisure; or, with the global threshold off, only groceries at 80% and housing at 100%.
+      Deleting the category deletes its threshold.
 - **Once** per category, month and user, not at every synchronization. If the budget
   is then raised and reached again, the alert fires again for the new amount.
 
@@ -499,6 +501,8 @@ users open **AI agent** from their menu.
   the API with the administrator's session.
 - **Database update**: when a new version changes the database, a banner
   reports it and applies it in one click (automatic with Docker).
+- **New release**: a banner reports that a new release of Carbure is published, with a
+  link to its notes (checked once a day by the server, `update_check` setting).
 - **Session key**: a banner reports a key that is too weak and renews it in one click
   (everyone signs in again).
 
