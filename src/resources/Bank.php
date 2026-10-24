@@ -454,12 +454,70 @@ final class Bank {
         try {
             $accounts = self::discover($backend);
         } catch (Exception $e) {
-            Woob::removeBackend($backend);
-            throw new Error(self::refusalMessage($module, $e->getMessage()), 400);
+            self::refuseFirstConnection($module, $backend, $e);
         }
         // Replaces the name of a former connection of the same woob name, if any
         self::saveBackendLabel($backend, $label);
         return ['backend' => $backend, 'label' => $label, 'accounts' => $accounts];
+    }
+
+    /**
+     * A first connection to a bank that failed, thrown to the portal: a bank asking a
+     * validation in its application keeps its backend in woob (the connections after
+     * its validation need the credentials, GET /bank/validate), anything else removes
+     * it so that the form can be sent again (Carbure::refusalMessage(), the cause).
+     *
+     * @param string    $module  The woob module
+     * @param string    $backend The backend name
+     * @param Exception $error   The failure of the listing of the accounts
+     * @return never
+     */
+    private static function refuseFirstConnection(string $module, string $backend, Exception $error): never
+    {
+        if (Woob::needsTwoFactor($error->getMessage())) {
+            throw new Error("The bank asks the validation of the connection in its application ("
+                . $error->getMessage() . "): it is asked again once validated, see the accounts", 409);
+        }
+        Woob::removeBackend($backend);
+        throw new Error(self::refusalMessage($module, $error->getMessage()), 400);
+    }
+
+    /**
+     * Validate the first connection of a bank asking a two-factor authentication, with
+     * Server-Sent Events: woob lists the accounts of the backend again, on a terminal,
+     * and waits for the validation in the application of the bank; each message of the
+     * bank is sent in the progress as "Bank message <backend>: <message>".
+     *
+     * Used after POST /bank/backend refused by a bank asking the validation (409): the
+     * backend was kept in woob, with its credentials needed for this connection. Once
+     * validated, the accounts can be listed again (GET /bank/discover) and followed.
+     *
+     * The last message is "Bank validated <backend>: <n> accounts" once the listing
+     * succeeded, or "Bank validation failed <backend>: <error>" (the portal shows it,
+     * the connection may be asked again for the credentials).
+     *
+     * @param string $backend Name of the woob backend (bank connection)
+     * @return void
+     * @throws Error If the backend name is invalid
+     */
+    #[ApiRoute('/bank/validate', method: 'GET', stream: true, admin: true)]
+    public static function validateBackend(string $backend): void
+    {
+        if (!preg_match(Woob::BACKEND_NAME, $backend)) {
+            throw new Error("Invalid bank name (lowercase letters, digits, - and _)", 400);
+        }
+
+        // The validation is a wait, the bank may be slow: unlimited execution time, and
+        // the debug logs of woob (requests to the bank) only for an administrator, as the route is one
+        set_time_limit(0);
+        $debug = (bool)Config::get('woob_debug');
+
+        try {
+            $accounts = Woob::listAccounts($backend, true, ...self::woobCallbacks($backend, $debug));
+            Webservice::sendProgress("Bank validated $backend: " . count($accounts) . " accounts");
+        } catch (Exception $e) {
+            Webservice::sendProgress("Bank validation failed $backend: " . mb_substr($e->getMessage(), 0, 300));
+        }
     }
 
     /**

@@ -156,20 +156,38 @@ final class Woob {
     /**
      * List the bank accounts of every configured woob backend, or of one of them.
      *
-     * @param string|null $backend Only the accounts of this woob backend (-b), else of every one
+     * In interactive mode (a user who waits, e.g. the first connection of a bank asking
+     * a two-factor authentication), the output is a pseudo-terminal: woob may then start
+     * the authentication and wait for its validation in the app of the bank, each message
+     * it writes is given to $onMessage.
+     *
+     * @param string|null $backend     Only the accounts of this woob backend (-b), else of every one
+     * @param bool        $interactive Allow woob to ask a two-factor authentication
+     * @param callable|null $onMessage Receives each message of woob (interactive mode)
+     * @param callable|null $onDebug   Receives each line of the debug logs of woob (woob_debug)
+     * @param callable|null $onCommand Receives the system command run
      * @return list<array<mixed>> The accounts: id ("<account>@<backend>"), label, balance, currency...
      * @throws Exception If woob fails or returns nothing while reporting an error
      */
-    public static function listAccounts(?string $backend = null): array
+    public static function listAccounts(?string $backend = null, bool $interactive = false, ?callable $onMessage = null,
+        ?callable $onDebug = null, ?callable $onCommand = null): array
     {
         $woob_path = self::path();
         $only = $backend === null ? '' : ' -b ' . escapeshellarg($backend);
         $command = "$woob_path bank list$only -f json" . self::loggingOptions();
         Logger::debug("Calling woob : $command");
+        if ($onCommand !== null) {
+            $onCommand($command);
+        }
 
-        // Plain JSON request: no Server-Sent Events heartbeat in the output
+        // Plain JSON request without a terminal: no Server-Sent Events heartbeat in the output
         $stderr = '';
-        $stdout = self::executeWithHeartbeat($command, $stderr, false);
+        $stdout = self::executeWithHeartbeat($command, $stderr, $interactive, $interactive ? $onMessage : null,
+            Config::get('woob_debug') ? $onDebug : null, $interactive);
+        // The terminal turns each "\n" into "\r\n" (a raw "\r" never appears in JSON)
+        if ($interactive) {
+            $stdout = str_replace("\r\n", "\n", $stdout);
+        }
         $accounts = self::parseOutput('accounts', $stdout);
         self::failOnEmptyWithError($accounts, $stderr, "woob returned no account");
 

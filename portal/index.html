@@ -2795,6 +2795,14 @@
                                 <input id="bank-connection-label" v-model="bankSetup.label" maxlength="100" autocomplete="off" :placeholder="bankSetup.description || bankSetup.module" aria-describedby="bank-connection-label-help" />
                                 <small id="bank-connection-label-help">{{ t('bankConnectionLabelHelp') }}</small>
                             </div>
+                            <div v-if="bankSetup.validating" role="status" aria-live="polite">
+                                <p class="transactions-hint">
+                                    <span class="material-icons spin inline-icon" aria-hidden="true">sync</span>{{ t('bankValidating') }}
+                                </p>
+                                <ul v-if="bankSetup.log.length" class="sync-log">
+                                    <li v-for="(line, i) in bankSetup.log" :key="i">{{ line }}</li>
+                                </ul>
+                            </div>
                             <div v-if="bankSetup.error" class="sync-step-error" role="alert">{{ bankSetup.error }}</div>
                         </template>
                     </fieldset>

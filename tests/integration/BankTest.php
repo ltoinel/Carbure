@@ -118,7 +118,8 @@ class BankTest extends DatabaseTestCase
         $own = Bank::get()[0]['id'];
 
         $this->assertAdminOnly(['GET /bank/accounts', 'POST /bank', 'PUT /bank', 'DELETE /bank', 'GET /bank/backends',
-            'GET /bank/modules', 'GET /bank/discover', 'GET /bank/module', 'POST /bank/backend', 'PUT /bank/backend']);
+            'GET /bank/modules', 'GET /bank/discover', 'GET /bank/module', 'GET /bank/validate', 'POST /bank/backend',
+            'PUT /bank/backend']);
 
         // Refused before the method is called: the account is still there
         try {
@@ -404,6 +405,50 @@ class BankTest extends DatabaseTestCase
             $this->assertSame('forbidden', trim(file_get_contents($removed)));
         } finally {
             @unlink($removed);
+            @unlink(carbure_test_tmp('carbure-fake-woob-backends'));
+        }
+    }
+
+    public function testCreateBackendAskingAValidation()
+    {
+        $this->loginAs(self::ADMIN);
+        $removed = carbure_test_tmp('carbure-fake-woob-removed');
+        $validated = carbure_test_tmp('carbure-fake-woob-validated');
+        @unlink($removed);
+        @unlink($validated);
+        try {
+            // The bank first asks a validation in its application: the backend is kept
+            // in woob (its credentials are needed to ask the connection again), not
+            // removed as any other refusal
+            try {
+                Bank::createBackend('bnp', '2fa', ['login' => '12345678', 'password' => '123456']);
+                $this->fail('Connection accepted without the validation of the bank');
+            } catch (Error $e) {
+                $this->assertSame(409, $e->getCode());
+                $this->assertStringContainsString('two-factor authentication', $e->getMessage());
+                $this->assertFileDoesNotExist($removed);
+                $this->assertStringContainsString("[2fa]\n_module = bnp\nlogin = 12345678",
+                    (string)file_get_contents(carbure_test_tmp('carbure-fake-woob-backends')));
+            }
+
+            // The validation of the connection (GET /bank/validate): woob lists the
+            // accounts again on a terminal, the message of the bank in the progress
+            $output = '';
+            ob_start();
+            try {
+                Bank::validateBackend('2fa');
+            } finally {
+                $output = ob_get_clean();
+            }
+            $this->assertStringContainsString('data: Bank message 2fa: Veuillez valider la connexion dans votre application bancaire.', $output);
+            $this->assertStringContainsString('data: Bank validated 2fa: 2 accounts', $output);
+
+            // Once validated (session of woob kept), the accounts are listed without a terminal
+            $accounts = Bank::discover('2fa');
+            $this->assertSame(['DEMO0000001@2fa', '00087654321@2fa'], array_column($accounts, 'bankId'));
+        } finally {
+            @unlink($removed);
+            @unlink($validated);
             @unlink(carbure_test_tmp('carbure-fake-woob-backends'));
         }
     }

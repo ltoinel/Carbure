@@ -29,6 +29,10 @@
  *                          the file carbure-fake-woob-validated exists in its directory
  * - account "2fa@bank"   : asks a two-factor authentication, only possible when the output
  *                          is a terminal (like woob); otherwise fails with code 1
+ * - "bank list": a backend named "2fa" (or a bank added with the login "2fa") asks the
+ *                          validation of its first connection only on a terminal (ditto for
+ *                          the error without one); a session is then kept
+ *                          (carbure-fake-woob-validated) and it answers again without one
  * - other accounts       : one JSON array of transactions per line, like woob -f json
  * - with --debug          : the bank commands also write debug logs on stderr, like woob
  *
@@ -202,6 +206,22 @@ if (($argv[1] ?? '') === 'bank' && $type === 'list') {
     if ($backend === ($added['backend'] ?? null) && ($added['params']['login'] ?? '') === 'wrong') {
         fwrite(STDERR, "Error(" . $added['backend'] . "): BrowserIncorrectPassword: Identifiant ou mot de passe incorrect\n");
         exit(1);
+    }
+    // A bank whose first connection asks a validation in its application (the backend
+    // named "2fa", or a bank added with the login "2fa"): woob only starts it on a
+    // terminal, the accounts are then listed and a session is kept (the file of the
+    // validation, like for "2fa@bank"): later ones answer without one
+    if ($backend === '2fa'
+        || ($backend === ($added['backend'] ?? null) && ($added['params']['login'] ?? '') === '2fa')) {
+        if (!stream_isatty(STDOUT)) {
+            if (!is_file(fake_woob_file('validated'))) {
+                fwrite(STDERR, "Error($backend): You have to run bank in interactive mode to perform a two-factor authentication\n");
+                exit(1);
+            }
+        } else {
+            echo "\e[1mVeuillez valider la connexion dans votre application bancaire.\e[0m\n";
+            touch(fake_woob_file('validated'));
+        }
     }
     if ($backend === 'forbidden') {
         echo "[]\n";

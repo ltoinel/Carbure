@@ -653,6 +653,30 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
     }
 
     /**
+     * Validates the first connection of a bank asking a two-factor authentication,
+     * and reports each line of woob (Server-Sent Events): the connection is asked again
+     * while waiting for its validation in the application of the bank. The last message
+     * is "Bank validated <backend>: <n> accounts" or "Bank validation failed <backend>: <cause>".
+     * @param {string} backend - Name of the bank in woob
+     * @param {Function} onMessage - Called with each line of woob
+     * @returns {Promise<void>} Resolved when the validation ends
+     * @throws {Error} If the request fails
+     */
+    async function validateBankBackend(backend, onMessage) {
+        const response = await authFetch(`${baseUrl}/bank/validate?backend=${encodeURIComponent(backend)}`, { headers: getHeaders() });
+        if (!response.ok || !response.body) {
+            let message = `Failed to validate the connection (${response.status})`;
+            try {
+                message = JSON.parse(await response.text()).error || message;
+            } catch (e) {
+                // Keep default error message
+            }
+            throw new Error(message);
+        }
+        await readEvents(response, onMessage);
+    }
+
+    /**
      * Names a bank connection (woob backend)
      * @param {string} backend - Name of the bank in woob
      * @param {string} label - Name given to the bank connection (empty: removed)
@@ -1241,6 +1265,7 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
         fetchBankModules,
         fetchBankModuleFields,
         createBankBackend,
+        validateBankBackend,
         renameBankBackend,
         deleteBankBackend,
         syncBanks,

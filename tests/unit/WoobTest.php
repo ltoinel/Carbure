@@ -57,6 +57,26 @@ class WoobTest extends TestCase
         }
     }
 
+    public function testAccountsOfABankAskingAValidationNeedTheInteractiveMode()
+    {
+        // The first connection of the bank: a terminal is asked for the validation
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessage('You have to run bank in interactive mode to perform a two-factor authentication');
+        Woob::listAccounts('2fa');
+    }
+
+    public function testInteractiveModeListsTheAccountsOfABankAskingAValidation()
+    {
+        $messages = [];
+        $accounts = Woob::listAccounts('2fa', true, function ($message) use (&$messages) {
+            $messages[] = $message;
+        });
+
+        // The message of the bank (of the validation in its application), then the accounts
+        $this->assertSame(['DEMO0000001@2fa', '00087654321@2fa'], array_column($accounts, 'id'));
+        $this->assertSame(['Veuillez valider la connexion dans votre application bancaire.'], $messages);
+    }
+
     public function testFailureThrows()
     {
         $this->expectException(Exception::class);

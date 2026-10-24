@@ -158,8 +158,34 @@ keeps track of what was done).
 
 - [ ] Strong authentication: handle the validations by **code** (SMS OTP, woob
       `BrowserQuestion`), which wait for input on stdin (closed today by
-      `Woob::executeWithHeartbeat`); and offer the interactive mode to "Find my accounts in woob" /
-      "Connect the bank" (`Woob::listAccounts`), which also fail on a bank that requires 2FA.
+      `Woob::executeWithHeartbeat`); and offer the interactive mode to "Find my accounts in
+      woob" (`GET /bank/discover`: it still fails today on a bank that asks the validation
+      again once its sessions have expired) and to the revalidation of an existing backend
+      (`GET /bank/validate` covers only the first connection).
+- [ ] **Production** (woob module `creditmutuel`): since March 2026 the listing crashes
+      (`woob bank list -b creditmutuel` → `Bug(creditmutuel): FormNotFound`, gitlab
+      [woob #829](https://gitlab.com/woob/woob/-/work_items/829): the insurance page
+      (SYNASSINT) no longer matches the ids the module expected). The fix (woob commit
+      `e19ffde`, 2026-10-21) is not published on updates.woob.tech yet — until an update
+      brings it, patch the module by hand in the production container, then remove this
+      item:
+
+      ```bash
+      docker compose exec carbure python3 - <<'EOF'
+      import re, os, glob
+      path = glob.glob(os.getenv("HOME", "/data/woob") + "/.local/share/woob/modules/3.7/woob_modules/creditmutuel/pages.py")[0]
+      src = open(path).read()
+      new, n = re.subn(r"xpath=\"//form\[@id='C:P1:F'.*\]\"",
+                       'xpath=\'//form[.//input[@name="_FID_GoBusinessSpaceLife"]]\'', src, count=1)
+      assert n == 1 and new != src, "no patch applied (already patched or line changed)"
+      open(path, "w").write(new)
+      EOF
+      docker compose exec carbure chmod --reference=/data/woob/.config/woob/backends \
+        /data/woob/.local/share/woob/modules/3.7/woob_modules/creditmutuel/pages.py
+      ```
+
+      Check: `woob bank list -b <creditmutuel-backend> -f json` lists the accounts again
+      (run as the web user, not root, to avoid permission errors on the woob state files).
 
 - [ ] MySQL connection in `utf8mb4` (`Db` does not call `set_charset`: the connection uses
       the default charset of the server). Before adding it, check in production what PHP

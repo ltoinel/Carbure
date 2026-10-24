@@ -63,6 +63,7 @@
     "bankConnect": "Ligar o banco",
     "bankConnecting": "A ligar ao banco…",
     "bankConnected": "Banco ligado: escolha as contas a acompanhar",
+    "bankValidating": "Valide a ligação na aplicação do seu banco: as contas são pesquisadas novamente automaticamente assim que estiver feita.",
     "bankConnectedNoAccount": "Banco configurado, mas nenhuma conta encontrada: verifique as suas credenciais",
     "bankSettingRequired": "Campo obrigatório: {field}",
     "bankSettingFormat": "Formato incorreto: {field}",

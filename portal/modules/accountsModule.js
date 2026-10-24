@@ -32,7 +32,7 @@ export function accountsByBank(backends, accounts) {
 }
 
 /** Configuration in woob of a bank being connected, empty */
-const EMPTY_SETUP = { module: '', backend: '', label: '', description: '', fields: [], values: {}, loading: false, busy: false, error: null };
+const EMPTY_SETUP = { module: '', backend: '', label: '', description: '', fields: [], values: {}, loading: false, busy: false, validating: false, log: [], error: null };
 
 /** Update of the woob bank modules, closed */
 const EMPTY_WOOB_UPDATE = { open: false, loading: false, status: null, running: false, lines: [], error: null, done: false };
@@ -177,8 +177,76 @@ export function createAccountsModule(getApiService) {
                     this.showToast(this.t(result.accounts.length ? 'bankConnected' : 'bankConnectedNoAccount'));
                     this.openAddAccounts(result.backend, result.accounts);
                 } catch (error) {
+                    if (this.needsTwoFactor(error.message)) {
+                        // The bank asks a validation in its application: the connection is
+                        // asked again with a terminal, in this modal, until it is done
+                        await this.validateBankConnection();
+                        return;
+                    }
                     this.bankSetup = { ...this.bankSetup, busy: false, error: error.message };
                 }
+            },
+
+            /**
+             * Whether a connection error asks a validation in the application of the
+             * bank (a two-factor authentication), which woob only starts in interactive mode
+             * @param {string|null} error - Error of the connection
+             * @returns {boolean}
+             */
+            needsTwoFactor(error) {
+                return /interactive mode to perform a two-factor authentication/i.test(error || '');
+            },
+
+            /**
+             * Validates the first connection of the bank being connected, asking a
+             * two-factor authentication (its credentials are already in woob): the
+             * connection is asked again on a terminal and each line of woob is shown
+             * while the validation in the application of the bank is waited for; once
+             * validated, the accounts of the bank are listed again, to follow them
+             * @returns {Promise<void>}
+             */
+            async validateBankConnection() {
+                const backend = this.bankSetup.backend;
+                const module = this.bankSetup.module;
+                const label = String(this.bankSetup.label || '').trim();
+                this.bankSetup = { ...this.bankSetup, busy: true, validating: true, log: [], error: null };
+                try {
+                    await getApiService().validateBankBackend(backend, line => {
+                        if (this.showConnectModal) {
+                            this.bankSetup = { ...this.bankSetup, log: [...this.bankSetup.log, line] };
+                        }
+                    });
+                } catch (error) {
+                    if (this.showConnectModal) {
+                        this.bankSetup = { ...this.bankSetup, busy: false, validating: false, error: error.message };
+                    }
+                    return;
+                }
+                if (!this.showConnectModal) {
+                    return;
+                }
+                const last = this.bankSetup.log[this.bankSetup.log.length - 1] || '';
+                if (!last.startsWith('Bank validated ')) {
+                    this.bankSetup = { ...this.bankSetup, busy: false, validating: false, error:
+                        last.startsWith('Bank validation failed ') ? last.slice('Bank validation failed '.length) : last };
+                    return;
+                }
+                // Validated: the bank stays configured (the name is remembered) and its
+                // accounts can be followed (step 2, listed again now without a terminal)
+                this.closeConnectModal();
+                await this.loadBankBackends();
+                if (!this.bankBackends.some(b => b.name === backend)) {
+                    this.bankBackends = [...this.bankBackends, { name: backend, module, label: label || null }];
+                }
+                if (label) {
+                    try {
+                        await getApiService().renameBankBackend(backend, label);
+                    } catch (error) {
+                        this.showToast(error.message);
+                    }
+                }
+                this.showToast(this.t('bankConnected'));
+                this.openAddAccounts(backend, null);
             },
 
             /**

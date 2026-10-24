@@ -344,6 +344,21 @@ logs), et jamais passés sur la ligne de commande de woob. Renvoie
 une banque de ce nom existe déjà dans woob ou si son module n'est pas installé et le dépôt
 de woob pas encore approuvé, `400` si un paramètre manque ou si woob refuse.
 
+Si la banque demande d'abord une validation de la connexion dans son application
+(authentification à deux facteurs), le `409` en informe et la banque reste configurée
+dans woob (identifiants gardés) : validez-la (`GET /bank/validate`), puis listez à
+nouveau ses comptes (`GET /bank/discover`) pour les suivre.
+
+### `GET /bank/validate?backend=` — administrateur (flux SSE) { #get-bankvalidateadministrateur }
+
+Valide la première connexion d'une banque qui demande une authentification à deux
+facteurs : woob liste les comptes du backend sur un terminal et attend la validation
+dans l'application de la banque ; chaque message de la banque est envoyé dans la
+progression (« Bank message <backend> : … »), comme pour une synchronisation interactive.
+La dernière ligne est « Bank validated <backend> : … » une fois les comptes trouvés,
+ou « Bank validation failed <backend> : … » (la banque pourra alors être reconfigurée).
+`400` si le nom est invalide.
+
 ### `PUT /bank/backend` — administrateur
 
 Renomme une connexion bancaire : `backend` (nom dans woob), `label` (nom donné à la

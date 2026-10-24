@@ -343,6 +343,20 @@ logs), and never passed on the woob command line. Returns
 a bank with this name already exists in woob or if its module is not installed and the woob
 repository not yet approved, `400` if a parameter is missing or if woob refuses.
 
+If the bank first asks the validation of the connection in its application
+(two-factor authentication), the `409` says so and the bank stays configured in woob
+(credentials kept): validate it (`GET /bank/validate`), then list its accounts again
+(`GET /bank/discover`) to follow them.
+
+### `GET /bank/validate?backend=` — administrator (SSE stream) { #get-bankvalidateadministrateur }
+
+Validates the first connection of a bank asking a two-factor authentication: woob lists
+the accounts of the backend on a terminal and waits for the validation in the application
+of the bank; each message of the bank is sent in the progress ("Bank message <backend>: …"),
+as for an interactive synchronization. The last line is "Bank validated <backend>: …"
+once the accounts are found, or "Bank validation failed <backend>: …" (the bank may
+then be configured again). `400` if the name is invalid.
+
 ### `PUT /bank/backend` — administrator { #put-bankbackend-administrateur }
 
 Renames a bank connection: `backend` (name in woob), `label` (name given to the

@@ -299,6 +299,29 @@ test('connects a new bank, then follows two of its accounts at once', async ({ a
     await expect(connection.locator('code')).toHaveText('boursorama');
 });
 
+test('validates the connection asked by a bank, then follows its accounts', async ({ adminPage: page }) => {
+    // The fake woob: a bank whose first connection asks to be validated in its
+    // application (a backend added with the login "2fa"), which woob only does in
+    // interactive mode: the connection is refused once, then asked again and approved
+    const modal = await connectModal(page, 'bnp');
+    const setup = modal.locator('fieldset.bank-setup');
+    await setup.getByLabel('Numéro client *').fill('2fa');
+    await setup.getByLabel('Code secret *').fill('123456');
+    await modal.getByRole('button', { name: tr('bankConnect') }).click();
+
+    // The connection is asked again with a terminal: validated in the application of
+    // the bank, the modal goes straight to the accounts (following lines of woob too
+    // fast to be shown, the fake answers at once)
+    await expect(page.locator('.toast')).toHaveText(tr('bankConnected'));
+
+    // Connected: straight to its accounts, listed again without a terminal
+    await expect(modal).toHaveCount(0);
+    const add = page.getByRole('dialog', { name: tr('addAccountsTitle', { bank: 'BNP Paribas (bnp_2)' }) });
+    await add.getByRole('checkbox', { name: /Compte chèques/ }).check();
+    await add.getByRole('button', { name: tr('followSelected', { count: 1 }) }).click();
+    await expect(account(page, 'DEMO0000001@bnp_2').locator('.account-name')).toContainText('Compte chèques');
+});
+
 test('connects a second login of a bank already connected', async ({ adminPage: page }) => {
     await openTab(page, tr('tabAccounts'));
     await page.getByRole('button', { name: tr('connectBankTitle') }).click();

@@ -94,6 +94,7 @@ class ApiResolverTest extends TestCase
         'GET /bank/module' => 'admin',
         'GET /bank/modules' => 'admin',
         'GET /bank/sync' => 'public',
+        'GET /bank/validate' => 'admin',
         'GET /bank/woob' => 'admin',
         'GET /bank/woob/update' => 'admin',
         'GET /budget' => 'user',
