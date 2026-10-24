@@ -164,30 +164,20 @@ keeps track of what was done).
       (`GET /bank/validate` covers only the first connection). Also add `?interactive=1`
       to `GET /bank/sync` so that a sync whose session has expired can re-authenticate
       interactively (today the sync silently fails after the decoupled 2FA wait).
-- [ ] **Production** (woob module `creditmutuel`): since March 2026 the listing crashes
-      (`woob bank list -b creditmutuel` → `Bug(creditmutuel): FormNotFound`, gitlab
-      [woob #829](https://gitlab.com/woob/woob/-/work_items/829): the insurance page
-      (SYNASSINT) no longer matches the ids the module expected). The fix (woob commit
-      `e19ffde`, 2026-10-21) is not published on updates.woob.tech yet — until an update
-      brings it, patch the module by hand in the production container, then remove this
-      item:
-
-      ```bash
-      docker compose exec carbure python3 - <<'EOF'
-      import re, os, glob
-      path = glob.glob(os.getenv("HOME", "/data/woob") + "/.local/share/woob/modules/3.7/woob_modules/creditmutuel/pages.py")[0]
-      src = open(path).read()
-      new, n = re.subn(r"xpath=\"//form\[@id='C:P1:F'.*\]\"",
-                       'xpath=\'//form[.//input[@name="_FID_GoBusinessSpaceLife"]]\'', src, count=1)
-      assert n == 1 and new != src, "no patch applied (already patched or line changed)"
-      open(path, "w").write(new)
-      EOF
-      docker compose exec carbure chmod --reference=/data/woob/.config/woob/backends \
-        /data/woob/.local/share/woob/modules/3.7/woob_modules/creditmutuel/pages.py
-      ```
-
-      Check: `woob bank list -b <creditmutuel-backend> -f json` lists the accounts again
-      (run as the web user, not root, to avoid permission errors on the woob state files).
+- [x] **Production** (woob module `creditmutuel`): the listing crashed since March 2026
+      (`Bug(creditmutuel): FormNotFound`, gitlab [woob #829](https://gitlab.com/woob/woob/-/work_items/829)).
+      The upstream fix (woob commit `e19ffde`, 2026-10-21) is not yet published on
+      updates.woob.tech. Automated workaround implemented:
+      - **At container startup**: if `PATCH_CREDITMUT=TRUE` is set, the module is patched
+        on the fly (entrypoint `patch_creditmutuel()`).
+      - **On demand**: when the `creditmutuel` module is selected in the portal
+        (GET `/bank/module?module=creditmutuel`), the patch is applied just before
+        the settings are shown (`Woob::patchCreditmutuelModule()`), so the first
+        connection works immediately.
+      - **Environment**: set `PATCH_CREDITMUT=TRUE` in the container (docker-compose,
+        `docker run -e`, etc.) to enable the workaround.
+      - **Cleanup**: once the fix is published on updates.woob.tech (woob config update
+        brings the fixed module), remove this item and the environment variable.
 
 - [ ] MySQL connection in `utf8mb4` (`Db` does not call `set_charset`: the connection uses
       the default charset of the server). Before adding it, check in production what PHP

@@ -411,6 +411,12 @@ final class Bank {
         if (!preg_match(Woob::MODULE_NAME, $module)) {
             throw new Error("Invalid woob module", 400);
         }
+        // The workaround of a broken published module is applied before the settings are
+        // shown (the login is typed after): the first connection then works at once
+        // (PATCH_CREDITMUT=TRUE, the creditmutuel FormNotFound, gitlab woob #829)
+        if ($module === 'creditmutuel') {
+            Woob::patchCreditmutuelModule();
+        }
         return Woob::moduleFields($module);
     }
 

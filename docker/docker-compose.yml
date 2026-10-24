@@ -1,5 +1,7 @@
 # Carbure with MariaDB, from the docker/ directory: docker compose up -d, then open
-# http://localhost:8080/ and follow the installation wizard (everything is filled in).
+# http://localhost:${PORT:-8080}/ and follow the installation wizard (everything is
+# filled in). The published port follows PORT (docker/.env or environment), e.g. PORT=8090
+# when 8080 is already taken (Synology, Container Manager).
 # Optional: choose the database password in docker/.env (DB_PASSWORD=...).
 # The data of Carbure (configuration, logs, banks) is in the data/ directory of the project.
 services:
@@ -10,7 +12,7 @@ services:
       context: ..
       dockerfile: docker/Dockerfile
     ports:
-      - "8080:80"
+      - "${PORT:-8080}:80"
     environment:
       DB_HOST: db
       DB_NAME: carbure
@@ -18,6 +20,8 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:-change-me}
       # Language suggested by the installation wizard (fr, en)
       LANGUAGE: fr
+      # Published port, shown in the logs of the first start ("open the portal…")
+      CARBURE_PORT: ${PORT:-8080}
       # Daily bank synchronization (seconds); remove to disable
       SYNC_INTERVAL: 86400
     volumes:

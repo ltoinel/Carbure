@@ -477,4 +477,67 @@ class WoobTest extends TestCase
             }
         }
     }
+
+    /**
+     * The buggy line of the published creditmutuel module (gitlab woob #829) in a fake
+     * woob home, with the submit line that follows it (unchanged by the patch).
+     */
+    private function writeBuggyCreditmutuelPages(string $home): string
+    {
+        $dir = "$home/.local/share/woob/modules/3.7/woob_modules/creditmutuel";
+        if (!is_dir($dir) && !mkdir($dir, 0777, true)) {
+            $this->fail("Unable to create $dir");
+        }
+        $pages = "$dir/pages.py";
+        $buggy = <<<'PYTHON'
+    def go_accounts_list(self):
+        form = self.get_form(
+            xpath="//form[@id='C:P1:F' or @id='C:P14:F' or @id='C:P4:F' or @id='C:P5:F'or @id='C:P6:F']",
+            submit='//input[@name="_FID_GoBusinessSpaceLife"]',
+        )
+        form.submit()
+PYTHON;
+        file_put_contents($pages, $buggy);
+        return $pages;
+    }
+
+    public function testTheCreditmutuelModuleIsPatchedBeforeTheConnection()
+    {
+        $home = carbure_test_tmp('woob-home-patch');
+        $pages = $this->writeBuggyCreditmutuelPages($home);
+        $previous = Config::get('woob_path');
+        $patch = getenv('PATCH_CREDITMUT');
+        // The home of woob read from the command, the fake woob still run the same way
+        Config::set('woob_path', 'env HOME=' . escapeshellarg($home) . ' ' . $previous);
+        putenv('PATCH_CREDITMUT=TRUE');
+        try {
+            $this->assertTrue(Woob::patchCreditmutuelModule());
+            $patched = (string)file_get_contents($pages);
+            $this->assertStringContainsString('xpath=\'//form[.//input[@name="_FID_GoBusinessSpaceLife"]]\'', $patched);
+            $this->assertStringNotContainsString("xpath=\"//form[@id='C:P1:F'", $patched);
+            $this->assertStringContainsString('submit=\'//input[@name="_FID_GoBusinessSpaceLife"]\'', $patched);
+            // Already patched: the second call succeeds without touching the file
+            $this->assertTrue(Woob::patchCreditmutuelModule());
+        } finally {
+            Config::set('woob_path', $previous);
+            if ($patch !== false) {
+                putenv("PATCH_CREDITMUT=$patch");
+            } else {
+                putenv('PATCH_CREDITMUT');
+            }
+        }
+    }
+
+    public function testTheCreditmutuelPatchIsSkippedWithoutTheEnvironmentVariable()
+    {
+        $environment = getenv('PATCH_CREDITMUT');
+        putenv('PATCH_CREDITMUT');
+        try {
+            $this->assertFalse(Woob::patchCreditmutuelModule());
+        } finally {
+            if ($environment !== false) {
+                putenv("PATCH_CREDITMUT=$environment");
+            }
+        }
+    }
 }

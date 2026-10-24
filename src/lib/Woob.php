@@ -116,6 +116,88 @@ final class Woob {
     }
 
     /**
+     * Workaround of a broken module published by the woob repository (enabled by the
+     * environment PATCH_CREDITMUT=TRUE, see the entrypoint of the Docker image): the
+     * creditmutuel module crashes at the accounts listing since March 2026
+     * ("Bug(creditmutuel): FormNotFound", gitlab woob #829, the bank changed the ids of
+     * its forms) while the fix (woob commit e19ffde) is not published yet. The fix is
+     * applied on the installed module: called before the settings of the connection are
+     * shown in the portal (Bank::module()), the first connection then works at once.
+     *
+     * Best effort: nothing is patched when the environment is not set, the module is not
+     * installed or its file cannot be written; a failure is logged, never thrown.
+     *
+     * @return bool True when the installed module is (or already was) patched
+     */
+    public static function patchCreditmutuelModule(): bool
+    {
+        if (!self::isPatchEnabled()) {
+            return false;
+        }
+        $pages = self::findModulePages();
+        if ($pages === null) {
+            return false;
+        }
+        if (self::isAlreadyPatched($pages)) {
+            return true;
+        }
+        $patched = self::applyPatch($pages);
+        if ($patched === false) {
+            Logger::warn("The creditmutuel module could not be patched (FormNotFound, gitlab woob #829)");
+            return false;
+        }
+        if (!self::writePatchedModule($pages, $patched)) {
+            Logger::warn("The creditmutuel module could not be patched (FormNotFound, gitlab woob #829)");
+            return false;
+        }
+        Logger::info("The creditmutuel module was patched (FormNotFound, gitlab woob #829, woob commit e19ffde)");
+        return true;
+    }
+
+    private static function isPatchEnabled(): bool
+    {
+        return getenv('PATCH_CREDITMUT') === 'TRUE';
+    }
+
+    private static function findModulePages(): ?string
+    {
+        $home = self::home();
+        if ($home === null) {
+            return null;
+        }
+        $pages = glob(rtrim($home, '/') . '/.local/share/woob/modules/*/woob_modules/creditmutuel/pages.py');
+        if ($pages === false || $pages === [] || !is_file($pages[0]) || !is_writable($pages[0])) {
+            return null;
+        }
+        return $pages[0];
+    }
+
+    private static function isAlreadyPatched(string $path): bool
+    {
+        $source = file_get_contents($path);
+        if ($source === false) {
+            return true;
+        }
+        return str_contains($source, "xpath='//form[.//input[@name=\"_FID_GoBusinessSpaceLife\"]]'");
+    }
+
+    private static function applyPatch(string $path): string|false
+    {
+        $source = file_get_contents($path);
+        if ($source === false) {
+            return false;
+        }
+        $fixed = 'xpath=\'//form[.//input[@name="_FID_GoBusinessSpaceLife"]]\'';
+        $patched = preg_replace('~xpath="//form\[@id=\'C:P1:F\'.*?\]"~s', $fixed, $source, 1, $count);
+        return $count === 1 ? $patched : false;
+    }
+
+    private static function writePatchedModule(string $path, string $content): bool
+    {
+        return file_put_contents($path, $content) !== false;
+    }
+
+    /**
      * Call Woob to get the list of transactions from a bank.
      * Uses proc_open to send SSE heartbeats while waiting for woob to finish,
      * preventing proxy/client timeouts on long-running commands.
