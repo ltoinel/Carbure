@@ -250,6 +250,19 @@ final class Bank {
     }
 
     /**
+     * Get the woob repository status including the last update timestamp.
+     *
+     * @return array{repository: string, trusted: bool, fingerprint: string|null, error: string|null, last_update: string|null}
+     */
+    #[ApiRoute('/bank/woob', method: 'GET', admin: true)]
+    public static function woobStatus(): array
+    {
+        $status = WoobRepository::status();
+        $status['last_update'] = WoobRepository::lastUpdate();
+        return $status;
+    }
+
+    /**
      * Update the woob bank modules (administrators), streamed: each line of woob, then
      * "Woob updated", "Woob repository not trusted: <fingerprint>" (the keyring must be
      * confirmed, woob not started) or "Woob update failed: <cause>". While the repository

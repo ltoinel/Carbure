@@ -632,6 +632,14 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
     }
 
     /**
+     * Woob repository status including last update timestamp
+     * @returns {Promise<Object>} {repository, trusted, fingerprint, error, last_update}
+     */
+    async function fetchWoobStatus() {
+        return request(`${baseUrl}/bank/woob`, {}, 'Failed to fetch woob status');
+    }
+
+    /**
      * Settings asked by a woob bank module (to configure the bank from the portal)
      * @param {string} module - woob module
      * @returns {Promise<Object>} {module, description, fields}

@@ -71,7 +71,11 @@ export function createAccountsModule(getApiService) {
                 selectedAccounts: [],
                 discovering: false,
                 discoverError: null,
+                addAccountsValidating: false,
+                addAccountsValidateLog: [],
                 followingAccounts: false,
+                // Woob repository status (trusted, last update, etc.)
+                woobStatus: null,
                 // Update of the woob bank modules: repository {repository, trusted, fingerprint,
                 // error}, its keyring trusted by the administrator, lines written by woob
                 woobUpdate: { ...EMPTY_WOOB_UPDATE }
@@ -194,7 +198,7 @@ export function createAccountsModule(getApiService) {
              * @returns {boolean}
              */
             needsTwoFactor(error) {
-                return /interactive mode to perform a two-factor authentication/i.test(error || '');
+                return /interactive mode to perform a two-factor authentication|validation.*cancell|app validation.*cancell/i.test(error || '');
             },
 
             /**
@@ -256,9 +260,14 @@ export function createAccountsModule(getApiService) {
             async loadBankBackends() {
                 const api = getApiService();
                 // Each list stays empty if woob does not answer
-                const [backends, modules] = await Promise.allSettled([api.fetchBankBackends(), api.fetchBankModules()]);
+                const [backends, modules, woobStatus] = await Promise.allSettled([
+                    api.fetchBankBackends(),
+                    api.fetchBankModules(),
+                    api.fetchWoobStatus()
+                ]);
                 this.bankBackends = backends.status === 'fulfilled' ? backends.value : [];
                 this.bankModules = modules.status === 'fulfilled' ? modules.value : [];
+                this.woobStatus = woobStatus.status === 'fulfilled' ? woobStatus.value : null;
                 // Why no bank can be chosen (e.g. woob repository to trust first)
                 this.bankModulesError = modules.status === 'rejected' ? modules.reason.message : null;
             },
@@ -513,19 +522,75 @@ export function createAccountsModule(getApiService) {
                 this.addAccountsBackend = backend;
                 this.selectedAccounts = [];
                 this.discoverError = null;
+                this.addAccountsValidating = false;
+                this.addAccountsValidateLog = [];
                 this.showAddAccountsModal = true;
                 if (accounts) {
                     this.showDiscovered(accounts);
                     return;
                 }
+                await this.discoverWithValidation(backend);
+            },
+
+            /**
+             * Discovers accounts for a backend, handling 2FA validation if needed
+             * @param {string} backend
+             * @returns {Promise<void>}
+             */
+            async discoverWithValidation(backend) {
                 this.discoveredAccounts = [];
+                this.discoverError = null;
                 this.discovering = true;
                 try {
                     this.showDiscovered(await getApiService().discoverBankAccounts(backend));
                 } catch (error) {
-                    this.discoverError = error.message;
+                    if (this.needsTwoFactor(error.message)) {
+                        await this.validateAddAccountsBackend(backend);
+                    } else {
+                        this.discoverError = error.message;
+                    }
                 } finally {
                     this.discovering = false;
+                }
+            },
+
+            /**
+             * Validates a backend during account discovery (2FA), then retries discover
+             * @param {string} backend
+             * @returns {Promise<void>}
+             */
+            async validateAddAccountsBackend(backend) {
+                this.addAccountsValidating = true;
+                this.addAccountsValidateLog = [];
+                try {
+                    await getApiService().validateBankBackend(backend, line => {
+                        if (this.showAddAccountsModal) {
+                            this.addAccountsValidateLog = [...this.addAccountsValidateLog, line];
+                        }
+                    });
+                } catch (error) {
+                    if (!this.showAddAccountsModal) return;
+                    this.addAccountsValidating = false;
+                    const last = this.addAccountsValidateLog[this.addAccountsValidateLog.length - 1] || '';
+                    if (last.startsWith('Bank validated ')) {
+                        await this.discoverWithValidation(backend);
+                    } else {
+                        this.discoverError = last.startsWith('Bank validation failed ')
+                            ? last.slice('Bank validation failed '.length)
+                            : last;
+                    }
+                    return;
+                }
+                if (!this.showAddAccountsModal) return;
+                const last = this.addAccountsValidateLog[this.addAccountsValidateLog.length - 1] || '';
+                if (last.startsWith('Bank validated ')) {
+                    this.addAccountsValidating = false;
+                    await this.discoverWithValidation(backend);
+                } else {
+                    this.addAccountsValidating = false;
+                    this.discoverError = last.startsWith('Bank validation failed ')
+                        ? last.slice('Bank validation failed '.length)
+                        : last;
                 }
             },
 
@@ -545,6 +610,9 @@ export function createAccountsModule(getApiService) {
                 this.showAddAccountsModal = false;
                 this.discoveredAccounts = [];
                 this.selectedAccounts = [];
+                this.addAccountsValidating = false;
+                this.addAccountsValidateLog = [];
+                this.discoverError = null;
             },
 
             /**

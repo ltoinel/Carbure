@@ -161,7 +161,9 @@ keeps track of what was done).
       `Woob::executeWithHeartbeat`); and offer the interactive mode to "Find my accounts in
       woob" (`GET /bank/discover`: it still fails today on a bank that asks the validation
       again once its sessions have expired) and to the revalidation of an existing backend
-      (`GET /bank/validate` covers only the first connection).
+      (`GET /bank/validate` covers only the first connection). Also add `?interactive=1`
+      to `GET /bank/sync` so that a sync whose session has expired can re-authenticate
+      interactively (today the sync silently fails after the decoupled 2FA wait).
 - [ ] **Production** (woob module `creditmutuel`): since March 2026 the listing crashes
       (`woob bank list -b creditmutuel` → `Bug(creditmutuel): FormNotFound`, gitlab
       [woob #829](https://gitlab.com/woob/woob/-/work_items/829): the insurance page

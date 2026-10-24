@@ -3582,6 +3582,55 @@ button .material-icons {
     word-break: break-word;
 }
 
+.validating-banner {
+    flex-basis: 100%;
+    margin-top: 16px;
+    padding: 16px 20px;
+    border-radius: var(--border-radius-md);
+    background: linear-gradient(135deg, var(--info-light) 0%, var(--info-light-transparent) 100%);
+    border: 1px solid var(--info-color);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    animation: validating-pulse 2s ease-in-out infinite;
+}
+
+@keyframes validating-pulse {
+    0%, 100% { box-shadow: 0 2px 8px rgba(33, 150, 243, 0.2); }
+    50% { box-shadow: 0 4px 16px rgba(33, 150, 243, 0.35); }
+}
+
+.validating-main {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.validating-icon {
+    font-size: 28px;
+    color: var(--info-color);
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.validating-text strong {
+    display: block;
+    font-size: 15px;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.validating-text p {
+    margin: 0;
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.validating-line {
+    background: var(--info-light);
+    border-left: 3px solid var(--info-color);
+    font-weight: 500;
+}
+
 .sync-log-toggle {
     display: inline-flex;
     align-items: center;

@@ -112,7 +112,7 @@ final class Woob {
      */
     public static function needsTwoFactor(?string $error): bool
     {
-        return (bool)preg_match('/interactive mode to perform a two-factor authentication/i', (string)$error);
+        return (bool)preg_match('/interactive mode to perform a two-factor authentication|validation.*cancell|app validation.*cancell/i', (string)$error);
     }
 
     /**
@@ -416,9 +416,13 @@ final class Woob {
         stream_get_contents($pipes[2]);
         fclose($pipes[1]);
         fclose($pipes[2]);
-        proc_close($process);
+        $code = proc_close($process);
+        if ($code !== 0) {
+            Logger::warn("woob config add $module exited with code $code");
+            return;
+        }
         if (stripos($stdout, 'successfully added') !== false) {
-            shell_exec("$woob_path config remove " . escapeshellarg($probe) . ' < /dev/null 2>&1');
+            self::runWoobConfigRemove($woob_path, $probe);
         }
     }
 
@@ -630,7 +634,7 @@ final class Woob {
     public static function removeBackend(string $backend): void
     {
         $woob_path = self::path();
-        shell_exec("$woob_path config remove " . escapeshellarg($backend) . ' < /dev/null 2>&1');
+        self::runWoobConfigRemove($woob_path, $backend);
         try {
             self::removeSection(self::backendsFile(), $backend);
         } catch (Exception) {
@@ -821,6 +825,12 @@ final class Woob {
 
             if (stream_select($read, $write, $except, self::HEARTBEAT_INTERVAL) === 0) {
                 if ($heartbeat) {
+                    if (connection_aborted()) {
+                        foreach ($open as $pipe) {
+                            fclose($pipe);
+                        }
+                        break;
+                    }
                     Webservice::sendHeartbeat();
                 }
                 continue;
@@ -900,6 +910,15 @@ final class Woob {
      * @param string $stdout The raw stdout from the woob process
      * @return list<mixed>|null The parsed transaction data or null if empty
      */
+    private static function runWoobConfigRemove(string $woob_path, string $backend): void
+    {
+        $command = "$woob_path config remove " . escapeshellarg($backend);
+        exec($command . ' < /dev/null 2>&1', $output, $return_var);
+        if ($return_var !== 0) {
+            Logger::warn("woob config remove $backend exited with code $return_var", ["output" => $output]);
+        }
+    }
+
     private static function parseOutput(string $type, string $stdout): ?array
     {
         $lines = array_filter(explode("\n", trim($stdout)));

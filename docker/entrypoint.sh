@@ -13,6 +13,30 @@ chown -R www-data:www-data /data
 # copied into a NAS shared folder; a copied folder may also have lost its owner rights.
 chmod -R u+rwX,go-rwx /data/woob 2>/dev/null || true
 
+# Apply creditmutuel patch (FormNotFound fix for SYNASSINT page) if requested.
+# Runs after woob config update so the patch survives module updates.
+# Enable with PATCH_CREDITMUT=TRUE (set in docker-compose.yml or docker run -e).
+patch_creditmutuel() {
+    local module_dir="/data/woob/.local/share/woob/modules/3.7/woob_modules/creditmutuel"
+    local pages_py="$module_dir/pages.py"
+    if [ ! -f "$pages_py" ]; then
+        return 0
+    fi
+    # Check if already patched (new xpath)
+    if grep -q '//form\[.//input\[@name="_FID_GoBusinessSpaceLife"\]\]' "$pages_py"; then
+        echo "Carbure: creditmutuel patch already applied" >&2
+        return 0
+    fi
+    # Apply patch: replace old xpath with new robust one
+    sed -i "s|xpath=\"//form\\[@id='C:P1:F' or @id='C:P14:F' or @id='C:P4:F' or @id='C:P5:F'or @id='C:P6:F'\\]\"|xpath='//form[.//input[@name=\"_FID_GoBusinessSpaceLife\"]]'|" "$pages_py"
+    if grep -q '//form\[.//input\[@name="_FID_GoBusinessSpaceLife"\]\]' "$pages_py"; then
+        echo "Carbure: creditmutuel patch applied successfully" >&2
+    else
+        echo "Carbure: WARNING: creditmutuel patch may have failed (pattern not found)" >&2
+    fi
+    chown www-data:www-data "$pages_py" 2>/dev/null || true
+}
+
 # Update of woob at each start: repositories, keyring of the woob repository (to check
 # the signature of the bank modules; without it, installing a module fails with "No
 # keyring found") and installed bank modules. In the background (the portal starts
@@ -32,8 +56,16 @@ woob_update() {
         echo "Carbure: woob update failed, it will be retried at the next start: $(echo "$output" | grep -iE "aborted|error|not trusted|invalid signature" | tail -1)" >&2
         return 1
     fi
+    # Record successful update timestamp
+    date -u +"%Y-%m-%dT%H:%M:%SZ" > /data/woob/.last_woob_update 2>/dev/null || true
+    chown www-data:www-data /data/woob/.last_woob_update 2>/dev/null || true
 }
 woob_update &
+
+# Apply creditmutuel patch if requested (after woob_update in case update ran)
+if [ "${PATCH_CREDITMUT}" = "TRUE" ]; then
+    patch_creditmutuel
+fi
 
 if [ -f /data/conf/prod.ini ]; then
     # Wait for the database, then apply the migrations of the new version (if any);

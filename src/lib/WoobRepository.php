@@ -106,6 +106,24 @@ final class WoobRepository {
     }
 
     /**
+     * Get the timestamp of the last successful woob config update.
+     * The timestamp is written by the container entrypoint after a successful update.
+     *
+     * @return string|null ISO 8601 UTC timestamp (e.g. "2026-10-24T10:30:00Z") or null if never updated
+     */
+    public static function lastUpdate(): ?string
+    {
+        $file = rtrim(Woob::home(), '/') . '/.last_woob_update';
+        if (is_file($file)) {
+            $content = trim((string)file_get_contents($file));
+            if ($content !== '' && preg_match('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/', $content)) {
+                return $content;
+            }
+        }
+        return null;
+    }
+
+    /**
      * Update the repositories and the bank modules of woob ("woob config update"). While
      * no keyring is trusted, woob is started only if the fingerprint confirmed by the
      * administrator is the one of the keyring Carbure downloads (woob would trust any

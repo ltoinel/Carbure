@@ -2795,12 +2795,16 @@
                                 <input id="bank-connection-label" v-model="bankSetup.label" maxlength="100" autocomplete="off" :placeholder="bankSetup.description || bankSetup.module" aria-describedby="bank-connection-label-help" />
                                 <small id="bank-connection-label-help">{{ t('bankConnectionLabelHelp') }}</small>
                             </div>
-                            <div v-if="bankSetup.validating" role="status" aria-live="polite">
-                                <p class="transactions-hint">
-                                    <span class="material-icons spin inline-icon" aria-hidden="true">sync</span>{{ t('bankValidating') }}
-                                </p>
+                            <div v-if="bankSetup.validating" role="status" aria-live="polite" class="validating-banner">
+                                <div class="validating-main">
+                                    <span class="material-icons spin inline-icon validating-icon" aria-hidden="true">phone_android</span>
+                                    <div class="validating-text">
+                                        <strong>{{ t('bankValidatingTitle') }}</strong>
+                                        <p>{{ t('bankValidating') }}</p>
+                                    </div>
+                                </div>
                                 <ul v-if="bankSetup.log.length" class="sync-log">
-                                    <li v-for="(line, i) in bankSetup.log" :key="i">{{ line }}</li>
+                                    <li v-for="(line, i) in bankSetup.log" :key="i" :class="{ 'validating-line': line.includes('application mobile') || line.includes('Démarrez') }">{{ line }}</li>
                                 </ul>
                             </div>
                             <div v-if="bankSetup.error" class="sync-step-error" role="alert">{{ bankSetup.error }}</div>
@@ -2834,6 +2838,18 @@
                     <p class="rules-help">{{ t('addAccountsHelp') }}</p>
                     <div v-if="discovering" class="transactions-hint" role="status">
                         <span class="material-icons spin inline-icon" aria-hidden="true">sync</span>{{ t('discovering') }}
+                    </div>
+                    <div v-else-if="addAccountsValidating" role="status" aria-live="polite" class="validating-banner">
+                        <div class="validating-main">
+                            <span class="material-icons spin inline-icon validating-icon" aria-hidden="true">phone_android</span>
+                            <div class="validating-text">
+                                <strong>{{ t('bankValidatingTitle') }}</strong>
+                                <p>{{ t('bankValidating') }}</p>
+                            </div>
+                        </div>
+                        <ul v-if="addAccountsValidateLog.length" class="sync-log">
+                            <li v-for="(line, i) in addAccountsValidateLog" :key="i" :class="{ 'validating-line': line.includes('application mobile') || line.includes('Démarrez') }">{{ line }}</li>
+                        </ul>
                     </div>
                     <div v-else-if="discoverError" class="sync-step-error discover-error" role="alert">
                         {{ discoverError }}
@@ -2921,8 +2937,11 @@
                             <dd><code>{{ woobUpdate.status.repository }}</code></dd>
                             <dt>{{ t('woobFingerprint') }}</dt>
                             <dd><code class="woob-fingerprint">{{ woobUpdate.status.fingerprint || t('woobFingerprintUnknown') }}</code></dd>
+                            <dt>{{ t('woobLastUpdate') }}</dt>
+                            <dd>{{ woobUpdate.status.last_update ? new Date(woobUpdate.status.last_update).toLocaleString() : t('woobNeverUpdated') }}</dd>
                         </dl>
                         <p class="setup-help">{{ t('woobTrustCompare') }}</p>
+                        <div v-if="woobUpdate.status.error" class="sync-step-error" role="alert">{{ woobUpdate.status.error }}</div>
                         <div v-if="woobUpdate.status.error" class="sync-step-error" role="alert">{{ woobUpdate.status.error }}</div>
                     </template>
                     <ol v-if="woobUpdate.lines.length" class="sync-log" aria-live="polite" tabindex="0" :aria-label="t('woobUpdateLog')">
