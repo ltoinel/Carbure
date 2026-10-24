@@ -341,7 +341,8 @@ final class Settings {
      * in his language.
      *
      * @return array<string, mixed> sent (devices reached), devices (devices of the
-     *               administrator), results [{device (name), sent, status, error}]
+     *               administrator), results [{device (name), sent, status (no_token: the
+     *               app sent no push token), error}]
      * @throws Error If there is no API key of the push service or no device (400)
      */
     #[ApiRoute('/system/push-test', method: 'POST', admin: true)]
@@ -363,6 +364,10 @@ final class Settings {
         foreach ($results as $token => $result) {
             $list[] = ['device' => (string)($names[$token] ?? ''), 'sent' => (bool)$result['success'],
                 'status' => (string)($result['status'] ?? 'error'), 'error' => $result['error'] ?? null];
+        }
+        foreach (array_filter($devices, fn(array $device) => $device['token'] === null) as $device) {
+            $list[] = ['device' => (string)$device['name'], 'sent' => false, 'status' => 'no_token',
+                'error' => 'No push token: notifications are not available in the app of ' . ($device['name'] ?: 'this device')];
         }
         $sent = count(array_filter(array_column($list, 'sent')));
         Logger::info("Test push sent by user $userId to $sent of " . count($list) . " device(s)");
