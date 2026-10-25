@@ -314,14 +314,15 @@ final class Device {
 
     /**
      * Whether devices.token may be NULL: the code runs before the migration that allows it
-     * (2026-10-28_device_without_token), a device without token being then not listed.
+     * (2026-10-28_device_without_token), a device without token being then not listed. A device
+     * without token is told apart by its platform: it needs the column devices.platform too.
      *
      * @return bool
      */
     private static function hasNullableToken(): bool
     {
-        return self::$nullableToken ??= (int)(Db::queryOne("SELECT COUNT(*) AS n FROM information_schema.COLUMNS
-            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'devices' AND COLUMN_NAME = 'token' AND IS_NULLABLE = 'YES'", "")['n'] ?? 0) > 0;
+        return self::hasPlatform() && (self::$nullableToken ??= (int)(Db::queryOne("SELECT COUNT(*) AS n FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'devices' AND COLUMN_NAME = 'token' AND IS_NULLABLE = 'YES'", "")['n'] ?? 0) > 0);
     }
 
     /**
