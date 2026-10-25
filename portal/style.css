@@ -5123,8 +5123,9 @@ a.footer-brand:hover {
     padding: 0;
 }
 
-/* ===== AI agents ===== */
-.mcp-switch-row {
+/* ===== AI agents, rules: switch with its help ===== */
+.mcp-switch-row,
+.rules-switch-row {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -5132,7 +5133,8 @@ a.footer-brand:hover {
     margin-top: 16px;
 }
 
-.mcp-switch-row .rules-help {
+.mcp-switch-row .rules-help,
+.rules-switch-row .rules-help {
     margin: 0;
 }
 

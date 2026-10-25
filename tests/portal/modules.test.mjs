@@ -1166,6 +1166,53 @@ test('config: status of the push service, the relay and the API key as shown', a
     assert.equal(context.pushStatusError, 'Failed to load the status of the push service');
 });
 
+test('rules: keep the existing categories, loaded, switched and reflected in the resynchronization message', async () => {
+    let keep = true;
+    let refuse = false;
+    const sent = [];
+    const api = {
+        fetchRules: async () => [{ id: 1, keyword: 'EDF', category: 3, category_name: 'Énergie', notify: 0 }],
+        fetchCategories: async () => CATEGORIES,
+        fetchRuleSettings: async () => ({ keep_categorized: keep }),
+        updateRuleSettings: async value => {
+            sent.push(value);
+            if (refuse) {
+                throw new Error('Forbidden - Administrator only');
+            }
+            keep = value;
+            return { keep_categorized: keep };
+        },
+        applyRules: async () => ({ updated: 2 }),
+    };
+    const module = createRulesModule(() => api);
+    const toasts = [];
+    const context = { ...module.data(), ...module.methods, t: (key, params) => (params ? `${key}:${params.count}` : key), showToast: message => toasts.push(message) };
+
+    await context.loadRules();
+    assert.equal(context.keepCategorized, true);
+    await context.applyRules();
+    assert.equal(toasts.at(-1), 'rulesAppliedUncategorized:2');
+
+    await context.toggleKeepCategorized();
+    assert.deepEqual(sent, [false]);
+    assert.equal(context.keepCategorized, false);
+    assert.equal(toasts.at(-1), 'rulesKeepCategorizedOff');
+    await context.applyRules();
+    assert.equal(toasts.at(-1), 'rulesApplied:2');
+
+    await context.toggleKeepCategorized();
+    assert.equal(context.keepCategorized, true);
+    assert.equal(toasts.at(-1), 'rulesKeepCategorizedOn');
+
+    // Refused: the switch stays as it was, the error shown
+    refuse = true;
+    await context.toggleKeepCategorized();
+    assert.deepEqual(sent, [false, true, false]);
+    assert.equal(context.keepCategorized, true);
+    assert.equal(context.switchingKeepCategorized, false);
+    assert.equal(toasts.at(-1), 'Forbidden - Administrator only');
+});
+
 test('profile: banner of a new release for the administrators, hidden for that version', async () => {
     const { createProfileModule } = await import('../../portal/modules/profileModule.js');
     let answer = { enabled: true, current: '1.9.1', latest: '1.10.0', url: 'https://github.com/ltoinel/Carbure/releases/tag/v1.10.0', available: true };
