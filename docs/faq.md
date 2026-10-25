@@ -116,6 +116,16 @@ Une question qui n'est pas ici ? Posez-la sur le
     l'onglet **Comptes** une fois le correctif publié. Voir
     [En cas d'échec de la synchronisation](installation.md#en-cas-dechec-de-la-synchronisation).
 
+??? question "Mes transactions synchronisées n'ont pas de libellé"
+    Certains modules woob (Banque Populaire avec la nouvelle API de la banque) ne
+    remplissent que le libellé simplifié de la transaction : avant la 1.10.1, Carbure ne
+    lisait que le libellé brut et enregistrait ces transactions sans libellé. Depuis la
+    1.10.1, la synchronisation lit l'un ou l'autre et complète les transactions déjà
+    enregistrées sans libellé (même compte, même date et même montant), sans doublon : elles
+    gardent leur catégorie et leur pointage. Celles plus anciennes que les transactions
+    renvoyées par la banque restent sans libellé : recatégorisez-les ou supprimez-les depuis
+    l'onglet **Transactions**.
+
 ## Transactions, catégories et budgets
 
 ??? question "Comment les transactions sont-elles catégorisées ?"
@@ -220,6 +230,14 @@ Une question qui n'est pas ici ? Posez-la sur le
     Pas pour le moment : elles sont publiées en France sur l'App Store et Google Play. Le
     portail web, lui, s'utilise partout, et s'installe comme une application (voir plus
     bas).
+
+??? question "Mon téléphone ne reçoit pas les notifications"
+    Ouvrez **Mon profil → Mes appareils** : si le téléphone y est marqué « Notifications
+    indisponibles », l'application s'est connectée sans jeton de notification. Autorisez
+    les notifications de Carbure dans les réglages du téléphone, puis déconnectez-vous et
+    reconnectez-vous dans l'application. S'il n'apparaît pas du tout, reconnectez-vous dans
+    l'application avec votre compte. Un administrateur vérifie aussi que l'instance est
+    enregistrée et envoie une notification de test dans **Administration → Push mobile**.
 
 ??? question "Comment connecter l'application à mon serveur ?"
     Dans le portail, **Mon profil → Mes appareils** affiche un QR code : scannez-le avec

@@ -112,6 +112,15 @@ A question that isn't here? Ask it on the
     the fix is published. See
     [If the synchronization fails](installation.md#en-cas-dechec-de-la-synchronisation).
 
+??? question "My synchronized transactions have no label"
+    Some woob modules (Banque Populaire with the new API of the bank) only fill the
+    simplified label of the transaction: before 1.10.1, Carbure only read the raw label and
+    saved these transactions without a label. Since 1.10.1, the synchronization reads either
+    one and completes the transactions already saved without a label (same account, same
+    date and same amount), without duplicates: they keep their category and their pointing.
+    Those older than the transactions returned by the bank stay without a label: recategorize
+    or delete them from the **Transactions** tab.
+
 ## Transactions, categories and budgets { #transactions-categories-et-budgets }
 
 ??? question "How are the transactions categorized?"
@@ -210,6 +219,14 @@ A question that isn't here? Ask it on the
 ??? question "Are the apps available outside France?"
     Not for now: they are published in France on the App Store and Google Play. The web
     portal works everywhere, and installs as an app (see below).
+
+??? question "My phone does not receive the notifications"
+    Open **My profile → My devices**: if the phone is marked "Notifications unavailable",
+    the app logged in without a notification token. Allow the notifications of Carbure in
+    the settings of the phone, then log out and in again in the app. If it is not listed at
+    all, log in again in the app with your account. An administrator also checks that the
+    instance is registered and sends a test notification in **Administration → Mobile
+    push**.
 
 ??? question "How do I connect the app to my server?"
     In the portal, **My profile → My devices** shows a QR code: scan it with the phone's
