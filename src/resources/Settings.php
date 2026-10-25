@@ -359,7 +359,7 @@ final class Settings {
 
         $language = (string)(Db::queryOne("SELECT language FROM users WHERE id = ?", "i", $userId)['language'] ?? '');
         $results = Device::sendNotification($userId, Messages::t($language, 'push_test_title'), Messages::t($language, 'push_test_body'));
-        $names = array_column($devices, 'name', 'token');
+        $names = array_column(array_filter($devices, fn(array $device) => $device['token'] !== null), 'name', 'token');
         $list = [];
         foreach ($results as $token => $result) {
             $list[] = ['device' => (string)($names[$token] ?? ''), 'sent' => (bool)$result['success'],
