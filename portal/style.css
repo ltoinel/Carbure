@@ -7750,3 +7750,30 @@ button.is-busy:not(.btn-confirm-danger):hover {
         color: var(--error-color);
     }
 }
+
+/* Smallest phones (320 CSS px, also 1280 px zoomed at 400 %): the period still on one line */
+@media (max-width: 380px) {
+    .header {
+        padding: 8px;
+        gap: 6px;
+    }
+
+    .header .app-logo {
+        width: 28px;
+        height: 28px;
+    }
+
+    .header-period {
+        gap: 2px;
+    }
+
+    .header-period select {
+        padding: 6px 2px;
+    }
+
+    .btn-refresh,
+    .btn-period {
+        min-width: 32px;
+        padding: 4px;
+    }
+}
