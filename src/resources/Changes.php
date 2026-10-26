@@ -10,9 +10,12 @@
  * The kinds written by a route are declared on its attribute (#[ApiRoute(...,
  * changes: ['budgets'])]) and bumped by Webservice after a successful call; the bank
  * synchronization bumps them itself, only when it changed something. The bumps of a
- * request are kept in memory and written at its end in one query (flush()), which also
- * sends the new versions in the X-Carbure-Changes header: the client that made the write
- * knows that it has nothing to reload.
+ * request are kept in memory and written at its end in one query (flush()).
+ *
+ * Every authenticated response carries the versions of every kind (X-Carbure-Changes,
+ * sendVersions()): a client checks with each call it makes whether the data it loaded
+ * is still up to date, without polling. A write also tells which kinds it bumped
+ * (X-Carbure-Changed): the client that wrote knows that it has nothing to reload.
  *
  * @author     Ludovic Toinel
  * @copyright  2026 Carbure App
@@ -31,8 +34,11 @@ final class Changes {
     /** Kinds of data that have a change marker */
     public const KINDS = ['transactions', 'accounts', 'categories', 'budgets', 'insights', 'settings'];
 
-    /** Response header of a write: the new versions of the kinds it bumped */
+    /** Response header of every authenticated response: the versions of every kind */
     public const HEADER = 'X-Carbure-Changes';
+
+    /** Response header of a write: the kinds it bumped */
+    public const CHANGED_HEADER = 'X-Carbure-Changed';
 
     /**
      * Kinds bumped by the current request, not written yet
@@ -77,11 +83,10 @@ final class Changes {
     }
 
     /**
-     * Bump the versions of the kinds marked as changed, in one query, and send them in
-     * the X-Carbure-Changes header ("budgets=1835, transactions=1836") while the headers
-     * can still be sent. Nothing is read or written when nothing changed. A failure is
-     * only logged: the data is written, a client reloads it at the latest on its next
-     * start.
+     * Bump the versions of the kinds marked as changed, in one query, and name them in
+     * the X-Carbure-Changed header ("budgets, transactions") while the headers can still
+     * be sent. Nothing is written when nothing changed. A failure is only logged: the
+     * data is written, a client reloads it at the latest on its next start.
      *
      * @return void
      */
@@ -98,15 +103,45 @@ final class Changes {
             Db::execute("INSERT INTO data_change (kind, version, updated_at) VALUES $placeholders
                 ON DUPLICATE KEY UPDATE version = version + 1, updated_at = VALUES(updated_at)",
                 str_repeat('s', count($kinds)), ...$kinds);
-
             if (!headers_sent()) {
-                $in = implode(', ', array_fill(0, count($kinds), '?'));
-                $rows = Db::select("SELECT kind, version FROM data_change WHERE kind IN ($in) ORDER BY kind",
-                    str_repeat('s', count($kinds)), ...$kinds)->fetch_all(MYSQLI_ASSOC);
-                header(self::HEADER . ': ' . implode(', ', array_map(fn(array $row) => "$row[kind]=$row[version]", $rows)));
+                header(self::CHANGED_HEADER . ': ' . implode(', ', $kinds));
             }
         } catch (Throwable $e) {
             Logger::warn("The change markers (" . implode(', ', $kinds) . ") cannot be bumped: " . $e->getMessage());
         }
+    }
+
+    /**
+     * Send the versions of every kind in the X-Carbure-Changes header of the response
+     * (after flush(): the bumps of the request included). Nothing is sent once the
+     * output has started (streams) or without the table (before its migration).
+     *
+     * @return void
+     */
+    public static function sendVersions(): void
+    {
+        if (headers_sent()) {
+            return;
+        }
+        try {
+            $versions = array_map(fn(array $change) => $change['version'], self::get());
+        } catch (Throwable $e) {
+            Logger::debug("No change markers: " . $e->getMessage());
+            return;
+        }
+        header(self::HEADER . ': ' . self::header($versions));
+    }
+
+    /**
+     * Value of the X-Carbure-Changes header.
+     *
+     * @param array<string, int> $versions Version by kind
+     * @return string E.g. "accounts=52, budgets=97, transactions=1835"
+     */
+    public static function header(array $versions): string
+    {
+        ksort($versions);
+        return implode(', ', array_map(fn(string $kind, int $version) => "$kind=$version",
+            array_keys($versions), $versions));
     }
 }

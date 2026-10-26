@@ -50,7 +50,8 @@ icon: material/api
 `GET /changes` (any logged-in user) gives a **change marker per kind of data**, bumped
 by every write. A client (mobile apps, portal) compares the versions with the ones of the
 data it loaded and reloads only the kinds that moved: a light call (one indexed read of a
-few rows), to make when coming back to the foreground and about every minute while in use.
+few rows), to make when coming back to the foreground; then the header of each response
+is enough (see below).
 
 ```json
 {
@@ -80,10 +81,14 @@ transactions and the budgets: a client reloads them when one of these kinds move
   has the version `0`.
 - A synchronization that changes nothing (unchanged account) bumps nothing: it does not
   wake the devices.
-- A write returns the new versions of the kinds it changed in the `X-Carbure-Changes`
-  header (`budgets=97, transactions=1835`): if the known version was the previous one,
-  the client that wrote is up to date without reloading anything; if it moved more,
-  someone else wrote meanwhile.
+- **Every authenticated response** carries the versions of every kind in the
+  `X-Carbure-Changes` header (`accounts=52, budgets=97, … transactions=1835`): the client
+  checks with each call it makes anyway whether what it loaded is up to date, without
+  polling. `GET /changes` is for a return to the foreground, when no call is in progress.
+  No header on the public routes nor on the streams.
+- A write also names the kinds it bumped in `X-Carbure-Changed` (`budgets`): if the
+  known version was the previous one, the client that wrote is up to date without
+  reloading anything; if it moved more, someone else wrote meanwhile.
 - Each write route declares the kinds it changes in its attribute
   (`#[ApiRoute('/budget', method: 'POST', changes: ['budgets'])]`), bumped after a
   successful call; a unit test checks that every write route declares them.

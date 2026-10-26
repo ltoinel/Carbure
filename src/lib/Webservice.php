@@ -181,6 +181,13 @@ final class Webservice {
         $response = self::callService($route['class'], $route['method'], $data, $route['apiRoute']->raw,
             $route['apiRoute']->changes ?? []);
 
+        // The versions of the data with every authenticated answer: the clients check at
+        // each call whether what they loaded is still up to date (not for the public
+        // routes, nor a stream that has already sent its events)
+        if (!$route['apiRoute']->public && !$route['apiRoute']->stream) {
+            Changes::sendVersions();
+        }
+
         // A stream has already sent its events: nothing more to output
         return $route['apiRoute']->stream ? '' : $response;
     }
@@ -275,7 +282,7 @@ final class Webservice {
             $response = self::call($resource, $method, $data);
             Changes::touch(...$changes);
         } finally {
-            // Before the response: the versions go in its headers
+            // Before the response: the kinds bumped go in its headers
             Changes::flush();
         }
         return self::encode($resource, $method, $response, $raw);

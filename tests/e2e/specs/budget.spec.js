@@ -226,3 +226,19 @@ test('copies the budgets of the previous month, completing or overwriting', asyn
     await expectAmounts(card(page, 'Supermarché'), 82.4, `/ ${euros(321)}`);
     expect(Number((await apiBudget(api, 'Supermarché', 1)).budget)).toBe(321);
 });
+
+test('a budget changed by another member of the household is shown without reloading the page', async ({ adminPage: page, api }) => {
+    await openBudgets(page);
+    await expectAmounts(card(page, 'Logement'), 950, `/ ${euros(1000)}`);
+
+    // The answers of the API carry the versions of the data
+    const answer = await api.get('/api/category');
+    expect(answer.headers()['x-carbure-changes']).toMatch(/budgets=\d+/);
+
+    // Another member changes the budget, then the page comes back to the foreground
+    const { month, year } = currentMonth();
+    const logement = await apiBudget(api, 'Logement');
+    expect((await api.post('/api/budget', { data: { category: logement.id, amount: 1100, month, year } })).ok()).toBeTruthy();
+    await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+    await expectAmounts(card(page, 'Logement'), 950, `/ ${euros(1100)}`);
+});
