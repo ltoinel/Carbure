@@ -261,6 +261,21 @@ async function connectModal(page, module) {
     return modal;
 }
 
+test('the first bank connection tells that the synchronization depends on woob', async ({ adminPage: page }) => {
+    // No bank connected yet: the warning, with the fixes proposed to woob
+    await page.route('**/api/bank/backends', route => route.fulfill({ json: [] }));
+    const modal = await connectModal(page, 'bnp');
+    const warning = modal.getByRole('note');
+    await expect(warning).toContainText(tr('woobWarning'));
+    await expect(warning.getByRole('link', { name: tr('woobWarningLink') })).toHaveAttribute('href', 'https://gitlab.com/woob/woob/-/merge_requests');
+});
+
+test('the warning about woob is not shown again once a bank is connected', async ({ adminPage: page }) => {
+    const modal = await connectModal(page, 'bnp');
+    await expect(modal.locator('fieldset.bank-setup')).toBeVisible();
+    await expect(modal.getByRole('note')).toHaveCount(0);
+});
+
 test('a module is not installed before the woob repository is trusted', async ({ adminPage: page }) => {
     // Installing the module would make woob trust the keyring of its repository by itself
     const modal = await connectModal(page, 'boursorama');

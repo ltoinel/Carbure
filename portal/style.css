@@ -7500,6 +7500,32 @@ button.is-busy:not(.btn-confirm-danger):hover {
     font-size: 20px;
 }
 
+/* First bank connection: the synchronization depends on woob */
+.woob-warning {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 0 0 16px;
+    padding: 10px 12px;
+    border-radius: var(--border-radius-sm);
+    background: var(--warning-light);
+    font-size: 0.9em;
+}
+
+.woob-warning .material-icons {
+    font-size: 20px;
+    color: var(--warning-color);
+}
+
+.woob-warning p {
+    margin: 0 0 6px;
+}
+
+.woob-warning a {
+    color: var(--warning-color);
+    font-weight: 600;
+}
+
 .backup-file {
     display: flex;
     flex-wrap: wrap;

@@ -2898,6 +2898,14 @@
                 </div>
                 <div class="modal-body">
                     <p class="rules-help">{{ t('connectBankHelp') }}</p>
+                    <!-- First bank: the synchronization depends on woob and its community -->
+                    <div v-if="!bankBackends.length" class="woob-warning" role="note">
+                        <span class="material-icons" aria-hidden="true">warning</span>
+                        <div>
+                            <p>{{ t('woobWarning') }}</p>
+                            <a href="https://gitlab.com/woob/woob/-/merge_requests" target="_blank" rel="noopener">{{ t('woobWarningLink') }}</a>
+                        </div>
+                    </div>
                     <div class="form-group">
                         <label for="connect-bank-module">{{ t('connectBankModule') }} *</label>
                         <select id="connect-bank-module" v-model="connectModule">
