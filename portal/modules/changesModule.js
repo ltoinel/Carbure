@@ -2,17 +2,18 @@
  * Changes Module
  *
  * Reloads the open tab when the data it shows changed on the server (another member
- * of the household, a synchronization): GET /api/changes gives one version per kind of
- * data, checked when the page comes back to the foreground and every minute while it
- * is visible. Only the tab whose kinds moved is reloaded; the other tabs reload their
- * data when they are opened. The writes of the portal itself answer with their new
- * versions (X-Carbure-Changes header): they reload nothing more.
+ * of the household, a synchronization). Every answer of the API carries the versions
+ * of the data (X-Carbure-Changes header, one version per kind): they are compared at
+ * each call the portal makes anyway, without polling. When the page comes back to the
+ * foreground, GET /api/changes asks them once. Only the tab whose kinds moved is
+ * reloaded; the other tabs reload their data when they are opened. A write of the
+ * portal names the kinds it bumped (X-Carbure-Changed): it reloads nothing more.
  *
  * @module changesModule
  */
 
-/** Delay between two checks while the page is visible (ms) */
-export const CHANGES_INTERVAL = 60000;
+/** Delay before reloading: the answers of the same loading arrive together (ms) */
+export const RELOAD_DELAY = 300;
 
 /**
  * Kinds of data shown by each tab: the insights and the trends are computed from the
@@ -58,17 +59,18 @@ export function movedKinds(known, current) {
 
 /**
  * Versions known after a write of the portal: a kind it bumped by one is up to date
- * (the portal reloaded it after its write); a kind bumped more was also changed by
- * someone else meanwhile, and stays to be reloaded by the next check
+ * (the portal reloads it after its write); a kind bumped more was also changed by
+ * someone else meanwhile, and stays to be reloaded
  * @param {Object<string, number>} known - Versions of the data loaded
- * @param {Object<string, number>} written - Versions sent by the write
+ * @param {Object<string, number>} current - Versions of the server
+ * @param {string[]} written - Kinds bumped by the write (X-Carbure-Changed)
  * @returns {Object<string, number>} The versions known
  */
-export function afterOwnWrite(known, written) {
+export function afterOwnWrite(known, current, written) {
     const versions = { ...known };
-    for (const [kind, version] of Object.entries(written)) {
-        if (versions[kind] === version - 1) {
-            versions[kind] = version;
+    for (const kind of written) {
+        if (versions[kind] === current[kind] - 1) {
+            versions[kind] = current[kind];
         }
     }
     return versions;
@@ -82,17 +84,16 @@ export function afterOwnWrite(known, written) {
 export function createChangesModule(getApiService) {
     // Not reactive: nothing is displayed from them
     let known = null;
-    let timer = null;
     let onVisible = null;
+    let reload = null;
 
     return {
         methods: {
             /**
-             * Starts watching the changes of the session: the versions of the data being
-             * loaded, then a check when the page comes back and every minute
-             * @returns {Promise<void>}
+             * Starts watching the changes of the session: the versions come with the
+             * answers of the API, and are asked when the page comes back
              */
-            async startChangeWatch() {
+            startChangeWatch() {
                 this.stopChangeWatch();
                 onVisible = () => {
                     if (!document.hidden) {
@@ -100,8 +101,6 @@ export function createChangesModule(getApiService) {
                     }
                 };
                 document.addEventListener('visibilitychange', onVisible);
-                timer = setInterval(onVisible, CHANGES_INTERVAL);
-                await this.checkChanges();
             },
 
             /**
@@ -111,55 +110,58 @@ export function createChangesModule(getApiService) {
                 if (onVisible) {
                     document.removeEventListener('visibilitychange', onVisible);
                 }
-                clearInterval(timer);
+                clearTimeout(reload);
                 known = null;
-                timer = null;
                 onVisible = null;
+                reload = null;
             },
 
             /**
-             * Versions sent by a write of the portal (X-Carbure-Changes)
-             * @param {Object<string, number>} written - Version by kind
+             * Versions of an answer of the API: the open tab is reloaded if the data it
+             * shows moved. Not while a modal is open (a form being filled): the versions
+             * stay to be compared with the next answer
+             * @param {Object<string, number>} current - Versions of the server (X-Carbure-Changes)
+             * @param {string[]} written - Kinds bumped by this request (X-Carbure-Changed)
              */
-            ownChanges(written) {
-                if (known) {
-                    known = afterOwnWrite(known, written);
-                }
-            },
-
-            /**
-             * Reloads the open tab if the data it shows changed. Not while a modal is open
-             * (a form being filled): the next check reloads it
-             * @returns {Promise<void>}
-             */
-            async checkChanges() {
-                if (!this.isAuthenticated || document.querySelector('.modal-overlay')) {
+            serverChanges(current, written = []) {
+                if (!this.isAuthenticated || !Object.keys(current).length) {
                     return;
                 }
-                let changes;
-                try {
-                    changes = await getApiService().fetchChanges();
-                } catch (error) {
-                    // Offline, server restarting: the next check
-                    return;
-                }
-                if (changes === null) {
-                    // Server without change markers (older version): nothing to watch
-                    this.stopChangeWatch();
-                    return;
-                }
-                const current = Object.fromEntries(Object.entries(changes).map(([kind, change]) => [kind, change.version]));
                 if (known === null) {
                     known = current;
                     return;
                 }
-                const moved = movedKinds(known, current);
+                if (document.querySelector('.modal-overlay')) {
+                    known = afterOwnWrite(known, current, written);
+                    return;
+                }
+                const moved = movedKinds(afterOwnWrite(known, current, written), current);
                 known = current;
                 if (moved.includes('transactions')) {
                     this.loadPeriods();
                 }
                 if (moved.some(kind => (TAB_KINDS[this.activeTab] || []).includes(kind))) {
-                    this.refreshCurrentTab();
+                    // Once the answers of the loading in progress are read
+                    clearTimeout(reload);
+                    reload = setTimeout(() => this.refreshCurrentTab(), RELOAD_DELAY);
+                }
+            },
+
+            /**
+             * Asks the versions (back to the page): GET /changes, its answer carries them
+             * @returns {Promise<void>}
+             */
+            async checkChanges() {
+                if (!this.isAuthenticated) {
+                    return;
+                }
+                try {
+                    if (await getApiService().fetchChanges() === null) {
+                        // Server without change markers (older version): nothing to watch
+                        this.stopChangeWatch();
+                    }
+                } catch (error) {
+                    // Offline, server restarting: the next answer
                 }
             }
         }

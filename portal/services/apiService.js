@@ -16,8 +16,9 @@ import { parseChangesHeader } from '../modules/changesModule.js';
  * @param {Function} onUnauthorized - Called when the API answers 401 (expired or invalid token)
  * @param {Function} onSetupRequired - Called when the API answers that Carbure is not
  *   installed (503 {setup: true}, e.g. reinstalled from scratch at the same address)
- * @param {Function} onChanges - Called with the versions of the data changed by a write
- *   (X-Carbure-Changes header, see changesModule)
+ * @param {Function} onChanges - Called with the versions of the data of each answer
+ *   (X-Carbure-Changes header) and the kinds bumped by a write (X-Carbure-Changed), see
+ *   changesModule
  * @returns {Object} API service methods
  */
 export function createApiService(baseUrl, authToken = null, onUnauthorized = null, onSetupRequired = null, onChanges = null) {
@@ -35,7 +36,8 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
         }
         const changes = response.headers?.get?.('X-Carbure-Changes');
         if (changes && onChanges) {
-            onChanges(parseChangesHeader(changes));
+            const written = (response.headers.get('X-Carbure-Changed') || '').split(',').map(kind => kind.trim()).filter(Boolean);
+            onChanges(parseChangesHeader(changes), written);
         }
         if (response.status === 401 && onUnauthorized) {
             onUnauthorized();

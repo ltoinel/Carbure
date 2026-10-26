@@ -663,11 +663,11 @@ const app = createApp({
          */
         async startSession() {
             apiService = createApiService(this.apiBaseUrl, this.authToken, () => this.sessionExpired(), () => this.setupRequired(),
-                changes => this.ownChanges(changes));
+                (changes, written) => this.serverChanges(changes, written));
             budgetStore = createBudgetStore(apiService);
 
-            // Versions of the data asked before the data itself: a change made meanwhile
-            // is seen by the next check
+            // Versions of the data: with the answers of the API, and asked when the page
+            // comes back
             this.startChangeWatch();
             this.loadPeriods();
             this.refreshCurrentTab();

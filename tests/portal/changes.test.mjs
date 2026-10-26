@@ -3,7 +3,7 @@ import { mockFetch, json } from './setup.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createApiService } from '../../portal/services/apiService.js';
-import { afterOwnWrite, createChangesModule, movedKinds, parseChangesHeader, TAB_KINDS } from '../../portal/modules/changesModule.js';
+import { afterOwnWrite, createChangesModule, movedKinds, parseChangesHeader, RELOAD_DELAY, TAB_KINDS } from '../../portal/modules/changesModule.js';
 
 const BASE = 'https://carbure.example.com/api';
 
@@ -19,24 +19,38 @@ function fakeDocument({ modal = false } = {}) {
     return listeners;
 }
 
-/** Answer of GET /changes */
+/** Body of GET /changes */
 function changes(versions) {
     return Object.fromEntries(Object.entries(versions).map(([kind, version]) => [kind, { version, updated_at: null }]));
 }
 
-/** A component with the changes mixin, recording the reloads */
-function component(api, activeTab = 'budget') {
-    const mixin = createChangesModule(typeof api === 'function' ? api : () => api);
+/** Answer of the API with the versions of the server */
+function answer(versions, body = [], changed = null) {
+    const headers = { 'Content-Type': 'application/json', 'X-Carbure-Changes': Object.entries(versions).map(([k, v]) => `${k}=${v}`).join(', ') };
+    if (changed) {
+        headers['X-Carbure-Changed'] = changed;
+    }
+    return new Response(JSON.stringify(body), { headers });
+}
+
+/** A component with the changes mixin and its API service, recording the reloads */
+function component(activeTab = 'budget') {
+    let api = null;
+    const mixin = createChangesModule(() => api);
     const vm = { isAuthenticated: true, activeTab, reloads: [], periods: 0 };
     vm.refreshCurrentTab = () => vm.reloads.push(vm.activeTab);
     vm.loadPeriods = () => vm.periods++;
     for (const [name, method] of Object.entries(mixin.methods)) {
         vm[name] = method.bind(vm);
     }
+    api = createApiService(BASE, 't', null, null, (current, written) => vm.serverChanges(current, written));
+    vm.api = api;
     return vm;
 }
 
-test('the header of a write gives the versions it bumped', () => {
+const afterReload = () => new Promise(resolve => setTimeout(resolve, RELOAD_DELAY + 20));
+
+test('the header gives the versions of the server', () => {
     assert.deepEqual(parseChangesHeader('budgets=1835, transactions=1836'), { budgets: 1835, transactions: 1836 });
     assert.deepEqual(parseChangesHeader(null), {});
     assert.deepEqual(parseChangesHeader('budgets=x, =3, accounts'), {});
@@ -48,8 +62,10 @@ test('only the kinds whose version moved are reloaded', () => {
 });
 
 test('a write of the portal is up to date, unless someone else wrote meanwhile', () => {
-    assert.deepEqual(afterOwnWrite({ budgets: 3, transactions: 8 }, { budgets: 4, transactions: 10 }),
+    assert.deepEqual(afterOwnWrite({ budgets: 3, transactions: 8 }, { budgets: 4, transactions: 10 }, ['budgets', 'transactions']),
         { budgets: 4, transactions: 8 });
+    // Not written by the portal: to reload
+    assert.deepEqual(afterOwnWrite({ budgets: 3 }, { budgets: 4 }, []), { budgets: 3 });
 });
 
 test('the insights and the trends follow the transactions and the budgets', () => {
@@ -58,32 +74,47 @@ test('the insights and the trends follow the transactions and the budgets', () =
     }
 });
 
-test('the open tab is reloaded when its data changed, not for another kind', async () => {
-    const listeners = fakeDocument();
+test('each answer tells whether the open tab is still up to date, without polling', async () => {
+    fakeDocument();
     let versions = { transactions: 1, budgets: 1, settings: 1 };
-    const calls = mockFetch(() => json(changes(versions)));
-    const vm = component(createApiService(BASE, 't'));
+    const calls = mockFetch(() => answer(versions));
+    const vm = component();
+    vm.startChangeWatch();
 
-    await vm.startChangeWatch();
-    assert.equal(calls[0].url, `${BASE}/changes`);
+    // The loading of the tab gives the versions of its data
+    await vm.api.fetchCategories();
     assert.deepEqual(vm.reloads, []);
 
     // The settings changed: the budget tab does not show them
     versions = { ...versions, settings: 2 };
-    await vm.checkChanges();
+    await vm.api.fetchCategories();
+    await afterReload();
     assert.deepEqual(vm.reloads, []);
 
-    // A synchronization brought transactions: the budgets and the periods are reloaded
+    // A synchronization brought transactions: the budgets and the periods are reloaded, once
     versions = { ...versions, transactions: 2 };
-    await vm.checkChanges();
+    await vm.api.fetchCategories();
+    await vm.api.fetchCategories();
+    await afterReload();
     assert.deepEqual(vm.reloads, ['budget']);
     assert.equal(vm.periods, 1);
+    assert.ok(calls.every(call => !call.url.endsWith('/changes')));
+    vm.stopChangeWatch();
+});
 
-    // Back to the page: checked at once
-    versions = { ...versions, budgets: 2 };
+test('back to the page, the versions are asked once', async () => {
+    const listeners = fakeDocument();
+    let versions = { budgets: 1 };
+    const calls = mockFetch(() => answer(versions, changes(versions)));
+    const vm = component();
+    vm.startChangeWatch();
+    await vm.api.fetchCategories();
+
+    versions = { budgets: 2 };
     await listeners.visibilitychange();
-    await new Promise(resolve => setImmediate(resolve));
-    assert.deepEqual(vm.reloads, ['budget', 'budget']);
+    await afterReload();
+    assert.equal(calls.at(-1).url, `${BASE}/changes`);
+    assert.deepEqual(vm.reloads, ['budget']);
     vm.stopChangeWatch();
     assert.equal(listeners.visibilitychange, undefined);
 });
@@ -91,28 +122,42 @@ test('the open tab is reloaded when its data changed, not for another kind', asy
 test('the own writes of the portal reload nothing more', async () => {
     fakeDocument();
     let versions = { budgets: 1 };
-    let api = null;
-    const vm = component(() => api);
-    api = createApiService(BASE, 't', null, null, written => vm.ownChanges(written));
-    mockFetch(url => (url.endsWith('/changes') ? json(changes(versions))
-        : new Response('true', { headers: { 'X-Carbure-Changes': 'budgets=2' } })));
+    mockFetch((url, options) => (options.method === 'POST' ? answer(versions, true, 'budgets') : answer(versions)));
+    const vm = component();
+    vm.startChangeWatch();
+    await vm.api.fetchCategories();
 
-    await vm.checkChanges();
     versions = { budgets: 2 };
-    await api.updateBudget(3, 10, 2026, 120);
-    await vm.checkChanges();
+    await vm.api.updateBudget(3, 10, 2026, 120);
+    await vm.api.fetchCategories();
+    await afterReload();
     assert.deepEqual(vm.reloads, []);
+    vm.stopChangeWatch();
 });
 
 test('not while a modal is open, nor against a server without markers', async () => {
     fakeDocument({ modal: true });
-    const calls = mockFetch(() => json(changes({ budgets: 1 })));
-    const vm = component(createApiService(BASE, 't'));
-    await vm.checkChanges();
-    assert.equal(calls.length, 0);
+    let versions = { budgets: 1 };
+    mockFetch(() => answer(versions));
+    const vm = component();
+    vm.startChangeWatch();
+    await vm.api.fetchCategories();
+    versions = { budgets: 2 };
+    await vm.api.fetchCategories();
+    await afterReload();
+    assert.deepEqual(vm.reloads, []);
+
+    // Closed: the next answer reloads
+    fakeDocument();
+    versions = { budgets: 3 };
+    await vm.api.fetchCategories();
+    await afterReload();
+    assert.deepEqual(vm.reloads, ['budget']);
 
     const listeners = fakeDocument();
+    vm.startChangeWatch();
     mockFetch(() => json({ error: 'Route not found: GET /changes' }, 404));
-    await vm.startChangeWatch();
+    await listeners.visibilitychange();
+    await afterReload();
     assert.equal(listeners.visibilitychange, undefined);
 });

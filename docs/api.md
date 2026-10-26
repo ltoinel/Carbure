@@ -52,7 +52,7 @@ icon: material/api
 de données**, incrémenté par chaque écriture. Un client (apps mobiles, portail) compare
 les versions avec celles des données qu'il a chargées et ne recharge que les types qui
 ont bougé : un appel léger (une lecture indexée de quelques lignes), à faire au retour au
-premier plan et toutes les minutes environ pendant l'utilisation.
+premier plan ; ensuite, l'en-tête de chaque réponse suffit (voir ci-dessous).
 
 ```json
 {
@@ -83,10 +83,15 @@ ces types bouge.
   type jamais modifié a la version `0`.
 - Une synchronisation qui ne change rien (compte inchangé) n'incrémente rien : elle ne
   réveille pas les appareils.
-- Une écriture renvoie les nouvelles versions des types qu'elle a modifiés dans l'en-tête
-  `X-Carbure-Changes` (`budgets=97, transactions=1835`) : si la version connue était la
-  précédente, le client qui a écrit est à jour sans rien recharger ; si elle a bougé de
-  plus, quelqu'un d'autre a écrit entre-temps.
+- **Chaque réponse authentifiée** porte les versions de tous les types dans l'en-tête
+  `X-Carbure-Changes` (`accounts=52, budgets=97, … transactions=1835`) : le client
+  vérifie à chaque appel qu'il fait de toute façon si ce qu'il a chargé est à jour, sans
+  appel périodique. `GET /changes` sert au retour au premier plan, quand aucun appel
+  n'est en cours. Pas d'en-tête sur les routes publiques ni sur les flux.
+- Une écriture nomme aussi les types qu'elle a incrémentés dans `X-Carbure-Changed`
+  (`budgets`) : si la version connue était la précédente, le client qui a écrit est à
+  jour sans rien recharger ; si elle a bougé de plus, quelqu'un d'autre a écrit
+  entre-temps.
 - Chaque route d'écriture déclare les types qu'elle modifie dans son attribut
   (`#[ApiRoute('/budget', method: 'POST', changes: ['budgets'])]`), incrémentés après un
   appel réussi ; un test unitaire vérifie que chaque route d'écriture les déclare.
