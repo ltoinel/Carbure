@@ -279,11 +279,12 @@ Une question qui n'est pas ici ? Posez-la sur le
     [tutoriel NAS Synology](synology.md) détaille chaque étape, jusqu'à l'accès HTTPS.
 
 ??? question "Peut-on l'installer sur YunoHost ?"
-    Bientôt : un paquet [`carbure_ynh`](https://github.com/ltoinel/carbure_ynh) est en
-    préparation pour installer Carbure en quelques clics sur un serveur
-    [YunoHost](https://yunohost.org), sur un domaine dédié. Il n'est pas encore au catalogue
-    ni testé sur un vrai serveur ; il installe Carbure 1.10.0. Volontaire pour le tester ?
-    Dites-le dans le [ticket #45](https://github.com/ltoinel/Carbure/issues/45).
+    Oui : le paquet [`carbure_ynh`](https://github.com/ltoinel/carbure_ynh) installe Carbure
+    en quelques clics sur un serveur [YunoHost](https://yunohost.org), sur un domaine dédié,
+    avec woob et une synchronisation quotidienne des comptes. Il n'est pas encore au catalogue de YunoHost : il
+    s'installe depuis son dépôt, voir [Avec YunoHost](installation.md#avec-yunohost). Un
+    problème avec le paquet ? Ouvrez un ticket sur
+    [son dépôt](https://github.com/ltoinel/carbure_ynh/issues).
 
 ??? question "Comment y accéder depuis l'extérieur ou depuis mon téléphone ?"
     Placez Carbure derrière un **proxy inverse en HTTPS** (celui du NAS, Caddy, Traefik,
