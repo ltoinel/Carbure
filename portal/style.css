@@ -1340,7 +1340,8 @@ button .material-icons {
     padding: 16px 24px;
     border-radius: var(--border-radius-lg);
     box-shadow: var(--shadow-4);
-    z-index: 1000;
+    /* Above the modals (.modal-overlay, blurred): an error of a modal left open is readable */
+    z-index: 1200;
     animation: slideInUp var(--transition-normal);
     max-width: 400px;
 }

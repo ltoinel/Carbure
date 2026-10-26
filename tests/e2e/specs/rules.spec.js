@@ -44,6 +44,26 @@ test('refuses a rule without keyword', async ({ adminPage: page }) => {
     await expect(page.getByRole('dialog')).toBeVisible();
 });
 
+test('refuses a rule already existing, with a message readable above the modal', async ({ adminPage: page }) => {
+    await openTab(page, tr('tabRules'));
+    await page.getByRole('button', { name: tr('addRuleTitle') }).click();
+
+    const modal = page.getByRole('dialog', { name: tr('addRuleTitle') });
+    await modal.getByLabel(new RegExp(tr('ruleKeyword'))).fill('LOYER');
+    await pickCategory(modal, 'Alimentation');
+    await modal.getByRole('button', { name: tr('save') }).click();
+
+    const toast = page.locator('.toast');
+    await expect(toast).toHaveText('This keyword already exists');
+    await expect(modal).toBeVisible();
+    // In front of the modal and its blurred background (#364), not only in the page
+    const inFront = await toast.evaluate(element => {
+        const box = element.getBoundingClientRect();
+        return element.contains(document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2));
+    });
+    expect(inFront).toBe(true);
+});
+
 test('modifies a rule, showing the transactions it matches', async ({ adminPage: page }) => {
     await openTab(page, tr('tabRules'));
     await rule(page, 'LOYER').click();
