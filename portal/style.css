@@ -7597,8 +7597,20 @@ button.is-busy:not(.btn-confirm-danger):hover {
         gap: 4px;
     }
 
+    /* The selects share the room left by the buttons, whatever the length of their
+       options (width 0: their content never widens the header) */
     .header-period select {
+        width: 0;
+        min-width: 0;
         padding: 8px 6px;
+    }
+
+    .header-period #month {
+        flex: 3 1 0;
+    }
+
+    .header-period #year {
+        flex: 2 1 0;
     }
 
     .btn-refresh,
