@@ -95,7 +95,6 @@ now ([details](https://carbure.org/en/applications-mobiles/)).
 <p align="center">
   <img src="docs/assets/mobile/ios-transactions.png" alt="Transactions of the month in the iPhone app" width="220">
   <img src="docs/assets/mobile/android-budgets.png" alt="Budgets of the month in the Android app" width="220">
-  <img src="docs/assets/mobile/ios-tendances.png" alt="Trends over 24 months in the iPhone app" width="220">
 </p>
 
 ## Your data stays with you

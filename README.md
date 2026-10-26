@@ -94,7 +94,6 @@ disponibles en France pour le moment ([détails](https://carbure.org/application
 <p align="center">
   <img src="docs/assets/mobile/ios-transactions.png" alt="Transactions du mois dans l'app iPhone" width="220">
   <img src="docs/assets/mobile/android-budgets.png" alt="Budgets du mois dans l'app Android" width="220">
-  <img src="docs/assets/mobile/ios-tendances.png" alt="Tendances sur 24 mois dans l'app iPhone" width="220">
 </p>
 
 ## Vos données restent chez vous
