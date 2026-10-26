@@ -116,6 +116,7 @@
     "unlockUser": "Unlock",
     "userUnlocked": "Account of {username} unlocked",
     "accountLocked": "Account locked for 24 hours after 5 failed logins. An administrator can unlock it.",
+    "tooManyLogins": "Too many login attempts from this address: try again in a minute.",
     "invalidCredentials": "Wrong username or password",
     "apiTokenLifetime": "Validity",
     "apiTokenDays": "{days} days",

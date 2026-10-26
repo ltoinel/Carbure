@@ -176,3 +176,4 @@ Ces réglages, modifiés depuis le portail, sont enregistrés dans la table `set
 | `APP_ENV` | Nom du fichier de configuration (`prod` par défaut) |
 | `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `LANGUAGE`, `CARBURE_WOOB_PATH` | Valeurs proposées par l'assistant d'installation (Docker) ; le mot de passe de l'environnement n'est utilisé que pour cette base |
 | `SYNC_INTERVAL` | Docker : intervalle de la synchronisation automatique, en secondes |
+| `TRUSTED_PROXIES` | Docker : proxys inversés de confiance pour l'adresse du client (`X-Forwarded-For`), voir [Limitation des connexions](securite.md#limitation-des-connexions) |

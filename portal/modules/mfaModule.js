@@ -204,14 +204,16 @@ export function createMfaModule(getApiService) {
             },
 
             /**
-             * A code refused: wrong code (try again), account locked or login expired
-             * (back to the password)
+             * A code refused: wrong code or too many logins (try again), account locked or
+             * login expired (back to the password)
              * @param {number} status - HTTP status
              */
             mfaLoginFailed(status) {
                 this.mfaCode = '';
-                if (status === 401) {
-                    this.loginError = this.t('mfaInvalidCode');
+                // Too many logins from this address (rate limit of nginx): the same code
+                // step, to try again in a minute
+                if (status === 401 || status === 429) {
+                    this.loginError = this.t(status === 429 ? 'tooManyLogins' : 'mfaInvalidCode');
                     this.$nextTick(() => document.getElementById('mfaCode')?.focus());
                     return;
                 }

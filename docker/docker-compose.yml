@@ -25,6 +25,10 @@ services:
       CARBURE_PORT: ${CARBURE_PORT:-8080}
       # Daily bank synchronization (seconds); remove to disable
       SYNC_INTERVAL: 86400
+      # Reverse proxies whose X-Forwarded-For gives the address of the client (rate limit
+      # of the logins, logs). Unset: private networks and loopback; "none": no proxy
+      # (Carbure published directly). See docs/securite.md
+      # TRUSTED_PROXIES: 172.16.0.0/12
     volumes:
       - ../data:/data
     depends_on:

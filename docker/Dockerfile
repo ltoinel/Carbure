@@ -64,8 +64,10 @@ COPY --from=woob /opt/woob /opt/woob
 RUN ln -s /opt/woob/bin/woob /usr/local/bin/woob \
     && /opt/woob/bin/python -c "import curl_cffi, lxml.etree, woob, jose, chompjs, schwifty, Cryptodome"
 
-# nginx serves the portal and Swagger, PHP-FPM runs the API
+# nginx serves the portal and Swagger, PHP-FPM runs the API (settings of the API shared
+# by its locations in carbure/api.conf)
 COPY docker/nginx.conf /etc/nginx/http.d/default.conf
+COPY docker/nginx-api.conf /etc/nginx/carbure/api.conf
 COPY docker/php.ini /usr/local/etc/php/conf.d/carbure.ini
 COPY docker/php-fpm.conf /usr/local/etc/php-fpm.d/zz-carbure.conf
 

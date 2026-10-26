@@ -70,6 +70,30 @@ test('tells at once that the account is locked after 5 failed logins', async ({ 
     await expect(page.locator('.user-menu-name')).toHaveCount(0);
 });
 
+test('tells to wait when nginx limits the logins of this address (429)', async ({ page }) => {
+    // The rate limit of the Docker image (nginx, 30 logins per minute per client): not in
+    // the server of the tests, its answer is simulated
+    await page.route('**/api/user/login', route => route.fulfill({
+        status: 429,
+        contentType: 'application/json',
+        headers: { 'Retry-After': '60' },
+        body: JSON.stringify({ error: 'Too many login attempts, try again in a minute', code: 429 })
+    }));
+    await page.goto('/portal/');
+    await page.getByLabel(tr('username')).fill('admin');
+    await page.getByLabel(tr('password')).fill('admin-password');
+    await page.getByRole('button', { name: tr('loginButton') }).click();
+
+    // Not "wrong password": the credentials were never checked
+    await expect(page.getByRole('alert')).toContainText(tr('tooManyLogins'));
+    await expect(page.locator('.user-menu-name')).toHaveCount(0);
+
+    // A minute later, the same form logs in
+    await page.unroute('**/api/user/login');
+    await page.getByRole('button', { name: tr('loginButton') }).click();
+    await expect(page.locator('.user-menu-name')).toHaveText('admin');
+});
+
 test('goes back to the login screen when the session has expired', async ({ page }) => {
     await page.addInitScript(() => {
         localStorage.setItem('authToken', 'expired.token.value');

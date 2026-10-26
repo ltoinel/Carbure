@@ -184,8 +184,8 @@ l'identité de l'utilisateur du jeton. Voir [Agents IA (MCP)](mcp.md).
 | Élément | Rôle |
 |---|---|
 | `docker/Dockerfile` | `php:8.5.12-fpm-alpine` + nginx (image multi-étapes : woob est construit à part, sans compilateur dans l'image finale), extensions `mysqli` et APCu, woob et les paquets Python des modules bancaires (`curl_cffi`, `python-jose`, `chompjs`, `schwifty`, `pycryptodomex`) dans `/opt/woob`, `HEALTHCHECK` sur `/api/health` |
-| `docker/nginx.conf` | Site nginx (portail, Swagger, API, en-têtes de sécurité) |
+| `docker/nginx.conf` | Site nginx (portail, Swagger, API, en-têtes de sécurité, limitation des routes de connexion) ; `docker/nginx-api.conf` : réglages de l'API partagés par ses emplacements ; `docker/nginx-real-ip.sh` : adresse du client derrière les proxys de confiance (`TRUSTED_PROXIES`) |
 | `docker/php.ini`, `docker/php-fpm.conf` | Réglages PHP et PHP-FPM |
 | `docker/demo/Dockerfile`, `docker/demo/entrypoint.sh` | Image de démonstration (`ltoinel/carbure:demo`) : l'image habituelle avec MariaDB ; à chaque démarrage, base recréée, configuration à secrets aléatoires (`demo=true`), données de `tests/e2e/server/seed.php --demo` avec le compte `demo` / `carbure` et un mot de passe `admin` aléatoire affiché dans les journaux, puis l'entrypoint habituel ; `docker stop` arrête nginx, PHP-FPM et MariaDB proprement |
-| `docker/entrypoint.sh` | Prépare `/data`, attend la base et applique les migrations si Carbure est installé, lance la synchronisation périodique (`SYNC_INTERVAL`), puis PHP-FPM et nginx |
+| `docker/entrypoint.sh` | Prépare `/data`, écrit les proxys de confiance de nginx (`TRUSTED_PROXIES`), attend la base et applique les migrations si Carbure est installé, lance la synchronisation périodique (`SYNC_INTERVAL`), puis PHP-FPM et nginx |
 | Volume `/data` (le dossier `data/` du projet) | `conf/prod.ini`, `conf/setup.code`, `logs/`, `cache/`, configuration woob (`woob/`) |

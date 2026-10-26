@@ -138,6 +138,30 @@ test('the code is asked at each login, a wrong one is refused', async ({ page, a
     expect((await page.context().cookies()).filter(c => c.name.startsWith('carbure_mfa_trust_'))).toEqual([]);
 });
 
+test('the code step stays open when nginx limits the logins of this address (429)', async ({ page, api, request }) => {
+    const secret = await enrollMarie(request);
+    await enforce(api);
+    await typePassword(page, 'marie');
+    await expect(page.getByRole('heading', { name: tr('mfaVerifyTitle') })).toBeVisible();
+
+    // The rate limit of the Docker image (nginx): not in the server of the tests, simulated
+    await page.route('**/api/user/login/mfa', route => route.fulfill({
+        status: 429,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'Too many login attempts, try again in a minute', code: 429 })
+    }));
+    await page.getByLabel(tr('mfaCode')).fill(totp(secret, 30));
+    await page.getByRole('button', { name: tr('mfaVerifyButton') }).click();
+    await expect(page.getByRole('alert')).toContainText(tr('tooManyLogins'));
+    // Still the code step (the challenge of the password is kept), to try again later
+    await expect(page.getByRole('heading', { name: tr('mfaVerifyTitle') })).toBeVisible();
+
+    await page.unroute('**/api/user/login/mfa');
+    await page.getByLabel(tr('mfaCode')).fill(totp(secret, 30));
+    await page.getByRole('button', { name: tr('mfaVerifyButton') }).click();
+    await expect(page.locator('.user-menu-name')).toHaveText('marie');
+});
+
 test('back to the password from the second step', async ({ page, request }) => {
     await enrollMarie(request);
     await typePassword(page, 'marie');

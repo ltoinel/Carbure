@@ -13,6 +13,18 @@ chown -R www-data:www-data /data
 # copied into a NAS shared folder; a copied folder may also have lost its owner rights.
 chmod -R u+rwX,go-rwx /data/woob 2>/dev/null || true
 
+# Address of the client given by the trusted reverse proxies (TRUSTED_PROXIES; unset:
+# private networks and loopback, empty or "none": no proxy), for the rate limit of the
+# logins, the access log and PHP. In /run: written even in a read-only container (demo).
+# The container stops on an invalid entry.
+mkdir -p /run/carbure
+sh "$APP/docker/nginx-real-ip.sh" > /run/carbure/nginx-real-ip.conf
+if grep -q '^set_real_ip_from' /run/carbure/nginx-real-ip.conf; then
+    echo "Carbure: client address taken from X-Forwarded-For behind the trusted proxies: $(sed -n 's/^set_real_ip_from \(.*\);$/\1/p' /run/carbure/nginx-real-ip.conf | tr '\n' ' ')(TRUSTED_PROXIES)"
+else
+    echo "Carbure: no trusted proxy (TRUSTED_PROXIES): client address = address of the connection"
+fi
+
 # Update of woob at each start: repositories, keyring of the woob repository (to check
 # the signature of the bank modules; without it, installing a module fails with "No
 # keyring found") and installed bank modules. In the background (the portal starts

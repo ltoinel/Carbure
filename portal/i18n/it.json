@@ -116,6 +116,7 @@
     "unlockUser": "Sblocca",
     "userUnlocked": "Account di {username} sbloccato",
     "accountLocked": "Account bloccato per 24 ore dopo 5 tentativi di accesso falliti. Un amministratore può sbloccarlo.",
+    "tooManyLogins": "Troppi tentativi di accesso da questo indirizzo: riprova tra un minuto.",
     "invalidCredentials": "Nome utente o password non corretti",
     "apiTokenLifetime": "Durata di validità",
     "apiTokenDays": "{days} giorni",
