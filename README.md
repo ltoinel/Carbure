@@ -19,7 +19,7 @@
 </p>
 
 <p align="center">
-  <a href="https://demo.carbure.org/"><strong>▶ Essayer la démo en ligne</strong></a> (compte <code>demo</code> / <code>carbure</code>)
+  <a href="https://demo.carbure.org/"><strong>▶ Essayer la démo en ligne</strong></a>
 </p>
 
 <p align="center">
@@ -94,7 +94,6 @@ disponibles en France pour le moment ([détails](https://carbure.org/application
 <p align="center">
   <img src="docs/assets/mobile/ios-transactions.png" alt="Transactions du mois dans l'app iPhone" width="220">
   <img src="docs/assets/mobile/android-budgets.png" alt="Budgets du mois dans l'app Android" width="220">
-  <img src="docs/assets/mobile/ios-tendances.png" alt="Tendances sur 24 mois dans l'app iPhone" width="220">
 </p>
 
 ## Vos données restent chez vous
@@ -138,7 +137,7 @@ forts de chacun.
 
 | | Pour | Comment |
 |---|---|---|
-| **Démo en ligne** | voir Carbure sans rien installer | [demo.carbure.org](https://demo.carbure.org/) (`demo` / `carbure`) |
+| **Démo en ligne** | voir Carbure sans rien installer | [demo.carbure.org](https://demo.carbure.org/) |
 | **Démo chez vous** | essayer avec un foyer d'exemple | `docker run --rm -p 8080:80 ltoinel/carbure:demo` |
 | **Docker** (recommandé) | gérer le vrai budget du foyer | voir ci-dessous |
 | **NAS Synology** | un NAS à la maison | [tutoriel pas à pas](https://carbure.org/synology/) |
