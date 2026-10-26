@@ -16,6 +16,7 @@
 
 namespace Carbure\Resources;
 
+use Carbure\Lib\ApiError;
 use Carbure\Lib\ApiRoute;
 use Carbure\Lib\Config;
 use Carbure\Lib\Db;
@@ -58,7 +59,7 @@ final class TrustedBrowser {
     {
         $stmt = Db::execute("DELETE FROM mfa_trusted_browser WHERE id = ? AND user_id = ?", "ii", $id, Jwt::getUserIdFromToken());
         if ($stmt->affected_rows === 0) {
-            throw new Error("Trusted browser not found", 404);
+            throw new ApiError("Trusted browser not found", 404, 'browser_not_found');
         }
         return true;
     }

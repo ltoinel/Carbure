@@ -153,6 +153,7 @@ DB_PASSWORD=un-mot-de-passe-solide
 | `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` | Database offered by the wizard (the password does not need to be re-entered) | `db`, `3306`, `carbure`, `carbure` |
 | `LANGUAGE` | Language offered for the administrator (`fr`, `en`, `es`, `it`, `de`, `pt`) | `fr` |
 | `SYNC_INTERVAL` | Automatic sync of all accounts every N seconds (`86400` = once a day) | disabled |
+| `TRUSTED_PROXIES` | Trusted reverse proxies (addresses or CIDR networks) whose `X-Forwarded-For` header gives the client's address, for the [login rate limit](securite.md#limitation-des-connexions) and the logs; `none`: none (Carbure published without a proxy) | private networks and loopback |
 | `CARBURE_WOOB_PATH` | woob command written into the configuration by the wizard; the image already sets it (`env HOME=/data/woob woob`) | `woob` |
 
 The project's `data/` folder, mounted on `/data` in the container, holds everything that is

@@ -30,6 +30,39 @@ test('the error message of the API is the one of the exception', async () => {
     await assert.rejects(createApiService(BASE, 't').fetchUsers(), { message: 'Failed to fetch users (502)' });
 });
 
+test('the stable code and the values of an API error are kept on the exception, to be translated', async () => {
+    mockFetch(() => json({ error: 'This keyword already exists', code: 409, uid: 'abc', error_code: 'keyword_exists' }, 409));
+    await assert.rejects(createApiService(BASE, 't').createRule('LOYER', 1),
+        { message: 'This keyword already exists', status: 409, code: 'keyword_exists', params: {} });
+
+    mockFetch(() => json({ error: 'Invalid query: Unknown column', code: 400, uid: 'abc', error_code: 'insight_query_failed', params: { cause: 'Unknown column' } }, 400));
+    await assert.rejects(createApiService(BASE, 't').saveInsight({ name: 'X', color: 'red', sql: 'SELECT x AS amount' }),
+        { code: 'insight_query_failed', params: { cause: 'Unknown column' } });
+
+    // An older server: the message only, no code
+    mockFetch(() => json({ error: 'This keyword already exists', code: 409, uid: 'abc' }, 409));
+    const error = await createApiService(BASE, 't').createRule('LOYER', 1).catch(e => e);
+    assert.equal(error.message, 'This keyword already exists');
+    assert.equal(error.code, undefined);
+});
+
+test('the streamed requests keep the stable code of an API error too', async () => {
+    mockFetch(() => json({ error: 'Invalid bank name (lowercase letters, digits, - and _)', code: 400, uid: 'abc', error_code: 'bank_name_invalid' }, 400));
+    await assert.rejects(createApiService(BASE, 't').discoverBankAccountsInteractive('BAD NAME', () => {}), { code: 'bank_name_invalid' });
+    mockFetch(() => new Response('<html>Bad gateway</html>', { status: 502 }));
+    await assert.rejects(createApiService(BASE, 't').syncBanks(() => {}), { message: 'Failed to start the synchronization (502)', status: 502 });
+});
+
+test('responseError: the message of the API, or the default one for a body that is not an API error', async () => {
+    const { responseError } = await import('../../portal/services/apiService.js');
+    assert.deepEqual({ ...responseError(423, '{"error":"Locked","error_code":"account_locked_until","params":{"until":"2026-10-26 18:30:00"}}', 'Failed') },
+        { status: 423, code: 'account_locked_until', params: { until: '2026-10-26 18:30:00' } });
+    assert.equal(responseError(500, '', 'Failed (500)').message, 'Failed (500)');
+    assert.equal(responseError(500, 'null', 'Failed (500)').message, 'Failed (500)');
+    assert.equal(responseError(400, '{"error":{"nested":true}}', 'Failed (400)').message, 'Failed (400)');
+    assert.equal(responseError(400, '{"error":"x","error_code":"c","params":"bad"}', 'F').params.constructor, Object);
+});
+
 test('a 401 reports the expired session', async () => {
     mockFetch(() => json({ error: 'Unauthorized' }, 401));
     let expired = 0;

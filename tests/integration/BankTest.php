@@ -1,5 +1,6 @@
 <?php
 
+use Carbure\Lib\ApiError;
 use Carbure\Lib\Config;
 use Carbure\Lib\Db;
 use Carbure\Lib\Logger;
@@ -399,6 +400,9 @@ class BankTest extends DatabaseTestCase
         } catch (Error $e) {
             $this->assertSame(400, $e->getCode());
             $this->assertStringStartsWith('The bank refused the credentials, check them: ', $e->getMessage());
+            $this->assertInstanceOf(ApiError::class, $e);
+            $this->assertSame('bank_credentials_refused', $e->getErrorCode());
+            $this->assertSame('bnp', $e->getParams()['module']);
             $this->assertStringContainsString('Identifiant ou mot de passe incorrect', $e->getMessage());
             // Removed from woob, to try again, with its credentials
             $this->assertSame('mybnp', trim(file_get_contents($removed)));

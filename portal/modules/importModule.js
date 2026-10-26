@@ -160,7 +160,7 @@ export function createImportModule(getApiService) {
                     this.importSelection = selection;
                 } catch (err) {
                     this.importFile = null;
-                    this.importError = err.message;
+                    this.importError = this.apiErrorText(err);
                 } finally {
                     this.importLoading = false;
                 }
@@ -210,7 +210,7 @@ export function createImportModule(getApiService) {
                     this.loadPeriods();
                     this.loadTransactions(this.selectedMonth, this.selectedYear);
                 } catch (err) {
-                    this.importError = err.message;
+                    this.importError = this.apiErrorText(err);
                 } finally {
                     this.importing = false;
                 }

@@ -321,7 +321,7 @@ export function createTrendsModule(getApiService) {
                         offset ? apiService.fetchTrends(this.trendsMonths, offset) : Promise.resolve([])
                     ]);
                 } catch (error) {
-                    this.error = error.message;
+                    this.error = this.apiErrorText(error);
                     this.trends = [];
                 } finally {
                     this.loadingTrends = false;

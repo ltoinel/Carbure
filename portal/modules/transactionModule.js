@@ -285,7 +285,7 @@ export function createTransactionModule(getApiService) {
                         return;
                     }
                     
-                    this.error = err.message;
+                    this.error = this.apiErrorText(err);
                     this.transactions = [];
                 } finally {
                     this.loadingTransactions = false;
@@ -410,7 +410,7 @@ export function createTransactionModule(getApiService) {
                         categoryName: option ? option.label : ''
                     };
                 } catch (err) {
-                    this.showToast(err.message);
+                    this.showToast(this.apiErrorText(err));
                 }
             },
 
@@ -487,7 +487,7 @@ export function createTransactionModule(getApiService) {
                     this.transactionDetail = null;
                     this.showToast(this.t('transactionSaved'));
                 } catch (error) {
-                    this.showToast(error.message);
+                    this.showToast(this.apiErrorText(error));
                 } finally {
                     this.savingTransaction = false;
                 }
@@ -512,7 +512,7 @@ export function createTransactionModule(getApiService) {
                     this.loadPeriods();
                     this.loadTransactions(this.selectedMonth, this.selectedYear);
                 } catch (error) {
-                    this.showToast(error.message);
+                    this.showToast(this.apiErrorText(error));
                 } finally {
                     this.savingTransaction = false;
                 }
@@ -546,7 +546,7 @@ export function createTransactionModule(getApiService) {
                     await apiService.setTransactionPointed(transaction.id, pointed);
                 } catch (err) {
                     transaction.pointed = pointed ? 0 : 1;
-                    this.showToast(err.message);
+                    this.showToast(this.apiErrorText(err));
                 }
             },
 
@@ -598,7 +598,7 @@ export function createTransactionModule(getApiService) {
                         this.searchResults = results;
                     }
                 } catch (err) {
-                    this.showToast(err.message);
+                    this.showToast(this.apiErrorText(err));
                 } finally {
                     this.searching = false;
                 }

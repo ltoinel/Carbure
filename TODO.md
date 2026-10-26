@@ -48,6 +48,13 @@ keeps track of what was done).
       committed), the old key is revoked and the new one unknown: register again, and ask
       the operator to `devices:release` the devices (or wait 60 days).
 
+- [ ] **Translated API errors (#366)**: the errors a user meets in the portal throw
+      `Carbure\Lib\ApiError` (stable `error_code` + `params`, translated by the portal);
+      the technical ones stay plain `Error` in English (pending migrations, woob/backup
+      internals, notification kinds and channels, device platform, JWT/sync token, setup
+      wizard). Give them a code when a user meets them; open tickets on the iOS and Android
+      apps to translate `error_code` too (they show `error` until then).
+
 - [ ] **Android app**: the backend is ready (devices with a `platform`, login
       `device.platform=android`, FCM provider in Carbure Push); to do: the app itself, the
       Firebase project and its service account on the relay.
@@ -149,6 +156,16 @@ keeps track of what was done).
       only then). Until then, the current app logs in only from an iPhone already
       registered for that user: a new iPhone gets `403` "Two-factor authentication is
       required and this device is not known yet" while `mfa_required` is on.
+
+- [ ] **Mobile apps** (login rate limit, #359): the Docker image answers `429`
+      (`{"error", "code": 429}`, `Retry-After: 60`) after 30 logins per minute from one
+      address (`POST /user/login`, `/user/login/mfa`, `/oauth/token`): show "too many
+      attempts, wait a minute" instead of a wrong password.
+
+- [ ] **Login rate limit behind a proxy** (#359): after the upgrade, check in the logs of
+      the container (`docker logs`, line "client address taken from X-Forwarded-For") and
+      in its access log that the address of the clients is theirs, not the one of the NAS
+      reverse proxy; otherwise set `TRUSTED_PROXIES` (docs/securite.md).
 
 - [ ] **Two-factor authentication, known devices** (#166 review): a device registered in
       `devices` skips the code, also one registered before `mfa_required` was turned on,

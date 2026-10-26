@@ -487,6 +487,8 @@ test('a bank refusing the credentials can be connected again', async ({ adminPag
 
     // The error of the bank, the modal kept to correct the credentials
     await expect(setup.getByRole('alert')).toContainText('Identifiant ou mot de passe incorrect');
+    // In the language of the portal, with the cause given by the bank (#366)
+    await expect(setup.getByRole('alert')).toContainText(tr('apiErrors.bank_credentials_refused', { cause: '' }).trim());
     await setup.getByLabel('Numéro client *').fill('12345678');
     await modal.getByRole('button', { name: tr('bankConnect') }).click();
     await expect(page.getByRole('dialog', { name: tr('addAccountsTitle', { bank: 'CIC (cic)' }) })).toBeVisible();

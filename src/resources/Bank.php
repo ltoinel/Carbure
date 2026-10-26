@@ -11,6 +11,7 @@
 
 namespace Carbure\Resources;
 
+use Carbure\Lib\ApiError;
 use Carbure\Lib\ApiRoute;
 use Carbure\Lib\Config;
 use Carbure\Lib\Db;
@@ -85,10 +86,10 @@ final class Bank {
     {
         // Never starting with "-": woob would read "-x@bank" as an option
         if (!preg_match('/^[A-Za-z0-9_.:][A-Za-z0-9_.:-]{0,99}$/', $accountNumber)) {
-            throw new Error("Invalid account number", 400);
+            throw new ApiError("Invalid account number", 400, 'account_number_invalid');
         }
         if (!preg_match('/^[A-Za-z0-9_][A-Za-z0-9_-]{0,49}$/', $bankName)) {
-            throw new Error("Invalid bank (woob backend) name", 400);
+            throw new ApiError("Invalid bank (woob backend) name", 400, 'account_bank_invalid');
         }
     }
 
@@ -107,7 +108,7 @@ final class Bank {
             return null;
         }
         if (mb_strlen($label) > 100) {
-            throw new Error("Name too long (100 characters max)", 400);
+            throw new ApiError("Name too long (100 characters max)", 400, 'label_too_long');
         }
         return $label;
     }
@@ -123,7 +124,7 @@ final class Bank {
     {
         $account = Db::queryOne("SELECT * FROM bank_account WHERE id = ?", "i", $id);
         if (!$account) {
-            throw new Error("Account not found", 404);
+            throw new ApiError("Account not found", 404, 'account_not_found');
         }
         return $account;
     }
@@ -167,7 +168,7 @@ final class Bank {
         $userId = (int)Jwt::getUserIdFromToken();
 
         if (Db::queryOne("SELECT id FROM bank_account WHERE account_number = ? AND bank_name = ?", "ss", $account_number, $bank_name)) {
-            throw new Error("This account is already followed", 409);
+            throw new ApiError("This account is already followed", 409, 'account_already_followed');
         }
 
         $stmt = Db::execute("INSERT INTO bank_account (bank_name, account_number, label, user_id) VALUES (?, ?, ?, ?)", "sssi", $bank_name, $account_number, $label, $userId);
@@ -195,7 +196,7 @@ final class Bank {
         $userId = (int)$account['user_id'];
 
         if (Db::queryOne("SELECT id FROM bank_account WHERE account_number = ? AND bank_name = ? AND id <> ?", "ssi", $account_number, $bank_name, $id)) {
-            throw new Error("This account is already followed", 409);
+            throw new ApiError("This account is already followed", 409, 'account_already_followed');
         }
 
         Db::execute("UPDATE bank_account SET account_number = ?, bank_name = ?, label = ? WHERE id = ?", "sssi", $account_number, $bank_name, $label, $id);
@@ -265,7 +266,7 @@ final class Bank {
     {
         $fingerprint = $fingerprint === '' ? null : $fingerprint;
         if ($fingerprint !== null && !preg_match('/^[0-9a-fA-F]{40}$/', $fingerprint)) {
-            throw new Error("Invalid fingerprint (SHA-1: 40 hexadecimal characters)", 400);
+            throw new ApiError("Invalid fingerprint (SHA-1: 40 hexadecimal characters)", 400, 'woob_fingerprint_invalid');
         }
         set_time_limit(0);
 
@@ -315,11 +316,11 @@ final class Bank {
     public static function renameBackend(string $backend, ?string $label = null): array
     {
         if (!preg_match(Woob::BACKEND_NAME, $backend)) {
-            throw new Error("Invalid bank name (lowercase letters, digits, - and _)", 400);
+            throw new ApiError("Invalid bank name (lowercase letters, digits, - and _)", 400, 'bank_name_invalid');
         }
         $label = self::normalizeLabel($label);
         if (!in_array($backend, array_column(Woob::listBackends(), 'name'), true)) {
-            throw new Error("Bank not configured in woob", 404);
+            throw new ApiError("Bank not configured in woob", 404, 'bank_not_configured');
         }
         self::saveBackendLabel($backend, $label);
         return ['name' => $backend, 'label' => $label];
@@ -339,10 +340,10 @@ final class Bank {
     public static function deleteBackend(string $backend): bool
     {
         if (!preg_match(Woob::BACKEND_NAME, $backend)) {
-            throw new Error("Invalid bank name (lowercase letters, digits, - and _)", 400);
+            throw new ApiError("Invalid bank name (lowercase letters, digits, - and _)", 400, 'bank_name_invalid');
         }
         if (!in_array($backend, array_column(Woob::listBackends(), 'name'), true)) {
-            throw new Error("Bank not configured in woob", 404);
+            throw new ApiError("Bank not configured in woob", 404, 'bank_not_configured');
         }
 
         // woob says nothing when it fails: the backend must be gone from its list
@@ -396,7 +397,7 @@ final class Bank {
     public static function module(string $module): array
     {
         if (!preg_match(Woob::MODULE_NAME, $module)) {
-            throw new Error("Invalid woob module", 400);
+            throw new ApiError("Invalid woob module", 400, 'woob_module_invalid');
         }
         return Woob::moduleFields($module);
     }
@@ -426,11 +427,11 @@ final class Bank {
     public static function createBackend(string $module, string $backend, mixed $settings = [], ?string $label = null): array
     {
         if (!preg_match(Woob::MODULE_NAME, $module) || !preg_match(Woob::BACKEND_NAME, $backend)) {
-            throw new Error("Invalid woob module or bank name (lowercase letters, digits, - and _)", 400);
+            throw new ApiError("Invalid woob module or bank name (lowercase letters, digits, - and _)", 400, 'bank_setup_invalid');
         }
         $label = self::normalizeLabel($label);
         if (in_array($backend, array_column(Woob::listBackends(), 'name'), true)) {
-            throw new Error("A bank named $backend is already configured in woob", 409);
+            throw new ApiError("A bank named $backend is already configured in woob", 409, 'bank_exists', ['bank' => $backend]);
         }
 
         // Every setting of the module is given, required ones present, values on one line,
@@ -479,37 +480,37 @@ final class Bank {
                 return null;
             }
             Woob::removeBackend($backend);
-            throw new Error(self::refusalMessage($module, $e->getMessage()), 400);
+            throw self::refusalError($module, $e->getMessage());
         }
     }
 
     /**
-     * Causes of a failed first connection to a bank (woob error => message), the first
-     * matching one wins: the credentials only when the bank says so
+     * Causes of a failed first connection to a bank (woob error => [code, message]), the
+     * first matching one wins: the credentials only when the bank says so
      */
     private const REFUSALS = [
-        '/BrowserIncorrectPassword|incorrect|wrong ?password/i' => 'The bank refused the credentials, check them',
+        '/BrowserIncorrectPassword|incorrect|wrong ?password/i' => ['bank_credentials_refused', 'The bank refused the credentials, check them'],
         '/\b403\b|Forbidden|Bug\(|ClientError|BrowserUnavailable|\b5\d\d Server Error/i'
-            => 'The bank blocks woob or the woob module "%s" is broken, see the known issues of this module on the woob tracker',
+            => ['bank_blocked', 'The bank blocks woob or the woob module "%s" is broken, see the known issues of this module on the woob tracker'],
     ];
 
     /**
-     * Message of a failed first connection to a bank, by cause (wrong credentials, the
+     * Error of a failed first connection to a bank, by cause (wrong credentials, the
      * bank blocking woob or a broken woob module, other failure), followed by the error
      * of woob.
      *
      * @param string $module The woob module
      * @param string $error  The error of woob
-     * @return string The message
+     * @return ApiError The error (400), with the module and the error of woob as values
      */
-    private static function refusalMessage(string $module, string $error): string
+    private static function refusalError(string $module, string $error): ApiError
     {
-        foreach (self::REFUSALS as $pattern => $message) {
+        foreach (self::REFUSALS as $pattern => [$code, $message]) {
             if (preg_match($pattern, $error)) {
-                return sprintf($message, $module) . ": $error";
+                return new ApiError(sprintf($message, $module) . ": $error", 400, $code, ['module' => $module, 'cause' => $error]);
             }
         }
-        return "The connection to the bank failed: $error";
+        return new ApiError("The connection to the bank failed: $error", 400, 'bank_connection_failed', ['cause' => $error]);
     }
 
     /**
@@ -528,7 +529,7 @@ final class Bank {
             $value = $field['default'];
         }
         if ($value === '' && $field['required']) {
-            throw new Error("Missing setting: " . $field['label'], 400);
+            throw new ApiError("Missing setting: " . $field['label'], 400, 'bank_setting_missing', ['setting' => $field['label']]);
         }
         return $value;
     }
@@ -545,13 +546,14 @@ final class Bank {
     private static function checkSetting(array $field, string $value): void
     {
         if (preg_match('/[\x00-\x1f\x7f"\\\\]/', $value) || preg_match('/\s/', $value) || mb_strlen($value) > 200) {
-            throw new Error("Invalid value for " . $field['label'] . " (no spaces nor quotes)", 400);
+            throw new ApiError("Invalid value for " . $field['label'] . " (no spaces nor quotes)", 400, 'bank_setting_value_invalid',
+                ['setting' => $field['label']]);
         }
         if ($value !== '' && $field['choices'] && !in_array($value, array_column($field['choices'], 'value'), true)) {
-            throw new Error("Invalid choice for " . $field['label'], 400);
+            throw new ApiError("Invalid choice for " . $field['label'], 400, 'bank_setting_choice_invalid', ['setting' => $field['label']]);
         }
         if ($value !== '' && !self::matchesFormat($field['regexp'], $value)) {
-            throw new Error("Invalid format for " . $field['label'], 400);
+            throw new ApiError("Invalid format for " . $field['label'], 400, 'bank_setting_format_invalid', ['setting' => $field['label']]);
         }
     }
 
@@ -588,7 +590,7 @@ final class Bank {
     {
         $backend = $backend === '' ? null : $backend;
         if ($backend !== null && !preg_match(Woob::BACKEND_NAME, $backend)) {
-            throw new Error("Invalid bank name (lowercase letters, digits, - and _)", 400);
+            throw new ApiError("Invalid bank name (lowercase letters, digits, - and _)", 400, 'bank_name_invalid');
         }
         return self::discovered(Woob::listAccounts($backend));
     }
@@ -609,7 +611,7 @@ final class Bank {
     public static function discoverInteractive(string $backend): void
     {
         if (!preg_match(Woob::BACKEND_NAME, $backend)) {
-            throw new Error("Invalid bank name (lowercase letters, digits, - and _)", 400);
+            throw new ApiError("Invalid bank name (lowercase letters, digits, - and _)", 400, 'bank_name_invalid');
         }
         // The validation in the bank app may take minutes
         set_time_limit(0);
@@ -825,7 +827,7 @@ final class Bank {
             return $bankIds;
         }
         if (!in_array($account, $bankIds, true)) {
-            throw new Error("Account not found", 404);
+            throw new ApiError("Account not found", 404, 'account_not_found');
         }
         return [$account];
     }

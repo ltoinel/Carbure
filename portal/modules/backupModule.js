@@ -213,7 +213,7 @@ export function createBackupModule(getApiService) {
                         this.backupExportSelection = Object.fromEntries(this.backupDatasets.map(dataset => [dataset.name, true]));
                     }
                 } catch (err) {
-                    this.backupError = err.message;
+                    this.backupError = this.apiErrorText(err);
                 } finally {
                     this.loadingBackup = false;
                 }
@@ -260,7 +260,7 @@ export function createBackupModule(getApiService) {
                     this.downloadBackup(new Blob([zip], { type: 'application/zip' }), backupFileName());
                     this.showToast(this.t('backupExportDone'), 3000);
                 } catch (err) {
-                    this.backupError = err.message;
+                    this.backupError = this.apiErrorText(err);
                 } finally {
                     this.backupExporting = false;
                 }

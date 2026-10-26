@@ -211,7 +211,7 @@ export function createConfigModule(getApiService) {
                 try {
                     this.setConfig(await getApiService().fetchConfig());
                 } catch (error) {
-                    this.configError = error.message;
+                    this.configError = this.apiErrorText(error);
                 } finally {
                     this.loadingConfig = false;
                 }
@@ -253,7 +253,7 @@ export function createConfigModule(getApiService) {
                     this.pushStatus = await getApiService().fetchPushStatus();
                 } catch (error) {
                     this.pushStatus = null;
-                    this.pushStatusError = error.message;
+                    this.pushStatusError = this.apiErrorText(error);
                 } finally {
                     this.loadingPushStatus = false;
                 }
@@ -278,7 +278,7 @@ export function createConfigModule(getApiService) {
                 try {
                     this.syncInfo = await getApiService().fetchSyncInfo(false);
                 } catch (error) {
-                    this.configError = error.message;
+                    this.configError = this.apiErrorText(error);
                 }
             },
 
@@ -343,7 +343,7 @@ export function createConfigModule(getApiService) {
                     // The relay may have changed: the consent asked again for a new one
                     this.loadPushInfo();
                 } catch (error) {
-                    this.configError = error.message;
+                    this.configError = this.apiErrorText(error);
                 } finally {
                     this.savingConfig = false;
                 }
@@ -386,7 +386,7 @@ export function createConfigModule(getApiService) {
                     const result = await getApiService().sendTestEmail(this.smtpTestTo.trim());
                     this.smtpTestResult = { ok: true, message: this.t('smtpTestSent', { to: result.to }) };
                 } catch (error) {
-                    this.smtpTestResult = { ok: false, message: error.message };
+                    this.smtpTestResult = { ok: false, message: this.apiErrorText(error) };
                 } finally {
                     this.sendingTestEmail = false;
                 }
@@ -490,7 +490,7 @@ export function createConfigModule(getApiService) {
                     this.pushRegisterResult = { ok: true, message: this.t(result.renewed ? 'pushRenewed' : 'pushRegistered', { key: result.key_id }) };
                     this.setConfig(await getApiService().fetchConfig());
                 } catch (error) {
-                    this.pushRegisterResult = { ok: false, message: error.message };
+                    this.pushRegisterResult = { ok: false, message: this.apiErrorText(error) };
                 } finally {
                     this.registeringPush = false;
                 }
@@ -512,7 +512,7 @@ export function createConfigModule(getApiService) {
                     const outcome = pushTestOutcome(await getApiService().sendTestPush());
                     this.pushTestResult = { ok: outcome.ok, message: this.t(outcome.key, outcome.params) };
                 } catch (error) {
-                    this.pushTestResult = { ok: false, message: error.message };
+                    this.pushTestResult = { ok: false, message: this.apiErrorText(error) };
                 } finally {
                     this.sendingTestPush = false;
                 }
@@ -530,7 +530,7 @@ export function createConfigModule(getApiService) {
                 try {
                     this.syncInfo = await getApiService().fetchSyncInfo(!!(this.syncInfo && this.syncInfo.masked));
                 } catch (error) {
-                    this.showToast(error.message);
+                    this.showToast(this.apiErrorText(error));
                 }
             },
 
@@ -545,7 +545,7 @@ export function createConfigModule(getApiService) {
                     const command = syncCommand(info.url, info.token, this.syncAccount);
                     await this.copyText(cron ? `0 6 * * * ${command} > /dev/null` : command);
                 } catch (error) {
-                    this.showToast(error.message);
+                    this.showToast(this.apiErrorText(error));
                 }
             },
 
@@ -564,7 +564,7 @@ export function createConfigModule(getApiService) {
                     this.syncInfo = await getApiService().fetchSyncInfo(true);
                     this.showToast(this.t('syncTokenRenewed'));
                 } catch (error) {
-                    this.showToast(error.message);
+                    this.showToast(this.apiErrorText(error));
                 } finally {
                     this.renewingSyncToken = false;
                 }
