@@ -125,7 +125,7 @@ export function createAccountsModule(getApiService) {
                     info.fields.forEach(f => { values[f.key] = f.default || (f.choices.length ? f.choices[0].value : ''); });
                     this.bankSetup = { ...this.bankSetup, description: info.description, fields: info.fields, values, loading: false };
                 } catch (error) {
-                    this.bankSetup = { ...this.bankSetup, loading: false, error: error.message };
+                    this.bankSetup = { ...this.bankSetup, loading: false, error: this.apiErrorText(error) };
                 }
             },
 
@@ -190,7 +190,7 @@ export function createAccountsModule(getApiService) {
                     this.showToast(this.t(result.accounts.length ? 'bankConnected' : 'bankConnectedNoAccount'));
                     this.openAddAccounts(result.backend, result.accounts);
                 } catch (error) {
-                    this.bankSetup = { ...this.bankSetup, busy: false, error: error.message };
+                    this.bankSetup = { ...this.bankSetup, busy: false, error: this.apiErrorText(error) };
                 }
             },
 
@@ -205,7 +205,7 @@ export function createAccountsModule(getApiService) {
                 this.bankBackends = backends.status === 'fulfilled' ? backends.value : [];
                 this.bankModules = modules.status === 'fulfilled' ? modules.value : [];
                 // Why no bank can be chosen (e.g. woob repository to trust first)
-                this.bankModulesError = modules.status === 'rejected' ? modules.reason.message : null;
+                this.bankModulesError = modules.status === 'rejected' ? this.apiErrorText(modules.reason) : null;
             },
 
             /**
@@ -280,7 +280,7 @@ export function createAccountsModule(getApiService) {
                     this.showToast(this.t('bankConnectionRenamed'));
                     this.showBackendModal = false;
                 } catch (error) {
-                    this.showToast(error.message);
+                    this.showToast(this.apiErrorText(error));
                 } finally {
                     this.savingBackend = false;
                 }
@@ -326,7 +326,7 @@ export function createAccountsModule(getApiService) {
                         await this.runWoobUpdate();
                     }
                 } catch (error) {
-                    this.woobUpdate = { ...this.woobUpdate, loading: false, error: error.message };
+                    this.woobUpdate = { ...this.woobUpdate, loading: false, error: this.apiErrorText(error) };
                 }
             },
 
@@ -341,7 +341,7 @@ export function createAccountsModule(getApiService) {
                 try {
                     await getApiService().updateWoob(line => this.onWoobUpdateLine(line), fingerprint);
                 } catch (error) {
-                    this.woobUpdate = { ...this.woobUpdate, error: error.message };
+                    this.woobUpdate = { ...this.woobUpdate, error: this.apiErrorText(error) };
                 }
                 this.woobUpdate = { ...this.woobUpdate, running: false };
                 if (this.woobUpdate.done) {
@@ -485,7 +485,7 @@ export function createAccountsModule(getApiService) {
                     }
                 } catch (error) {
                     if (error.name !== 'AbortError') {
-                        this.discoverError = error.message;
+                        this.discoverError = this.apiErrorText(error);
                     }
                 } finally {
                     this.discovering = false;
@@ -554,7 +554,7 @@ export function createAccountsModule(getApiService) {
                     this.showToast(this.t('accountsFollowedToast', { count: chosen.length }));
                     this.closeAddAccounts();
                 } catch (error) {
-                    this.showToast(error.message);
+                    this.showToast(this.apiErrorText(error));
                 } finally {
                     this.followingAccounts = false;
                     await this.loadBankAccounts();
@@ -590,7 +590,7 @@ export function createAccountsModule(getApiService) {
                     this.showAccountModal = false;
                     await this.loadBankAccounts();
                 } catch (error) {
-                    this.showToast(error.message);
+                    this.showToast(this.apiErrorText(error));
                 } finally {
                     this.savingAccount = false;
                 }
@@ -627,7 +627,7 @@ export function createAccountsModule(getApiService) {
                     this.showToast(this.t('accountDeleted'));
                     await this.loadBankAccounts();
                 } catch (error) {
-                    this.showToast(error.message);
+                    this.showToast(this.apiErrorText(error));
                 }
             }
         }

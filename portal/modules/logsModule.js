@@ -50,7 +50,7 @@ export function createLogsModule(getApiService) {
                     }
                     await this.loadLogEntries();
                 } catch (error) {
-                    this.showToast(error.message);
+                    this.showToast(this.apiErrorText(error));
                 }
             },
 
@@ -69,7 +69,7 @@ export function createLogsModule(getApiService) {
                     this.logEntries = result.entries;
                     this.logTruncated = result.truncated;
                 } catch (error) {
-                    this.showToast(error.message);
+                    this.showToast(this.apiErrorText(error));
                 } finally {
                     this.loadingLogs = false;
                 }

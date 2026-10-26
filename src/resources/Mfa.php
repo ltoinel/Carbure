@@ -24,6 +24,7 @@
 
 namespace Carbure\Resources;
 
+use Carbure\Lib\ApiError;
 use Carbure\Lib\ApiRoute;
 use Carbure\Lib\Config;
 use Carbure\Lib\Db;
@@ -108,7 +109,7 @@ final class Mfa {
         }
         if (!$supported) {
             Logger::warn("Login of user {$user['id']} refused: two-factor authentication not supported by the client");
-            throw new Error(self::unsupportedMessage($device), 403);
+            throw self::unsupportedError($device);
         }
         return self::challenge($user, $enabled ? $state : null);
     }
@@ -134,7 +135,7 @@ final class Mfa {
         $userId = (int)$user['id'];
         $state = self::state($userId);
         if ($state === null) {
-            throw new Error("The login has expired: log in again", 403);
+            throw new ApiError("The login has expired: log in again", 403, 'mfa_login_expired');
         }
 
         $recoveryCodes = self::checkLoginCode($user, $state, $code);
@@ -185,7 +186,7 @@ final class Mfa {
         $userId = Jwt::getUserIdFromToken();
         $state = self::state($userId);
         if ($state !== null && $state['enabled']) {
-            throw new Error("Two-factor authentication is already enabled: disable it first", 409);
+            throw new ApiError("Two-factor authentication is already enabled: disable it first", 409, 'mfa_already_enabled');
         }
         $secret = self::newPendingSecret($userId);
         return ['secret' => $secret, 'otpauth' => Totp::uri($secret, self::username($userId), self::ISSUER)];
@@ -205,7 +206,7 @@ final class Mfa {
         $userId = Jwt::getUserIdFromToken();
         $state = self::state($userId);
         if ($state === null || $state['enabled']) {
-            throw new Error("No registration of an authenticator app in progress", 409);
+            throw new ApiError("No registration of an authenticator app in progress", 409, 'mfa_setup_missing');
         }
         if (!self::acceptCode($userId, $state, $code)) {
             self::rejectCode($userId);
@@ -261,7 +262,7 @@ final class Mfa {
     {
         self::requireAvailable();
         if (!Db::queryOne("SELECT id FROM users WHERE id = ?", "i", $id)) {
-            throw new Error("User not found", 404);
+            throw new ApiError("User not found", 404, 'user_not_found');
         }
         self::remove($id);
         Logger::warn("Two-factor authentication of user $id reset by user " . Jwt::getUserIdFromToken());
@@ -306,13 +307,13 @@ final class Mfa {
      * Error of a client that cannot do the second step (the iOS app, until it supports it).
      *
      * @param array<string, mixed>|null $device The device sent
-     * @return string The message
+     * @return ApiError The error (403)
      */
-    private static function unsupportedMessage(?array $device): string
+    private static function unsupportedError(?array $device): ApiError
     {
         return !empty($device['token'])
-            ? "Two-factor authentication is required and this device is not known yet: update the app, or log in with a device already registered"
-            : "Two-factor authentication is required: log in from the web portal";
+            ? new ApiError("Two-factor authentication is required and this device is not known yet: update the app, or log in with a device already registered", 403, 'mfa_device_unknown')
+            : new ApiError("Two-factor authentication is required: log in from the web portal", 403, 'mfa_portal_required');
     }
 
     /**
@@ -341,7 +342,7 @@ final class Mfa {
         $userId = MfaChallenge::userId($token);
         $user = $userId === null ? null : Db::queryOne("SELECT * FROM users WHERE id = ?", "i", $userId);
         if ($user === null || !self::available()) {
-            throw new Error("The login has expired: log in again", 403);
+            throw new ApiError("The login has expired: log in again", 403, 'mfa_login_expired');
         }
         return $user;
     }
@@ -368,9 +369,9 @@ final class Mfa {
             return self::newRecoveryCodes($userId);
         }
         if (User::recordFailedLogin($user)) {
-            throw new Error("Account locked after too many failed logins: ask an administrator to unlock it", 423);
+            throw new ApiError("Account locked after too many failed logins: ask an administrator to unlock it", 423, 'account_locked');
         }
-        throw new Error("Invalid code", 401);
+        throw new ApiError("Invalid code", 401, 'mfa_code_invalid');
     }
 
     /**
@@ -455,7 +456,7 @@ final class Mfa {
             VALUES (?, ?, 0, NULL, NOW())", "is", $userId, $secret)->affected_rows > 0;
         if (!$inserted && Db::execute("UPDATE user_mfa SET secret = ?, last_step = NULL, created_at = NOW(), enabled_at = NULL
                 WHERE user_id = ? AND enabled = 0", "si", $secret, $userId)->affected_rows === 0) {
-            throw new Error("Two-factor authentication is already enabled: disable it first", 409);
+            throw new ApiError("Two-factor authentication is already enabled: disable it first", 409, 'mfa_already_enabled');
         }
         return $secret;
     }
@@ -485,7 +486,7 @@ final class Mfa {
         $userId = Jwt::getUserIdFromToken();
         $state = self::state($userId);
         if ($state === null || !$state['enabled']) {
-            throw new Error("Two-factor authentication is not enabled", 409);
+            throw new ApiError("Two-factor authentication is not enabled", 409, 'mfa_not_enabled');
         }
         if (!self::acceptCode($userId, $state, $code) && !($allowRecovery && self::useRecoveryCode($userId, $code))) {
             self::rejectCode($userId);
@@ -507,7 +508,7 @@ final class Mfa {
         if ($user !== null) {
             User::recordFailedLogin($user);
         }
-        throw new Error("Invalid code", 400);
+        throw new ApiError("Invalid code", 400, 'mfa_code_invalid');
     }
 
     /**

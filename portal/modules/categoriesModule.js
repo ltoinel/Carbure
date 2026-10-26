@@ -93,7 +93,7 @@ export function createCategoriesModule(getApiService) {
                     // Shared with the rules and the category pickers
                     this.ruleCategories = this.categories;
                 } catch (error) {
-                    this.error = error.message;
+                    this.error = this.apiErrorText(error);
                 } finally {
                     this.loadingCategories = false;
                 }
@@ -139,7 +139,7 @@ export function createCategoriesModule(getApiService) {
                     this.showCategoryModal = false;
                     await this.loadCategories();
                 } catch (error) {
-                    this.showToast(error.message);
+                    this.showToast(this.apiErrorText(error));
                 } finally {
                     this.savingCategory = false;
                 }
@@ -159,7 +159,7 @@ export function createCategoriesModule(getApiService) {
                     this.showToast(this.t('categoryDeleted'));
                     await this.loadCategories();
                 } catch (error) {
-                    this.showToast(error.message);
+                    this.showToast(this.apiErrorText(error));
                 }
             }
         }

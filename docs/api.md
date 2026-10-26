@@ -46,6 +46,35 @@ icon: material/api
 
 `uid` identifie la requête dans `data/logs/carbure_AAAAMMJJ.log`.
 
+### Code stable d'une erreur
+
+Les erreurs qu'un utilisateur rencontre (validation et conflits des règles, catégories,
+insights, utilisateurs, connexion et double authentification, connexion d'une banque,
+paramètres, seuils d'alerte…) ajoutent un **code stable** `error_code`, et `params` quand
+le message porte des valeurs. Le message `error` reste en anglais, inchangé (journaux, apps
+mobiles, clients de l'API, serveur MCP) ; `code` reste le statut HTTP.
+
+```json
+{ "error": "This keyword already exists", "code": 409, "uid": "6ac106d3912d9", "error_code": "keyword_exists" }
+```
+
+```json
+{
+  "error": "Account locked after too many failed logins, until 2026-10-27 18:30:00: ask an administrator to unlock it",
+  "code": 423,
+  "uid": "6ac106d3912d9",
+  "error_code": "account_locked_until",
+  "params": { "until": "2026-10-27 18:30:00" }
+}
+```
+
+Un client traduit `error_code` (le portail : `apiErrors.<error_code>` de
+`portal/i18n/<langue>.json`, où `{until}` reçoit la valeur de `params`) et affiche le
+message `error` quand il ne connaît pas le code (serveur plus récent) ou que l'erreur n'en
+a pas (erreur technique, serveur plus ancien). Les codes ne changent pas d'une version à
+l'autre ; une erreur peut en recevoir un dans une version suivante. `POST /insight/check`
+donne de même `error_code` et `params` à côté de `error`.
+
 ## Modifications des données
 
 `GET /changes` (tout utilisateur connecté) donne un **marqueur de modification par type

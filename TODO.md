@@ -48,6 +48,13 @@ keeps track of what was done).
       committed), the old key is revoked and the new one unknown: register again, and ask
       the operator to `devices:release` the devices (or wait 60 days).
 
+- [ ] **Translated API errors (#366)**: the errors a user meets in the portal throw
+      `Carbure\Lib\ApiError` (stable `error_code` + `params`, translated by the portal);
+      the technical ones stay plain `Error` in English (pending migrations, woob/backup
+      internals, notification kinds and channels, device platform, JWT/sync token, setup
+      wizard). Give them a code when a user meets them; open tickets on the iOS and Android
+      apps to translate `error_code` too (they show `error` until then).
+
 - [ ] **Android app**: the backend is ready (devices with a `platform`, login
       `device.platform=android`, FCM provider in Carbure Push); to do: the app itself, the
       Firebase project and its service account on the relay.
