@@ -7,6 +7,8 @@
  * @module apiService
  */
 
+import { parseChangesHeader } from '../modules/changesModule.js';
+
 /**
  * Creates an API service instance
  * @param {string} baseUrl - Base URL for API endpoints
@@ -14,9 +16,11 @@
  * @param {Function} onUnauthorized - Called when the API answers 401 (expired or invalid token)
  * @param {Function} onSetupRequired - Called when the API answers that Carbure is not
  *   installed (503 {setup: true}, e.g. reinstalled from scratch at the same address)
+ * @param {Function} onChanges - Called with the versions of the data changed by a write
+ *   (X-Carbure-Changes header, see changesModule)
  * @returns {Object} API service methods
  */
-export function createApiService(baseUrl, authToken = null, onUnauthorized = null, onSetupRequired = null) {
+export function createApiService(baseUrl, authToken = null, onUnauthorized = null, onSetupRequired = null, onChanges = null) {
     /**
      * fetch() that reports a session that cannot be used: expired (HTTP 401), or
      * Carbure not installed (HTTP 503 {setup: true})
@@ -28,6 +32,10 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
         const response = await window.fetch(url, options);
         if (!authToken) {
             return response;
+        }
+        const changes = response.headers?.get?.('X-Carbure-Changes');
+        if (changes && onChanges) {
+            onChanges(parseChangesHeader(changes));
         }
         if (response.status === 401 && onUnauthorized) {
             onUnauthorized();
@@ -92,6 +100,23 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
         return cancellable('transactions', `${baseUrl}/transaction?month=${month}&year=${year}`, 'Failed to fetch transactions');
     }
     
+    /**
+     * Fetches the change markers of the household data
+     * @returns {Promise<Object|null>} {kind: {version, updated_at}}, null if the server has
+     *   none (older version: 404)
+     * @throws {Error} If request fails
+     */
+    async function fetchChanges() {
+        const response = await authFetch(`${baseUrl}/changes`, { headers: getHeaders() });
+        if (response.status === 404) {
+            return null;
+        }
+        if (!response.ok) {
+            throw new Error(`Failed to fetch the changes (${response.status})`);
+        }
+        return response.json();
+    }
+
     /**
      * Sends a request and returns the decoded JSON, using the API error message on failure
      * @param {string} url - Request URL
@@ -1277,6 +1302,7 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
 
     return {
         abortAllExcept,
+        fetchChanges,
         fetchTransactions,
         fetchRecurring,
         fetchBudget,

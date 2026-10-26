@@ -46,6 +46,56 @@ icon: material/api
 
 `uid` identifie la requête dans `data/logs/carbure_AAAAMMJJ.log`.
 
+## Modifications des données
+
+`GET /changes` (tout utilisateur connecté) donne un **marqueur de modification par type
+de données**, incrémenté par chaque écriture. Un client (apps mobiles, portail) compare
+les versions avec celles des données qu'il a chargées et ne recharge que les types qui
+ont bougé : un appel léger (une lecture indexée de quelques lignes), à faire au retour au
+premier plan et toutes les minutes environ pendant l'utilisation.
+
+```json
+{
+  "transactions": { "version": 1834, "updated_at": "2026-10-24 21:03:12.418" },
+  "accounts":     { "version": 52,   "updated_at": "2026-10-24 21:03:12.377" },
+  "categories":   { "version": 17,   "updated_at": "2026-10-20 08:15:40.002" },
+  "budgets":      { "version": 96,   "updated_at": "2026-10-23 19:42:05.731" },
+  "insights":     { "version": 3,    "updated_at": "2026-10-12 10:00:00.000" },
+  "settings":     { "version": 0,    "updated_at": null }
+}
+```
+
+| Type | Incrémenté par |
+|---|---|
+| `transactions` | synchronisation (transaction nouvelle ou modifiée, catégorie trouvée), `POST /transaction/import`, `PUT /transaction/category`, `PUT /transaction/pointed`, `DELETE /transaction`, règles appliquées à l'historique, `DELETE /category` |
+| `accounts` | synchronisation (résultat d'un compte modifié), `POST`/`PUT`/`DELETE /bank`, `/bank/backend` |
+| `categories` | `POST`/`PUT`/`DELETE /category`, `/category/keyword`, `PUT /category/keyword/settings` |
+| `budgets` | `POST /budget`, `POST /budget/copy`, `DELETE /category` |
+| `insights` | `POST`/`PUT`/`DELETE /insight` |
+| `settings` | `PUT /system/config` |
+
+`POST /backup/import` incrémente tous les types. Les insights et les tendances sont
+calculés à partir des transactions et des budgets : un client les recharge quand l'un de
+ces types bouge.
+
+- **Version**, pas seulement une date : pas d'égalité entre deux écritures de la même
+  seconde, pas de dépendance aux horloges. `updated_at` est donné pour information ; un
+  type jamais modifié a la version `0`.
+- Une synchronisation qui ne change rien (compte inchangé) n'incrémente rien : elle ne
+  réveille pas les appareils.
+- Une écriture renvoie les nouvelles versions des types qu'elle a modifiés dans l'en-tête
+  `X-Carbure-Changes` (`budgets=97, transactions=1835`) : si la version connue était la
+  précédente, le client qui a écrit est à jour sans rien recharger ; si elle a bougé de
+  plus, quelqu'un d'autre a écrit entre-temps.
+- Chaque route d'écriture déclare les types qu'elle modifie dans son attribut
+  (`#[ApiRoute('/budget', method: 'POST', changes: ['budgets'])]`), incrémentés après un
+  appel réussi ; un test unitaire vérifie que chaque route d'écriture les déclare.
+- Un serveur plus ancien répond `404` : le client recharge alors à chaque retour au
+  premier plan.
+
+Ces marqueurs ne sont pas dans `GET /health`, qui est publique : ils diraient à n'importe
+qui quand le foyer utilise l'application et quand la synchronisation tourne.
+
 ## Utilisateurs
 
 ### `POST /user/login` — publique

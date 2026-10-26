@@ -159,7 +159,7 @@ final class Bank {
      * @return array<string, mixed> The account (user_id: the administrator who added it)
      * @throws Error If invalid or already followed by the household
      */
-    #[ApiRoute('/bank', method: 'POST', admin: true)]
+    #[ApiRoute('/bank', method: 'POST', admin: true, changes: ['accounts'])]
     public static function create(string $account_number, string $bank_name, ?string $label = null): array
     {
         self::validateAccount($account_number, $bank_name);
@@ -186,7 +186,7 @@ final class Bank {
      * @return array<string, mixed> The account
      * @throws Error If not found, invalid or already followed by the household
      */
-    #[ApiRoute('/bank', method: 'PUT', admin: true)]
+    #[ApiRoute('/bank', method: 'PUT', admin: true, changes: ['accounts'])]
     public static function update(int $id, string $account_number, string $bank_name, ?string $label = null): array
     {
         $account = self::existingAccount($id);
@@ -210,7 +210,7 @@ final class Bank {
      * @return bool True if deleted
      * @throws Error If not found
      */
-    #[ApiRoute('/bank', method: 'DELETE', admin: true)]
+    #[ApiRoute('/bank', method: 'DELETE', admin: true, changes: ['accounts'])]
     public static function delete(int $id): bool
     {
         self::existingAccount($id);
@@ -311,7 +311,7 @@ final class Bank {
      * @return array{name: string, label: string|null} The woob backend and its name
      * @throws Error If the backend name is invalid, the name too long, or the backend unknown
      */
-    #[ApiRoute('/bank/backend', method: 'PUT', admin: true)]
+    #[ApiRoute('/bank/backend', method: 'PUT', admin: true, changes: ['accounts'])]
     public static function renameBackend(string $backend, ?string $label = null): array
     {
         if (!preg_match(Woob::BACKEND_NAME, $backend)) {
@@ -335,7 +335,7 @@ final class Bank {
      * @throws Error If the backend name is invalid or the backend unknown
      * @throws Exception If woob did not remove it
      */
-    #[ApiRoute('/bank/backend', method: 'DELETE', admin: true)]
+    #[ApiRoute('/bank/backend', method: 'DELETE', admin: true, changes: ['accounts'])]
     public static function deleteBackend(string $backend): bool
     {
         if (!preg_match(Woob::BACKEND_NAME, $backend)) {
@@ -422,7 +422,7 @@ final class Bank {
      * @throws Error If a setting is missing or invalid, or woob refuses the bank; 409 if the
      *               module must be installed before the woob repository is trusted
      */
-    #[ApiRoute('/bank/backend', method: 'POST', admin: true)]
+    #[ApiRoute('/bank/backend', method: 'POST', admin: true, changes: ['accounts'])]
     public static function createBackend(string $module, string $backend, mixed $settings = [], ?string $label = null): array
     {
         if (!preg_match(Woob::MODULE_NAME, $module) || !preg_match(Woob::BACKEND_NAME, $backend)) {
@@ -867,6 +867,10 @@ final class Bank {
         self::alertLargeExpenses($bankId, $created);
         self::alertRuleMatches($created);
 
+        // The clients see the account as soon as it is synchronized, not at the end of
+        // the synchronization of every account
+        Changes::flush();
+
         return $status;
     }
 
@@ -1039,8 +1043,17 @@ final class Bank {
     private static function recordSyncResult(string $bankId, bool $success, ?string $message): void
     {
         [$number, $bank] = explode('@', $bankId, 2);
+        $status = $success ? 'OK' : 'ERROR';
+        $message = mb_substr((string)$message, 0, 500);
+        $previous = Db::queryOne("SELECT last_sync_status, last_sync_message FROM bank_account WHERE account_number = ? AND bank_name = ? LIMIT 1",
+            "ss", $number, $bank);
         Db::execute("UPDATE bank_account SET last_sync_at = NOW(), last_sync_status = ?, last_sync_message = ? WHERE account_number = ? AND bank_name = ?",
-            "ssss", $success ? 'OK' : 'ERROR', mb_substr((string)$message, 0, 500), $number, $bank);
+            "ssss", $status, $message, $number, $bank);
+        // The clients reload the accounts when their result changed, not at each
+        // synchronization (an account in error, repaired, new transactions)
+        if ($previous === null || $previous['last_sync_status'] !== $status || $previous['last_sync_message'] !== $message) {
+            Changes::touch('accounts');
+        }
     }
 
     /**

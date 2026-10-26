@@ -81,7 +81,7 @@ final class User {
      *               of the second factor (mfa, mfa_token, exp; secret and otpauth to register it)
      * @throws Error If the credentials are invalid
      */
-    #[ApiRoute('/user/login', method: 'POST', public: true)]
+    #[ApiRoute('/user/login', method: 'POST', public: true, changes: [])]
     public static function login(string $username, string $password, ?array $device = null, bool|int|string|null $mfa = null): array {
 
         // check if the $username and the $password are valid in database
@@ -253,7 +253,7 @@ final class User {
      * @return bool True if unlocked
      * @throws Error If not an administrator or the user does not exist
      */
-    #[ApiRoute('/user/unlock', method: 'POST', admin: true)]
+    #[ApiRoute('/user/unlock', method: 'POST', admin: true, changes: [])]
     public static function unlock(int $id): bool
     {
         if (!Db::queryOne("SELECT id FROM users WHERE id = ?", "i", $id)) {
@@ -343,7 +343,7 @@ final class User {
      * @return array<string, mixed> The created user data with id
      * @throws Error If the username or email already exists or the caller is not an administrator
      */
-    #[ApiRoute('/user', method: 'POST', admin: true)]
+    #[ApiRoute('/user', method: 'POST', admin: true, changes: [])]
     public static function create(string $username, string $password, string $email, ?string $firstname = null, ?string $lastname = null, bool|int|string|null $is_admin = false): array
     {
         // Check if username already exists
@@ -391,7 +391,7 @@ final class User {
      * @return bool True if deleted successfully
      * @throws Error If the user is not found or the caller is not an administrator
      */
-    #[ApiRoute('/user', method: 'DELETE', admin: true)]
+    #[ApiRoute('/user', method: 'DELETE', admin: true, changes: [])]
     public static function delete(int $id): bool
     {
         if ($id === (int)Jwt::getUserIdFromToken()) {
@@ -436,7 +436,7 @@ final class User {
      * @return array<string, mixed> The updated user data
      * @throws Error If the user is not found, email already exists or the caller is not allowed
      */
-    #[ApiRoute('/user', method: 'PUT')]
+    #[ApiRoute('/user', method: 'PUT', changes: [])]
     public static function update(int $id, ?string $email = null, ?string $firstname = null, ?string $lastname = null, ?string $password = null,
         ?string $language = null, float|int|string|null $alertThreshold = null, bool|int|string|null $is_admin = null,
         ?string $theme = null): array

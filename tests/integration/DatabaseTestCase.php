@@ -4,6 +4,7 @@ use Carbure\Lib\Config;
 use Carbure\Lib\Db;
 use Carbure\Lib\Jwt;
 use Carbure\Lib\Webservice;
+use Carbure\Resources\Changes;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -40,6 +41,9 @@ abstract class DatabaseTestCase extends TestCase
 
     protected function setUp(): void
     {
+        // The change markers left by a previous test (methods called directly) are written
+        // before the reset, not in the next test
+        Changes::flush();
         $this->resetData();
         FakePushRelay::start();
         $_GET = [];
@@ -117,7 +121,7 @@ abstract class DatabaseTestCase extends TestCase
         Db::query("SET FOREIGN_KEY_CHECKS=0");
         foreach (['bank_account', 'bank_backend', 'bank_transaction', 'bank_transaction_deleted', 'bank_transaction_category', 'bank_transaction_category_keyword',
                   'budget', 'budget_alert', 'budget_alert_threshold', 'budget_insight', 'devices', 'api_tokens', 'oauth_codes', 'oauth_clients', 'settings', 'user_notification', 'users',
-                  'user_mfa', 'mfa_recovery_code', 'mfa_trusted_browser', 'user_browser'] as $table) {
+                  'user_mfa', 'mfa_recovery_code', 'mfa_trusted_browser', 'user_browser', 'data_change'] as $table) {
             Db::query("TRUNCATE TABLE `$table`");
         }
         Db::query("SET SESSION sql_mode = CONCAT(@@sql_mode, ',NO_AUTO_VALUE_ON_ZERO')");

@@ -68,7 +68,7 @@ final class Mcp {
      * @return string The JSON-RPC response, or '' (HTTP 202) for a notification
      * @throws Error If disabled (403), unauthenticated (401) or from another site (403)
      */
-    #[ApiRoute('/mcp', method: 'POST', public: true, raw: true)]
+    #[ApiRoute('/mcp', method: 'POST', public: true, raw: true, changes: [])]
     public static function handle(mixed $jsonrpc = null, mixed $method = null, mixed $id = null, mixed $params = null, mixed $result = null, mixed $error = null, ?string $token = null): string
     {
         if (!self::enabled()) {
@@ -147,7 +147,7 @@ final class Mcp {
      * @param bool|int|string|null $enabled True to enable it (or "true", "1"...)
      * @return array{enabled: bool} enabled
      */
-    #[ApiRoute('/mcp/settings', method: 'PUT', admin: true)]
+    #[ApiRoute('/mcp/settings', method: 'PUT', admin: true, changes: [])]
     public static function updateSettings(bool|int|string|null $enabled): array
     {
         Setting::set('mcp_enabled', filter_var($enabled, FILTER_VALIDATE_BOOLEAN) ? '1' : '0');

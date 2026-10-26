@@ -308,6 +308,17 @@ CREATE TABLE `budget_alert_threshold` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
+-- Table `data_change`: change markers of the household data, one version per kind of
+-- data bumped by every write, so that the clients reload only what changed (GET /changes)
+
+CREATE TABLE `data_change` (
+  `kind` varchar(20) NOT NULL COMMENT 'Kind of data: transactions, accounts, categories, budgets, insights, settings',
+  `version` bigint(20) unsigned NOT NULL COMMENT 'Bumped by every write of the kind',
+  `updated_at` datetime(3) NOT NULL COMMENT 'Date of the last write, for information',
+  PRIMARY KEY (`kind`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
 -- Table `schema_migrations`: version of this schema (base of version 1.0, then the
 -- migrations included since)
 
@@ -360,7 +371,8 @@ INSERT IGNORE INTO `schema_migrations` (`version`) VALUES
 ('2026-10-25_device_model'),
 ('2026-10-26_user_browser'),
 ('2026-10-27_budget_alert_threshold'),
-('2026-10-28_device_without_token');
+('2026-10-28_device_without_token'),
+('2026-10-29_data_change');
 
 SET FOREIGN_KEY_CHECKS = 1;
 COMMIT;

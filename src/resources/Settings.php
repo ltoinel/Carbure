@@ -148,7 +148,7 @@ final class Settings {
      * @throws Error If a setting cannot be changed or a value is not valid (400)
      * @throws Exception If the file cannot be written
      */
-    #[ApiRoute('/system/config', method: 'PUT', admin: true)]
+    #[ApiRoute('/system/config', method: 'PUT', admin: true, changes: ['settings'])]
     public static function update(array $values): array
     {
         if (!$values) {
@@ -226,7 +226,7 @@ final class Settings {
      * @return array<string, string> token (the new one)
      * @throws Exception If the file cannot be written
      */
-    #[ApiRoute('/system/sync-token', method: 'POST', admin: true)]
+    #[ApiRoute('/system/sync-token', method: 'POST', admin: true, changes: [])]
     public static function renewSyncToken(): array
     {
         $token = bin2hex(random_bytes(24));
@@ -247,7 +247,7 @@ final class Settings {
      * @throws Error If no SMTP server or no recipient (400), or the server refused the
      *               email (502, with its reply)
      */
-    #[ApiRoute('/system/smtp-test', method: 'POST', admin: true)]
+    #[ApiRoute('/system/smtp-test', method: 'POST', admin: true, changes: [])]
     public static function testEmail(?string $to = null): array
     {
         $user = Db::queryOne("SELECT email, language FROM users WHERE id = ?", "i", Jwt::getUserIdFromToken());
@@ -317,7 +317,7 @@ final class Settings {
      * @throws Exception If the configuration file cannot be written (checked first: a
      *                   key obtained must not be lost)
      */
-    #[ApiRoute('/system/push-register', method: 'POST', admin: true)]
+    #[ApiRoute('/system/push-register', method: 'POST', admin: true, changes: [])]
     public static function registerPush(string|bool|null $consent = null): array
     {
         $file = self::file();
@@ -345,7 +345,7 @@ final class Settings {
      *               app sent no push token), error}]
      * @throws Error If there is no API key of the push service or no device (400)
      */
-    #[ApiRoute('/system/push-test', method: 'POST', admin: true)]
+    #[ApiRoute('/system/push-test', method: 'POST', admin: true, changes: [])]
     public static function testPush(): array
     {
         if (!PushRelay::isConfigured()) {

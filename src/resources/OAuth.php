@@ -113,7 +113,7 @@ final class OAuth {
      * @param mixed ...$metadata                Other fields of the metadata (ignored)
      * @return string JSON: the client, 201
      */
-    #[ApiRoute('/oauth/register', method: 'POST', public: true, raw: true)]
+    #[ApiRoute('/oauth/register', method: 'POST', public: true, raw: true, changes: [])]
     public static function register(mixed $redirect_uris = null, mixed $client_name = null, mixed $token_endpoint_auth_method = 'none', mixed ...$metadata): string
     {
         if (!Mcp::enabled()) {
@@ -274,7 +274,7 @@ final class OAuth {
      * @return array{redirect: string} redirect: where the browser goes back to the agent
      * @throws Error If the request is invalid, or the MCP server disabled (403)
      */
-    #[ApiRoute('/oauth/approve', method: 'POST')]
+    #[ApiRoute('/oauth/approve', method: 'POST', changes: [])]
     public static function approve(?string $request, bool|int|string|null $approved = true): array
     {
         $fields = self::parseRequest($request);
@@ -312,7 +312,7 @@ final class OAuth {
      * @param string|array<mixed>|null ...$other      Other parameters (ignored)
      * @return string JSON: the tokens, or an OAuth error
      */
-    #[ApiRoute('/oauth/token', method: 'POST', public: true, raw: true)]
+    #[ApiRoute('/oauth/token', method: 'POST', public: true, raw: true, changes: [])]
     public static function token(string|array|null $grant_type = null, string|array|null $code = null,
         string|array|null $redirect_uri = null, string|array|null $client_id = null, string|array|null $code_verifier = null,
         string|array|null $refresh_token = null, string|array|null $client_secret = null, string|array|null $resource = null,
