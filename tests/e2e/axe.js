@@ -26,6 +26,7 @@ async function axeViolations(page, where) {
  * @returns {Promise<string[]>} The elements wider than the viewport, if the page scrolls
  */
 async function reflowProblems(page, where) {
+    await settled(page);
     return page.evaluate(where => {
         const root = document.documentElement;
         if (root.scrollWidth <= root.clientWidth + 1) {
@@ -50,6 +51,16 @@ async function reflowProblems(page, where) {
 }
 
 /**
+ * Waits for the page to be drawn again (two animation frames): after setViewportSize(),
+ * the media queries of the new width and the transitions they start apply only then
+ * @param {import('@playwright/test').Page} page
+ * @returns {Promise<void>}
+ */
+async function settled(page) {
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+}
+
+/**
  * Texts cut by their box: an element whose content is wider or taller than its box while
  * its overflow is hidden (WCAG 1.4.4 and 1.4.12). Elements truncated on purpose (ellipsis,
  * with their full text in a title) are not counted.
@@ -58,6 +69,7 @@ async function reflowProblems(page, where) {
  * @returns {Promise<string[]>}
  */
 async function clippedTexts(page, where) {
+    await settled(page);
     return page.evaluate(where => {
         const name = el => el.tagName.toLowerCase() + (typeof el.className === 'string' && el.className.trim() ? '.' + el.className.trim().split(/\s+/).join('.') : '');
         // Texts hidden on purpose for the screen readers (.visually-hidden: 1 px box) are not cut

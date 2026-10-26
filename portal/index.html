@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Carbure - Gestion Bancaire</title>
     
     <!-- Favicon -->
@@ -330,12 +330,16 @@
             <h1>
                 <a href="./" class="app-home" :title="t('home')" @click.prevent="goHome">
                     <img src="icon.png" alt="Carbure" class="app-logo">
-                    {{ t('appTitle') }}
+                    <span class="app-title">{{ t('appTitle') }}</span>
                 </a>
             </h1>
             <div class="header-actions">
                 <!-- Period of the tabs: month and year -->
                 <div class="header-period" role="group" :aria-label="t('periodLabel')">
+                    <button type="button" class="btn-period" @click="goToPeriod(previousPeriod)" :disabled="!previousPeriod"
+                            :title="t('periodPrevious')" :aria-label="t('periodPrevious')">
+                        <span class="material-icons" aria-hidden="true">chevron_left</span>
+                    </button>
                     <label for="month" class="visually-hidden">{{ t('monthLabel') }}</label>
                     <select id="month" v-model="selectedMonth" @change="refreshCurrentTab">
                         <option v-for="month in months" :key="month.value" :value="month.value">
@@ -348,6 +352,10 @@
                             {{ year }}
                         </option>
                     </select>
+                    <button type="button" class="btn-period" @click="goToPeriod(nextPeriod)" :disabled="!nextPeriod"
+                            :title="t('periodNext')" :aria-label="t('periodNext')">
+                        <span class="material-icons" aria-hidden="true">chevron_right</span>
+                    </button>
                     <button class="btn-refresh" @click="refreshCurrentTab" :disabled="loadingTransactions || loadingBudget || loadingInsights"
                             :title="t('refreshButton')" :aria-label="t('refreshButton')">
                         <span class="material-icons" aria-hidden="true">refresh</span>
@@ -445,6 +453,66 @@
                 <span class="material-icons" aria-hidden="true">admin_panel_settings</span>
                 {{ t('tabAdministration') }}
             </button>
+        </div>
+
+        <!-- Phone: the tabs of every day at the bottom, within reach of the thumb; the
+             others, the profile, the theme and the logout in the menu "More" -->
+        <nav class="bottom-nav" :aria-label="t('mainNavigation')">
+            <button v-for="tab in [
+                        { key: 'transactions', icon: 'receipt', label: 'tabTransactions' },
+                        { key: 'budget', icon: 'account_balance', label: 'tabBudget' },
+                        { key: 'insights', icon: 'analytics', label: 'tabInsights' },
+                        { key: 'trends', icon: 'show_chart', label: 'tabTrends' }]"
+                    :key="tab.key" type="button" class="bottom-nav-item"
+                    :class="{ active: activeTab === tab.key }" :aria-current="activeTab === tab.key ? 'page' : null"
+                    @click="setActiveTab(tab.key)">
+                <span class="material-icons" aria-hidden="true">{{ tab.icon }}</span>
+                <span class="bottom-nav-label">{{ t(tab.label) }}</span>
+            </button>
+            <button type="button" class="bottom-nav-item bottom-nav-more" :class="{ active: isDrawerTab }"
+                    aria-haspopup="dialog" :aria-expanded="showNavDrawer ? 'true' : 'false'" @click="openNavDrawer">
+                <span class="material-icons" aria-hidden="true">menu</span>
+                <span class="bottom-nav-label">{{ t('navMore') }}</span>
+            </button>
+        </nav>
+        <div v-if="showNavDrawer" class="modal-overlay nav-drawer-overlay" @click.self="closeNavDrawer">
+            <div class="nav-drawer" role="dialog" aria-modal="true" aria-labelledby="nav-drawer-title">
+                <div class="nav-drawer-header">
+                    <span class="material-icons" aria-hidden="true">account_circle</span>
+                    <h2 id="nav-drawer-title">{{ currentUser ? currentUser.username : (username || t('navMore')) }}</h2>
+                    <button class="modal-close" @click="closeNavDrawer" :aria-label="t('close')">
+                        <span class="material-icons" aria-hidden="true">close</span>
+                    </button>
+                </div>
+                <div class="nav-drawer-items">
+                    <button v-if="isAdmin" type="button" :class="{ active: activeTab === 'rules' }"
+                            :aria-current="activeTab === 'rules' ? 'page' : null" @click="navigateFromDrawer('rules')">
+                        <span class="material-icons" aria-hidden="true">rule</span>{{ t('tabRules') }}
+                    </button>
+                    <button v-if="isAdmin" type="button" :class="{ active: activeTab === 'accounts' }"
+                            :aria-current="activeTab === 'accounts' ? 'page' : null" @click="navigateFromDrawer('accounts')">
+                        <span class="material-icons" aria-hidden="true" :class="{ spin: syncStatus === 'running' }">{{ syncStatus === 'running' ? 'sync' : 'account_balance' }}</span>{{ t('tabAccounts') }}
+                    </button>
+                    <button v-if="isAdmin" type="button" :class="{ active: isAdministrationTab }"
+                            :aria-current="isAdministrationTab ? 'page' : null" @click="navigateFromDrawer(administrationTab)">
+                        <span class="material-icons" aria-hidden="true">admin_panel_settings</span>{{ t('tabAdministration') }}
+                    </button>
+                    <button v-if="!isAdmin" type="button" :class="{ active: activeTab === 'agents' }"
+                            :aria-current="activeTab === 'agents' ? 'page' : null" @click="navigateFromDrawer('agents')">
+                        <span class="material-icons" aria-hidden="true">smart_toy</span>{{ t('tabAgents') }}
+                    </button>
+                    <hr>
+                    <button type="button" @click="showNavDrawer = false; openProfile()">
+                        <span class="material-icons" aria-hidden="true">person</span>{{ t('myProfile') }}
+                    </button>
+                    <button type="button" @click="toggleTheme">
+                        <span class="material-icons" aria-hidden="true">{{ themeToggleIcon }}</span>{{ themeToggleLabel }}
+                    </button>
+                    <button type="button" class="nav-drawer-logout" @click="logout">
+                        <span class="material-icons" aria-hidden="true">logout</span>{{ t('logout') }}
+                    </button>
+                </div>
+            </div>
         </div>
 
         <div v-if="schemaStatus && schemaStatus.pending && schemaStatus.pending.length" class="schema-banner" role="status">

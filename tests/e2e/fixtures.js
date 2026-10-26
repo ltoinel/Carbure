@@ -116,17 +116,42 @@ const ADMINISTRATION_TABS = ['tabUsers', 'tabCategories', 'tabLogs', 'tabAgents'
  */
 async function openTab(page, name) {
     if (!ADMINISTRATION_TABS.map(key => tr(key)).includes(name)) {
+        await clickMainTab(page, name);
+        return;
+    }
+    // The Administration tab exists for the administrators only (in the DOM, even hidden on a phone)
+    if (await page.locator('.tabs').getByRole('button', { name: tr('tabAdministration'), exact: true }).count()) {
+        await clickMainTab(page, tr('tabAdministration'));
+        await page.getByRole('tab', { name, exact: true }).click();
+    } else if (await page.locator('.user-menu-toggle').isVisible()) {
+        await page.locator('.user-menu-toggle').click();
+        await page.getByRole('menuitem', { name }).click();
+    } else {
+        // Phone: the AI agents of a user in the menu "More" of the bottom navigation
+        await clickMainTab(page, name);
+    }
+}
+
+/**
+ * Clicks a tab of the main navigation: the bar of tabs, or on a phone (narrow window)
+ * the bottom navigation and its menu "More"
+ * @param {import('@playwright/test').Page} page
+ * @param {string} name - Label of the tab
+ */
+async function clickMainTab(page, name) {
+    // One of the two navigations, once the portal is drawn (isVisible() does not wait)
+    await page.locator('.tabs, .bottom-nav').filter({ visible: true }).first().waitFor();
+    if (await page.locator('.tabs').isVisible()) {
         await page.locator('.tabs').getByRole('button', { name, exact: true }).click();
         return;
     }
-    const administration = page.locator('.tabs').getByRole('button', { name: tr('tabAdministration'), exact: true });
-    if (await administration.count()) {
-        await administration.click();
-        await page.getByRole('tab', { name, exact: true }).click();
-    } else {
-        await page.locator('.user-menu-toggle').click();
-        await page.getByRole('menuitem', { name }).click();
+    const bar = page.locator('.bottom-nav').getByRole('button', { name, exact: true });
+    if (await bar.count()) {
+        await bar.click();
+        return;
     }
+    await page.locator('.bottom-nav-more').click();
+    await page.locator('.nav-drawer').getByRole('button', { name, exact: true }).click();
 }
 
 /**
@@ -218,4 +243,4 @@ async function chooseLanguage(page, from, to) {
     await base.expect(page.locator('.tabs').getByRole('button', { name: tr('tabTransactions', {}, to), exact: true })).toBeVisible();
 }
 
-module.exports = { test, expect: base.expect, USERS, openTab, tr, pickCategory, euros, currentMonth, escapeRegExp, woobFile, trustWoobRepository, chooseLanguage, asDemoInstance };
+module.exports = { test, expect: base.expect, USERS, openTab, clickMainTab, tr, pickCategory, euros, currentMonth, escapeRegExp, woobFile, trustWoobRepository, chooseLanguage, asDemoInstance };

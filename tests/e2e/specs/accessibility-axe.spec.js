@@ -1,7 +1,7 @@
 // Accessibility beyond the contrasts (see accessibility.spec.js): the WCAG 2.2 A/AA rules
 // of axe-core on every screen, the reflow at 320 CSS px (1.4.10), the zoom at 200 %
 // (1.4.4) and the text spacing (1.4.12)
-const { test, expect, tr, openTab, trustWoobRepository, chooseLanguage, asDemoInstance } = require('../fixtures');
+const { test, expect, tr, openTab, clickMainTab, trustWoobRepository, chooseLanguage, asDemoInstance } = require('../fixtures');
 const { axeViolations, reflowProblems, clippedTexts, TEXT_SPACING, WCAG_TAGS } = require('../axe');
 const { AxeBuilder } = require('@axe-core/playwright');
 
@@ -26,14 +26,14 @@ const USER_TABS = ['tabTransactions', 'tabBudget', 'tabInsights', 'tabTrends'];
 async function showTab(page, key, locale = 'fr') {
     const name = tr(key, {}, locale);
     if (ADMIN_TABS.includes(key)) {
-        await page.locator('.tabs').getByRole('button', { name: tr('tabAdministration', {}, locale), exact: true }).click();
+        await clickMainTab(page, tr('tabAdministration', {}, locale));
         await page.getByRole('tab', { name, exact: true }).click();
         await expect(page.getByRole('tab', { name, exact: true })).toHaveAttribute('aria-selected', 'true');
     } else if (locale === 'fr') {
         await openTab(page, name);
         await expect(page.locator('.tab-button.active')).toContainText(name);
     } else {
-        await page.locator('.tabs').getByRole('button', { name, exact: true }).click();
+        await clickMainTab(page, name);
         await expect(page.locator('.tab-button.active')).toContainText(name);
     }
     await page.waitForLoadState('networkidle');
