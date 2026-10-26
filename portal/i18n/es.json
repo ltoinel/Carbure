@@ -298,6 +298,8 @@
     "bankSetupLoading": "Cargando la información que solicita el banco…",
     "connectBankTitle": "Conectar un banco",
     "connectBankHelp": "Elige tu banco e introduce tus credenciales: woob se conecta a él y luego eliges las cuentas que quieres seguir. Un banco ya conectado puede volver a conectarse con otras credenciales.",
+    "woobWarning": "La sincronización pasa por woob, un software de terceros cuyos conectores de código abierto obtienen los datos de los bancos. Como los sitios web de los bancos cambian constantemente, estos conectores dependen de la comunidad woob: a veces una corrección permanece varias semanas en el repositorio de woob antes de integrarse en su rama principal. En caso de error de sincronización, comprueba en el GitLab de woob si un colaborador ha propuesto una corrección, o espera a que se integre: la obtendrás automáticamente con la actualización de los módulos de woob (en cada inicio de Carbure, o con «Actualizar los módulos bancarios» en Cuentas).",
+    "woobWarningLink": "Ver las correcciones propuestas en el GitLab de woob",
     "connectBankModule": "Banco",
     "connectBankChoose": "Elige un banco compatible con woob…",
     "addAccountsButton": "Añadir cuentas",
