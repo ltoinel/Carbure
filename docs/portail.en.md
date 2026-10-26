@@ -97,8 +97,13 @@ taskbar or the home screen.
 - In the top bar, the **month** and **year** selector and the round
   **Refresh** button (icon only) apply to the Transactions, Budget and Insights tabs.
   They only offer the months that have transactions, plus the current month; another
-  year selects its last available month. The Trends and Rules tabs have their
+  year selects its last available month. The **‹** and **›** arrows go to the previous or
+  next month that has transactions. The Trends and Rules tabs have their
   own settings.
+- **On a phone** (window narrower than 768 px), the header fits on one line: the logo and
+  the period. The Transactions, Budget, Insights and Trends tabs move to a **bar at the
+  bottom of the screen**; its **More** button opens a menu with the other tabs (Rules,
+  Accounts, Administration, or AI agent), **My profile**, the **theme** and **Log out**.
 
 !!! note "Database update"
     When a new version of Carbure changes the database (pending migrations), a

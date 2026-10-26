@@ -122,6 +122,8 @@ const app = createApp({
             selectedYear: new Date().getFullYear(),
             // Months that have transactions, newest first: [{year, month}]
             periods: [],
+            // Menu of the bottom navigation on a phone: the tabs and actions not in the bar
+            showNavDrawer: false,
             // Language of the texts loaded by loadLocale() (i18n.js)
             locale: currentLocale(),
             apiBaseUrl: API_BASE_URL,
@@ -239,6 +241,30 @@ const app = createApp({
          */
         isAdministrationTab() {
             return this.isAdmin && ADMINISTRATION_TABS.some(tab => tab.key === this.activeTab);
+        },
+
+        /**
+         * The open tab is one of the menu of the bottom navigation (phone), not of its bar
+         * @returns {boolean}
+         */
+        isDrawerTab() {
+            return !['transactions', 'budget', 'insights', 'trends'].includes(this.activeTab);
+        },
+
+        /**
+         * Period before the selected one that has transactions (null: the oldest)
+         * @returns {number|null} year * 100 + month
+         */
+        previousPeriod() {
+            return this.periodKeys.find(key => key < this.selectedYear * 100 + Number(this.selectedMonth)) || null;
+        },
+
+        /**
+         * Period after the selected one that has transactions (null: the newest)
+         * @returns {number|null} year * 100 + month
+         */
+        nextPeriod() {
+            return [...this.periodKeys].reverse().find(key => key > this.selectedYear * 100 + Number(this.selectedMonth)) || null;
         },
 
         /**
@@ -370,6 +396,54 @@ const app = createApp({
                 this.selectedMonth = months[months.length - 1];
             }
             this.refreshCurrentTab();
+        },
+
+        /**
+         * Previous or next month that has transactions (arrows of the period)
+         * @param {number|null} key - year * 100 + month, as given by previousPeriod / nextPeriod
+         */
+        goToPeriod(key) {
+            if (!key) {
+                return;
+            }
+            this.selectedYear = Math.floor(key / 100);
+            this.selectedMonth = key % 100;
+            this.refreshCurrentTab();
+        },
+
+        /**
+         * Opens the menu of the bottom navigation (phone), its first entry focused
+         */
+        openNavDrawer() {
+            this.showNavDrawer = true;
+            this.$nextTick(() => {
+                const first = document.querySelector('.nav-drawer button:not(.modal-close)');
+                if (first) {
+                    first.focus();
+                }
+            });
+        },
+
+        /**
+         * Closes the menu of the bottom navigation, the focus back on its button
+         */
+        closeNavDrawer() {
+            this.showNavDrawer = false;
+            this.$nextTick(() => {
+                const more = document.querySelector('.bottom-nav-more');
+                if (more) {
+                    more.focus();
+                }
+            });
+        },
+
+        /**
+         * A tab chosen in the menu of the bottom navigation
+         * @param {string} tab - Tab name
+         */
+        navigateFromDrawer(tab) {
+            this.showNavDrawer = false;
+            this.setActiveTab(tab);
         },
 
         /**
@@ -641,6 +715,7 @@ const app = createApp({
          */
         logout() {
             this.closeUserMenu();
+            this.showNavDrawer = false;
             this.isAuthenticated = false;
             this.authToken = null;
             this.currentUser = null;

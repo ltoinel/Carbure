@@ -97,8 +97,14 @@ tâches ou l'écran d'accueil.
 - Dans la barre du haut, le sélecteur de **mois** et d'**année** et le bouton rond
   **Actualiser** (icône seule) s'appliquent aux onglets Transactions, Budget et Insights.
   Ils ne proposent que les mois qui ont des transactions, plus le mois en cours ; une autre
-  année sélectionne son dernier mois disponible. Les onglets Tendances et Règles ont leurs
+  année sélectionne son dernier mois disponible. Les flèches **‹** et **›** passent au mois
+  précédent ou suivant qui a des transactions. Les onglets Tendances et Règles ont leurs
   propres réglages.
+- **Sur téléphone** (fenêtre de moins de 768 px), l'en-tête tient sur une ligne : le logo
+  et la période. Les onglets Transactions, Budget, Insights et Tendances passent dans une
+  **barre en bas de l'écran** ; son bouton **Plus** ouvre un menu avec les autres onglets
+  (Règles, Comptes, Administration, ou Agent IA), **Mon profil**, le **thème** et la
+  **Déconnexion**.
 
 !!! note "Mise à jour de la base de données"
     Quand une nouvelle version de Carbure modifie la base (migrations en attente), un

@@ -1,7 +1,7 @@
 // Display preferences: the theme of the profile (system / light / dark), and the high
 // contrast settings of the system (prefers-contrast, forced colors). The contrasts of
 // every screen in the dark theme are measured by accessibility.spec.js (chromium-dark).
-const { test, expect, tr, openTab } = require('../fixtures');
+const { test, expect, tr, openTab, USERS } = require('../fixtures');
 const { contrastProblems } = require('../a11y');
 
 /**
@@ -130,15 +130,15 @@ test('the header toggle is readable and its focus visible, in both themes', asyn
     }
 });
 
-test('on a phone, the header toggle stays next to the user menu, without horizontal scroll', async ({ userPage: page }) => {
+test('on a phone, the theme toggle is in the menu of the bottom navigation, without horizontal scroll', async ({ userPage: page }) => {
     await page.setViewportSize({ width: 375, height: 740 });
-    const toggle = page.getByRole('button', { name: tr('switchToDarkTheme') });
-    const menu = page.locator('.user-menu-toggle');
-    await expect(toggle).toBeVisible();
-    const [toggleBox, menuBox] = [await toggle.boundingBox(), await menu.boundingBox()];
-    // Same line, the toggle just before the menu
-    expect(Math.abs((toggleBox.y + toggleBox.height / 2) - (menuBox.y + menuBox.height / 2))).toBeLessThan(4);
-    expect(toggleBox.x + toggleBox.width).toBeLessThanOrEqual(menuBox.x);
+    // The header keeps the period only (#353): the user menu and the toggle are in "More"
+    await expect(page.locator('.user-menu-toggle')).toBeHidden();
+    await page.locator('.bottom-nav').getByRole('button', { name: tr('navMore') }).click();
+    const menu = page.getByRole('dialog', { name: USERS.marie.username });
+    await menu.getByRole('button', { name: tr('switchToDarkTheme') }).click();
+    await expect(theme(page)).toHaveAttribute('data-theme', 'dark');
+    await expect(menu.getByRole('button', { name: tr('switchToLightTheme') })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 
