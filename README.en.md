@@ -141,7 +141,7 @@ each tool.
 | **Demo at home** | try it with a sample household | `docker run --rm -p 8080:80 ltoinel/carbure:demo` |
 | **Docker** (recommended) | manage the real household budget | see below |
 | **Synology NAS** | a NAS at home | [step-by-step tutorial](https://carbure.org/en/synology/) |
-| **YunoHost** | a YunoHost server | [`carbure_ynh` package](https://carbure.org/en/installation/#avec-yunohost) |
+| **YunoHost** | a YunoHost server | [`carbure_ynh`](https://github.com/ltoinel/carbure_ynh) package ([installation](https://carbure.org/en/installation/#avec-yunohost)) |
 | **Web server** | PHP 8.2 and MariaDB/MySQL already in place | [installation without Docker](https://carbure.org/en/installation/#sur-un-serveur-web-existant) |
 
 With Docker, the [`ltoinel/carbure`](https://hub.docker.com/r/ltoinel/carbure) image holds
