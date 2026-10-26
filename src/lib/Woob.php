@@ -406,7 +406,7 @@ final class Woob {
         fclose($pipes[2]);
         proc_close($process);
         if (stripos($stdout, 'successfully added') !== false) {
-            shell_exec("$woob_path config remove " . escapeshellarg($probe) . ' < /dev/null 2>&1');
+            self::configRemove($probe);
         }
         self::checkModuleLoaded($module, "$stdout\n$stderr");
     }
@@ -637,12 +637,27 @@ final class Woob {
      */
     public static function removeBackend(string $backend): void
     {
-        $woob_path = self::path();
-        shell_exec("$woob_path config remove " . escapeshellarg($backend) . ' < /dev/null 2>&1');
+        self::configRemove($backend);
         try {
             self::removeSection(self::backendsFile(), $backend);
         } catch (Exception) {
             // Home directory of woob unknown: nothing written by Carbure
+        }
+    }
+
+    /**
+     * Remove a backend with "woob config remove": a failure (e.g. a backend woob does
+     * not know, its credentials then possibly kept) is logged with the output of woob,
+     * never thrown (the removal goes on with the file of the backends).
+     *
+     * @param string $backend The backend name
+     * @return void
+     */
+    private static function configRemove(string $backend): void
+    {
+        exec(self::path() . ' config remove ' . escapeshellarg($backend) . ' < /dev/null 2>&1', $output, $code);
+        if ($code !== 0) {
+            Logger::warn("woob config remove $backend failed (exit code: $code)", ['output' => self::loggedOutput(implode("\n", $output))]);
         }
     }
 

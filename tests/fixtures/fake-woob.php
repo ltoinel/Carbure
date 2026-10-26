@@ -15,7 +15,8 @@
  *        fake-woob.php config add <module> carbure_install_probe (installs the module; any
  *                                                          setting on the command line is refused:
  *                                                          the credentials must never be there)
- *        fake-woob.php config remove <backend>           (no longer listed by config list)
+ *        fake-woob.php config remove <backend>           (no longer listed by config list;
+ *                                                        unknown_backend: fails)
  *        fake-woob.php config update                     (trusts the keyring by itself the first time,
  *                                                          like woob without a terminal)
  * Like woob 3.7, the first run of any command (no carbure-fake-woob-sources.list) refreshes
@@ -159,7 +160,12 @@ if (($argv[1] ?? '') === 'config' && $type === 'info') {
 
 if (($argv[1] ?? '') === 'config' && $type === 'remove') {
     // Records the backends removed (one per line), to check it; with the file
-    // carbure-fake-woob-stuck, woob silently removes nothing
+    // carbure-fake-woob-stuck, woob silently removes nothing; a backend unknown to woob
+    // (unknown_backend) fails like woob
+    if (($argv[3] ?? '') === 'unknown_backend') {
+        echo "Backend \"unknown_backend\" does not exist.\n";
+        exit(1);
+    }
     if (!is_file(fake_woob_file('stuck'))) {
         file_put_contents(fake_woob_file('removed'), ($argv[3] ?? '') . "\n", FILE_APPEND);
     }

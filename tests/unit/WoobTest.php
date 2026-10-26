@@ -399,6 +399,17 @@ class WoobTest extends TestCase
         }
     }
 
+    public function testAFailedRemovalIsLogged()
+    {
+        // woob does not know the backend: the removal goes on, the failure is in the logs
+        Woob::removeBackend('unknown_backend');
+        Logger::flush();
+        $file = Config::get('data_dir') . '/logs/carbure_test_' . date('Ymd') . '.log';
+        $lines = array_filter(file($file), fn($line) => str_contains($line, 'woob config remove unknown_backend failed (exit code: 1)'));
+        $this->assertNotEmpty($lines);
+        $this->assertSame(['output' => 'Backend "unknown_backend" does not exist.'], json_decode(end($lines), true)['context']);
+    }
+
     public function testAddBackendCreatesAPrivateFile()
     {
         $home = carbure_test_tmp('carbure-woob-' . uniqid());
