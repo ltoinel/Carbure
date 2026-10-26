@@ -11,6 +11,7 @@
 
 namespace Carbure\Resources;
 
+use Carbure\Lib\ApiError;
 use Carbure\Lib\ApiRoute;
 use Carbure\Lib\Config;
 use Carbure\Lib\Db;
@@ -117,8 +118,8 @@ final class User {
     {
         if ($user['locked_until'] !== null
             && (Db::queryOne("SELECT ? > NOW() AS locked", "s", $user['locked_until'])['locked'] ?? 0)) {
-            throw new Error("Account locked after too many failed logins, until " . $user['locked_until']
-                . ": ask an administrator to unlock it", 423);
+            throw new ApiError("Account locked after too many failed logins, until " . $user['locked_until']
+                . ": ask an administrator to unlock it", 423, 'account_locked_until', ['until' => (string)$user['locked_until']]);
         }
     }
 
@@ -221,9 +222,9 @@ final class User {
     private static function rejectLogin(?array $user): never
     {
         if ($user && self::recordFailedLogin($user)) {
-            throw new Error("Account locked after too many failed logins: ask an administrator to unlock it", 423);
+            throw new ApiError("Account locked after too many failed logins: ask an administrator to unlock it", 423, 'account_locked');
         }
-        throw new Error("Invalid username or password", 401);
+        throw new ApiError("Invalid username or password", 401, 'invalid_credentials');
     }
 
     /**
@@ -257,7 +258,7 @@ final class User {
     public static function unlock(int $id): bool
     {
         if (!Db::queryOne("SELECT id FROM users WHERE id = ?", "i", $id)) {
-            throw new Error("User not found", 404);
+            throw new ApiError("User not found", 404, 'user_not_found');
         }
         Db::execute("UPDATE users SET failed_logins = 0, locked_until = NULL WHERE id = ?", "i", $id);
         return true;
@@ -283,7 +284,7 @@ final class User {
     public static function requireAdmin(): void
     {
         if (!self::isAdmin()) {
-            throw new Error("Forbidden - Administrator only", 403);
+            throw new ApiError("Forbidden - Administrator only", 403, 'admin_only');
         }
     }
 
@@ -325,7 +326,7 @@ final class User {
         $user = Db::queryOne($sql, "i", Jwt::getUserIdFromToken());
 
         if (!$user) {
-            throw new Error("User not found", 404);
+            throw new ApiError("User not found", 404, 'user_not_found');
         }
 
         return $user;
@@ -352,7 +353,7 @@ final class User {
         $result = Db::result($stmt);
 
         if ($result->num_rows > 0) {
-            throw new Error("Username already exists", 409);
+            throw new ApiError("Username already exists", 409, 'username_exists');
         }
 
         // Check if email already exists
@@ -361,7 +362,7 @@ final class User {
         $result = Db::result($stmt);
 
         if ($result->num_rows > 0) {
-            throw new Error("Email already exists", 409);
+            throw new ApiError("Email already exists", 409, 'email_exists');
         }
 
         // Hash the password
@@ -395,7 +396,7 @@ final class User {
     public static function delete(int $id): bool
     {
         if ($id === (int)Jwt::getUserIdFromToken()) {
-            throw new Error("You cannot delete your own account", 400);
+            throw new ApiError("You cannot delete your own account", 400, 'user_delete_self');
         }
 
         // Check if user exists
@@ -404,13 +405,13 @@ final class User {
         $result = Db::result($stmt);
 
         if ($result->num_rows == 0) {
-            throw new Error("User not found", 404);
+            throw new ApiError("User not found", 404, 'user_not_found');
         }
 
         // The household transactions are attached to their owner
         $owned = Db::queryOne("SELECT COUNT(*) AS count FROM bank_transaction WHERE user=?", "i", $id);
         if (($owned['count'] ?? 0) > 0) {
-            throw new Error("User owns bank transactions and cannot be deleted", 409);
+            throw new ApiError("User owns bank transactions and cannot be deleted", 409, 'user_has_transactions');
         }
 
         // Delete the user
@@ -469,7 +470,7 @@ final class User {
         // Get updated user data
         $updatedUser = Db::queryOne("SELECT " . self::columns() . " FROM users WHERE id=?", "i", $id);
         if ($updatedUser === null) {
-            throw new Error("User not found", 404);
+            throw new ApiError("User not found", 404, 'user_not_found');
         }
 
         return $updatedUser;
@@ -492,7 +493,7 @@ final class User {
         self::requireAdmin();
         $flag = filter_var($is_admin, FILTER_VALIDATE_BOOLEAN) ? 1 : 0;
         if ($flag === 0 && !Db::queryOne("SELECT id FROM users WHERE is_admin = 1 AND id <> ? LIMIT 1", "i", $id)) {
-            throw new Error("At least one administrator is required", 409);
+            throw new ApiError("At least one administrator is required", 409, 'admin_required');
         }
         return $flag;
     }
@@ -509,7 +510,7 @@ final class User {
         $result = Db::select("SELECT * FROM users WHERE id=?", "i", $id);
         $user = $result->num_rows == 0 ? null : $result->fetch_assoc();
         if (!$user) {
-            throw new Error("User not found", 404);
+            throw new ApiError("User not found", 404, 'user_not_found');
         }
         return $user;
     }
@@ -530,7 +531,7 @@ final class User {
         }
         $result = Db::select("SELECT id FROM users WHERE email=? AND id!=?", "si", $email, $id);
         if ($result->num_rows > 0) {
-            throw new Error("Email already exists", 409);
+            throw new ApiError("Email already exists", 409, 'email_exists');
         }
     }
 
@@ -558,7 +559,7 @@ final class User {
         }
         if ($language !== null) {
             if (!in_array($language, self::LANGUAGES, true)) {
-                throw new Error("Unsupported language: $language", 400);
+                throw new ApiError("Unsupported language: $language", 400, 'language_unsupported', ['language' => $language]);
             }
             $fields[] = ["language", "s", $language];
         }
@@ -587,7 +588,7 @@ final class User {
             return [];
         }
         if (!in_array($theme, self::THEMES, true)) {
-            throw new Error("Unsupported theme: $theme", 400);
+            throw new ApiError("Unsupported theme: $theme", 400, 'theme_unsupported', ['theme' => $theme]);
         }
         if (!self::hasThemeColumn()) {
             throw new Error("Apply the pending database migrations first: the theme cannot be saved yet", 409);
@@ -605,7 +606,7 @@ final class User {
     public static function alertThresholdValue(float|int|string $alertThreshold): ?float
     {
         if ($alertThreshold !== '' && (!is_numeric($alertThreshold) || $alertThreshold < 0)) {
-            throw new Error("The alert threshold must be a positive amount", 400);
+            throw new ApiError("The alert threshold must be a positive amount", 400, 'alert_threshold_invalid');
         }
         return ($alertThreshold === '' || (float)$alertThreshold == 0) ? null : round((float)$alertThreshold, 2);
     }

@@ -11,6 +11,7 @@
 
 namespace Carbure\Resources;
 
+use Carbure\Lib\ApiError;
 use Carbure\Lib\ApiRoute;
 use Carbure\Lib\BankFile;
 use Carbure\Lib\Config;
@@ -88,7 +89,7 @@ final class Transaction {
     {
         $query = trim((string)$query);
         if (mb_strlen($query) < 2) {
-            throw new Error("Search query must contain at least 2 characters", 400);
+            throw new ApiError("Search query must contain at least 2 characters", 400, 'search_too_short');
         }
         $limit = max(1, min(500, (int)$limit));
 
@@ -472,7 +473,7 @@ final class Transaction {
         }
         $dates = array_column($rows, 'date');
         if ($dates === []) {
-            throw new Error("No transaction found in the file", 422);
+            throw new ApiError("No transaction found in the file", 422, 'import_no_transaction');
         }
 
         return [
@@ -601,7 +602,7 @@ final class Transaction {
         // Transactions of the period of the file (and a few days around)
         $dates = array_merge(array_column($rows, 'date'), array_column($rows, 'rdate'));
         if ($dates === []) {
-            throw new Error("No transaction found in the file", 422);
+            throw new ApiError("No transaction found in the file", 422, 'import_no_transaction');
         }
         $from = date('Y-m-d', Month::timestamp(min($dates) . ' -' . self::DUPLICATE_DAYS . ' days'));
         $to = date('Y-m-d', Month::timestamp(max($dates) . ' +' . self::DUPLICATE_DAYS . ' days'));
@@ -944,7 +945,7 @@ final class Transaction {
     {
         $transaction = Db::queryOne("SELECT uuid, label, amount FROM bank_transaction WHERE id = ?", "i", $id);
         if (!$transaction) {
-            throw new Error("Transaction not found", 404);
+            throw new ApiError("Transaction not found", 404, 'transaction_not_found');
         }
 
         $userId = Jwt::getUserIdFromToken();

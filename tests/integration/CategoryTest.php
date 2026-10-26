@@ -1,5 +1,6 @@
 <?php
 
+use Carbure\Lib\ApiError;
 use Carbure\Lib\Db;
 use Carbure\Resources\Category;
 
@@ -34,6 +35,9 @@ class CategoryTest extends DatabaseTestCase
             $this->fail('Duplicate keyword accepted');
         } catch (Error $e) {
             $this->assertSame(409, $e->getCode());
+            // The stable code that the portal translates
+            $this->assertInstanceOf(ApiError::class, $e);
+            $this->assertSame('keyword_exists', $e->getErrorCode());
         }
         $this->expectException(Error::class);
         $this->expectExceptionCode(404);

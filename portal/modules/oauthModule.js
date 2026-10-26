@@ -92,7 +92,7 @@ export function createOAuthModule(getApiService) {
                     this.clearOAuthRequest();
                     window.location.assign(redirect);
                 } catch (error) {
-                    this.showToast(error.message);
+                    this.showToast(this.apiErrorText(error));
                     this.oauthBusy = false;
                 }
             },

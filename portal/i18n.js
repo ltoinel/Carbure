@@ -236,6 +236,30 @@ function t(key, params = {}) {
 }
 
 /**
+ * Text of an error to show: for an error of the API with a stable code (error.code, given
+ * by the server as error_code), the translation apiErrors.<code> of the active language
+ * with the values of the error (error.params); the message of the error otherwise (in
+ * English from the server: a code unknown to this portal, an older or newer server, or an
+ * error without code). Never the reference language: English is better than French for
+ * a language that would lack the key.
+ * @param {Error|{message: string, code?: string, params?: Object}|null} error - Error
+ * @returns {string} The text ('' without error)
+ */
+function apiErrorText(error) {
+    if (!error) {
+        return '';
+    }
+    if (typeof error.code === 'string' && /^\w+$/.test(error.code)) {
+        const params = error.params && typeof error.params === 'object' ? error.params : {};
+        const text = resolveText(i18n, [currentLocale()], `apiErrors.${error.code}`, params);
+        if (typeof text === 'string') {
+            return formatText(text, params);
+        }
+    }
+    return typeof error.message === 'string' ? error.message : String(error);
+}
+
+/**
  * Changes the language: stored in this browser, then the page reloads to load its texts
  * @param {string} locale - Language (one of LOCALES)
  */
@@ -329,5 +353,5 @@ function showLocaleError() {
 
 // Export for the tests run by Node
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { i18n, t, setLocale, loadLocale, translate, resolveText, currentLocale, defaultLocale, intlLocale, serverVersion, serverDemo, serverCurrency, showLocaleError, LOCALES, REFERENCE_LOCALE };
+    module.exports = { i18n, t, apiErrorText, setLocale, loadLocale, translate, resolveText, currentLocale, defaultLocale, intlLocale, serverVersion, serverDemo, serverCurrency, showLocaleError, LOCALES, REFERENCE_LOCALE };
 }

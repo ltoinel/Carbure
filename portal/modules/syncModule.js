@@ -167,7 +167,7 @@ export function createSyncModule(getApiService) {
                 try {
                     this.bankAccounts = await apiService.fetchBankAccounts();
                 } catch (error) {
-                    this.error = error.message;
+                    this.error = this.apiErrorText(error);
                 }
             },
 

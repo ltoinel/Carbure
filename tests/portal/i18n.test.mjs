@@ -340,6 +340,43 @@ test('t: nothing reported without the debug mode', async () => {
     assert.deepEqual(page.warnings, []);
 });
 
+// --- apiErrorText(): the errors of the API in the language of the user ---
+
+test('apiErrorText: the translation of the code of an API error, with its values', async () => {
+    const page = load({ stored: 'fr' });
+    await page.i18n.loadLocale();
+    const error = Object.assign(new Error('This keyword already exists'), { code: 'keyword_exists', params: {} });
+    assert.equal(page.i18n.apiErrorText(error), 'Ce mot-clé existe déjà');
+    const locked = Object.assign(new Error('Account locked…'), { code: 'account_locked_until', params: { until: '2026-10-26 18:30:00' } });
+    assert.match(page.i18n.apiErrorText(locked), /^Compte bloqué jusqu'au 2026-10-26 18:30:00 /);
+
+    const german = load({ stored: 'de' });
+    await german.i18n.loadLocale();
+    assert.equal(german.i18n.apiErrorText({ message: 'Invalid code', code: 'mfa_code_invalid' }), 'Ungültiger Code');
+});
+
+test('apiErrorText: the English message of the server for an unknown code or an error without code', async () => {
+    const page = load({ stored: 'fr' });
+    await page.i18n.loadLocale();
+    // A newer server: a code that this portal does not know yet
+    assert.equal(page.i18n.apiErrorText(Object.assign(new Error('Something new'), { code: 'something_new' })), 'Something new');
+    // An older server (no code), an error of the portal, a code of another kind
+    assert.equal(page.i18n.apiErrorText(new Error('Failed to fetch users (502)')), 'Failed to fetch users (502)');
+    assert.equal(page.i18n.apiErrorText(Object.assign(new Error('Aborted'), { code: 20 })), 'Aborted');
+    assert.equal(page.i18n.apiErrorText({ message: 'Odd', code: 'constructor' }), 'Odd');
+    assert.equal(page.i18n.apiErrorText(new Error('')), '');
+    assert.equal(page.i18n.apiErrorText(null), '');
+    assert.equal(page.i18n.apiErrorText('Plain text'), 'Plain text');
+});
+
+test('apiErrorText: a code missing from the active language shows the English message, not the reference language', async () => {
+    const fr = { ...TEXTS.fr, apiErrors: { keyword_exists: 'Ce mot-clé existe déjà' } };
+    const de = { ...TEXTS.de, apiErrors: {} };
+    const page = load({ stored: 'de', files: { fr, de } });
+    await page.i18n.loadLocale();
+    assert.equal(page.i18n.apiErrorText({ message: 'This keyword already exists', code: 'keyword_exists' }), 'This keyword already exists');
+});
+
 test('setLocale: a language of the portal is stored and the page reloaded, another one ignored', () => {
     const page = load();
     page.i18n.setLocale('xx');
@@ -403,6 +440,12 @@ const DYNAMIC_PREFIXES = [...new Set(PORTAL.flatMap(({ code }) => [
  */
 const INDIRECT_KEYS = [];
 
+/**
+ * Prefix of the translations of the codes of the API errors, built by apiErrorText() of
+ * i18n.js: checked against the codes thrown by the API (apiErrors.test.mjs)
+ */
+const API_ERRORS = 'apiErrors.';
+
 /** Keys of the reference language, plural forms grouped (transactionCount for transactionCount_one) */
 const KEYS = [...grouped(TEXTS.fr).keys()];
 
@@ -431,6 +474,7 @@ test('no key is unused by the portal', () => {
     const literals = new Set(PORTAL.flatMap(({ code }) => [...code.matchAll(/(['"`])([\w.]+)\1/g)].map(m => m[2])));
     const unused = KEYS.filter(key => !literals.has(key)
         && !DYNAMIC_PREFIXES.some(prefix => key.startsWith(prefix))
-        && !INDIRECT_KEYS.includes(key));
+        && !INDIRECT_KEYS.includes(key)
+        && !key.startsWith(API_ERRORS));
     assert.deepEqual(unused, [], 'keys of portal/i18n/*.json used nowhere: remove them (or list them in INDIRECT_KEYS)');
 });

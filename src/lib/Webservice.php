@@ -66,13 +66,14 @@ final class Webservice {
             header('Cache-Control: no-store');
         }
 
-        // We return the error message + UID for tracking
+        // We return the error message + UID for tracking, and the stable code (+ values)
+        // of an ApiError, that the portal translates
         echo json_encode(
             array(
                 "error" => $exception->getMessage(),
                 "code" => $code,
                 "uid" => Logger::getUID()
-            ), 
+            ) + ApiError::fields($exception), 
             JSON_NUMERIC_CHECK | JSON_PRETTY_PRINT
         );
     }

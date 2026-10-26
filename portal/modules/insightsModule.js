@@ -83,7 +83,7 @@ export function createInsightsModule(getApiService) {
                     }
                     
                     console.error('Insights loading error:', err);
-                    this.error = err.message;
+                    this.error = this.apiErrorText(err);
                     this.insights = [];
                 } finally {
                     this.loadingInsights = false;
@@ -113,7 +113,7 @@ export function createInsightsModule(getApiService) {
                         const definition = definitions.find(d => Number(d.id) === Number(insight.id));
                         this.insightForm = { id: Number(insight.id), name: insight.name, color: insight.color, icon: insight.icon || '', sql: definition ? definition.sql : '' };
                     } catch (error) {
-                        this.showToast(error.message);
+                        this.showToast(this.apiErrorText(error));
                         return;
                     }
                 }
@@ -148,11 +148,12 @@ export function createInsightsModule(getApiService) {
                         if (!this.insightForm || this.insightForm.sql !== sql) {
                             return;
                         }
+                        // The cause of an invalid query: translated by its code, like an API error
                         this.insightCheck = result.valid
                             ? { state: 'valid', amount: result.amount, error: null }
-                            : { state: 'invalid', amount: null, error: result.error };
+                            : { state: 'invalid', amount: null, error: this.apiErrorText({ message: result.error, code: result.error_code, params: result.params }) };
                     } catch (error) {
-                        this.insightCheck = { state: 'invalid', amount: null, error: error.message };
+                        this.insightCheck = { state: 'invalid', amount: null, error: this.apiErrorText(error) };
                     }
                 }, 600);
             },
@@ -171,7 +172,7 @@ export function createInsightsModule(getApiService) {
                     await this.loadInsights(this.selectedMonth, this.selectedYear);
                 } catch (error) {
                     // Shown in the modal, next to the query to correct
-                    this.insightError = error.message;
+                    this.insightError = this.apiErrorText(error);
                 } finally {
                     this.savingInsight = false;
                 }
@@ -192,7 +193,7 @@ export function createInsightsModule(getApiService) {
                     this.insightForm = null;
                     this.showToast(this.t('insightDeleted'));
                 } catch (error) {
-                    this.showToast(error.message);
+                    this.showToast(this.apiErrorText(error));
                 }
             },
 

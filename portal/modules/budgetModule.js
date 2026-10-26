@@ -205,7 +205,7 @@ export function createBudgetModule(getBudgetStore, getApiService) {
                     
                 } catch (err) {
                     console.error('Budget loading error:', err);
-                    this.error = err.message;
+                    this.error = this.apiErrorText(err);
                 }
             },
 
@@ -269,7 +269,7 @@ export function createBudgetModule(getBudgetStore, getApiService) {
                     this.ensureCategories();
                 } catch (err) {
                     this.budgetTransactions = [];
-                    this.showToast(err.message);
+                    this.showToast(this.apiErrorText(err));
                 } finally {
                     this.loadingBudgetTransactions = false;
                 }
@@ -309,7 +309,7 @@ export function createBudgetModule(getBudgetStore, getApiService) {
                     await store.navigateToChildren(item, month, year);
                 } catch (err) {
                     console.error('Navigate to budget error:', err);
-                    this.showToast(err.message || this.t('navigationError'));
+                    this.showToast(this.apiErrorText(err) || this.t('navigationError'));
                 }
             },
 
@@ -337,7 +337,7 @@ export function createBudgetModule(getBudgetStore, getApiService) {
                     }
                 } catch (err) {
                     console.error('Breadcrumb navigation error:', err);
-                    this.showToast(err.message || this.t('navigationError'));
+                    this.showToast(this.apiErrorText(err) || this.t('navigationError'));
                 }
             },
 
@@ -418,7 +418,7 @@ export function createBudgetModule(getBudgetStore, getApiService) {
                     this.closeCopyModal();
                 } catch (err) {
                     console.error('Copy budgets error:', err);
-                    this.showToast(err.message);
+                    this.showToast(this.apiErrorText(err));
                 } finally {
                     this.copyingBudget = false;
                 }
@@ -450,7 +450,7 @@ export function createBudgetModule(getBudgetStore, getApiService) {
                     this.closeBudgetModal();
                 } catch (err) {
                     console.error('Edit budget error:', err);
-                    this.showToast(err.message);
+                    this.showToast(this.apiErrorText(err));
                 }
             },
 

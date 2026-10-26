@@ -11,6 +11,7 @@
 
 namespace Carbure\Resources;
 
+use Carbure\Lib\ApiError;
 use Carbure\Lib\ApiRoute;
 use Carbure\Lib\Config;
 use Carbure\Lib\Db;
@@ -98,7 +99,7 @@ final class Device {
         $stmt = Db::execute("DELETE FROM devices WHERE id=? AND user_id=?", "ii", $id, Jwt::getUserIdFromToken());
 
         if ($stmt->affected_rows === 0) {
-            throw new Error("Device not found", 404);
+            throw new ApiError("Device not found", 404, 'device_not_found');
         }
 
         return true;

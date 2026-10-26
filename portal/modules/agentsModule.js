@@ -110,7 +110,7 @@ export function createAgentsModule(getApiService) {
                     this.mcpEnabled = !!(await getApiService().updateMcpSettings(!this.mcpEnabled)).enabled;
                     this.showToast(this.t(this.mcpEnabled ? 'mcpEnabledToast' : 'mcpDisabledToast'));
                 } catch (error) {
-                    this.showToast(error.message);
+                    this.showToast(this.apiErrorText(error));
                 } finally {
                     this.switchingMcp = false;
                     // Vue does not patch a value that did not change (#342)

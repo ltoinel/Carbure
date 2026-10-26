@@ -13,6 +13,7 @@
 
 namespace Carbure\Resources;
 
+use Carbure\Lib\ApiError;
 use Carbure\Lib\ApiRoute;
 use Carbure\Lib\Db;
 use Carbure\Lib\Jwt;
@@ -63,17 +64,17 @@ final class ApiToken {
     {
         $days = $days === null || $days === '' || (int)$days === 0 ? null : (int)$days;
         if (!in_array($days, self::LIFETIMES, true)) {
-            throw new Error("The lifetime must be 30, 90 or 365 days, or none", 400);
+            throw new ApiError("The lifetime must be 30, 90 or 365 days, or none", 400, 'api_token_lifetime_invalid');
         }
         $name = trim((string)$name);
         if ($name === '' || mb_strlen($name) > 50) {
-            throw new Error("The name must contain 1 to 50 characters", 400);
+            throw new ApiError("The name must contain 1 to 50 characters", 400, 'api_token_name_length');
         }
 
         $userId = Jwt::getUserIdFromToken();
         $count = (Db::queryOne("SELECT COUNT(*) AS n FROM api_tokens WHERE user_id = ?", "i", $userId)['n'] ?? 0);
         if ($count >= self::MAX_TOKENS) {
-            throw new Error("Too many API tokens: delete the ones you no longer use", 409);
+            throw new ApiError("Too many API tokens: delete the ones you no longer use", 409, 'api_token_limit');
         }
 
         $token = self::PREFIX . bin2hex(random_bytes(24));
@@ -97,7 +98,7 @@ final class ApiToken {
     {
         $stmt = Db::execute("DELETE FROM api_tokens WHERE id = ? AND user_id = ?", "ii", $id, Jwt::getUserIdFromToken());
         if ($stmt->affected_rows === 0) {
-            throw new Error("API token not found", 404);
+            throw new ApiError("API token not found", 404, 'api_token_not_found');
         }
         return true;
     }

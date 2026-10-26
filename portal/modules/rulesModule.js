@@ -95,7 +95,7 @@ export function createRulesModule(getApiService) {
                     ]);
                     this.keepCategorized = !!settings.keep_categorized;
                 } catch (error) {
-                    this.error = error.message;
+                    this.error = this.apiErrorText(error);
                 } finally {
                     this.loadingRules = false;
                 }
@@ -147,7 +147,7 @@ export function createRulesModule(getApiService) {
                     this.showToast(this.t('ruleSavedApplied', { count: Number(saved && saved.applied) || 0 }));
                     this.rules = await getApiService().fetchRules();
                 } catch (error) {
-                    this.showToast(error.message);
+                    this.showToast(this.apiErrorText(error));
                 } finally {
                     this.savingRule = false;
                 }
@@ -169,7 +169,7 @@ export function createRulesModule(getApiService) {
                     this.showRuleModal = false;
                     this.showToast(this.t('ruleDeleted'));
                 } catch (error) {
-                    this.showToast(error.message);
+                    this.showToast(this.apiErrorText(error));
                 }
             },
 
@@ -183,7 +183,7 @@ export function createRulesModule(getApiService) {
                     const result = await getApiService().applyRules();
                     this.showToast(this.t(this.keepCategorized ? 'rulesAppliedUncategorized' : 'rulesApplied', { count: result.updated }));
                 } catch (error) {
-                    this.showToast(error.message);
+                    this.showToast(this.apiErrorText(error));
                 } finally {
                     this.applyingRules = false;
                 }
@@ -200,7 +200,7 @@ export function createRulesModule(getApiService) {
                     this.keepCategorized = !!(await getApiService().updateRuleSettings(!this.keepCategorized)).keep_categorized;
                     this.showToast(this.t(this.keepCategorized ? 'rulesKeepCategorizedOn' : 'rulesKeepCategorizedOff'));
                 } catch (error) {
-                    this.showToast(error.message);
+                    this.showToast(this.apiErrorText(error));
                 } finally {
                     this.switchingKeepCategorized = false;
                     // Vue does not patch a value that did not change (#342)

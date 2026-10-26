@@ -45,6 +45,35 @@ icon: material/api
 
 `uid` identifies the request in `data/logs/carbure_YYYYMMDD.log`.
 
+### Stable code of an error { #code-stable-dune-erreur }
+
+The errors a user meets (validation and conflicts of the rules, categories, insights,
+users, login and two-factor authentication, bank connection, settings, alert
+thresholds…) add a **stable code** `error_code`, and `params` when the message carries
+values. The `error` message stays in English, unchanged (logs, mobile apps, API clients,
+MCP server); `code` stays the HTTP status.
+
+```json
+{ "error": "This keyword already exists", "code": 409, "uid": "6ac106d3912d9", "error_code": "keyword_exists" }
+```
+
+```json
+{
+  "error": "Account locked after too many failed logins, until 2026-10-27 18:30:00: ask an administrator to unlock it",
+  "code": 423,
+  "uid": "6ac106d3912d9",
+  "error_code": "account_locked_until",
+  "params": { "until": "2026-10-27 18:30:00" }
+}
+```
+
+A client translates `error_code` (the portal: `apiErrors.<error_code>` of
+`portal/i18n/<language>.json`, where `{until}` gets the value of `params`) and shows the
+`error` message when it does not know the code (newer server) or the error has none
+(technical error, older server). Codes do not change from one version to the next; an
+error may get one in a later version. `POST /insight/check` likewise gives `error_code`
+and `params` next to `error`.
+
 ## Data changes { #modifications-des-donnees }
 
 `GET /changes` (any logged-in user) gives a **change marker per kind of data**, bumped
