@@ -1,5 +1,6 @@
 <?php
 
+use Carbure\Lib\ApiError;
 use Carbure\Lib\Db;
 use Carbure\Resources\Budget;
 use Carbure\Resources\Insight;
@@ -45,6 +46,8 @@ class InsightTest extends DatabaseTestCase
         $invalid = Insight::check('SELECT SUM(amount) AS amount FROM bank_transaction WHERE');
         $this->assertFalse($invalid['valid']);
         $this->assertStringContainsString('SQL syntax', $invalid['error']);
+        // The refusal of the database: its cause, for the translation of the portal
+        $this->assertSame(['insight_query_failed', ['cause' => $invalid['error']]], [$invalid['error_code'], $invalid['params']]);
         $this->assertFalse(Insight::check('SELECT 1 AS amount FROM users')['valid']);
 
         $this->expectException(Error::class);
@@ -129,6 +132,7 @@ class InsightTest extends DatabaseTestCase
         $this->assertFalse($check['valid']);
         $this->assertStringNotContainsString('JBSWY3DPEHPK3PXP', $check['error']);
         $this->assertStringContainsString('cannot read user_mfa', $check['error']);
+        $this->assertSame(['insight_query_table_refused', ['table' => 'user_mfa']], [$check['error_code'], $check['params']]);
     }
 
     public function testSlowQueryIsStopped()
@@ -149,6 +153,7 @@ class InsightTest extends DatabaseTestCase
             $check = Insight::check($slow);
             $this->assertFalse($check['valid']);
             $this->assertSame('The query takes more than 0.05 seconds', $check['error']);
+            $this->assertSame(['insight_query_timeout', ['seconds' => '0.05']], [$check['error_code'], $check['params']]);
             $this->assertLessThan(5, microtime(true) - $start);
 
             // In the list, a value of 0 without breaking the other insights
@@ -163,6 +168,9 @@ class InsightTest extends DatabaseTestCase
             } catch (Error $e) {
                 $this->assertSame(400, $e->getCode());
                 $this->assertStringContainsString('more than 0.05 seconds', $e->getMessage());
+                // The test before the save keeps the code of the time limit
+                $this->assertInstanceOf(ApiError::class, $e);
+                $this->assertSame(['insight_query_timeout', ['seconds' => '0.05']], [$e->getErrorCode(), $e->getParams()]);
             }
         } finally {
             Insight::$maxSeconds = $previous;

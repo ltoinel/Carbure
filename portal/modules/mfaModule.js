@@ -282,7 +282,7 @@ export function createMfaModule(getApiService) {
                 try {
                     await action();
                 } catch (error) {
-                    this.mfaError = error.message;
+                    this.mfaError = this.apiErrorText(error);
                 } finally {
                     this.mfaBusy = false;
                 }

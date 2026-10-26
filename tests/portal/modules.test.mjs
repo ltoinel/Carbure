@@ -6,6 +6,10 @@ import { createBudgetModule } from '../../portal/modules/budgetModule.js';
 import { createTransactionModule, recurringCalendar, similarLabelQuery } from '../../portal/modules/transactionModule.js';
 import { createRulesModule } from '../../portal/modules/rulesModule.js';
 import { agentConfigurations, createAgentsModule } from '../../portal/modules/agentsModule.js';
+import { createRequire } from 'node:module';
+
+/** Text of an error shown by the modules (this.apiErrorText of the portal): without translations loaded, its message */
+const { apiErrorText } = createRequire(import.meta.url)('../../portal/i18n.js');
 
 const budget = createBudgetModule(() => null, () => null);
 const transactions = createTransactionModule(() => null);
@@ -460,7 +464,7 @@ test('accounts: removing a connected bank asks first in a modal, with the number
 test('confirm: answered by the buttons, the action kept running and its error shown in the modal', async () => {
     const { createConfirmModule } = await import('../../portal/modules/confirmModule.js');
     const { data, methods } = createConfirmModule();
-    const context = { ...data() };
+    const context = { ...data(), apiErrorText };
     for (const [name, method] of Object.entries(methods)) {
         context[name] = method.bind(context);
     }
@@ -703,6 +707,7 @@ test('profile: the header toggle switches the theme at once and saves it in the 
         ...module.data(),
         currentUser: { id: 2, username: 'marie', theme: 'system' },
         t: key => key,
+        apiErrorText,
         showToast: message => toasts.push(message),
     };
     context.toggleTheme = module.methods.toggleTheme.bind(context);
@@ -757,7 +762,7 @@ test('config: the test email shows the recipient, or the error of the server', a
     const calls = [];
     const api = { sendTestEmail: async to => { calls.push(to); return answer(); } };
     const { methods, data } = createConfigModule(() => api);
-    const context = { ...data(), ...methods, t: (key, params) => `${key} ${JSON.stringify(params || {})}` };
+    const context = { ...data(), ...methods, apiErrorText, t: (key, params) => `${key} ${JSON.stringify(params || {})}` };
 
     context.smtpTestTo = '  ';
     await context.sendTestEmail();
@@ -799,7 +804,7 @@ test('config: registration on the push service after consent, renewal after conf
         sendTestPush: async () => testAnswer(),
     };
     const { methods, data, computed } = createConfigModule(() => api);
-    const context = { ...data(), ...methods, t: (key, params) => `${key} ${JSON.stringify(params || {})}` };
+    const context = { ...data(), ...methods, apiErrorText, t: (key, params) => `${key} ${JSON.stringify(params || {})}` };
     Object.defineProperty(context, 'pushKeySet', { get: () => computed.pushKeySet.call(context) });
     Object.defineProperty(context, 'pushKeyDisplay', { get: () => computed.pushKeyDisplay.call(context) });
     context.setConfig(configWithKey(false));
@@ -927,7 +932,7 @@ test('notifications: the budget alert threshold is loaded, checked and saved', a
     };
     const { methods, data } = createNotificationsModule(() => api);
     const toasts = [];
-    const context = { ...data(), ...methods, t: key => key, showToast: message => toasts.push(message) };
+    const context = { ...data(), ...methods, apiErrorText, t: key => key, showToast: message => toasts.push(message) };
     assert.equal(context.budgetThreshold, 100);
 
     await context.loadNotifications();
@@ -982,7 +987,7 @@ test('notifications: the large expense threshold is saved at once', async () => 
     };
     const { methods, data } = createNotificationsModule(() => api);
     const toasts = [];
-    const context = { ...data(), ...methods, t: key => key, showToast: message => toasts.push(message) };
+    const context = { ...data(), ...methods, apiErrorText, t: key => key, showToast: message => toasts.push(message) };
 
     await context.loadNotifications();
     assert.equal(context.alertThreshold, '150');
@@ -1031,7 +1036,7 @@ test('notifications: the global budget threshold and the thresholds of categorie
     };
     const { methods, data, computed } = createNotificationsModule(() => api);
     const toasts = [];
-    const context = { ...data(), ...methods, t: key => key, showToast: message => toasts.push(message) };
+    const context = { ...data(), ...methods, apiErrorText, t: key => key, showToast: message => toasts.push(message) };
     Object.defineProperty(context, 'freeBudgets', { get: computed.freeBudgets.bind(context) });
 
     await context.loadNotifications();
@@ -1103,7 +1108,7 @@ test('notifications: a change is saved at once, undone if refused', async () => 
     };
     const { methods, computed, data } = createNotificationsModule(() => api);
     const toasts = [];
-    const context = { ...data(), ...methods, t: key => key, showToast: message => toasts.push(message) };
+    const context = { ...data(), ...methods, apiErrorText, t: key => key, showToast: message => toasts.push(message) };
     Object.defineProperty(context, 'emailUnavailable', { get: () => computed.emailUnavailable.call(context) });
 
     await context.loadNotifications();
@@ -1154,7 +1159,7 @@ test('config: status of the push service, the relay and the API key as shown', a
         fetchPushStatus: () => answer(),
     };
     const { methods, data } = createConfigModule(() => api);
-    const context = { ...data(), ...methods, t: key => key };
+    const context = { ...data(), ...methods, apiErrorText, t: key => key };
     await context.loadPushTab();
     assert.equal(context.pushInfo.url, 'https://api.carbure.org');
     assert.deepEqual(context.pushStatus.key, { state: 'none' });
@@ -1186,7 +1191,7 @@ test('rules: keep the existing categories, loaded, switched and reflected in the
     };
     const module = createRulesModule(() => api);
     const toasts = [];
-    const context = { ...module.data(), ...module.methods, t: (key, params) => (params ? `${key}:${params.count}` : key), showToast: message => toasts.push(message) };
+    const context = { ...module.data(), ...module.methods, apiErrorText, t: (key, params) => (params ? `${key}:${params.count}` : key), showToast: message => toasts.push(message) };
 
     await context.loadRules();
     assert.equal(context.keepCategorized, true);
@@ -1325,7 +1330,7 @@ test('a refused change of the MCP server shows its switch again as it was', asyn
     const api = { updateMcpSettings: async () => { throw new Error('Forbidden - Administrator only'); } };
     const module = createAgentsModule(() => api);
     const toasts = [];
-    const context = { ...module.data(), ...module.methods, t: key => key, showToast: message => toasts.push(message), mcpEnabled: false };
+    const context = { ...module.data(), ...module.methods, apiErrorText, t: key => key, showToast: message => toasts.push(message), mcpEnabled: false };
 
     // The browser already moved the switch: Vue would not move it back, the value being unchanged (#342)
     const input = { checked: true };

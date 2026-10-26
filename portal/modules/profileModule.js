@@ -299,7 +299,7 @@ export function createProfileModule(getApiService) {
                     this.showToast(this.t('migrationDone', { version: result.version }));
                     this.refreshCurrentTab();
                 } catch (error) {
-                    this.showToast(error.message);
+                    this.showToast(this.apiErrorText(error));
                 } finally {
                     this.migrating = false;
                 }
@@ -318,7 +318,7 @@ export function createProfileModule(getApiService) {
                     await getApiService().rotateJwtSecret();
                     this.logout();
                 } catch (error) {
-                    this.showToast(error.message);
+                    this.showToast(this.apiErrorText(error));
                 } finally {
                     this.rotatingSecret = false;
                 }
@@ -352,7 +352,7 @@ export function createProfileModule(getApiService) {
                     // Not saved: back to the previous choice
                     themes.apply(previous);
                     this.profileForm.theme = previous;
-                    this.showToast(error.message || this.t('errorSavingUser'));
+                    this.showToast(this.apiErrorText(error) || this.t('errorSavingUser'));
                 } finally {
                     this.savingTheme = false;
                 }
@@ -446,7 +446,7 @@ export function createProfileModule(getApiService) {
                 } catch (error) {
                     console.error('Error loading devices:', error);
                     this.devices = [];
-                    this.showToast(error.message);
+                    this.showToast(this.apiErrorText(error));
                 } finally {
                     this.loadingDevices = false;
                 }
@@ -498,7 +498,7 @@ export function createProfileModule(getApiService) {
                     this.newApiToken = await getApiService().createApiToken(name, this.apiTokenDays);
                     await this.loadApiTokens();
                 } catch (error) {
-                    this.showToast(error.message);
+                    this.showToast(this.apiErrorText(error));
                 }
             },
 
@@ -538,7 +538,7 @@ export function createProfileModule(getApiService) {
                     this.apiTokens = this.apiTokens.filter(t => t.id !== apiToken.id);
                     this.showToast(this.t('apiTokenRevoked'));
                 } catch (error) {
-                    this.showToast(error.message);
+                    this.showToast(this.apiErrorText(error));
                 }
             },
 
@@ -611,7 +611,7 @@ export function createProfileModule(getApiService) {
                 } catch (error) {
                     console.error('Error loading browsers:', error);
                     this.browsers = [];
-                    this.showToast(error.message);
+                    this.showToast(this.apiErrorText(error));
                 } finally {
                     this.loadingBrowsers = false;
                 }
@@ -654,7 +654,7 @@ export function createProfileModule(getApiService) {
                     this.devices = this.devices.filter(d => d.id !== device.id);
                     this.showToast(this.t('deviceDeleted'));
                 } catch (error) {
-                    this.showToast(error.message);
+                    this.showToast(this.apiErrorText(error));
                 }
             },
 
@@ -716,7 +716,7 @@ export function createProfileModule(getApiService) {
                     this.showToast(this.t('profileUpdated'));
                 } catch (error) {
                     console.error('Error saving profile:', error);
-                    this.showToast(error.message || this.t('errorSavingUser'));
+                    this.showToast(this.apiErrorText(error) || this.t('errorSavingUser'));
                 } finally {
                     this.savingProfile = false;
                 }

@@ -17,6 +17,7 @@
 
 namespace Carbure\Resources;
 
+use Carbure\Lib\ApiError;
 use Carbure\Lib\ApiRoute;
 use Carbure\Lib\Config;
 use Carbure\Lib\Db;
@@ -253,7 +254,7 @@ final class Settings {
         $user = Db::queryOne("SELECT email, language FROM users WHERE id = ?", "i", Jwt::getUserIdFromToken());
         $to = trim((string)($to ?: ($user['email'] ?? '')));
         if ($to === '') {
-            throw new Error("No recipient: add an email address to your profile", 400);
+            throw new ApiError("No recipient: add an email address to your profile", 400, 'smtp_no_recipient');
         }
 
         $recipient = Db::queryOne("SELECT language FROM users WHERE email = ?", "s", $to);
@@ -349,12 +350,12 @@ final class Settings {
     public static function testPush(): array
     {
         if (!PushRelay::isConfigured()) {
-            throw new Error("No API key of the push service: register the instance first", 400);
+            throw new ApiError("No API key of the push service: register the instance first", 400, 'push_no_api_key');
         }
         $userId = Jwt::getUserIdFromToken();
         $devices = Device::get($userId);
         if (!$devices) {
-            throw new Error("No device: log in to the mobile app with your account first", 400);
+            throw new ApiError("No device: log in to the mobile app with your account first", 400, 'push_no_device');
         }
 
         $language = (string)(Db::queryOne("SELECT language FROM users WHERE id = ?", "i", $userId)['language'] ?? '');
@@ -392,7 +393,7 @@ final class Settings {
             return;
         }
         if (!PushRelay::isConfigured() || Setting::get('push_consent_url') !== $url) {
-            throw new Error("The consent to the push service $url is required", 400);
+            throw new ApiError("The consent to the push service $url is required", 400, 'push_consent_required', ['url' => $url]);
         }
     }
 
@@ -478,14 +479,14 @@ final class Settings {
     {
         $rule = self::EDITABLE[$key] ?? null;
         if ($rule === null) {
-            throw new Error("The setting $key cannot be changed from the portal", 400);
+            throw new ApiError("The setting $key cannot be changed from the portal", 400, 'setting_not_editable', ['setting' => $key]);
         }
         if (is_array($value) || is_object($value)) {
-            throw new Error("Invalid value for $key", 400);
+            throw new ApiError("Invalid value for $key", 400, 'setting_value_invalid', ['setting' => $key]);
         }
         $value = trim((string)$value);
         if (!self::isValid($rule, $value)) {
-            throw new Error("Invalid value for $key", 400);
+            throw new ApiError("Invalid value for $key", 400, 'setting_value_invalid', ['setting' => $key]);
         }
         if ($rule['kind'] === 'bool') {
             return in_array($value, ['1', 'true'], true) ? 'true' : 'false';

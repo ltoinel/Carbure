@@ -18,7 +18,7 @@ built by the GitHub release workflow; committing/pushing is not deploying.
 |---|---|
 | `src/api.php` | HTTP entry (`/api/*`); without `conf/<env>.ini` serves only `/api/setup` |
 | `src/autoload.php` | Registers `ClassLoader` (PSR-4, on demand, no Composer), then `Config::load(getenv('APP_ENV') ?: 'prod')` |
-| `src/lib/` | Namespace `Carbure\Lib`: `ClassLoader`, `Config`, `Db` (mysqli), `Logger`, `Jwt`, `Webservice` (+ security headers), `ApiResolver`, `ApiRoute`, `Woob`, `PushRelay` (client of Carbure Push), `Mailer` (SMTP), `Messages` (fr/en texts of the notifications), `Setup`/`Installer`, `Migrator`, `Setting`, `SqlTables` (tables read by an insight query) |
+| `src/lib/` | Namespace `Carbure\Lib`: `ClassLoader`, `Config`, `Db` (mysqli), `Logger`, `Jwt`, `Webservice` (+ security headers), `ApiError` (error with a stable code), `ApiResolver`, `ApiRoute`, `Woob`, `PushRelay` (client of Carbure Push), `Mailer` (SMTP), `Messages` (fr/en texts of the notifications), `Setup`/`Installer`, `Migrator`, `Setting`, `SqlTables` (tables read by an insight query) |
 | `src/lib/import/` | Namespace `Carbure\Lib\Import`: statement import behind `BankFile::parse()`: `OfxReader`, `QifReader`, `CamtReader`, `CsvReader` (+ `CsvGeneric` fallback), `BankProfiles` (schema) |
 | `src/lib/import/banks/` | One CSV profile per bank (`<id>.php` returns an array, no class: loaded by path by `BankProfiles`); fixtures `tests/fixtures/import/`, snapshots `…/expected/` |
 | `src/resources/` | Namespace `Carbure\Resources`: `User`, `Bank`, `Transaction`, `Budget`, `Category`, `Insight`, `Device`, `Notification`, `ApiToken`, `Mcp`, `OAuth`, `System` |
@@ -86,7 +86,12 @@ git config core.hooksPath .githooks   # pre-commit lint, pre-push unit tests
 - Request params (JSON body + query string) are injected **by name** into method params:
   renaming one breaks the API; unknown param → 400.
 - Errors: `throw new Error(msg, 4xx)` (code = HTTP status); `Exception` = 500.
-  Response: `{"error","code","uid"}`.
+  Response: `{"error","code","uid"}`. An error a user meets in the portal is a
+  `new ApiError(msg, 4xx, 'stable_code', ['name' => $value])` (`Carbure\Lib\ApiError`,
+  still an `Error`): the response adds `error_code` (+ `params`), the English `error`
+  unchanged; add `apiErrors.<stable_code>` (`{name}` placeholders) to the 6
+  `portal/i18n/*.json` (`tests/portal/apiErrors.test.mjs`); the portal shows errors through
+  `this.apiErrorText(error)` (its translation, else its message).
 - SQL: prepared statements only (`Db::execute`, `Db::queryOne`).
 - Current user: `Jwt::getUserIdFromToken()`; headers: `Webservice::getHeader()`.
 - Admin actions: declare the route `admin: true` (`users.is_admin`); call

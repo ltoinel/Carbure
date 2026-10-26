@@ -15,6 +15,7 @@
 
 namespace Carbure\Resources;
 
+use Carbure\Lib\ApiError;
 use Carbure\Lib\ApiRoute;
 use Carbure\Lib\Db;
 use Carbure\Lib\Logger;
@@ -113,7 +114,7 @@ final class Insight {
     public static function update(int $id, string $name, string $color, string $sql, ?string $icon = null): array
     {
         if (!Db::queryOne("SELECT id FROM budget_insight WHERE id = ?", "i", $id)) {
-            throw new Error("Insight not found", 404);
+            throw new ApiError("Insight not found", 404, 'insight_not_found');
         }
         [$name, $color, $sql] = self::validate($name, $color, $sql);
         $icon = self::icon($icon);
@@ -131,7 +132,8 @@ final class Insight {
      * @param string          $sql   The query
      * @param int|string|null $month The month (current month by default)
      * @param int|string|null $year  The year (current year by default)
-     * @return array{valid: bool, amount?: float|null, error?: string|null} valid, amount (if valid), error (if not)
+     * @return array{valid: bool, amount?: float|null, error?: string, error_code?: string, params?: array<string, string|int|float>}
+     *         valid, amount (if valid), error with its code and values (if not)
      */
     #[ApiRoute('/insight/check', method: 'POST', admin: true, changes: [])]
     public static function check(string $sql, int|string|null $month = null, int|string|null $year = null): array
@@ -142,8 +144,21 @@ final class Insight {
             return ['valid' => true, 'amount' => $amount];
         } catch (Throwable $e) {
             // MariaDB messages end with the place of the error: keep them readable
-            return ['valid' => false, 'error' => preg_replace('/^Database query failed: /', '', $e->getMessage())];
+            return ['valid' => false, 'error' => self::cause($e)]
+                + ($e instanceof ApiError ? ApiError::fields($e) : ['error_code' => 'insight_query_failed', 'params' => ['cause' => self::cause($e)]]);
         }
+    }
+
+    /**
+     * The message of an error of a query, without the prefix of Db (MariaDB messages end
+     * with the place of the error: kept readable).
+     *
+     * @param Throwable $error The error
+     * @return string The message
+     */
+    private static function cause(Throwable $error): string
+    {
+        return (string)preg_replace('/^Database query failed: /', '', $error->getMessage());
     }
 
     /**
@@ -159,7 +174,7 @@ final class Insight {
             return null;
         }
         if (!preg_match('/^[a-z0-9_]{1,50}$/', $icon)) {
-            throw new Error("Invalid icon", 400);
+            throw new ApiError("Invalid icon", 400, 'insight_icon_invalid');
         }
         return $icon;
     }
@@ -176,7 +191,7 @@ final class Insight {
     {
         $stmt = Db::execute("DELETE FROM budget_insight WHERE id = ?", "i", $id);
         if ($stmt->affected_rows === 0) {
-            throw new Error("Insight not found", 404);
+            throw new ApiError("Insight not found", 404, 'insight_not_found');
         }
         return true;
     }
@@ -213,10 +228,10 @@ final class Insight {
     {
         $name = trim($name);
         if ($name === '' || mb_strlen($name) > 20) {
-            throw new Error("The name must contain 1 to 20 characters", 400);
+            throw new ApiError("The name must contain 1 to 20 characters", 400, 'insight_name_length');
         }
         if (!in_array($color, self::COLORS, true)) {
-            throw new Error("Invalid color", 400);
+            throw new ApiError("Invalid color", 400, 'insight_color_invalid');
         }
 
         return [$name, $color, self::validateQuery($sql)];
@@ -234,22 +249,23 @@ final class Insight {
     {
         $sql = rtrim(trim($sql), "; \t\r\n");
         if ($sql === '' || mb_strlen($sql) > 500) {
-            throw new Error("The query must contain 1 to 500 characters", 400);
+            throw new ApiError("The query must contain 1 to 500 characters", 400, 'insight_query_length');
         }
         if (!preg_match('/^SELECT\s/i', $sql)) {
-            throw new Error("The query must be a SELECT", 400);
+            throw new ApiError("The query must be a SELECT", 400, 'insight_query_not_select');
         }
         // One statement, no comment (they could hide a part of the query), no backslash
         // (the end of a quoted text would depend on the SQL mode of the server)
         if (preg_match('/;|--|#|\/\*|\*\/|\\\\/', $sql)) {
-            throw new Error("The query must be a single statement without comments nor backslashes", 400);
+            throw new ApiError("The query must be a single statement without comments nor backslashes", 400, 'insight_query_single_statement');
         }
         if (preg_match('/\b(' . self::FORBIDDEN_WORDS . ')\b/i', $sql, $match)) {
-            throw new Error("Forbidden keyword in the query: " . strtoupper($match[1]), 400);
+            throw new ApiError("Forbidden keyword in the query: " . strtoupper($match[1]), 400, 'insight_query_forbidden_keyword',
+                ['keyword' => strtoupper($match[1])]);
         }
         self::validateTables($sql);
         if (!preg_match('/\bAS\s+`?amount`?\b/i', $sql)) {
-            throw new Error("The query must return a column named amount (… AS amount)", 400);
+            throw new ApiError("The query must return a column named amount (… AS amount)", 400, 'insight_query_no_amount');
         }
 
         return $sql;
@@ -266,11 +282,13 @@ final class Insight {
     private static function validateTables(string $sql): void
     {
         if (preg_match('/\b(' . implode('|', self::REFUSED_TABLES) . ')\b/i', $sql, $match)) {
-            throw new Error("The query cannot read " . $match[1], 400);
+            throw new ApiError("The query cannot read " . $match[1], 400, 'insight_query_table_refused', ['table' => $match[1]]);
         }
         foreach (SqlTables::references($sql) as $table) {
             if (!in_array(strtolower($table), [...self::READABLE_TABLES, 'dual'], true)) {
-                throw new Error("The query cannot read $table (readable tables: " . implode(', ', self::READABLE_TABLES) . ")", 400);
+                $readable = implode(', ', self::READABLE_TABLES);
+                throw new ApiError("The query cannot read $table (readable tables: $readable)", 400, 'insight_query_table_unreadable',
+                    ['table' => $table, 'tables' => $readable]);
             }
         }
     }
@@ -287,7 +305,10 @@ final class Insight {
         try {
             return self::run($sql, ...Month::resolve());
         } catch (Throwable $e) {
-            throw new Error("Invalid query: " . $e->getMessage(), 400);
+            // An error of Carbure keeps its code; a refusal of the database gives its cause
+            throw $e instanceof ApiError
+                ? new ApiError("Invalid query: " . $e->getMessage(), 400, $e->getErrorCode(), $e->getParams())
+                : new ApiError("Invalid query: " . $e->getMessage(), 400, 'insight_query_failed', ['cause' => self::cause($e)]);
         }
     }
 
@@ -309,7 +330,8 @@ final class Insight {
             $row = Db::select(self::bounded($sql))->fetch_assoc();
         } catch (Throwable $e) {
             if (in_array(Db::getConnection()->errno, self::TIMEOUT_ERRORS, true)) {
-                throw new Error("The query takes more than " . self::$maxSeconds . " seconds", 400);
+                throw new ApiError("The query takes more than " . self::$maxSeconds . " seconds", 400, 'insight_query_timeout',
+                    ['seconds' => (string)self::$maxSeconds]);
             }
             throw $e;
         } finally {
@@ -317,7 +339,7 @@ final class Insight {
         }
 
         if (!is_array($row) || !array_key_exists('amount', $row)) {
-            throw new Error("The query must return a column named amount", 400);
+            throw new ApiError("The query must return a column named amount", 400, 'insight_query_no_amount');
         }
         return $row['amount'] === null ? null : round((float)$row['amount'], 2);
     }

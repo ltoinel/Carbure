@@ -154,7 +154,7 @@ export function createNotificationsModule(getApiService) {
                     this.readAlertSettings();
                 } catch (error) {
                     this.notifications = null;
-                    this.showToast(error.message);
+                    this.showToast(this.apiErrorText(error));
                 } finally {
                     this.loadingNotifications = false;
                 }
@@ -244,7 +244,7 @@ export function createNotificationsModule(getApiService) {
                     this.showToast(this.t('notificationsSaved'));
                 } catch (error) {
                     this.notifications.preferences[kind][channel] = previous;
-                    this.showToast(error.message);
+                    this.showToast(this.apiErrorText(error));
                 } finally {
                     this.savingNotification = null;
                 }
@@ -266,7 +266,7 @@ export function createNotificationsModule(getApiService) {
                     this.budgetThreshold = this.notifications.budget_threshold ?? Number(this.budgetThreshold);
                     this.showToast(this.t('notificationsSaved'));
                 } catch (error) {
-                    this.showToast(error.message);
+                    this.showToast(this.apiErrorText(error));
                 } finally {
                     this.savingBudgetThreshold = false;
                 }
@@ -288,7 +288,7 @@ export function createNotificationsModule(getApiService) {
                     this.readAlertSettings();
                     this.showToast(this.t('notificationsSaved'));
                 } catch (error) {
-                    this.showToast(error.message);
+                    this.showToast(this.apiErrorText(error));
                 } finally {
                     this.savingAlertThreshold = false;
                 }
@@ -305,7 +305,7 @@ export function createNotificationsModule(getApiService) {
                     this.notifications = await getApiService().updateBudgetAlerts(settings);
                     this.showToast(this.t('notificationsSaved'));
                 } catch (error) {
-                    this.showToast(error.message);
+                    this.showToast(this.apiErrorText(error));
                 } finally {
                     this.readAlertSettings();
                     this.savingBudgetRules = false;

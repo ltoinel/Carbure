@@ -54,7 +54,8 @@ test('refuses a rule already existing, with a message readable above the modal',
     await modal.getByRole('button', { name: tr('save') }).click();
 
     const toast = page.locator('.toast');
-    await expect(toast).toHaveText('This keyword already exists');
+    // In the language of the portal (French), not the English message of the API (#366)
+    await expect(toast).toHaveText(tr('apiErrors.keyword_exists'));
     await expect(modal).toBeVisible();
     // In front of the modal and its blurred background (#364), not only in the page
     const inFront = await toast.evaluate(element => {
@@ -141,6 +142,7 @@ test('a refused change of the switch shows it again as it was', async ({ adminPa
     await expect(toggle).not.toBeChecked();
 
     await page.locator('.rules-switch-row label.toggle-switch').click();
+    // An answer without error_code (older server): its English message, as is (#366)
     await expect(page.locator('.toast')).toHaveText('Forbidden - Administrator only');
     // Back to its position, not left where it was clicked (#342)
     await expect(toggle).not.toBeChecked();

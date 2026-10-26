@@ -1,5 +1,6 @@
 <?php
 
+use Carbure\Lib\ApiError;
 use Carbure\Lib\Config;
 use Carbure\Lib\Logger;
 use Carbure\Lib\Webservice;
@@ -32,6 +33,45 @@ class WebserviceTest extends TestCase
         $this->assertSame("Route not found", $output['error']);
         $this->assertSame(404, $output['code']);
         $this->assertSame(Logger::getUID(), $output['uid']);
+        // A plain error: no stable code, the format of the older versions
+        $this->assertSame(['error', 'code', 'uid'], array_keys($output));
+    }
+
+    public function testErrorOutputsTheStableCodeAndTheValuesOfAnApiError()
+    {
+        ob_start();
+        Webservice::error(423, new ApiError("Account locked after too many failed logins, until 2026-10-26 18:30:00: ask an administrator to unlock it",
+            423, 'account_locked_until', ['until' => '2026-10-26 18:30:00']));
+        $output = json_decode(ob_get_clean(), true);
+
+        // Fields added: the message and the HTTP status stay as before
+        $this->assertSame([
+            'error' => "Account locked after too many failed logins, until 2026-10-26 18:30:00: ask an administrator to unlock it",
+            'code' => 423,
+            'uid' => Logger::getUID(),
+            'error_code' => 'account_locked_until',
+            'params' => ['until' => '2026-10-26 18:30:00'],
+        ], $output);
+
+        // Without values: no params
+        ob_start();
+        Webservice::error(409, new ApiError("This keyword already exists", 409, 'keyword_exists'));
+        $output = json_decode(ob_get_clean(), true);
+        $this->assertSame(['This keyword already exists', 409, 'keyword_exists'], [$output['error'], $output['code'], $output['error_code']]);
+        $this->assertArrayNotHasKey('params', $output);
+    }
+
+    public function testAnApiErrorIsAnErrorWithItsHttpStatus()
+    {
+        try {
+            throw new ApiError("This keyword already exists", 409, 'keyword_exists');
+        } catch (Error $e) {
+            // Still an Error: caught like the others, its code is the HTTP status
+            $this->assertSame(409, $e->getCode());
+            $this->assertSame(['error_code' => 'keyword_exists'], ApiError::fields($e));
+        }
+        $this->assertSame([], ApiError::fields(new Error("Route not found", 404)));
+        $this->assertSame([], ApiError::fields(new Exception("Database down")));
     }
 
     public function testTheLoggedTraceHasNoArgument()

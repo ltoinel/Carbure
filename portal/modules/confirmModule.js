@@ -67,7 +67,7 @@ export function createConfirmModule() {
                     await dialog.action();
                     this.closeConfirm(true);
                 } catch (error) {
-                    this.confirmDialog = { ...this.confirmDialog, busy: false, error: error.message || String(error) };
+                    this.confirmDialog = { ...this.confirmDialog, busy: false, error: this.apiErrorText(error) || String(error) };
                 }
             },
 

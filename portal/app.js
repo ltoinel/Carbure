@@ -284,6 +284,16 @@ const app = createApp({
         },
 
         /**
+         * Text of an error to show: the translation of the code of an API error, its
+         * message otherwise (see apiErrorText() in i18n.js)
+         * @param {Error|null} error - Error
+         * @returns {string}
+         */
+        apiErrorText(error) {
+            return apiErrorText(error);
+        },
+
+        /**
          * Changes the application locale
          * @param {string} newLocale - New locale code (one of LOCALES, i18n.js)
          */
@@ -339,7 +349,7 @@ const app = createApp({
                     this.ensureCategories();
                 }
             } catch (err) {
-                this.showToast(err.message);
+                this.showToast(this.apiErrorText(err));
             } finally {
                 if (request === this.flowRequest) {
                     this.loadingFlowTransactions = false;

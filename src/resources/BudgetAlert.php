@@ -30,6 +30,7 @@
 
 namespace Carbure\Resources;
 
+use Carbure\Lib\ApiError;
 use Carbure\Lib\Db;
 use Carbure\Lib\Logger;
 use Carbure\Lib\Messages;
@@ -206,7 +207,7 @@ final class BudgetAlert {
         $id = filter_var($category, FILTER_VALIDATE_INT);
         $row = $id === false ? null : Db::queryOne("SELECT type FROM bank_transaction_category WHERE id = ?", "i", $id);
         if ($row === null || $row['type'] !== 'DEBIT') {
-            throw new Error("The budget watched must be an expense category (or 0 for all the budgets)", 400);
+            throw new ApiError("The budget watched must be an expense category (or 0 for all the budgets)", 400, 'budget_alert_category_invalid');
         }
         return $id;
     }
@@ -293,13 +294,14 @@ final class BudgetAlert {
     public static function thresholdsValue(array $thresholds): array
     {
         if (count($thresholds) > self::MAX_CATEGORY_THRESHOLDS) {
-            throw new Error("At most " . self::MAX_CATEGORY_THRESHOLDS . " budget alert thresholds of categories", 400);
+            throw new ApiError("At most " . self::MAX_CATEGORY_THRESHOLDS . " budget alert thresholds of categories", 400,
+                'budget_alert_threshold_limit', ['max' => self::MAX_CATEGORY_THRESHOLDS]);
         }
         $values = [];
         foreach ($thresholds as $item) {
             [$id, $threshold] = self::thresholdItem($item);
             if (isset($values[$id])) {
-                throw new Error("A category has two budget alert thresholds", 400);
+                throw new ApiError("A category has two budget alert thresholds", 400, 'budget_alert_duplicate_category');
             }
             $values[$id] = $threshold;
         }
@@ -322,7 +324,7 @@ final class BudgetAlert {
         }
         $id = self::categoryValue($category);
         if ($id === null) {
-            throw new Error("The budget alert threshold of a category needs an expense category", 400);
+            throw new ApiError("The budget alert threshold of a category needs an expense category", 400, 'budget_alert_category_not_expense');
         }
         return [$id, self::thresholdValue($threshold)];
     }
@@ -475,8 +477,9 @@ final class BudgetAlert {
     {
         $value = filter_var($threshold, FILTER_VALIDATE_INT);
         if ($value === false || $value < self::MIN_THRESHOLD || $value > self::MAX_THRESHOLD) {
-            throw new Error("The budget alert threshold must be an integer between "
-                . self::MIN_THRESHOLD . " and " . self::MAX_THRESHOLD . " (percent)", 400);
+            throw new ApiError("The budget alert threshold must be an integer between "
+                . self::MIN_THRESHOLD . " and " . self::MAX_THRESHOLD . " (percent)", 400, 'budget_alert_threshold_invalid',
+                ['min' => self::MIN_THRESHOLD, 'max' => self::MAX_THRESHOLD]);
         }
         return $value;
     }

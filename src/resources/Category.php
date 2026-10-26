@@ -9,6 +9,7 @@
 
 namespace Carbure\Resources;
 
+use Carbure\Lib\ApiError;
 use Carbure\Lib\ApiRoute;
 use Carbure\Lib\Db;
 use Carbure\Lib\Setting;
@@ -73,18 +74,18 @@ final class Category {
         $name = trim($name);
         $parent = (int)$parent;
         if ($name === '' || mb_strlen($name) > 50) {
-            throw new Error("The name must contain 1 to 50 characters", 400);
+            throw new ApiError("The name must contain 1 to 50 characters", 400, 'category_name_length');
         }
         if (!in_array($type, self::TYPES, true)) {
-            throw new Error("Invalid category type", 400);
+            throw new ApiError("Invalid category type", 400, 'category_type_invalid');
         }
         if (!preg_match(self::ICON_PATTERN, (string)$icon) || !preg_match(self::COLOR_PATTERN, (string)$color)) {
-            throw new Error("Invalid icon or color", 400);
+            throw new ApiError("Invalid icon or color", 400, 'category_style_invalid');
         }
 
         $duplicate = Db::queryOne("SELECT id FROM bank_transaction_category WHERE name = ? AND id <> ?", "si", $name, $id ?? -1);
         if ($duplicate) {
-            throw new Error("A category with this name already exists", 409);
+            throw new ApiError("A category with this name already exists", 409, 'category_exists');
         }
 
         if ($parent !== 0) {
@@ -107,10 +108,10 @@ final class Category {
     {
         $row = Db::queryOne("SELECT parent_category FROM bank_transaction_category WHERE id = ?", "i", $parent);
         if (!$row || (int)$row['parent_category'] !== 0 || $parent === (int)$id) {
-            throw new Error("The parent must be a top-level category", 400);
+            throw new ApiError("The parent must be a top-level category", 400, 'category_parent_invalid');
         }
         if ($id !== null && Db::queryOne("SELECT id FROM bank_transaction_category WHERE parent_category = ? AND id <> ? LIMIT 1", "ii", $id, $id)) {
-            throw new Error("A category with sub-categories cannot become a sub-category", 400);
+            throw new ApiError("A category with sub-categories cannot become a sub-category", 400, 'category_cannot_be_subcategory');
         }
     }
 
@@ -173,7 +174,7 @@ final class Category {
     {
         self::existing($id);
         if (Db::queryOne("SELECT id FROM bank_transaction_category WHERE parent_category = ? AND id <> ? LIMIT 1", "ii", $id, $id)) {
-            throw new Error("Delete or move its sub-categories first", 409);
+            throw new ApiError("Delete or move its sub-categories first", 409, 'category_has_subcategories');
         }
 
         Db::execute("UPDATE bank_transaction SET category = 0 WHERE category = ?", "i", $id);
@@ -193,10 +194,10 @@ final class Category {
     private static function existing(int $id): void
     {
         if ($id === 0) {
-            throw new Error("The default category cannot be modified", 400);
+            throw new ApiError("The default category cannot be modified", 400, 'category_default_readonly');
         }
         if (!Db::queryOne("SELECT id FROM bank_transaction_category WHERE id = ?", "i", $id)) {
-            throw new Error("Category not found", 404);
+            throw new ApiError("Category not found", 404, 'category_not_found');
         }
     }
 
@@ -230,15 +231,15 @@ final class Category {
         // Labels are stored in upper case
         $keyword = strtoupper(trim($keyword));
         if ($keyword === '' || strlen($keyword) > 60) {
-            throw new Error("The keyword must contain 1 to 60 characters", 400);
+            throw new ApiError("The keyword must contain 1 to 60 characters", 400, 'keyword_length');
         }
 
         if (!Db::queryOne("SELECT id FROM bank_transaction_category WHERE id=?", "i", $category)) {
-            throw new Error("Category not found", 404);
+            throw new ApiError("Category not found", 404, 'category_not_found');
         }
 
         if (Db::queryOne("SELECT id FROM bank_transaction_category_keyword WHERE keyword=?", "s", $keyword)) {
-            throw new Error("This keyword already exists", 409);
+            throw new ApiError("This keyword already exists", 409, 'keyword_exists');
         }
 
         $notify = filter_var($notify, FILTER_VALIDATE_BOOLEAN) ? 1 : 0;
@@ -267,17 +268,17 @@ final class Category {
     public static function updateKeyword(int $id, string $keyword, int $category, bool|int|string|null $notify = false): array
     {
         if (!Db::queryOne("SELECT id FROM bank_transaction_category_keyword WHERE id=?", "i", $id)) {
-            throw new Error("Rule not found", 404);
+            throw new ApiError("Rule not found", 404, 'rule_not_found');
         }
         $keyword = strtoupper(trim($keyword));
         if ($keyword === '' || strlen($keyword) > 60) {
-            throw new Error("The keyword must contain 1 to 60 characters", 400);
+            throw new ApiError("The keyword must contain 1 to 60 characters", 400, 'keyword_length');
         }
         if (!Db::queryOne("SELECT id FROM bank_transaction_category WHERE id=?", "i", $category)) {
-            throw new Error("Category not found", 404);
+            throw new ApiError("Category not found", 404, 'category_not_found');
         }
         if (Db::queryOne("SELECT id FROM bank_transaction_category_keyword WHERE keyword=? AND id<>?", "si", $keyword, $id)) {
-            throw new Error("This keyword already exists", 409);
+            throw new ApiError("This keyword already exists", 409, 'keyword_exists');
         }
         $notify = filter_var($notify, FILTER_VALIDATE_BOOLEAN) ? 1 : 0;
         Db::execute("UPDATE bank_transaction_category_keyword SET keyword=?, category=?, notify=? WHERE id=?", "siii", $keyword, $category, $notify, $id);
@@ -299,7 +300,7 @@ final class Category {
     {
         $rule = Db::queryOne("SELECT keyword, category FROM bank_transaction_category_keyword WHERE id=?", "i", $id);
         if (!$rule) {
-            throw new Error("Rule not found", 404);
+            throw new ApiError("Rule not found", 404, 'rule_not_found');
         }
         $pattern = '%' . addcslashes($rule['keyword'], '%_\\') . '%';
         $row = Db::queryOne("SELECT COUNT(*) AS matching, SUM(category = ?) AS categorized FROM bank_transaction WHERE label LIKE ?",
@@ -320,7 +321,7 @@ final class Category {
         $stmt = Db::execute("DELETE FROM bank_transaction_category_keyword WHERE id=?", "i", $id);
 
         if ($stmt->affected_rows === 0) {
-            throw new Error("Rule not found", 404);
+            throw new ApiError("Rule not found", 404, 'rule_not_found');
         }
 
         return true;

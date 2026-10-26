@@ -1,5 +1,6 @@
 <?php
 
+use Carbure\Lib\ApiError;
 use Carbure\Lib\Db;
 use Carbure\Lib\Jwt;
 use Carbure\Resources\Device;
@@ -39,8 +40,12 @@ class UserTest extends DatabaseTestCase
         try {
             User::login('user', 'userpass');
             $this->fail('Logged in while locked');
-        } catch (Error $e) {
+        } catch (ApiError $e) {
             $this->assertSame(423, $e->getCode());
+            // The date of the end of the lock, for the translation of the portal
+            $this->assertSame('account_locked_until', $e->getErrorCode());
+            $this->assertMatchesRegularExpression('/^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d$/', $e->getParams()['until']);
+            $this->assertStringContainsString('until ' . $e->getParams()['until'], $e->getMessage());
         }
         $this->loginAs(self::ADMIN);
         $this->assertNotNull(array_column(User::get(), 'locked_until', 'username')['user']);

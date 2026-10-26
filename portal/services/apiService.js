@@ -10,6 +10,33 @@
 import { parseChangesHeader } from '../modules/changesModule.js';
 
 /**
+ * Error of a failed request: the message of the API ({"error": "…"}, in English), with
+ * its stable code and values ({"error_code", "params"}, translated by apiErrorText() of
+ * i18n.js) and the HTTP status; the default message when the body is not an error of the
+ * API (proxy page, empty body)
+ * @param {number} status - HTTP status
+ * @param {string} text - Body of the answer
+ * @param {string} fallback - Message when the body has none
+ * @returns {Error} The error, with status, and code and params when the API gives a code
+ */
+export function responseError(status, text, fallback) {
+    let body = null;
+    try {
+        body = JSON.parse(text);
+    } catch (e) {
+        // Not JSON: the default message
+    }
+    const valid = body !== null && typeof body === 'object';
+    const error = new Error(valid && typeof body.error === 'string' && body.error ? body.error : fallback);
+    error.status = status;
+    if (valid && typeof body.error_code === 'string') {
+        error.code = body.error_code;
+        error.params = body.params && typeof body.params === 'object' ? body.params : {};
+    }
+    return error;
+}
+
+/**
  * Creates an API service instance
  * @param {string} baseUrl - Base URL for API endpoints
  * @param {string} authToken - JWT authentication token
@@ -132,13 +159,7 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
         const text = await response.text();
 
         if (!response.ok) {
-            let message = `${errorLabel} (${response.status})`;
-            try {
-                message = JSON.parse(text).error || message;
-            } catch (e) {
-                // Keep default error message
-            }
-            throw new Error(message);
+            throw responseError(response.status, text, `${errorLabel} (${response.status})`);
         }
 
         return text ? JSON.parse(text) : null;
@@ -748,13 +769,7 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
     async function discoverBankAccountsInteractive(backend, onMessage, signal = null) {
         const response = await authFetch(`${baseUrl}/bank/discover/interactive?backend=${encodeURIComponent(backend)}`, { headers: getHeaders(), signal });
         if (!response.ok || !response.body) {
-            let message = `Failed to query woob (${response.status})`;
-            try {
-                message = JSON.parse(await response.text()).error || message;
-            } catch (e) {
-                // Keep default error message
-            }
-            throw new Error(message);
+            throw responseError(response.status, await response.text().catch(() => ''), `Failed to query woob (${response.status})`);
         }
 
         let accounts = null;
@@ -796,13 +811,7 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
         const response = await authFetch(`${baseUrl}/bank/sync${query}`, { headers: getHeaders() });
 
         if (!response.ok || !response.body) {
-            let message = `Failed to start the synchronization (${response.status})`;
-            try {
-                message = JSON.parse(await response.text()).error || message;
-            } catch (e) {
-                // Keep default error message
-            }
-            throw new Error(message);
+            throw responseError(response.status, await response.text().catch(() => ''), `Failed to start the synchronization (${response.status})`);
         }
 
         await readEvents(response, onMessage);
@@ -829,13 +838,7 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
         const query = fingerprint ? `?fingerprint=${encodeURIComponent(fingerprint)}` : '';
         const response = await authFetch(`${baseUrl}/bank/woob/update${query}`, { headers: getHeaders() });
         if (!response.ok || !response.body) {
-            let message = `Failed to update woob (${response.status})`;
-            try {
-                message = JSON.parse(await response.text()).error || message;
-            } catch (e) {
-                // Keep default error message
-            }
-            throw new Error(message);
+            throw responseError(response.status, await response.text().catch(() => ''), `Failed to update woob (${response.status})`);
         }
         await readEvents(response, onMessage);
     }

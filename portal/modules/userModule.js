@@ -51,7 +51,7 @@ export function createUserModule(getApiService) {
                     this.users = await apiService.fetchUsers();
                 } catch (error) {
                     console.error('Error loading users:', error);
-                    this.userError = error.message;
+                    this.userError = this.apiErrorText(error);
                     this.error = this.t('errorLoadingUsers');
                 } finally {
                     this.loadingUsers = false;
@@ -190,7 +190,7 @@ export function createUserModule(getApiService) {
                     this.closeUserModal();
                 } catch (error) {
                     console.error('Error submitting user form:', error);
-                    this.showToast(error.message || (this.t('errorSavingUser')));
+                    this.showToast(this.apiErrorText(error) || (this.t('errorSavingUser')));
                 }
             },
 
@@ -214,7 +214,7 @@ export function createUserModule(getApiService) {
                     this.showToast(this.t('userUnlocked', { username: user.username }));
                     await this.loadUsers();
                 } catch (error) {
-                    this.showToast(error.message);
+                    this.showToast(this.apiErrorText(error));
                 }
             },
 
@@ -241,7 +241,7 @@ export function createUserModule(getApiService) {
                     await this.loadUsers(); // Reload user list
                 } catch (error) {
                     console.error('Error deleting user:', error);
-                    this.showToast(error.message || (this.t('errorDeletingUser')));
+                    this.showToast(this.apiErrorText(error) || (this.t('errorDeletingUser')));
                 }
             }
         }
