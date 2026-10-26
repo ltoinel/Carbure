@@ -175,3 +175,4 @@ These settings, changed from the portal, are stored in the `settings` table (`na
 | `APP_ENV` | Name of the configuration file (`prod` by default) |
 | `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `LANGUAGE`, `CARBURE_WOOB_PATH` | Values suggested by the setup wizard (Docker); the password from the environment is only used for this database |
 | `SYNC_INTERVAL` | Docker: interval of the automatic sync, in seconds |
+| `TRUSTED_PROXIES` | Docker: trusted reverse proxies for the client's address (`X-Forwarded-For`), see [Login rate limit](securite.md#limitation-des-connexions) |

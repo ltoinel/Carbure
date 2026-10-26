@@ -119,6 +119,7 @@
     "unlockUser": "Desbloquear",
     "userUnlocked": "Cuenta de {username} desbloqueada",
     "accountLocked": "Cuenta bloqueada durante 24 horas tras 5 intentos de inicio de sesión fallidos. Un administrador puede desbloquearla.",
+    "tooManyLogins": "Demasiados intentos de inicio de sesión desde esta dirección: vuelva a intentarlo dentro de un minuto.",
     "invalidCredentials": "Usuario o contraseña incorrectos",
     "apiTokenLifetime": "Validez",
     "apiTokenDays": "{days} días",

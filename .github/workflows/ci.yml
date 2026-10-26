@@ -324,6 +324,39 @@ jobs:
           docker compose -f docker/docker-compose.yml exec -T carbure woob --version
           docker compose -f docker/docker-compose.yml exec -T carbure /opt/woob/bin/python -c 'import curl_cffi'
 
+      # Rate limit of the logins (nginx, 30 per minute per client, burst of 10): the client
+      # is the one given by the trusted proxy (here the Docker gateway, a private address)
+      # in X-Forwarded-For, so the clients of these tests have their own documentation
+      # addresses and the other steps (another address) are never limited
+      - name: Rate limit of the logins
+        run: |
+          set -e
+          login() {
+            curl -s -o /dev/null -w '%{http_code}\n' -X POST "http://localhost:8080/api/$1" \
+              -H "X-Forwarded-For: $2" -H 'Content-Type: application/json' -d "$3"
+          }
+          codes=$(for i in $(seq 1 31); do login user/login 203.0.113.50 '{"username":"nobody","password":"wrong"}'; done)
+          echo "$codes" | sort | uniq -c
+          # The first ones reach the API (wrong password), the 31st is refused by nginx
+          test "$(echo "$codes" | head -1)" = 401
+          test "$(echo "$codes" | tail -1)" = 429
+          # In the format of the errors of the API, with Retry-After
+          curl -s -i -X POST http://localhost:8080/api/user/login -H 'X-Forwarded-For: 203.0.113.50' \
+            -H 'Content-Type: application/json' -d '{}' | tee /dev/stderr > response.txt
+          grep -qi '^retry-after: 60' response.txt
+          grep -q '"code":429' response.txt
+          # The second factor and the OAuth tokens share the limit, the rest of the API not
+          test "$(login user/login/mfa 203.0.113.50 '{"mfa_token":"x","code":"000000"}')" = 429
+          test "$(login oauth/token 203.0.113.50 'grant_type=authorization_code')" = 429
+          test "$(curl -s -o /dev/null -w '%{http_code}' -H 'X-Forwarded-For: 203.0.113.50' http://localhost:8080/api/health)" = 200
+          # Another client (another address behind the proxy) still logs in
+          test "$(login user/login 203.0.113.51 '{"username":"admin","password":"ci-admin-password"}')" = 200
+          # An address written by the client before the proxy's is ignored: the proxy's
+          # last untrusted address is the client, here still 203.0.113.50
+          test "$(login user/login '198.51.100.7, 203.0.113.50' '{"username":"nobody","password":"wrong"}')" = 429
+          # The access log shows the address of the client, not the one of the proxy
+          docker compose -f docker/docker-compose.yml logs carbure | grep -q '203\.0\.113\.50 - - .*"POST /api/user/login HTTP/1.1" 429'
+
       # Demo image (docker/demo/Dockerfile) on top of the image just built: MariaDB and the
       # demonstration data inside, the public account printed in the logs; run with its
       # hardened compose file (read-only, tmpfs, minimal capabilities)
