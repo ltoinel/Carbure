@@ -38,13 +38,13 @@ insights, notifications, agent IA et foyer.*
 
 ![Flux du mois : des revenus aux dépenses, à l'épargne et au reste](assets/screenshot-flow.png)
 
-![Transactions du mois dans l'app iPhone](assets/mobile/ios-transactions.png){ loading=lazy }
-![Budgets du mois dans l'app Android](assets/mobile/android-budgets.png){ loading=lazy }
-![Aperçus du mois dans l'app iPhone](assets/mobile/ios-apercus.png){ loading=lazy }
-{ .mobile-screens }
+<a class="teaser" href="https://www.youtube.com/watch?v=YqSUd7L9fPg" data-youtube="YqSUd7L9fPg" title="Carbure sur iPhone et Android : votre budget, dans votre poche (YouTube)">
+  <img src="assets/mobile-apps-youtube.jpg" alt="Lire la vidéo « Carbure sur iPhone et Android : votre budget, dans votre poche » (YouTube)" width="1280" height="720" loading="lazy">
+  <span class="teaser__play" aria-hidden="true"></span>
+</a>
 
-*Les [applications iPhone et Android](applications-mobiles.md) : transactions, budgets et
-aperçus du mois.*
+*Les [applications iPhone et Android](applications-mobiles.md) : votre budget, dans votre
+poche. Transactions, budgets, aperçus et notifications du mois.*
 
 ## Fonctionnalités
 

@@ -92,6 +92,10 @@ Face ID ou empreinte et notifications push. Gratuites, sans publicité ni collec
 disponibles en France pour le moment ([détails](https://carbure.org/applications-mobiles/)).
 
 <p align="center">
+  <a href="https://www.youtube.com/watch?v=YqSUd7L9fPg"><img src="docs/assets/mobile-apps-youtube-play.jpg" alt="Voir la vidéo « Carbure sur iPhone et Android : votre budget, dans votre poche » sur YouTube" width="100%"></a>
+</p>
+
+<p align="center">
   <img src="docs/assets/mobile/ios-transactions.png" alt="Transactions du mois dans l'app iPhone" width="220">
   <img src="docs/assets/mobile/android-budgets.png" alt="Budgets du mois dans l'app Android" width="220">
 </p>
