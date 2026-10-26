@@ -131,3 +131,18 @@ test('keeps the existing categories: the rules only categorize the uncategorized
     await openTab(page, tr('tabRules'));
     await expect(page.getByRole('switch', { name: tr('rulesKeepCategorized') })).toBeChecked();
 });
+
+test('a refused change of the switch shows it again as it was', async ({ adminPage: page }) => {
+    await page.route('**/api/category/keyword/settings', route => (route.request().method() === 'PUT'
+        ? route.fulfill({ status: 403, json: { error: 'Forbidden - Administrator only' } })
+        : route.continue()));
+    await openTab(page, tr('tabRules'));
+    const toggle = page.getByRole('switch', { name: tr('rulesKeepCategorized') });
+    await expect(toggle).not.toBeChecked();
+
+    await page.locator('.rules-switch-row label.toggle-switch').click();
+    await expect(page.locator('.toast')).toHaveText('Forbidden - Administrator only');
+    // Back to its position, not left where it was clicked (#342)
+    await expect(toggle).not.toBeChecked();
+    await expect(page.getByText(tr('rulesKeepCategorizedOffHelp'))).toBeVisible();
+});

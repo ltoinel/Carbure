@@ -191,9 +191,10 @@ export function createRulesModule(getApiService) {
 
             /**
              * Lets the rules recategorize the categorized transactions of the history or not
+             * @param {Event} [event] - Change of the switch: shown again as saved when refused
              * @returns {Promise<void>}
              */
-            async toggleKeepCategorized() {
+            async toggleKeepCategorized(event) {
                 this.switchingKeepCategorized = true;
                 try {
                     this.keepCategorized = !!(await getApiService().updateRuleSettings(!this.keepCategorized)).keep_categorized;
@@ -202,6 +203,10 @@ export function createRulesModule(getApiService) {
                     this.showToast(error.message);
                 } finally {
                     this.switchingKeepCategorized = false;
+                    // Vue does not patch a value that did not change (#342)
+                    if (event && event.target) {
+                        event.target.checked = this.keepCategorized;
+                    }
                 }
             }
         }
