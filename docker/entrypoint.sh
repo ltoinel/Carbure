@@ -2,7 +2,7 @@
 # Carbure container entrypoint: prepares /data, brings the database schema up to
 # date, optionally schedules the bank synchronization, then starts PHP-FPM and nginx.
 # On the first start (no /data/conf/prod.ini), the installation is done in the
-# portal: open http://<host>:8080/ in a browser.
+# portal: open http://<host>:<port>/ in a browser (CARBURE_PORT, 8080 by default).
 set -e
 
 APP=/var/www/carbure
@@ -46,7 +46,7 @@ if [ -f /data/conf/prod.ini ]; then
     done
     su -s /bin/sh www-data -c "php $APP/tools/migrate.php"
 else
-    echo "Carbure: not installed yet, open the portal in a browser to install it (http://HOST:8080/)"
+    echo "Carbure: not installed yet, open the portal in a browser to install it (http://HOST:${CARBURE_PORT:-8080}/)"
 fi
 
 # Optional periodic synchronization (e.g. SYNC_INTERVAL=86400 for once a day);
