@@ -1,5 +1,5 @@
 /*
- * Teaser of the home page (YouTube): a local thumbnail links to the video, and YouTube is
+ * Videos of the site (YouTube: teaser, mobile apps): a local thumbnail links to the video, and YouTube is
  * loaded only when the visitor clicks it (no request to YouTube before). The player is the
  * youtube-nocookie one; without JavaScript, the link opens the video on YouTube.
  */
