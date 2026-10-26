@@ -353,6 +353,7 @@ final class Transaction {
         }
         Db::execute("UPDATE bank_transaction SET label = ?, uuid = ?, card = ? WHERE id = ?", "sssi",
             $row['label'], $row['uuid'], $row['card'], $unlabeled['id']);
+        Changes::touch('transactions');
         $category = (int)$unlabeled['category'] === 0 ? Category::find($row['label']) : null;
         if ($category !== null) {
             self::updateCategory((int)$unlabeled['id'], $category, false);
@@ -439,6 +440,10 @@ final class Transaction {
             $origin['bank_name'] ?? null, $origin['account_number'] ?? null, $userId, $type, $label);
 
         // MySQL reports 1 affected row for an insert, 2 or 0 for an update of a known UUID
+        // (0: unchanged, the daily synchronization of an account that did not move)
+        if ($stmt->affected_rows > 0) {
+            Changes::touch('transactions');
+        }
         return $stmt->affected_rows === 1;
     }
 
@@ -456,7 +461,7 @@ final class Transaction {
      *               [{index, date, rdate, amount, label, type, status, match?}]
      * @throws Error If the file is not understood
      */
-    #[ApiRoute('/transaction/import/preview', method: 'POST')]
+    #[ApiRoute('/transaction/import/preview', method: 'POST', changes: [])]
     public static function previewImport(?string $file, ?string $filename = null): array
     {
         // No file: refused by the parser as an empty file, as before the types
@@ -495,7 +500,7 @@ final class Transaction {
      *              imported (number of new transactions), categorized, from, to
      * @throws Error If the file is not understood
      */
-    #[ApiRoute('/transaction/import', method: 'POST')]
+    #[ApiRoute('/transaction/import', method: 'POST', changes: ['transactions'])]
     public static function import(?string $file, ?string $filename = null, array|int|string|null $selected = null): array
     {
         [$parsed, $rows, $prepared] = self::analyzeImport($file ?? '', $filename);
@@ -882,6 +887,9 @@ final class Transaction {
                 $updated++;
             }
         }
+        if ($updated > 0) {
+            Changes::touch('transactions');
+        }
 
         return $updated;
     }
@@ -894,7 +902,7 @@ final class Transaction {
      * @param bool|int|string|null $autoPointed Whether to auto-point the transaction (any true value)
      * @return void
      */
-    #[ApiRoute('/transaction/category', method: 'PUT')]
+    #[ApiRoute('/transaction/category', method: 'PUT', changes: ['transactions'])]
     public static function updateCategory(int|string $id, int|string $category, bool|int|string|null $autoPointed = true): void
     {
         // Set the category
@@ -915,7 +923,7 @@ final class Transaction {
      *                                      (also "true"/"false", 1/0)
      * @return void
      */
-    #[ApiRoute('/transaction/pointed', method: 'PUT')]
+    #[ApiRoute('/transaction/pointed', method: 'PUT', changes: ['transactions'])]
     public static function updatePointed(int|string $id, bool|int|string|null $pointed = true): void
     {
         // Update the pointed field on a transaction
@@ -931,7 +939,7 @@ final class Transaction {
      * @return bool True once deleted
      * @throws Error If the transaction does not exist
      */
-    #[ApiRoute('/transaction', method: 'DELETE')]
+    #[ApiRoute('/transaction', method: 'DELETE', changes: ['transactions'])]
     public static function delete(int|string $id): bool
     {
         $transaction = Db::queryOne("SELECT uuid, label, amount FROM bank_transaction WHERE id = ?", "i", $id);

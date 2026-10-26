@@ -40,7 +40,7 @@ final class System {
      * @return bool True if replaced
      * @throws Exception If the configuration file cannot be written
      */
-    #[ApiRoute('/system/jwt-secret', method: 'POST', admin: true)]
+    #[ApiRoute('/system/jwt-secret', method: 'POST', admin: true, changes: [])]
     public static function rotateJwtSecret(): bool
     {
         $file = self::$configFile ?? Config::get('config_file');
@@ -278,7 +278,7 @@ final class System {
      * @return array<string, mixed> version, applied
      * @throws Exception If a migration fails
      */
-    #[ApiRoute('/system/migrate', method: 'POST', admin: true)]
+    #[ApiRoute('/system/migrate', method: 'POST', admin: true, changes: [])]
     public static function migrate(): array
     {
         $migrator = new Migrator(Db::getConnection());

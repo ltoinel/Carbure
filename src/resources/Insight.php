@@ -48,7 +48,7 @@ final class Insight {
      * (credentials, MFA secrets, OAuth, settings... a unit test keeps the list in sync with
      * the schema) and the system schemas
      */
-    public const REFUSED_TABLES = ['api_tokens', 'bank_transaction_deleted', 'budget_alert', 'budget_alert_threshold', 'budget_insight', 'devices',
+    public const REFUSED_TABLES = ['api_tokens', 'bank_transaction_deleted', 'budget_alert', 'budget_alert_threshold', 'budget_insight', 'data_change', 'devices',
         'mfa_recovery_code', 'mfa_trusted_browser', 'oauth_clients', 'oauth_codes', 'schema_migrations', 'settings',
         'user_browser', 'user_mfa', 'user_notification', 'users',
         'mysql', 'information_schema', 'performance_schema', 'sys'];
@@ -86,7 +86,7 @@ final class Insight {
      * @return array<string, mixed> The insight with the amount of the current month
      * @throws Error If a field or the query is invalid
      */
-    #[ApiRoute('/insight', method: 'POST', admin: true)]
+    #[ApiRoute('/insight', method: 'POST', admin: true, changes: ['insights'])]
     public static function create(string $name, string $color, string $sql, ?string $icon = null): array
     {
         [$name, $color, $sql] = self::validate($name, $color, $sql);
@@ -109,7 +109,7 @@ final class Insight {
      * @return array<string, mixed> The insight with the amount of the current month
      * @throws Error If not found, or a field or the query is invalid
      */
-    #[ApiRoute('/insight', method: 'PUT', admin: true)]
+    #[ApiRoute('/insight', method: 'PUT', admin: true, changes: ['insights'])]
     public static function update(int $id, string $name, string $color, string $sql, ?string $icon = null): array
     {
         if (!Db::queryOne("SELECT id FROM budget_insight WHERE id = ?", "i", $id)) {
@@ -133,7 +133,7 @@ final class Insight {
      * @param int|string|null $year  The year (current year by default)
      * @return array{valid: bool, amount?: float|null, error?: string|null} valid, amount (if valid), error (if not)
      */
-    #[ApiRoute('/insight/check', method: 'POST', admin: true)]
+    #[ApiRoute('/insight/check', method: 'POST', admin: true, changes: [])]
     public static function check(string $sql, int|string|null $month = null, int|string|null $year = null): array
     {
         try {
@@ -171,7 +171,7 @@ final class Insight {
      * @return bool True if deleted
      * @throws Error If not found
      */
-    #[ApiRoute('/insight', method: 'DELETE', admin: true)]
+    #[ApiRoute('/insight', method: 'DELETE', admin: true, changes: ['insights'])]
     public static function delete(int $id): bool
     {
         $stmt = Db::execute("DELETE FROM budget_insight WHERE id = ?", "i", $id);

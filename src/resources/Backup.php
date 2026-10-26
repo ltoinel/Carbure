@@ -95,7 +95,7 @@ final class Backup {
      * @return array{imported: array<string, int>} Number of rows written by dataset
      * @throws Error 400 If a dataset or a row is invalid, or the data would refer to missing categories (nothing changed)
      */
-    #[ApiRoute('/backup/import', method: 'POST', admin: true)]
+    #[ApiRoute('/backup/import', method: 'POST', admin: true, changes: Changes::KINDS)]
     public static function import(array $datasets): array
     {
         if ($datasets === [] || array_is_list($datasets)) {

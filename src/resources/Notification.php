@@ -94,7 +94,7 @@ final class Notification {
      * @throws Error If a kind, a channel, a value or a setting is not valid (400), or a
      *               setting is sent before its migration is applied (409)
      */
-    #[ApiRoute('/user/notifications', method: 'PUT')]
+    #[ApiRoute('/user/notifications', method: 'PUT', changes: [])]
     public static function update(array $preferences = [], int|float|string|null $budgetThreshold = null,
         int|float|string|null $alertThreshold = null, int|string|null $budgetCategory = null,
         bool|int|string|null $budgetAll = null, ?array $budgetThresholds = null): array

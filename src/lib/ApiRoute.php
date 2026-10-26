@@ -12,6 +12,7 @@
 namespace Carbure\Lib;
 
 use Attribute;
+use Carbure\Resources\Changes;
 use LogicException;
 
 #[Attribute(Attribute::TARGET_METHOD)]
@@ -22,6 +23,8 @@ class ApiRoute {
     public bool $stream;
     public bool $raw = false;
     public bool $admin = false;
+    /** @var list<string>|null */
+    public ?array $changes = null;
 
     /**
      * Declare an API route on a public static method.
@@ -34,7 +37,11 @@ class ApiRoute {
      *                       (already encoded JSON, or '' for an empty body)
      * @param bool   $admin  True if the route is reserved to the administrators: checked by
      *                       Webservice before the method is called (403 otherwise)
-     * @throws LogicException If the route is both public and reserved to the administrators
+     * @param list<string>|null $changes The kinds of data the route writes (Changes::KINDS), bumped
+     *                       by Webservice after a successful call; [] for a write that changes
+     *                       none of them. Required on every route but GET (ApiResolverTest)
+     * @throws LogicException If the route is both public and reserved to the administrators,
+     *                        or declares an unknown kind of data
      */
     public function __construct(
         string $path,
@@ -42,10 +49,15 @@ class ApiRoute {
         bool $public = false,
         bool $stream = false,
         bool $raw = false,
-        bool $admin = false
+        bool $admin = false,
+        ?array $changes = null
     ) {
         if ($public && $admin) {
             throw new LogicException("The route $method $path cannot be both public and reserved to the administrators");
+        }
+        $unknown = array_diff($changes ?? [], Changes::KINDS);
+        if ($unknown) {
+            throw new LogicException("The route $method $path declares unknown kinds of data: " . implode(', ', $unknown));
         }
         $this->path = $path;
         $this->method = $method;
@@ -53,6 +65,7 @@ class ApiRoute {
         $this->stream = $stream;
         $this->raw = $raw;
         $this->admin = $admin;
+        $this->changes = $changes;
     }
 
     /**

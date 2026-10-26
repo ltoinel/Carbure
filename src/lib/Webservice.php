@@ -13,6 +13,7 @@
 
 namespace Carbure\Lib;
 
+use Carbure\Resources\Changes;
 use Carbure\Resources\User;
 use Error;
 use Exception;
@@ -177,7 +178,8 @@ final class Webservice {
         $data = self::getPayload();
 
         // Call the service
-        $response = self::callService($route['class'], $route['method'], $data, $route['apiRoute']->raw);
+        $response = self::callService($route['class'], $route['method'], $data, $route['apiRoute']->raw,
+            $route['apiRoute']->changes ?? []);
 
         // A stream has already sent its events: nothing more to output
         return $route['apiRoute']->stream ? '' : $response;
@@ -261,10 +263,34 @@ final class Webservice {
      * @param string $method   The method name to call
      * @param array<mixed> $data The request data
      * @param bool   $raw      True if the method returns the response body itself
+     * @param list<string> $changes The kinds of data written by the route (ApiRoute), bumped
+     *                       after a successful call; the ones bumped by the method itself
+     *                       (Changes::touch) are written even after a failure
      * @return string The JSON encoded response
      * @throws Exception If the response cannot be encoded in JSON (invalid UTF-8...)
      */
-    public static function callService(string $resource, string $method, array $data, bool $raw = false): string
+    public static function callService(string $resource, string $method, array $data, bool $raw = false, array $changes = []): string
+    {
+        try {
+            $response = self::call($resource, $method, $data);
+            Changes::touch(...$changes);
+        } finally {
+            // Before the response: the versions go in its headers
+            Changes::flush();
+        }
+        return self::encode($resource, $method, $response, $raw);
+    }
+
+    /**
+     * Call the method of a route with the parameters of the request.
+     *
+     * @param string $resource The resource class name (fully qualified)
+     * @param string $method   The method name to call
+     * @param array<mixed> $data The request data
+     * @return mixed The result of the method
+     * @throws Error If the method does not exist
+     */
+    private static function call(string $resource, string $method, array $data): mixed
     {
         // Logged with the short class name (Bank.get), as before the namespaces
         $name = substr((string)strrchr('\\' . $resource, '\\'), 1);
@@ -286,7 +312,22 @@ final class Webservice {
             Logger::debug("Data", self::maskSensitive($data));
             $response = call_user_func_array($callable, $data);
         }
+        return $response;
+    }
 
+    /**
+     * Encode the result of a route.
+     *
+     * @param string $resource The resource class name (fully qualified)
+     * @param string $method   The method name
+     * @param mixed  $response The result of the method
+     * @param bool   $raw      True if the method returns the response body itself
+     * @return string The response body
+     * @throws Exception If the response cannot be encoded in JSON (invalid UTF-8...)
+     */
+    private static function encode(string $resource, string $method, mixed $response, bool $raw): string
+    {
+        $name = substr((string)strrchr('\\' . $resource, '\\'), 1);
         if ($raw) {
             // Not logged: tokens (OAuth) and household data (MCP)
             Logger::debug("Result", strlen((string)$response) . " bytes");

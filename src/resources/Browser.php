@@ -60,7 +60,7 @@ final class Browser {
      * @return bool True if forgotten
      * @throws Error If it does not exist or belongs to another user (404)
      */
-    #[ApiRoute('/user/browser', method: 'DELETE')]
+    #[ApiRoute('/user/browser', method: 'DELETE', changes: [])]
     public static function delete(int $id): bool
     {
         if (!self::available()

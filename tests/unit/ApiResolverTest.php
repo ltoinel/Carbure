@@ -2,6 +2,7 @@
 
 use Carbure\Lib\ApiResolver;
 use Carbure\Lib\ApiRoute;
+use Carbure\Resources\Changes;
 use Carbure\Resources\User;
 use PHPUnit\Framework\TestCase;
 
@@ -107,6 +108,7 @@ class ApiResolverTest extends TestCase
         'GET /category/keyword' => 'user',
         'GET /category/keyword/count' => 'admin',
         'GET /category/keyword/settings' => 'user',
+        'GET /changes' => 'user',
         'GET /device' => 'user',
         'GET /device/link' => 'user',
         'GET /health' => 'public',
@@ -202,6 +204,46 @@ class ApiResolverTest extends TestCase
         $this->assertSame([], array_keys($removed), 'Routes of ApiResolverTest::ACCESS that no longer exist'
             . ' (the iOS app may still call them)');
         $this->assertSame(self::ACCESS, $access, 'The access level of a route changed: make it deliberate');
+    }
+
+    public function testEveryWriteRouteDeclaresTheDataItChanges()
+    {
+        $undeclared = [];
+        $reads = [];
+        foreach (glob(__DIR__ . '/../../src/resources/*.php') as $file) {
+            $class = new ReflectionClass(ApiResolver::RESOURCES_NAMESPACE . basename($file, '.php'));
+            foreach ($class->getMethods() as $method) {
+                foreach ($method->getAttributes(ApiRoute::class) as $attribute) {
+                    $route = $attribute->newInstance();
+                    if ($route->method !== 'GET' && $route->changes === null) {
+                        $undeclared[] = $route->method . ' ' . $route->path;
+                    } elseif ($route->method === 'GET' && $route->changes !== null) {
+                        $reads[] = $route->path;
+                    }
+                }
+            }
+        }
+
+        $this->assertSame([], $undeclared, 'Declare the kinds of data each write route changes (Changes::KINDS),'
+            . ' changes: [] for none: the apps reload only the kinds that moved');
+        // A GET that writes (the synchronization) bumps the kinds itself, when it changed them
+        $this->assertSame([], $reads, 'A GET route declares no changes');
+    }
+
+    public function testCachedRoutesCarryTheChanges()
+    {
+        ApiResolver::clearRouteCache();
+        $this->assertSame(['budgets'], ApiResolver::findRoute('/budget', 'POST')['apiRoute']->changes);
+        $this->assertSame(Changes::KINDS, ApiResolver::findRoute('/backup/import', 'POST')['apiRoute']->changes);
+        $this->assertSame([], ApiResolver::findRoute('/user', 'PUT')['apiRoute']->changes);
+        $this->assertNull(ApiResolver::findRoute('/changes', 'GET')['apiRoute']->changes);
+    }
+
+    public function testAnUnknownKindOfDataIsRefused()
+    {
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage('The route POST /x declares unknown kinds of data: budget');
+        new ApiRoute('/x', method: 'POST', changes: ['budget']);
     }
 
     public function testCachedRoutesCarryTheAdminFlag()

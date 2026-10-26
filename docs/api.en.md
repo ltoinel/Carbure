@@ -45,6 +45,54 @@ icon: material/api
 
 `uid` identifies the request in `data/logs/carbure_YYYYMMDD.log`.
 
+## Data changes { #modifications-des-donnees }
+
+`GET /changes` (any logged-in user) gives a **change marker per kind of data**, bumped
+by every write. A client (mobile apps, portal) compares the versions with the ones of the
+data it loaded and reloads only the kinds that moved: a light call (one indexed read of a
+few rows), to make when coming back to the foreground and about every minute while in use.
+
+```json
+{
+  "transactions": { "version": 1834, "updated_at": "2026-10-24 21:03:12.418" },
+  "accounts":     { "version": 52,   "updated_at": "2026-10-24 21:03:12.377" },
+  "categories":   { "version": 17,   "updated_at": "2026-10-20 08:15:40.002" },
+  "budgets":      { "version": 96,   "updated_at": "2026-10-23 19:42:05.731" },
+  "insights":     { "version": 3,    "updated_at": "2026-10-12 10:00:00.000" },
+  "settings":     { "version": 0,    "updated_at": null }
+}
+```
+
+| Kind | Bumped by |
+|---|---|
+| `transactions` | synchronization (new or modified transaction, category found), `POST /transaction/import`, `PUT /transaction/category`, `PUT /transaction/pointed`, `DELETE /transaction`, rules applied to the history, `DELETE /category` |
+| `accounts` | synchronization (account in error, repaired or another error), `POST`/`PUT`/`DELETE /bank`, `/bank/backend` |
+| `categories` | `POST`/`PUT`/`DELETE /category`, `/category/keyword`, `PUT /category/keyword/settings` |
+| `budgets` | `POST /budget`, `POST /budget/copy`, `DELETE /category` |
+| `insights` | `POST`/`PUT`/`DELETE /insight` |
+| `settings` | `PUT /system/config` |
+
+`POST /backup/import` bumps every kind. The insights and the trends are computed from the
+transactions and the budgets: a client reloads them when one of these kinds moves.
+
+- **Version**, not only a date: no tie between two writes in the same second, no
+  dependency on the clocks. `updated_at` is given for information; a kind never changed
+  has the version `0`.
+- A synchronization that changes nothing (unchanged account) bumps nothing: it does not
+  wake the devices.
+- A write returns the new versions of the kinds it changed in the `X-Carbure-Changes`
+  header (`budgets=97, transactions=1835`): if the known version was the previous one,
+  the client that wrote is up to date without reloading anything; if it moved more,
+  someone else wrote meanwhile.
+- Each write route declares the kinds it changes in its attribute
+  (`#[ApiRoute('/budget', method: 'POST', changes: ['budgets'])]`), bumped after a
+  successful call; a unit test checks that every write route declares them.
+- An older server answers `404`: the client then reloads at each return to the
+  foreground.
+
+These markers are not in `GET /health`, which is public: they would tell anyone when the
+household uses the app and when the synchronization runs.
+
 ## Users { #utilisateurs }
 
 ### `POST /user/login` — public { #post-userlogin-publique }

@@ -32,6 +32,7 @@ import { createConfirmModule } from './modules/confirmModule.js';
 import { createNotificationsModule } from './modules/notificationsModule.js';
 import { createMfaModule } from './modules/mfaModule.js';
 import { createBackupModule } from './modules/backupModule.js';
+import { createChangesModule } from './modules/changesModule.js';
 
 /**
  * Base URL of the API: the portal is served at <server>/portal/ and the API at
@@ -109,7 +110,8 @@ const app = createApp({
         createConfirmModule(),
         createNotificationsModule(() => apiService),
         createMfaModule(() => apiService),
-        createBackupModule(() => apiService)
+        createBackupModule(() => apiService),
+        createChangesModule(() => apiService)
     ],
 
     data() {
@@ -645,6 +647,7 @@ const app = createApp({
             this.activeTab = 'transactions';
             this.loginForm.password = '';
             this.mfaLogin = null;
+            this.stopChangeWatch();
             localStorage.removeItem('authToken');
             localStorage.removeItem('username');
             this.username = null;
@@ -659,9 +662,13 @@ const app = createApp({
          * @returns {Promise<void>}
          */
         async startSession() {
-            apiService = createApiService(this.apiBaseUrl, this.authToken, () => this.sessionExpired(), () => this.setupRequired());
+            apiService = createApiService(this.apiBaseUrl, this.authToken, () => this.sessionExpired(), () => this.setupRequired(),
+                changes => this.ownChanges(changes));
             budgetStore = createBudgetStore(apiService);
 
+            // Versions of the data asked before the data itself: a change made meanwhile
+            // is seen by the next check
+            this.startChangeWatch();
             this.loadPeriods();
             this.refreshCurrentTab();
             // Name in header, language, admin rights

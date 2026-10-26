@@ -125,7 +125,7 @@ final class Category {
      * @return array<string, mixed> The category
      * @throws Error If invalid or the name already exists
      */
-    #[ApiRoute('/category', method: 'POST', admin: true)]
+    #[ApiRoute('/category', method: 'POST', admin: true, changes: ['categories'])]
     public static function create(string $name, string $type, int|string|null $parent_category = 0, ?string $icon = '', ?string $color = ''): array
     {
         [$name, $parent, $type, $icon, $color] = self::validate(null, $name, $parent_category, $type, $icon, $color);
@@ -148,7 +148,7 @@ final class Category {
      * @return array<string, mixed> The category
      * @throws Error If not found, protected, invalid or the name already exists
      */
-    #[ApiRoute('/category', method: 'PUT', admin: true)]
+    #[ApiRoute('/category', method: 'PUT', admin: true, changes: ['categories'])]
     public static function update(int $id, string $name, string $type, int|string|null $parent_category = 0, ?string $icon = '', ?string $color = ''): array
     {
         self::existing($id);
@@ -168,7 +168,7 @@ final class Category {
      * @return bool True if deleted
      * @throws Error If not found, protected or with sub-categories
      */
-    #[ApiRoute('/category', method: 'DELETE', admin: true)]
+    #[ApiRoute('/category', method: 'DELETE', admin: true, changes: ['categories', 'budgets', 'transactions'])]
     public static function delete(int $id): bool
     {
         self::existing($id);
@@ -224,7 +224,7 @@ final class Category {
      * @return array<string, mixed> The rule, with applied: the transactions of the history recategorized
      * @throws Error If the keyword is empty or already exists, or the category does not exist
      */
-    #[ApiRoute('/category/keyword', method: 'POST', admin: true)]
+    #[ApiRoute('/category/keyword', method: 'POST', admin: true, changes: ['categories', 'transactions'])]
     public static function createKeyword(string $keyword, int $category, bool|int|string|null $notify = false): array
     {
         // Labels are stored in upper case
@@ -263,7 +263,7 @@ final class Category {
      * @return array<string, mixed> The rule, with applied: the transactions of the history recategorized
      * @throws Error If not found, invalid or the keyword already exists
      */
-    #[ApiRoute('/category/keyword', method: 'PUT', admin: true)]
+    #[ApiRoute('/category/keyword', method: 'PUT', admin: true, changes: ['categories', 'transactions'])]
     public static function updateKeyword(int $id, string $keyword, int $category, bool|int|string|null $notify = false): array
     {
         if (!Db::queryOne("SELECT id FROM bank_transaction_category_keyword WHERE id=?", "i", $id)) {
@@ -314,7 +314,7 @@ final class Category {
      * @return bool True if deleted
      * @throws Error If the rule does not exist
      */
-    #[ApiRoute('/category/keyword', method: 'DELETE', admin: true)]
+    #[ApiRoute('/category/keyword', method: 'DELETE', admin: true, changes: ['categories'])]
     public static function deleteKeyword(int $id): bool
     {
         $stmt = Db::execute("DELETE FROM bank_transaction_category_keyword WHERE id=?", "i", $id);
@@ -344,7 +344,7 @@ final class Category {
      * @param bool|int|string|null $keep_categorized True to leave the categorized transactions of the history alone (or "true", "1"...)
      * @return array{keep_categorized: bool} keep_categorized
      */
-    #[ApiRoute('/category/keyword/settings', method: 'PUT', admin: true)]
+    #[ApiRoute('/category/keyword/settings', method: 'PUT', admin: true, changes: ['categories'])]
     public static function updateKeywordSettings(bool|int|string|null $keep_categorized): array
     {
         Setting::set('rules_keep_categorized', filter_var($keep_categorized, FILTER_VALIDATE_BOOLEAN) ? '1' : '0');
@@ -369,7 +369,7 @@ final class Category {
      *
      * @return array{updated: int} The number of transactions whose category changed
      */
-    #[ApiRoute('/category/keyword/apply', method: 'POST', admin: true)]
+    #[ApiRoute('/category/keyword/apply', method: 'POST', admin: true, changes: ['transactions'])]
     public static function applyKeywords(): array
     {
         $keywords = self::loadKeywords();

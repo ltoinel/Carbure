@@ -138,7 +138,7 @@ final class Budget {
      * @param int|string|null  $year     The year of the budget
      * @return bool True on success
      */
-    #[ApiRoute('/budget', method: 'POST')]
+    #[ApiRoute('/budget', method: 'POST', changes: ['budgets'])]
     public static function create(int $category, int|float|string $amount, int|string|null $month = null, int|string|null $year = null): bool
     {
         // Insert or update the budget for the given category and month
@@ -166,7 +166,7 @@ final class Budget {
      * @return array{month: string, source: string, copied: int, overwrite: bool} month,
      *               source (previous month, Y-m), copied (budgets written) and overwrite
      */
-    #[ApiRoute('/budget/copy', method: 'POST')]
+    #[ApiRoute('/budget/copy', method: 'POST', changes: ['budgets'])]
     public static function copy(int|string|null $month = null, int|string|null $year = null, bool|int|string|null $overwrite = false): array
     {
         [$targetMonth, $targetYear] = Month::resolve($month, $year);
