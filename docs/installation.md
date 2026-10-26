@@ -220,6 +220,41 @@ Quand `docker compose pull` apporte une nouvelle version majeure de MariaDB (par
 l'ancienne version, d'où l'importance de la sauvegarde. Pour garder une version donnée,
 fixez-la dans `docker/docker-compose.yml` (`image: mariadb:11`).
 
+### Passer à la 1.11.0
+
+- Deux migrations sont appliquées au démarrage : `2026-10-28_device_without_token` (une
+  application mobile connectée sans jeton de notification apparaît dans **Mon profil → Mes appareils**)
+  et `2026-10-29_data_change` (marqueurs de changement des données). Le code fonctionne
+  avant elles, comme avant.
+- **Limitation des connexions** : nginx accepte 30 tentatives de connexion par minute et
+  par client (`/api/user/login`, `/api/user/login/mfa`, `/api/oauth/token`), au-delà il
+  répond `429`. Derrière un proxy inverse, l'adresse du client est lue dans
+  `X-Forwarded-For` quand le proxy a une adresse privée (par défaut) : si votre proxy a une
+  autre adresse, renseignez `TRUSTED_PROXIES`, sinon tout le foyer partage la même limite.
+  Après la mise à jour, vérifiez que les logs montrent bien les adresses des clients. Voir
+  [Limitation des connexions](securite.md#limitation-des-connexions).
+- **Port publié** : `CARBURE_PORT` (dans `docker/.env`) choisit le port de
+  `docker/docker-compose.yml`, `8080` par défaut ; le message du premier démarrage donne
+  le bon port.
+- **Données à jour sans recharger** : chaque réponse de l'API porte les versions des
+  données (en-tête `X-Carbure-Changes`) ; le portail recharge l'onglet ouvert quand un
+  autre membre du foyer ou une synchronisation a changé ce qu'il affiche. Les applications
+  mobiles s'en serviront dans une prochaine version.
+- **Messages d'erreur traduits** : le portail affiche les erreurs de l'API dans la langue
+  de l'utilisateur. L'API ajoute un code stable (`error_code`, `params`) à ses erreurs,
+  sans changer les champs existants (voir [API](api.md#code-stable-dune-erreur)).
+- **Portail sur téléphone** : les onglets du quotidien passent dans une barre en bas de
+  l'écran, les autres, le profil, le thème et la déconnexion dans son menu **Plus** ;
+  l'en-tête tient sur une ligne.
+- **Banques** : les banques qui demandent une validation dès la première connexion
+  (Crédit Mutuel…) se connectent depuis le portail ; les modules qui demandaient des
+  paquets Python absents (Banque Populaire, Caisse d'Épargne, Société Générale…) se
+  chargent ; le choix de la région de Banque Populaire est accepté. À la première banque,
+  un avertissement rappelle que la synchronisation dépend des connecteurs de woob.
+- **Règles** : le réglage **Conserver les catégories existantes** (désactivé par défaut)
+  limite les règles aux transactions non catégorisées.
+- **Calendrier** des transactions récurrentes du mois dans l'onglet Transactions.
+
 ### Passer à la 1.10.0
 
 - La migration `2026-10-27_budget_alert_threshold` est appliquée au démarrage : les alertes

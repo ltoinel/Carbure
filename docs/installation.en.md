@@ -220,6 +220,41 @@ When `docker compose pull` brings a new major version of MariaDB (for example fr
 the old version, hence the importance of the backup. To stay on a given version,
 pin it in `docker/docker-compose.yml` (`image: mariadb:11`).
 
+### Upgrading to 1.11.0 { #passer-a-la-1110 }
+
+- Two migrations are applied at startup: `2026-10-28_device_without_token` (a mobile app
+  signed in without a notification token is listed in **My profile → My devices**) and
+  `2026-10-29_data_change` (change markers of the data). The code works before them, as
+  before.
+- **Login rate limit**: nginx accepts 30 login attempts per minute and per client
+  (`/api/user/login`, `/api/user/login/mfa`, `/api/oauth/token`), then answers `429`.
+  Behind a reverse proxy, the address of the client is read from `X-Forwarded-For` when
+  the proxy has a private address (by default): if your proxy has another address, set
+  `TRUSTED_PROXIES`, otherwise the whole household shares one limit. After the upgrade,
+  check that the logs show the addresses of the clients. See
+  [Login rate limit](securite.md#limitation-des-connexions).
+- **Published port**: `CARBURE_PORT` (in `docker/.env`) chooses the port of
+  `docker/docker-compose.yml`, `8080` by default; the message of the first start gives the
+  right port.
+- **Data up to date without reloading**: every answer of the API carries the versions of
+  the data (`X-Carbure-Changes` header); the portal reloads the open tab when another
+  member of the household or a synchronization changed what it shows. The mobile apps will
+  use it in a next version.
+- **Translated error messages**: the portal shows the errors of the API in the language of
+  the user. The API adds a stable code (`error_code`, `params`) to its errors, without
+  changing the existing fields (see [API](api.md#code-stable-dune-erreur)).
+- **Portal on a phone**: the tabs of every day move to a bar at the bottom of the screen,
+  the others, the profile, the theme and the logout to its **More** menu; the header fits
+  on one line.
+- **Banks**: the banks asking a validation at the first connection (Crédit Mutuel…)
+  connect from the portal; the modules that needed missing Python packages (Banque
+  Populaire, Caisse d'Épargne, Société Générale…) load; the region of Banque Populaire is
+  accepted. At the first bank, a warning tells that the synchronization depends on the
+  connectors of woob.
+- **Rules**: the **Keep the existing categories** setting (off by default) limits the rules
+  to the uncategorized transactions.
+- **Calendar** of the recurring transactions of the month in the Transactions tab.
+
 ### Upgrading to 1.10.0 { #passer-a-la-1100 }
 
 - The `2026-10-27_budget_alert_threshold` migration is applied at startup: budget alerts
