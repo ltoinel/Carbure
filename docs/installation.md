@@ -123,6 +123,9 @@ Ouvrez `http://<hôte>:8080/` : l'assistant d'installation s'affiche, déjà rem
 base de données de `docker/docker-compose.yml`. Cliquez sur **Continuer**, choisissez le mot de
 passe administrateur, puis **Installer**. C'est tout.
 
+Le port `8080` est déjà pris (NAS, autre service) ? Choisissez-en un autre dans `docker/.env`,
+par exemple `CARBURE_PORT=8090`, puis relancez `docker compose up -d`.
+
 Sur une base neuve, l'assistant propose aussi, pour bien démarrer, des **catégories** courantes
 avec leurs **règles** de catégorisation (enseignes, fournisseurs d'énergie, opérateurs…) et des
 **insights** (dépenses, revenus, reste du mois, épargne, dépassement du budget…). Ces options

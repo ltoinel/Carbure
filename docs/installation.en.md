@@ -123,6 +123,9 @@ Open `http://<host>:8080/`: the setup wizard appears, already filled in with the
 database from `docker/docker-compose.yml`. Click **Continue**, choose the administrator
 password, then **Install**. That's it.
 
+Port `8080` already taken (NAS, another service)? Choose another one in `docker/.env`,
+for example `CARBURE_PORT=8090`, then run `docker compose up -d` again.
+
 On a new database, the wizard also offers, to get you started, common **categories**
 with their categorization **rules** (stores, energy suppliers, telecom operators…) and
 **insights** (spending, income, rest of the month, savings, budget overrun…). These options
