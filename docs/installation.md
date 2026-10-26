@@ -153,6 +153,7 @@ DB_PASSWORD=un-mot-de-passe-solide
 | `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` | Base de données proposée par l'assistant (le mot de passe n'a pas à être ressaisi) | `db`, `3306`, `carbure`, `carbure` |
 | `LANGUAGE` | Langue proposée pour l'administrateur (`fr`, `en`, `es`, `it`, `de`, `pt`) | `fr` |
 | `SYNC_INTERVAL` | Synchronisation automatique de tous les comptes toutes les N secondes (`86400` = une fois par jour) | désactivée |
+| `TRUSTED_PROXIES` | Proxys inversés de confiance (adresses ou réseaux CIDR) dont l'en-tête `X-Forwarded-For` donne l'adresse du client, pour la [limitation des connexions](securite.md#limitation-des-connexions) et les journaux ; `none` : aucun (Carbure publié sans proxy) | réseaux privés et boucle locale |
 | `CARBURE_WOOB_PATH` | Commande woob écrite dans la configuration par l'assistant ; l'image la définit déjà (`env HOME=/data/woob woob`) | `woob` |
 
 Le dossier `data/` du projet, monté sur `/data` dans le conteneur, conserve tout ce qui est

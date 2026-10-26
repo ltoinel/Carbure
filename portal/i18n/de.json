@@ -116,6 +116,7 @@
     "unlockUser": "Entsperren",
     "userUnlocked": "Konto von {username} entsperrt",
     "accountLocked": "Konto nach 5 fehlgeschlagenen Anmeldeversuchen für 24 Stunden gesperrt. Ein Administrator kann es entsperren.",
+    "tooManyLogins": "Zu viele Anmeldeversuche von dieser Adresse: Versuchen Sie es in einer Minute erneut.",
     "invalidCredentials": "Benutzername oder Passwort falsch",
     "apiTokenLifetime": "Gültigkeit",
     "apiTokenDays": "{days} Tage",

@@ -578,8 +578,9 @@ const app = createApp({
                 });
 
                 if (!response.ok) {
-                    // Locked after too many failed logins (423), or wrong credentials
-                    throw new Error(response.status === 423 ? this.t('accountLocked') : this.t('invalidCredentials'));
+                    // Locked after too many failed logins (423), too many logins from this
+                    // address (429, rate limit of nginx), or wrong credentials
+                    throw new Error(this.loginFailure(response.status));
                 }
 
                 const data = await response.json();
@@ -602,6 +603,19 @@ const app = createApp({
             } finally {
                 this.loggingIn = false;
             }
+        },
+
+        /**
+         * Message of a refused login
+         * @param {number} status - HTTP status of POST /user/login
+         * @returns {string} Account locked (423), too many logins from this address (429,
+         *                   rate limit of nginx), else wrong credentials
+         */
+        loginFailure(status) {
+            if (status === 423) {
+                return this.t('accountLocked');
+            }
+            return status === 429 ? this.t('tooManyLogins') : this.t('invalidCredentials');
         },
 
         /**
