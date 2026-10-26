@@ -329,9 +329,12 @@ final class Woob {
         $fields = [];
         foreach (($info['config'] ?? []) as $key => $field) {
             $choices = [];
-            foreach ((array)($field['choices'] ?? []) as $value => $label) {
-                // woob gives either {value: label} or a list of values
-                $choices[] = is_int($value) && !is_array($label)
+            $given = (array)($field['choices'] ?? []);
+            // woob gives either {value: label} or a list of values: decided for the whole
+            // field, PHP turning numeric keys ({"14707": "Alsace…"}) into ints (#327)
+            $values = array_is_list($given);
+            foreach ($given as $value => $label) {
+                $choices[] = $values && !is_array($label)
                     ? ['value' => (string)$label, 'label' => (string)$label]
                     : ['value' => (string)$value, 'label' => (string)$label];
             }

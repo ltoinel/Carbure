@@ -399,6 +399,18 @@ class WoobTest extends TestCase
         }
     }
 
+    public function testChoicesKeyedByNumericCodesGiveTheirCode()
+    {
+        // {"14707": "Alsace…"} decoded with int keys: the code is sent, not the label (#327)
+        [$region, $format] = Woob::moduleFields('regional')['fields'];
+        $this->assertSame([
+            ['value' => '14707', 'label' => 'Alsace Lorraine Champagne ( 14707 )'],
+            ['value' => '10907', 'label' => 'Aquitaine Centre Atlantique ( 10907 )'],
+        ], $region['choices']);
+        // A list of values: each value is its own label
+        $this->assertSame([['value' => 'csv', 'label' => 'csv'], ['value' => 'json', 'label' => 'json']], $format['choices']);
+    }
+
     public function testAFailedRemovalIsLogged()
     {
         // woob does not know the backend: the removal goes on, the failure is in the logs
