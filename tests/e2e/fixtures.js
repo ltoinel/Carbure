@@ -139,6 +139,8 @@ async function openTab(page, name) {
  * @param {string} name - Label of the tab
  */
 async function clickMainTab(page, name) {
+    // One of the two navigations, once the portal is drawn (isVisible() does not wait)
+    await page.locator('.tabs, .bottom-nav').filter({ visible: true }).first().waitFor();
     if (await page.locator('.tabs').isVisible()) {
         await page.locator('.tabs').getByRole('button', { name, exact: true }).click();
         return;

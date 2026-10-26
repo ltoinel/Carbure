@@ -163,6 +163,11 @@ test('axe: the notifications of the profile and the result of the test email', a
     await expect(page.getByRole('img', { name: tr('mfaQrLabel') })).toBeVisible();
     problems.push(...await axeViolations(page, `${tr('mfaTitle')} (${tr('mfaQrLabel')})`));
     await page.setViewportSize({ width: 320, height: 256 });
+    // TEMPORARY diagnostic (#353)
+    console.log('DIAG353', JSON.stringify(await page.evaluate(() => [...document.querySelectorAll('.header, .header > *, .header-actions > *, .header-period > *')].map(el => {
+        const r = el.getBoundingClientRect(); const cs = getComputedStyle(el);
+        return `${el.tagName}.${el.className}#${el.id} ${Math.round(r.left)}-${Math.round(r.right)} d=${cs.display} f=${cs.flex} mw=${cs.minWidth} w=${cs.width}`;
+    }))));
     problems.push(...await reflowProblems(page, `${tr('mfaTitle')} (${tr('mfaQrLabel')})`));
     await page.setViewportSize({ width: 1280, height: 720 });
     await page.getByRole('tab', { name: tr('myDevices'), exact: true }).click();
