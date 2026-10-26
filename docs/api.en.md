@@ -66,7 +66,7 @@ few rows), to make when coming back to the foreground and about every minute whi
 | Kind | Bumped by |
 |---|---|
 | `transactions` | synchronization (new or modified transaction, category found), `POST /transaction/import`, `PUT /transaction/category`, `PUT /transaction/pointed`, `DELETE /transaction`, rules applied to the history, `DELETE /category` |
-| `accounts` | synchronization (result of an account changed), `POST`/`PUT`/`DELETE /bank`, `/bank/backend` |
+| `accounts` | synchronization (account in error, repaired or another error), `POST`/`PUT`/`DELETE /bank`, `/bank/backend` |
 | `categories` | `POST`/`PUT`/`DELETE /category`, `/category/keyword`, `PUT /category/keyword/settings` |
 | `budgets` | `POST /budget`, `POST /budget/copy`, `DELETE /category` |
 | `insights` | `POST`/`PUT`/`DELETE /insight` |

@@ -68,7 +68,7 @@ premier plan et toutes les minutes environ pendant l'utilisation.
 | Type | Incrémenté par |
 |---|---|
 | `transactions` | synchronisation (transaction nouvelle ou modifiée, catégorie trouvée), `POST /transaction/import`, `PUT /transaction/category`, `PUT /transaction/pointed`, `DELETE /transaction`, règles appliquées à l'historique, `DELETE /category` |
-| `accounts` | synchronisation (résultat d'un compte modifié), `POST`/`PUT`/`DELETE /bank`, `/bank/backend` |
+| `accounts` | synchronisation (compte en erreur, réparé ou autre erreur), `POST`/`PUT`/`DELETE /bank`, `/bank/backend` |
 | `categories` | `POST`/`PUT`/`DELETE /category`, `/category/keyword`, `PUT /category/keyword/settings` |
 | `budgets` | `POST /budget`, `POST /budget/copy`, `DELETE /category` |
 | `insights` | `POST`/`PUT`/`DELETE /insight` |
