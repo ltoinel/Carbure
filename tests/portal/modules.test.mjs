@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { createBudgetModule } from '../../portal/modules/budgetModule.js';
 import { createTransactionModule, recurringCalendar, similarLabelQuery } from '../../portal/modules/transactionModule.js';
 import { createRulesModule } from '../../portal/modules/rulesModule.js';
-import { agentConfigurations } from '../../portal/modules/agentsModule.js';
+import { agentConfigurations, createAgentsModule } from '../../portal/modules/agentsModule.js';
 
 const budget = createBudgetModule(() => null, () => null);
 const transactions = createTransactionModule(() => null);
@@ -1204,11 +1204,13 @@ test('rules: keep the existing categories, loaded, switched and reflected in the
     assert.equal(context.keepCategorized, true);
     assert.equal(toasts.at(-1), 'rulesKeepCategorizedOn');
 
-    // Refused: the switch stays as it was, the error shown
+    // Refused: the switch is shown again as it was (#342), the error shown
     refuse = true;
-    await context.toggleKeepCategorized();
+    const input = { checked: false };
+    await context.toggleKeepCategorized({ target: input });
     assert.deepEqual(sent, [false, true, false]);
     assert.equal(context.keepCategorized, true);
+    assert.equal(input.checked, true);
     assert.equal(context.switchingKeepCategorized, false);
     assert.equal(toasts.at(-1), 'Forbidden - Administrator only');
 });
@@ -1317,4 +1319,19 @@ test('recurring calendar: opened, the transaction of a received series shown fro
     context.openRecurringCalendar();
     context.closeRecurringCalendar();
     assert.equal(context.showRecurringCalendar, false);
+});
+
+test('a refused change of the MCP server shows its switch again as it was', async () => {
+    const api = { updateMcpSettings: async () => { throw new Error('Forbidden - Administrator only'); } };
+    const module = createAgentsModule(() => api);
+    const toasts = [];
+    const context = { ...module.data(), ...module.methods, t: key => key, showToast: message => toasts.push(message), mcpEnabled: false };
+
+    // The browser already moved the switch: Vue would not move it back, the value being unchanged (#342)
+    const input = { checked: true };
+    await context.toggleMcp({ target: input });
+    assert.equal(context.mcpEnabled, false);
+    assert.equal(input.checked, false);
+    assert.equal(context.switchingMcp, false);
+    assert.equal(toasts.at(-1), 'Forbidden - Administrator only');
 });

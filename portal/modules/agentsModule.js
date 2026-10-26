@@ -101,9 +101,10 @@ export function createAgentsModule(getApiService) {
 
             /**
              * Enables or disables the MCP server (administrators)
+             * @param {Event} [event] - Change of the switch: shown again as saved when refused
              * @returns {Promise<void>}
              */
-            async toggleMcp() {
+            async toggleMcp(event) {
                 this.switchingMcp = true;
                 try {
                     this.mcpEnabled = !!(await getApiService().updateMcpSettings(!this.mcpEnabled)).enabled;
@@ -112,6 +113,10 @@ export function createAgentsModule(getApiService) {
                     this.showToast(error.message);
                 } finally {
                     this.switchingMcp = false;
+                    // Vue does not patch a value that did not change (#342)
+                    if (event && event.target) {
+                        event.target.checked = this.mcpEnabled;
+                    }
                 }
             }
         }
