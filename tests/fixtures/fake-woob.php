@@ -154,6 +154,13 @@ if (($argv[1] ?? '') === 'config' && $type === 'info') {
             'identity' => ['label' => "ID d'identité", 'default' => null, 'description' => '', 'regexp' => null, 'choices' => null, 'masked' => false, 'required' => false],
         ];
     }
+    if ($module === 'regional') {
+        // Like banquepopulaire: choices keyed by numeric codes (#327), and a list of values
+        $info['config'] = [
+            'cdetab' => ['label' => 'Région', 'default' => '', 'description' => '', 'regexp' => '\\d{5}', 'choices' => ['14707' => 'Alsace Lorraine Champagne ( 14707 )', '10907' => 'Aquitaine Centre Atlantique ( 10907 )'], 'masked' => false, 'required' => true],
+            'format' => ['label' => 'Format', 'default' => 'csv', 'description' => '', 'regexp' => null, 'choices' => ['csv', 'json'], 'masked' => false, 'required' => false],
+        ];
+    }
     echo json_encode([$info]) . "\n";
     exit(0);
 }
