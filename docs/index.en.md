@@ -38,13 +38,13 @@ insights, notifications, AI agent and household.*
 
 ![Monthly flow: from income to expenses, savings and what is left](assets/en/screenshot-flow.png)
 
-![Transactions of the month in the iPhone app](assets/mobile/ios-transactions.png){ loading=lazy }
-![Budgets of the month in the Android app](assets/mobile/android-budgets.png){ loading=lazy }
-![Overviews of the month in the iPhone app](assets/mobile/ios-apercus.png){ loading=lazy }
-{ .mobile-screens }
+<a class="teaser" href="https://www.youtube.com/watch?v=YqSUd7L9fPg" data-youtube="YqSUd7L9fPg" title="Carbure on iPhone and Android: your budget in your pocket (YouTube)">
+  <img src="assets/mobile-apps-youtube.jpg" alt="Play the video “Carbure on iPhone and Android: your budget in your pocket” (YouTube)" width="1280" height="720" loading="lazy">
+  <span class="teaser__play" aria-hidden="true"></span>
+</a>
 
-*The [iPhone and Android apps](applications-mobiles.md): transactions, budgets and
-overviews of the month.*
+*The [iPhone and Android apps](applications-mobiles.md): your budget in your pocket.
+Transactions, budgets, overviews and notifications of the month.*
 
 ## Features { #fonctionnalites }
 

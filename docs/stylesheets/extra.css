@@ -135,7 +135,7 @@
   text-decoration-color: currentColor;
 }
 
-/* ===== Presentation video of the home page (YouTube, javascripts/teaser.js): a local
+/* ===== Videos of the site (YouTube, javascripts/teaser.js): a local
    thumbnail with a play button, replaced by the player on click ===== */
 .md-typeset .teaser {
   position: relative;

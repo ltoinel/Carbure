@@ -11,6 +11,11 @@ Carbure existe en **application native** pour **iPhone** (SwiftUI) et pour **And
 Carbure, par la même [API](api.md) que le portail web : aucune donnée ne passe par un
 service tiers, sauf les notifications push (voir [plus bas](#notifications-push)).
 
+<a class="teaser" href="https://www.youtube.com/watch?v=YqSUd7L9fPg" data-youtube="YqSUd7L9fPg" title="Carbure sur iPhone et Android : votre budget, dans votre poche (YouTube)">
+  <img src="assets/mobile-apps-youtube.jpg" alt="Lire la vidéo « Carbure sur iPhone et Android : votre budget, dans votre poche » (YouTube)" width="1280" height="720" loading="lazy">
+  <span class="teaser__play" aria-hidden="true"></span>
+</a>
+
 ![Transactions du mois dans l'app iPhone](assets/mobile/ios-transactions.png){ loading=lazy }
 ![Budgets du mois dans l'app Android](assets/mobile/android-budgets.png){ loading=lazy }
 ![Tendances sur 24 mois dans l'app iPhone](assets/mobile/ios-tendances.png){ loading=lazy }
