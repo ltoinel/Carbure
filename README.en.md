@@ -19,7 +19,7 @@
 </p>
 
 <p align="center">
-  <a href="https://demo.carbure.org/"><strong>▶ Try the online demo</strong></a> (log in as <code>demo</code> / <code>carbure</code>)
+  <a href="https://demo.carbure.org/"><strong>▶ Try the online demo</strong></a>
 </p>
 
 <p align="center">
@@ -137,7 +137,7 @@ each tool.
 
 | | For | How |
 |---|---|---|
-| **Online demo** | see Carbure without installing anything | [demo.carbure.org](https://demo.carbure.org/) (`demo` / `carbure`) |
+| **Online demo** | see Carbure without installing anything | [demo.carbure.org](https://demo.carbure.org/) |
 | **Demo at home** | try it with a sample household | `docker run --rm -p 8080:80 ltoinel/carbure:demo` |
 | **Docker** (recommended) | manage the real household budget | see below |
 | **Synology NAS** | a NAS at home | [step-by-step tutorial](https://carbure.org/en/synology/) |
