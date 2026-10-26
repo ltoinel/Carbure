@@ -122,11 +122,13 @@ class ChangesTest extends DatabaseTestCase
 
         $before = $this->versions();
         $this->assertCount(1, Transaction::save([$transaction], self::ADMIN, false, $origin));
+        Changes::flush();
         $this->assertSame(['transactions'], $this->moved($before));
 
         // Received again by the next synchronization, unchanged
         $before = $this->versions();
         $this->assertCount(0, Transaction::save([$transaction], self::ADMIN, false, $origin));
+        Changes::flush();
         $this->assertSame([], $this->moved($before));
     }
 

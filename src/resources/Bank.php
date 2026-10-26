@@ -1049,9 +1049,11 @@ final class Bank {
             "ss", $number, $bank);
         Db::execute("UPDATE bank_account SET last_sync_at = NOW(), last_sync_status = ?, last_sync_message = ? WHERE account_number = ? AND bank_name = ?",
             "ssss", $status, $message, $number, $bank);
-        // The clients reload the accounts when their result changed, not at each
-        // synchronization (an account in error, repaired, new transactions)
-        if ($previous === null || $previous['last_sync_status'] !== $status || $previous['last_sync_message'] !== $message) {
+        // The clients reload the accounts when their state changed (an account in error,
+        // repaired, another error), not at each synchronization: the number of new
+        // transactions of the message moves the transactions
+        if ($previous === null || $previous['last_sync_status'] !== $status
+            || (!$success && $previous['last_sync_message'] !== $message)) {
             Changes::touch('accounts');
         }
     }
