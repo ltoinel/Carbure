@@ -81,6 +81,50 @@ enable it for themselves only from **My profile**.
   OAuth tokens (authorizing an agent goes through signing in to the portal, hence through
   the second factor), and the scheduler's `sync_token`.
 
+### Login rate limit { #limitation-des-connexions }
+
+The Docker image limits in nginx the sign-in routes (`POST /api/user/login`,
+`/api/user/login/mfa`, `/api/oauth/token`) to **30 requests per minute per client
+address**, with a burst of 10 (a password then the code of the second factor, a
+typo…): beyond that, nginx answers `429` (`{"error": …, "code": 429}`,
+`Retry-After: 60`) without calling PHP, and the portal shows "Too many login attempts
+from this address". It complements the [lockout of an account](#autorisations) after 5
+failures, which does not slow down attempts spread over several accounts. The rest of the
+API is not limited. Installed on an existing web server (YunoHost included), Carbure does
+not have this limit: your web server can add it (nginx `limit_req`).
+
+**Client address behind a reverse proxy.** Behind the NAS proxy, Caddy or Traefik, every
+connection comes from the proxy's address: without care, the whole household (and the
+mobile apps) would share the same limit. nginx therefore takes the client's address from
+the `X-Forwarded-For` header added by the proxy (`realip` module), but only when the
+connection comes from a **trusted proxy**, `TRUSTED_PROXIES` environment variable
+(addresses or CIDR networks separated by spaces or commas):
+
+| `TRUSTED_PROXIES` | Trusted proxies |
+|---|---|
+| unset (default) | the private networks and the loopback: `127.0.0.0/8`, `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `::1/128`, `fc00::/7` (the NAS proxy, a Caddy or Traefik container, the host's proxy) |
+| `172.18.0.0/16 192.168.1.10` | only these addresses or networks (a proxy on a public address: add it) |
+| empty or `none` | none: the connection's address (Carbure published directly, without a proxy) |
+
+The address used is the last one of `X-Forwarded-For` that is not a trusted proxy
+(`real_ip_recursive`): the proxy adds the one it sees, and the addresses written before by
+the client are ignored. It is also used by the nginx access log and by PHP
+(`REMOTE_ADDR`: logs, setup wizard). An invalid entry stops the container at startup
+(message in `docker logs`), which also prints the trusted proxies.
+
+!!! warning "Trade-off of the default"
+    The default works without any setting with the usual proxies, all on a private
+    network. In return, a device of the **local network** (or another container) can
+    choose the address nginx uses by sending `X-Forwarded-For` itself, and so get around
+    the limit or fake the address in the logs; from the Internet, through the proxy, this
+    is not possible. If Carbure is published **without a proxy** and connections from the
+    Internet arrive with a private address (port forwarding of the router or of Docker
+    hiding the original address), set `TRUSTED_PROXIES=none`; with a proxy, you can
+    restrict `TRUSTED_PROXIES` to its address only. A proxy that does not add
+    `X-Forwarded-For` (Caddy and Traefik add it by default, nginx with
+    `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for`) makes all its clients
+    share the limit: it stays generous for a household.
+
 ## Permissions { #autorisations }
 
 | Role | Rights |
@@ -95,7 +139,8 @@ each route. The portal hides the corresponding tabs.
 After **5 failed sign-in attempts** in a row, the account is **locked for 24 hours**
 (`423`, from the 5th failure on: the sign-in screen shows it right away), even with the right
 password; a successful sign-in resets the counter. An
-administrator unlocks it from the **Users** tab (`POST /user/unlock`).
+administrator unlocks it from the **Users** tab (`POST /user/unlock`). With the Docker
+image, sign-ins are also [limited per address](#limitation-des-connexions).
 
 An administrator cannot delete their own account; a user who owns
 transactions cannot be deleted; the last administrator cannot lose
@@ -151,9 +196,10 @@ environment's database, never for another server entered in the wizard. Once the
 configuration is written, the wizard disappears and the code is deleted.
 
 !!! warning "Reverse proxy"
-    The address taken into account is the one connecting to the PHP server (`REMOTE_ADDR`).
-    Behind a reverse proxy, that is the proxy's address, hence a local address: the code
-    is then not requested. Install Carbure before exposing it to the Internet, or create
+    The addresses taken into account are the one connecting to the PHP server
+    (`REMOTE_ADDR`) and those of the proxy headers (`X-Forwarded-For`, `X-Real-IP`,
+    `Forwarded`). A reverse proxy that does not send them, or only puts local addresses
+    in them, makes the client look local: the code is then not requested. Install Carbure before exposing it to the Internet, or create
     `data/conf/setup.code` (Docker: `/data/conf/setup.code`) with a code of your choice to
     enforce it.
 
@@ -252,7 +298,9 @@ Only these routes do not require a JWT (a unit test checks it):
 - **Client address**: behind a trusted proxy (private or local address: the image's nginx,
   the NAS reverse proxy), it is the last public address of
   `X-Forwarded-For` (or `X-Real-IP`); otherwise the connection address, because these headers
-  can then be forged.
+  can then be forged. In the Docker image, nginx has already replaced the connection address
+  with the client's one given by a trusted proxy (`TRUSTED_PROXIES`, see
+  [Login rate limit](#limitation-des-connexions)), also written in its access log.
 - An IP address is **personal data**: log files are deleted after
   `log_retention_days` days (90 in a new installation, see
   [Configuration](configuration.md)).

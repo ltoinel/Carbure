@@ -157,6 +157,16 @@ keeps track of what was done).
       registered for that user: a new iPhone gets `403` "Two-factor authentication is
       required and this device is not known yet" while `mfa_required` is on.
 
+- [ ] **Mobile apps** (login rate limit, #359): the Docker image answers `429`
+      (`{"error", "code": 429}`, `Retry-After: 60`) after 30 logins per minute from one
+      address (`POST /user/login`, `/user/login/mfa`, `/oauth/token`): show "too many
+      attempts, wait a minute" instead of a wrong password.
+
+- [ ] **Login rate limit behind a proxy** (#359): after the upgrade, check in the logs of
+      the container (`docker logs`, line "client address taken from X-Forwarded-For") and
+      in its access log that the address of the clients is theirs, not the one of the NAS
+      reverse proxy; otherwise set `TRUSTED_PROXIES` (docs/securite.md).
+
 - [ ] **Two-factor authentication, known devices** (#166 review): a device registered in
       `devices` skips the code, also one registered before `mfa_required` was turned on,
       and the administrator reset of the second factor does not remove the devices of the
