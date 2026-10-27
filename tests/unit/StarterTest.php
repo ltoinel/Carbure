@@ -75,6 +75,6 @@ class StarterTest extends TestCase
         }
         // The main insights only are shown at first
         $enabled = array_column(array_filter(self::starter()['insights'], fn(array $insight): bool => $insight['enabled']), 'en');
-        $this->assertSame(['Expenses', 'Income', 'Left this month', 'Savings', 'Uncategorized', 'Over budget'], array_values($enabled));
+        $this->assertSame(['Expenses', 'Income', 'Left this month', 'Savings', 'Uncategorized', 'Over budget'], $enabled);
     }
 }
