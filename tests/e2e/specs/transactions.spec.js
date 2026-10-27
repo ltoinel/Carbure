@@ -182,7 +182,8 @@ test('splits a transaction across several categories, then cancels the split', a
     const saved = (await (await api.get(`/api/transaction?month=${month}&year=${year}`)).json())
         .filter(t => t.label === 'CB SUPERMARCHE CASINO');
     const origin = saved.find(t => t.split_of === null);
-    expect(saved.find(t => t.split_of !== null)).toMatchObject({ split_of: origin.id, amount: '-20.00', category: 3 });
+    const part = saved.find(t => t.split_of !== null);
+    expect([part.split_of, Number(part.amount), Number(part.category)]).toEqual([origin.id, -20, 3]);
 
     // Cancelled from the part: the transaction gets back the amount of the bank
     await rows.nth(1).getByRole('button', { name: new RegExp(tr('transactionDetail')) }).click();
