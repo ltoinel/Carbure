@@ -505,6 +505,10 @@
                             :aria-current="isAdministrationTab ? 'page' : null" @click="navigateFromDrawer(administrationTab)">
                         <span class="material-icons" aria-hidden="true">admin_panel_settings</span>{{ t('tabAdministration') }}
                     </button>
+                    <button type="button" :class="{ active: activeTab === 'tags' }"
+                            :aria-current="activeTab === 'tags' ? 'page' : null" @click="navigateFromDrawer('tags')">
+                        <span class="material-icons" aria-hidden="true">sell</span>{{ t('tabTags') }}
+                    </button>
                     <button v-if="!isAdmin" type="button" :class="{ active: activeTab === 'agents' }"
                             :aria-current="activeTab === 'agents' ? 'page' : null" @click="navigateFromDrawer('agents')">
                         <span class="material-icons" aria-hidden="true">smart_toy</span>{{ t('tabAgents') }}
