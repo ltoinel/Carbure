@@ -94,9 +94,9 @@ git config core.hooksPath .githooks   # pre-commit lint, pre-push unit tests
   `this.apiErrorText(error)` (its translation, else its message).
 - SQL: prepared statements only (`Db::execute`, `Db::queryOne`).
 - Current user: `Jwt::getUserIdFromToken()`; headers: `Webservice::getHeader()`.
-- Admin actions: declare the route `admin: true` (`users.is_admin`); call
-  `User::requireAdmin()` in the method only for a conditional check (e.g. `PUT /user` on
-  another user or `is_admin`). Portal shows them only if `isAdmin`. Non-admins read/edit
+- Admin actions (`users.is_admin`): use `admin: true` above; call `User::requireAdmin()`
+  in the method only for a conditional check (e.g. `PUT /user` on another user or
+  `is_admin`). Portal shows them only if `isAdmin`. Non-admins read/edit
   only their own profile. `tests/unit/ApiResolverTest.php` pins the access level
   (public/user/admin) of every route: add each new route there.
 - Passwords: `password_hash()`; legacy salted SHA-256 migrated at login (`User::verifyPassword`).
@@ -154,8 +154,8 @@ git config core.hooksPath .githooks   # pre-commit lint, pre-push unit tests
 
 ## Portal
 
-- Every string via `t('key')`; add each key in **both** `portal/i18n/fr.json` and
-  `portal/i18n/en.json` (same `{placeholders}`). Plurals: `<key>_one` / `<key>_other`,
+- Every string via `t('key')`; add each key in **all 6** `portal/i18n/*.json`
+  (fr, en, de, es, it, pt; same `{placeholders}`). Plurals: `<key>_one` / `<key>_other`,
   called with `t('key', { count })`, never "(s)". `tests/portal/i18n.test.mjs` checks
   parity, used and unused keys.
 - Any added/changed feature gets a Playwright spec in `tests/e2e/specs/` (data: `seed.php`).
@@ -163,12 +163,13 @@ git config core.hooksPath .githooks   # pre-commit lint, pre-push unit tests
   on hover and on focus — never lower it with `opacity` or a grey label on a colored
   background; a button class that sets its own background keeps it on hover.
   `specs/accessibility.spec.js` checks every tab: extend it when adding a screen or modal.
-- No external CDN: a new library, font or image goes in `portal/vendor/` (listed in its
-  `README.md` with version, source and license), never a `https://` URL in a page.
+- A new library, font or image goes in `portal/vendor/` (listed in its `README.md` with
+  version, source and license): see **No external CDN** above.
 
 ## Issues, branches, PRs and commits
 
 - Every change starts from an issue (assigned, in the next milestone); the PR says `Closes #<n>`.
+  No open milestone (the last one is released): create the next patch one (`v1.11.0` → `v1.11.1`).
 - Never push to `main`: branch from `origin/main` as `<type>/<issue>-<short-topic>`
   (e.g. `fix/26-codeql-alerts`).
 - PRs are squash-merged and the **PR title becomes the commit of `main`**: it follows
