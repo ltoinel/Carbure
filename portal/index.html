@@ -741,7 +741,7 @@
                                         </div>
                                         <div v-if="transaction.tags && transaction.tags.length" class="transaction-tags">
                                             <span v-for="tag in transactionTags(transaction)" :key="tag.id" class="tag-chip">
-                                                <span class="tag-dot" :style="{ background: categoryColor(tag) }" aria-hidden="true"></span>#{{ tag.name }}
+                                                <span class="tag-dot" :style="{ background: categoryColor(tag) }" aria-hidden="true"></span><span class="tag-chip-name">#{{ tag.name }}</span>
                                             </span>
                                         </div>
                                     </div>
@@ -2774,7 +2774,7 @@
                         <label :for="tagsToOffer(transactionDetail).length ? 'detail-tag' : null">{{ t('tagsOfTransaction') }}</label>
                         <ul v-if="transactionTags(transactionDetail).length" class="transaction-tags">
                             <li v-for="tag in transactionTags(transactionDetail)" :key="tag.id" class="tag-chip">
-                                <span class="tag-dot" :style="{ background: categoryColor(tag) }" aria-hidden="true"></span>#{{ tag.name }}
+                                <span class="tag-dot" :style="{ background: categoryColor(tag) }" aria-hidden="true"></span><span class="tag-chip-name">#{{ tag.name }}</span>
                                 <button type="button" class="tag-chip-remove" @click="removeDetailTag(transactionDetail, tag)" :aria-label="t('tagRemoveOf', { name: tag.name })">
                                     <span class="material-icons" aria-hidden="true">close</span>
                                 </button>
@@ -2829,7 +2829,7 @@
                 <div class="modal-body manual-form">
                     <div class="form-group">
                         <label for="tag-name">{{ t('tagName') }}</label>
-                        <input id="tag-name" v-model="tagForm.name" maxlength="41" :placeholder="t('tagNamePlaceholder')" aria-describedby="tag-name-help"
+                        <input id="tag-name" type="text" v-model="tagForm.name" maxlength="41" :placeholder="t('tagNamePlaceholder')" aria-describedby="tag-name-help"
                                @keydown.enter="tagForm.name.trim() && saveTag()" />
                         <small id="tag-name-help">{{ t('tagNameHelp') }}</small>
                     </div>

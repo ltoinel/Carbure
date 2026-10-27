@@ -2245,7 +2245,8 @@ button .material-icons {
 
 .modal-body input[type="text"],
 .modal-body input[type="email"],
-.modal-body input[type="password"] {
+.modal-body input[type="password"],
+.modal-body input[type="date"] {
     width: 100%;
     padding: 12px 16px;
     border: 1px solid var(--divider);
@@ -2257,7 +2258,8 @@ button .material-icons {
 
 .modal-body input[type="text"]:focus,
 .modal-body input[type="email"]:focus,
-.modal-body input[type="password"]:focus {
+.modal-body input[type="password"]:focus,
+.modal-body input[type="date"]:focus {
     outline: none;
     border-color: var(--primary-color);
     box-shadow: 0 0 0 3px rgba(209, 44, 72, 0.15);
@@ -7958,6 +7960,7 @@ button.is-busy:not(.btn-confirm-danger):hover {
 .transaction-tags {
     display: flex;
     flex-wrap: wrap;
+    min-width: 0;
     gap: 4px;
     margin: 4px 0 0;
     padding: 0;
@@ -7977,7 +7980,15 @@ button.is-busy:not(.btn-confirm-danger):hover {
     font-size: 12px;
     font-weight: 500;
     max-width: 100%;
-    overflow-wrap: anywhere;
+    min-width: 0;
+}
+
+/* On one line, cut with an ellipsis in a narrow row (phone) */
+.tag-chip-name {
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .tag-chip-remove {

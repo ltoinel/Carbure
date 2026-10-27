@@ -30,7 +30,8 @@ test('tags transactions of a project, then shows its summary', async ({ userPage
     const detail = page.getByRole('dialog', { name: tr('transactionDetail') });
     await detail.locator('#detail-tag').selectOption({ label: '#voyage-italie' });
     await detail.getByRole('button', { name: tr('tagAdd') }).click();
-    await expect(detail.locator('.tag-chip')).toHaveText('#voyage-italie');
+    await expect(detail.locator('.tag-chip')).toContainText('#voyage-italie');
+    await expect(detail.getByRole('button', { name: tr('tagRemoveOf', { name: 'voyage-italie' }) })).toBeVisible();
     await page.keyboard.press('Escape');
     await expect(row(page, 'CB RESTAURANT LE PETIT ZINC').locator('.tag-chip')).toHaveText('#voyage-italie');
 
