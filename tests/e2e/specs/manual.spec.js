@@ -36,7 +36,8 @@ test('adds a manual account, then enters and changes a cash expense', async ({ a
     await expect(added.locator('.category-chip')).toHaveText('Alimentation');
     await expect(expenses(page)).toHaveText(euros(1596.7));
 
-    // Changed from its detail
+    // Changed from its detail (once the message is gone: it covers the buttons of the modal)
+    await expect(page.locator('.toast')).toHaveCount(0);
     await added.getByRole('button', { name: new RegExp(tr('transactionDetail')) }).click();
     await page.getByRole('dialog', { name: tr('transactionDetail') }).getByRole('button', { name: tr('manualTransactionEdit') }).click();
     const edit = page.getByRole('dialog', { name: tr('manualTransactionEditTitle') });
