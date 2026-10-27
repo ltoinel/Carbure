@@ -46,20 +46,15 @@ composer test                          # PHPUnit unit suite (vendor/bin/phpunit 
 DB_HOST=127.0.0.1 DB_USER=root DB_PASSWORD=root composer test:all   # + integration (recreates carbure_test)
 node --test 'tests/portal/*.test.mjs'
 cd tests/e2e && npm ci && npx playwright install chromium               # once
-E2E_DB_HOST=127.0.0.1 E2E_DB_PASSWORD=root PHP_BIN=… npx playwright test
+E2E_DB_HOST=127.0.0.1 E2E_DB_PASSWORD=root PHP_BIN=/path/to/php npx playwright test   # PHP_BIN defaults to php
 git config core.hooksPath .githooks   # pre-commit lint, pre-push unit tests
 ```
 
-## Local environment (WSL)
+## Local environment
 
-- Shell is zsh: don't name a variable `path`; `echo ===` fails. Prefer `bash -c '…'`.
-- PHP not installed. Download a static CLI into a scratch dir:
-  `https://dl.static-php.dev/static-php-cli/common/php-8.3.x-cli-linux-x86_64.tar.gz`
-  (lint + unit tests; no `mysqli`/`pcov`) or `…/bulk/…` (has `mysqli`: integration/e2e
-  with MariaDB in Docker; coverage only in CI).
-- Composer not installed either: download `https://getcomposer.org/download/latest-stable/composer.phar`
-  into the same scratch dir and run it with that PHP (`php composer.phar install`, `… test`).
-- Case-insensitive FS; LF line endings (`.gitattributes`).
+- LF line endings (`.gitattributes`).
+- Machine-specific notes (shell, how PHP/Composer are installed) go in an untracked
+  `CLAUDE.local.md`, not here.
 
 ## API conventions
 
@@ -85,32 +80,38 @@ git config core.hooksPath .githooks   # pre-commit lint, pre-push unit tests
   (403 of `User::requireAdmin()`; invalid with `public: true`).
 - Request params (JSON body + query string) are injected **by name** into method params:
   renaming one breaks the API; unknown param → 400.
-- Errors: `throw new Error(msg, 4xx)` (code = HTTP status); `Exception` = 500.
-  Response: `{"error","code","uid"}`. An error a user meets in the portal is a
-  `new ApiError(msg, 4xx, 'stable_code', ['name' => $value])` (`Carbure\Lib\ApiError`,
-  still an `Error`): the response adds `error_code` (+ `params`), the English `error`
-  unchanged; add `apiErrors.<stable_code>` (`{name}` placeholders) to the 6
-  `portal/i18n/*.json` (`tests/portal/apiErrors.test.mjs`); the portal shows errors through
-  `this.apiErrorText(error)` (its translation, else its message).
+- **Errors**:
+  - `throw new Error(msg, 4xx)` (code = HTTP status); `Exception` = 500.
+    Response: `{"error","code","uid"}`.
+  - An error a user meets in the portal is a
+    `new ApiError(msg, 4xx, 'stable_code', ['name' => $value])` (`Carbure\Lib\ApiError`,
+    still an `Error`): the response adds `error_code` (+ `params`), the English `error`
+    unchanged.
+  - Add `apiErrors.<stable_code>` (`{name}` placeholders) to the 6 `portal/i18n/*.json`
+    (`tests/portal/apiErrors.test.mjs`).
+  - The portal shows errors through `this.apiErrorText(error)` (its translation, else
+    its message).
 - SQL: prepared statements only (`Db::execute`, `Db::queryOne`).
 - Current user: `Jwt::getUserIdFromToken()`; headers: `Webservice::getHeader()`.
-- Admin actions: declare the route `admin: true` (`users.is_admin`); call
-  `User::requireAdmin()` in the method only for a conditional check (e.g. `PUT /user` on
-  another user or `is_admin`). Portal shows them only if `isAdmin`. Non-admins read/edit
+- Admin actions (`users.is_admin`): use `admin: true` above; call `User::requireAdmin()`
+  in the method only for a conditional check (e.g. `PUT /user` on another user or
+  `is_admin`). Portal shows them only if `isAdmin`. Non-admins read/edit
   only their own profile. `tests/unit/ApiResolverTest.php` pins the access level
   (public/user/admin) of every route: add each new route there.
 - Passwords: `password_hash()`; legacy salted SHA-256 migrated at login (`User::verifyPassword`).
 - `Logger` masks `password`/`token`; never log secrets otherwise.
 - PHPDoc on every method; match existing style.
-- **Types**: every parameter, return value and property has a native type (no
-  `declare(strict_types=1)`: request params are coerced), arrays typed in the PHPDoc
-  (`array<string, mixed>`, `list<…>`). PHPStan (Composer dev dependency, `phpstan.neon`,
-  level 8 + rule `tools/phpstan/NativeTypesRule.php` + deprecation rules; tests:
-  `phpstan.tests.neon`, level 5)
-  checks it in pre-commit and CI: rows through `Db::select()`/`Db::result()` (never a
-  `false` result), dates through `Month::timestamp()`, files through `File::read()`; no
-  `@phpstan-ignore`, no baseline. Route params come as strings from the query string:
-  never a bare `bool` (`"false"` would be `true`), keep what the iOS app sends valid.
+- **Types**:
+  - Every parameter, return value and property has a native type (no
+    `declare(strict_types=1)`: request params are coerced); arrays typed in the PHPDoc
+    (`array<string, mixed>`, `list<…>`).
+  - PHPStan checks it in pre-commit and CI: `phpstan.neon` (level 8 + rule
+    `tools/phpstan/NativeTypesRule.php` + deprecation rules), tests `phpstan.tests.neon`
+    (level 5). No `@phpstan-ignore`, no baseline.
+  - Use the typed helpers: rows through `Db::select()`/`Db::result()` (never a `false`
+    result), dates through `Month::timestamp()`, files through `File::read()`.
+  - Route params come as strings from the query string: never a bare `bool` (`"false"`
+    would be `true`); keep what the iOS app sends valid.
 - **Complexity**: cyclomatic complexity ≤ 10 per function/method (rule
   `tools/phpstan/CyclomaticComplexityRule.php`, threshold in `phpstan.neon`): split a
   growing method into small private ones, use lookup tables instead of if/else chains.
@@ -154,8 +155,8 @@ git config core.hooksPath .githooks   # pre-commit lint, pre-push unit tests
 
 ## Portal
 
-- Every string via `t('key')`; add each key in **both** `portal/i18n/fr.json` and
-  `portal/i18n/en.json` (same `{placeholders}`). Plurals: `<key>_one` / `<key>_other`,
+- Every string via `t('key')`; add each key in **all 6** `portal/i18n/*.json`
+  (fr, en, de, es, it, pt; same `{placeholders}`). Plurals: `<key>_one` / `<key>_other`,
   called with `t('key', { count })`, never "(s)". `tests/portal/i18n.test.mjs` checks
   parity, used and unused keys.
 - Any added/changed feature gets a Playwright spec in `tests/e2e/specs/` (data: `seed.php`).
@@ -163,12 +164,13 @@ git config core.hooksPath .githooks   # pre-commit lint, pre-push unit tests
   on hover and on focus — never lower it with `opacity` or a grey label on a colored
   background; a button class that sets its own background keeps it on hover.
   `specs/accessibility.spec.js` checks every tab: extend it when adding a screen or modal.
-- No external CDN: a new library, font or image goes in `portal/vendor/` (listed in its
-  `README.md` with version, source and license), never a `https://` URL in a page.
+- A new library, font or image goes in `portal/vendor/` (listed in its `README.md` with
+  version, source and license): see **No external CDN** above.
 
 ## Issues, branches, PRs and commits
 
 - Every change starts from an issue (assigned, in the next milestone); the PR says `Closes #<n>`.
+  No open milestone (the last one is released): create the next patch one (`v1.11.0` → `v1.11.1`).
 - Never push to `main`: branch from `origin/main` as `<type>/<issue>-<short-topic>`
   (e.g. `fix/26-codeql-alerts`).
 - PRs are squash-merged and the **PR title becomes the commit of `main`**: it follows
