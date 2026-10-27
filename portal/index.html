@@ -641,6 +641,9 @@
                                             @click="openRecurringCalendar" :title="t('recurringCalendarHelp')" :aria-label="t('recurringCalendarButton')">
                                         <span class="material-icons" aria-hidden="true">calendar_month</span>
                                     </button>
+                                    <button type="button" class="btn-secondary btn-manual-add" @click="openManualTransaction" :title="t('manualTransactionTitle')">
+                                        <span class="material-icons" aria-hidden="true">add</span>{{ t('manualTransactionButton') }}
+                                    </button>
                                     <button type="button" class="btn-secondary btn-import" @click="openImport" :title="t('importTitle')">
                                         <span class="material-icons" aria-hidden="true">upload_file</span>{{ t('importButton') }}
                                     </button>
@@ -729,6 +732,9 @@
                             <p class="empty-state-hint">{{ t('emptyImportHint') }}</p>
                             <button type="button" class="btn-secondary btn-import" @click="openImport" :title="t('importTitle')">
                                 <span class="material-icons" aria-hidden="true">upload_file</span>{{ t('importButton') }}
+                            </button>
+                            <button type="button" class="btn-secondary btn-manual-add" @click="openManualTransaction" :title="t('manualTransactionTitle')">
+                                <span class="material-icons" aria-hidden="true">add</span>{{ t('manualTransactionButton') }}
                             </button>
                         </div>
                     </div>
@@ -1356,7 +1362,7 @@
                                 </div>
                                 <div class="panel-actions">
                                     <!-- Every followed account, with the progress panel below -->
-                                    <button type="button" class="btn-icon btn-icon-sync accounts-sync-all" @click="startSync()" :disabled="syncStatus === 'running' || bankAccounts.length === 0"
+                                    <button type="button" class="btn-icon btn-icon-sync accounts-sync-all" @click="startSync()" :disabled="syncStatus === 'running' || !hasSyncedAccount"
                                             :title="t('syncAllAccounts')" :aria-label="t('syncAllAccounts')">
                                         <span class="material-icons" :class="{ spin: syncStatus === 'running' && syncTarget === null }" aria-hidden="true">sync</span>
                                     </button>
@@ -1435,6 +1441,29 @@
                                         </li>
                                     </ul>
                                     <p v-else class="bank-group-empty">{{ t('noFollowedAccountInBank') }}</p>
+                                </li>
+                            </ul>
+
+                            <!-- Accounts whose transactions are entered by hand: cash, a bank woob does not support -->
+                            <div class="accounts-section-header">
+                                <h3 class="accounts-section-title">{{ t('manualAccountsTitle') }}</h3>
+                                <button type="button" class="btn-secondary manual-account-add" @click="openManualAccountModal()">
+                                    <span class="material-icons" aria-hidden="true">account_balance_wallet</span>
+                                    {{ t('manualAccountAdd') }}
+                                </button>
+                            </div>
+                            <p class="rules-help">{{ t('manualAccountsHelp') }}</p>
+                            <ul v-if="manualBankAccounts.length" class="accounts-list manual-accounts" :aria-label="t('manualAccountsTitle')">
+                                <li v-for="a in manualBankAccounts" :key="a.id" class="account-item">
+                                    <span class="material-icons account-icon" aria-hidden="true">account_balance_wallet</span>
+                                    <div class="account-details">
+                                        <div class="account-name">{{ accountName(a) }}</div>
+                                        <code class="device-token">{{ a.account_number }}</code>
+                                    </div>
+                                    <div class="device-actions">
+                                        <button class="btn-icon" @click="openAccountModal(a)" :title="t('editAccount')" :aria-label="t('editAccount')"><span class="material-icons" aria-hidden="true">edit</span></button>
+                                        <button class="btn-icon btn-icon-delete" @click="removeAccount(a)" :title="t('deleteAccount')" :aria-label="t('deleteAccount')"><span class="material-icons" aria-hidden="true">delete</span></button>
+                                    </div>
                                 </li>
                             </ul>
                         </section>
@@ -2591,6 +2620,10 @@
                             :title="t('deleteTransaction')" :aria-label="t('deleteTransaction')">
                         <span class="material-icons" aria-hidden="true">delete</span>
                     </button>
+                    <button v-if="isManual(transactionDetail)" type="button" class="btn-secondary" @click="editManualTransaction(transactionDetail)" :disabled="savingTransaction">
+                        <span class="material-icons" aria-hidden="true">edit</span>
+                        {{ t('manualTransactionEdit') }}
+                    </button>
                     <button type="button" class="btn-secondary" @click="openSplit" :disabled="savingTransaction" :title="t('splitHelp')" :aria-label="t('splitButton')">
                         <span class="material-icons" aria-hidden="true">call_split</span>
                     </button>
@@ -2599,6 +2632,68 @@
                         {{ t('cancel') }}
                     </button>
                     <button @click="saveTransactionDetail" :disabled="savingTransaction">
+                        <span class="material-icons" aria-hidden="true">check_circle</span>
+                        {{ t('save') }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Transaction entered by hand on a manual account (new one, or changed) -->
+        <div v-if="showManualModal" class="modal-overlay" @click.self="closeManualModal" @keydown.esc="closeManualModal">
+            <div class="modal modal-form modal-manual" role="dialog" aria-modal="true" aria-labelledby="manual-modal-title">
+                <div class="modal-header">
+                    <span class="material-icons" aria-hidden="true">{{ manualForm.id === null ? 'add' : 'edit' }}</span>
+                    <h3 id="manual-modal-title">{{ manualForm.id === null ? t('manualTransactionTitle') : t('manualTransactionEditTitle') }}</h3>
+                    <button class="modal-close" @click="closeManualModal" :aria-label="t('close')">
+                        <span class="material-icons" aria-hidden="true">close</span>
+                    </button>
+                </div>
+                <div v-if="manualForm.id === null && manualAccounts.length === 0" class="modal-body">
+                    <p class="rules-help">{{ isAdmin ? t('manualNoAccountAdmin') : t('manualNoAccount') }}</p>
+                    <button v-if="isAdmin" type="button" class="btn-add" @click="goToManualAccounts">
+                        <span class="material-icons" aria-hidden="true">account_balance_wallet</span>
+                        {{ t('manualAccountAdd') }}
+                    </button>
+                </div>
+                <div v-else class="modal-body manual-form">
+                    <div v-if="manualForm.id === null" class="form-group">
+                        <label for="manual-account">{{ t('manualAccount') }}</label>
+                        <select id="manual-account" v-model="manualForm.account">
+                            <option v-for="a in manualAccounts" :key="a.id" :value="a.id">{{ a.label || a.account_number }}</option>
+                        </select>
+                    </div>
+                    <fieldset class="manual-direction">
+                        <legend class="visually-hidden">{{ t('manualDirection') }}</legend>
+                        <label><input type="radio" value="expense" v-model="manualForm.direction" /> {{ t('manualExpense') }}</label>
+                        <label><input type="radio" value="income" v-model="manualForm.direction" /> {{ t('manualIncome') }}</label>
+                    </fieldset>
+                    <div class="manual-row">
+                        <div class="form-group">
+                            <label for="manual-amount">{{ t('manualAmount', { currency: currencySymbol }) }}</label>
+                            <input id="manual-amount" type="number" step="0.01" min="0" inputmode="decimal" v-model="manualForm.amount" required @keydown.enter="manualValid && saveManualTransaction()" />
+                        </div>
+                        <div class="form-group">
+                            <label for="manual-date">{{ t('transactionDate') }}</label>
+                            <input id="manual-date" type="date" v-model="manualForm.date" required />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="manual-label">{{ t('manualLabel') }}</label>
+                        <input id="manual-label" type="text" v-model="manualForm.label" maxlength="300" :placeholder="t('manualLabelPlaceholder')" required @keydown.enter="manualValid && saveManualTransaction()" />
+                    </div>
+                    <div v-if="manualForm.id === null" class="form-group">
+                        <label>{{ t('categoryLabel') }}</label>
+                        <category-picker v-model="manualForm.category" :categories="ruleCategories" :t="t" with-default
+                                         :placeholder="t('manualCategoryAuto')" :icon-for="categoryIcon" :color-for="categoryColor"></category-picker>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" @click="closeManualModal">
+                        <span class="material-icons" aria-hidden="true">cancel</span>
+                        {{ t('cancel') }}
+                    </button>
+                    <button v-if="manualForm.id !== null || manualAccounts.length > 0" @click="saveManualTransaction" :disabled="savingManual || !manualValid">
                         <span class="material-icons" aria-hidden="true">check_circle</span>
                         {{ t('save') }}
                     </button>
@@ -3229,18 +3324,23 @@
         <div v-if="showAccountModal" class="modal-overlay" @click.self="closeAccountModal">
             <div class="modal modal-account" role="dialog" aria-modal="true" aria-labelledby="modal-title-5">
                 <div class="modal-header">
-                    <span class="material-icons" aria-hidden="true">edit</span>
-                    <h3 id="modal-title-5">{{ t('editAccount') }}</h3>
+                    <span class="material-icons" aria-hidden="true">{{ accountForm.id === null ? 'account_balance_wallet' : 'edit' }}</span>
+                    <h3 id="modal-title-5">{{ accountForm.id === null ? t('manualAccountAdd') : t('editAccount') }}</h3>
                     <button class="modal-close" @click="closeAccountModal" :aria-label="t('close')">
                         <span class="material-icons" aria-hidden="true">close</span>
                     </button>
                 </div>
                 <div class="modal-body">
-                    <p class="account-woob-id">{{ t('accountInWoob') }} <code>{{ accountForm.account_number }}@{{ accountForm.bank_name }}</code></p>
+                    <p v-if="!accountForm.manual" class="account-woob-id">{{ t('accountInWoob') }} <code>{{ accountForm.account_number }}@{{ accountForm.bank_name }}</code></p>
                     <div class="form-group">
                         <label for="field-account-label">{{ t('accountLabel') }}</label>
                         <input id="field-account-label" v-model="accountForm.label" maxlength="100" :placeholder="t('accountLabelPlaceholder')" aria-describedby="account-label-help" />
                         <small id="account-label-help">{{ t('accountLabelHelp') }}</small>
+                    </div>
+                    <div v-if="accountForm.id === null" class="form-group">
+                        <label for="field-account-number">{{ t('manualAccountNumber') }}</label>
+                        <input id="field-account-number" v-model="accountForm.account_number" maxlength="100" aria-describedby="account-number-help" />
+                        <small id="account-number-help">{{ t('manualAccountNumberHelp') }}</small>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -3248,7 +3348,7 @@
                         <span class="material-icons" aria-hidden="true">cancel</span>
                         {{ t('cancel') }}
                     </button>
-                    <button @click="submitAccountForm" :disabled="savingAccount">
+                    <button @click="submitAccountForm" :disabled="savingAccount || (accountForm.manual && !String(accountForm.label).trim())">
                         <span class="material-icons" aria-hidden="true">check_circle</span>
                         {{ t('save') }}
                     </button>

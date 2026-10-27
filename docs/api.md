@@ -96,7 +96,7 @@ premier plan ; ensuite, l'en-tête de chaque réponse suffit (voir ci-dessous).
 
 | Type | Incrémenté par |
 |---|---|
-| `transactions` | synchronisation (transaction nouvelle ou modifiée, catégorie trouvée), `POST /transaction/import`, `PUT /transaction/category`, `PUT /transaction/pointed`, `PUT /transaction/split`, `DELETE /transaction`, règles appliquées à l'historique, `DELETE /category` |
+| `transactions` | synchronisation (transaction nouvelle ou modifiée, catégorie trouvée), `POST /transaction/import`, `POST /transaction`, `PUT /transaction`, `PUT /transaction/category`, `PUT /transaction/pointed`, `PUT /transaction/split`, `DELETE /transaction`, règles appliquées à l'historique, `DELETE /category` |
 | `accounts` | synchronisation (compte en erreur, réparé ou autre erreur), `POST`/`PUT`/`DELETE /bank`, `/bank/backend` |
 | `categories` | `POST`/`PUT`/`DELETE /category`, `/category/keyword`, `PUT /category/keyword/settings` |
 | `budgets` | `POST /budget`, `POST /budget/copy`, `DELETE /category` |
@@ -386,10 +386,11 @@ l'a ajouté.
 ### `GET /bank`
 
 Comptes bancaires du foyer, visibles par tous les utilisateurs (un compte n'apparaît
-qu'une fois) ; `label` est le nom donné au compte (`null` s'il n'en a pas) :
+qu'une fois) ; `label` est le nom donné au compte (`null` s'il n'en a pas), `manual` indique
+un compte manuel (jamais synchronisé, ses transactions saisies à la main) :
 
 ```json
-[{ "id": 1, "bankId": "DEMO0000001@bnp", "account_number": "DEMO0000001", "bank_name": "bnp", "label": "Compte joint" }]
+[{ "id": 1, "bankId": "DEMO0000001@bnp", "account_number": "DEMO0000001", "bank_name": "bnp", "label": "Compte joint", "manual": false }]
 ```
 
 ### `GET /bank/accounts` — administrateur
@@ -397,13 +398,22 @@ qu'une fois) ; `label` est le nom donné au compte (`null` s'il n'en a pas) :
 Tous les comptes du foyer avec l'utilisateur qui les a ajoutés et le résultat de leur
 dernière synchronisation : `id`, `bankId`, `account_number`, `bank_name`, `label`, `user_id` et
 `username` (qui l'a ajouté), `last_sync_at`, `last_sync_status` (`OK`, `ERROR` ou `null`),
-`last_sync_message` (nombre de nouvelles transactions ou erreur).
+`last_sync_message` (nombre de nouvelles transactions ou erreur), `manual` (compte manuel).
 
 ### `POST /bank` — administrateur
 
 Suit un compte pour le foyer. Paramètres : `account_number` (identifiant du compte dans
 woob), `bank_name` (nom du backend woob) et `label` (facultatif : nom donné au compte,
 100 caractères maximum) ; `user_id` du compte est l'administrateur qui l'ajoute. `409` si le foyer suit déjà ce compte, `400` si un identifiant est invalide.
+
+### `POST /bank/manual` — administrateur
+
+Ajoute un compte manuel : espèces, ou banque que woob ne gère pas. Il n'est jamais
+synchronisé ; ses transactions se saisissent à la main (`POST /transaction`). Paramètres :
+`label` (obligatoire, 100 caractères maximum) et `account_number` (facultatif, par exemple un
+IBAN sans espaces ; généré s'il est vide). Son `bank_name` est `manual`, nom réservé : refusé
+pour une connexion woob ou un autre compte (`400 bank_name_reserved`). `409` si le numéro est
+déjà suivi.
 
 ### `PUT /bank` — administrateur
 
@@ -693,6 +703,27 @@ pour ne pas la pointer).
 curl -X PUT https://exemple.fr/api/transaction/pointed -H "Authorization: Bearer $TOKEN" \
   -H 'Content-Type: application/json' -d '{"id":42,"pointed":false}'
 ```
+
+### `POST /transaction`
+
+Saisit une transaction à la main sur un compte manuel : `account` (`id` du compte), `date`
+(`AAAA-MM-JJ`), `label`, `amount` (négatif pour une dépense) et `category` (facultative :
+sinon celle des règles, sinon aucune). Elle est pointée, de type `8` (dépense), avec
+`bank_name` `manual`. Renvoie la transaction. Erreurs `400` : `account_not_manual`,
+`transaction_date_invalid`, `transaction_label_invalid`, `transaction_amount_invalid` ;
+`404` si le compte ou la catégorie n'existe pas.
+
+```bash
+curl -X POST https://exemple.fr/api/transaction -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' -d '{"account":7,"date":"2026-10-27","label":"Marché","amount":-12.5}'
+```
+
+### `PUT /transaction`
+
+Modifie une transaction saisie à la main : `id` et les valeurs à changer parmi `date`,
+`label` et `amount`. `400 transaction_not_manual` pour une transaction d'une banque ou une
+part de répartition, `400 transaction_split_amount` pour le montant d'une transaction
+répartie (annuler d'abord la répartition). Renvoie la transaction.
 
 ### `PUT /transaction/split`
 

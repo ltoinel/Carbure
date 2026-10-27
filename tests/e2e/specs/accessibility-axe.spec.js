@@ -79,7 +79,7 @@ test('axe: every tab of a user', async ({ userPage: page }) => {
     expect(await everyTab(page, USER_TABS, axeViolations)).toEqual([]);
 });
 
-test('axe: the menus and the modals', async ({ adminPage: page }) => {
+test('axe: the menus and the modals', async ({ adminPage: page, api }) => {
     const problems = [];
 
     await page.locator('.user-menu-toggle').click();
@@ -102,6 +102,20 @@ test('axe: the menus and the modals', async ({ adminPage: page }) => {
     problems.push(...await axeViolations(page, tr('splitTitle')));
     await page.keyboard.press('Escape');
     await expect(split).toHaveCount(0);
+
+    // A transaction entered by hand: no manual account yet, then the form
+    await page.locator('.transactions-toolbar').getByRole('button', { name: tr('manualTransactionButton') }).click();
+    const manual = page.getByRole('dialog', { name: tr('manualTransactionTitle') });
+    await expect(manual).toContainText(tr('manualNoAccountAdmin'));
+    problems.push(...await axeViolations(page, tr('manualTransactionTitle')));
+    await page.keyboard.press('Escape');
+    await expect(manual).toHaveCount(0);
+    expect((await api.post('/api/bank/manual', { data: { label: 'Espèces' } })).ok()).toBe(true);
+    await page.locator('.transactions-toolbar').getByRole('button', { name: tr('manualTransactionButton') }).click();
+    await expect(manual.getByLabel(tr('manualLabel'))).toBeVisible();
+    problems.push(...await axeViolations(page, tr('manualTransactionTitle') + ' (form)'));
+    await page.keyboard.press('Escape');
+    await expect(manual).toHaveCount(0);
 
     await openTab(page, tr('tabBudget'));
     await page.getByRole('tab', { name: tr('budgetConfigTab') }).click();

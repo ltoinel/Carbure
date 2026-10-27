@@ -95,7 +95,7 @@ is enough (see below).
 
 | Kind | Bumped by |
 |---|---|
-| `transactions` | synchronization (new or modified transaction, category found), `POST /transaction/import`, `PUT /transaction/category`, `PUT /transaction/pointed`, `PUT /transaction/split`, `DELETE /transaction`, rules applied to the history, `DELETE /category` |
+| `transactions` | synchronization (new or modified transaction, category found), `POST /transaction/import`, `POST /transaction`, `PUT /transaction`, `PUT /transaction/category`, `PUT /transaction/pointed`, `PUT /transaction/split`, `DELETE /transaction`, rules applied to the history, `DELETE /category` |
 | `accounts` | synchronization (account in error, repaired or another error), `POST`/`PUT`/`DELETE /bank`, `/bank/backend` |
 | `categories` | `POST`/`PUT`/`DELETE /category`, `/category/keyword`, `PUT /category/keyword/settings` |
 | `budgets` | `POST /budget`, `POST /budget/copy`, `DELETE /category` |
@@ -383,10 +383,11 @@ added it.
 ### `GET /bank` { #get-bank }
 
 Bank accounts of the household, visible to every user (an account appears only
-once); `label` is the name given to the account (`null` if it has none):
+once); `label` is the name given to the account (`null` if it has none), `manual` tells a
+manual account (never synchronized, its transactions entered by hand):
 
 ```json
-[{ "id": 1, "bankId": "DEMO0000001@bnp", "account_number": "DEMO0000001", "bank_name": "bnp", "label": "Compte joint" }]
+[{ "id": 1, "bankId": "DEMO0000001@bnp", "account_number": "DEMO0000001", "bank_name": "bnp", "label": "Compte joint", "manual": false }]
 ```
 
 ### `GET /bank/accounts` — administrator { #get-bankaccounts-administrateur }
@@ -394,13 +395,22 @@ once); `label` is the name given to the account (`null` if it has none):
 Every account of the household with the user who added it and the result of its
 last synchronization: `id`, `bankId`, `account_number`, `bank_name`, `label`, `user_id` and
 `username` (who added it), `last_sync_at`, `last_sync_status` (`OK`, `ERROR` or `null`),
-`last_sync_message` (number of new transactions or error).
+`last_sync_message` (number of new transactions or error), `manual` (manual account).
 
 ### `POST /bank` — administrator { #post-bank-administrateur }
 
 Follows an account for the household. Parameters: `account_number` (account identifier in
 woob), `bank_name` (woob backend name) and `label` (optional: name given to the account,
 100 characters maximum); the account's `user_id` is the administrator who adds it. `409` if the household already follows this account, `400` if an identifier is invalid.
+
+### `POST /bank/manual` — administrator { #post-bankmanual-administrateur }
+
+Adds a manual account: cash, or a bank woob does not support. It is never synchronized;
+its transactions are entered by hand (`POST /transaction`). Parameters: `label` (required,
+100 characters maximum) and `account_number` (optional, for example an IBAN without spaces;
+generated when empty). Its `bank_name` is `manual`, a reserved name: refused for a woob
+connection or another account (`400 bank_name_reserved`). `409` if the number is already
+followed.
 
 ### `PUT /bank` — administrator { #put-bank-administrateur }
 
@@ -690,6 +700,27 @@ to leave it unchecked).
 curl -X PUT https://exemple.fr/api/transaction/pointed -H "Authorization: Bearer $TOKEN" \
   -H 'Content-Type: application/json' -d '{"id":42,"pointed":false}'
 ```
+
+### `POST /transaction` { #post-transaction }
+
+Enters a transaction by hand on a manual account: `account` (`id` of the account), `date`
+(`YYYY-MM-DD`), `label`, `amount` (negative for an expense) and `category` (optional:
+otherwise the one of the rules, otherwise none). It is checked, of type `8` (expense), with
+`bank_name` `manual`. Returns the transaction. `400` errors: `account_not_manual`,
+`transaction_date_invalid`, `transaction_label_invalid`, `transaction_amount_invalid`;
+`404` if the account or the category does not exist.
+
+```bash
+curl -X POST https://exemple.fr/api/transaction -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' -d '{"account":7,"date":"2026-10-27","label":"Marché","amount":-12.5}'
+```
+
+### `PUT /transaction` { #put-transaction }
+
+Changes a transaction entered by hand: `id` and the values to change among `date`, `label`
+and `amount`. `400 transaction_not_manual` for a transaction of a bank or a part of a split
+one, `400 transaction_split_amount` for the amount of a split transaction (cancel the split
+first). Returns the transaction.
 
 ### `PUT /transaction/split` { #put-transactionsplit }
 

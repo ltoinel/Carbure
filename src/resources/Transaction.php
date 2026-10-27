@@ -20,6 +20,7 @@ use Carbure\Lib\Jwt;
 use Carbure\Lib\Logger;
 use Carbure\Lib\Month;
 use Carbure\Lib\Webservice;
+use DateTime;
 use Error;
 use Exception;
 
@@ -1018,13 +1019,10 @@ final class Transaction {
     {
         $category = is_array($part) ? ($part['category'] ?? null) : null;
         $amount = is_array($part) ? ($part['amount'] ?? null) : null;
-        if (!is_numeric($category) || !is_numeric($amount)) {
+        if (!(is_int($category) || is_string($category)) || !is_numeric($amount)) {
             throw new Error("Each part is {category, amount}", 400);
         }
-        if (!Db::queryOne("SELECT id FROM bank_transaction_category WHERE id = ?", "i", (int)$category)) {
-            throw new ApiError("Category not found", 404, 'category_not_found');
-        }
-        return [(int)$category, (int)round((float)$amount * 100)];
+        return [self::existingCategory($category), (int)round((float)$amount * 100)];
     }
 
     /**
@@ -1056,7 +1054,133 @@ final class Transaction {
     }
 
     /**
-     * Insert a transaction that does not come from a bank (a part of a split one).
+     * Enter a transaction by hand on a manual account (cash, a bank woob does not support):
+     * checked, of the category given or else of the rules. It stays editable (PUT /transaction).
+     *
+     * @param int|string      $account  The id of a manual account
+     * @param string          $date     Its date (YYYY-MM-DD)
+     * @param string          $label    Its label
+     * @param int|float|string $amount  Its amount: negative for an expense
+     * @param int|string|null $category Its category (optional: the rules, else none)
+     * @return array<string, mixed> The transaction
+     * @throws Error If the account is not a manual one, a value is invalid (400) or the account
+     *               or the category does not exist (404)
+     */
+    #[ApiRoute('/transaction', method: 'POST', changes: ['transactions'])]
+    public static function createManual(int|string $account, string $date, string $label, int|float|string $amount,
+                                  int|string|null $category = null): array
+    {
+        $bank = Db::queryOne("SELECT account_number, bank_name FROM bank_account WHERE id = ?", "i", $account);
+        if (!$bank) {
+            throw new ApiError("Account not found", 404, 'account_not_found');
+        }
+        if ($bank['bank_name'] !== Bank::MANUAL) {
+            throw new ApiError("Transactions are entered by hand on a manual account only", 400, 'account_not_manual');
+        }
+        $fields = self::manualFields($date, $label, $amount);
+        $category = $category === null || $category === '' ? (Category::find($fields['label']) ?? 0) : self::existingCategory($category);
+
+        $id = self::insertRow(['split_of' => null, 'uuid' => md5('manual#' . random_bytes(16)), 'rdate' => $fields['date'],
+            'type' => 8, 'category' => $category, 'card' => '', 'bank_name' => Bank::MANUAL,
+            'account_number' => $bank['account_number'], 'pointed' => 1, 'user' => (int)Jwt::getUserIdFromToken()] + $fields);
+        if (substr($fields['date'], 0, 7) === date('Y-m')) {
+            BudgetAlert::check();
+        }
+        return self::manualRow($id);
+    }
+
+    /**
+     * Change a transaction entered by hand (not a part of a split one): only the values given.
+     * The amount of a split one is kept: its split is cancelled first.
+     *
+     * @param int|string            $id     The id of the transaction
+     * @param string|null           $date   Its new date (YYYY-MM-DD)
+     * @param string|null           $label  Its new label
+     * @param int|float|string|null $amount Its new amount
+     * @return array<string, mixed> The transaction
+     * @throws Error If it does not exist (404), was not entered by hand or a value is invalid (400)
+     */
+    #[ApiRoute('/transaction', method: 'PUT', changes: ['transactions'])]
+    public static function updateManual(int|string $id, ?string $date = null, ?string $label = null,
+                                  int|float|string|null $amount = null): array
+    {
+        $transaction = self::manualRow($id);
+        if ($transaction['bank_name'] !== Bank::MANUAL || $transaction['split_of'] !== null) {
+            throw new ApiError("Only a transaction entered by hand can be changed", 400, 'transaction_not_manual');
+        }
+        $fields = self::manualFields($date ?? $transaction['date'], $label ?? stripslashes($transaction['label']),
+            $amount ?? $transaction['amount']);
+        if ($fields['amount'] !== sprintf('%.2f', (float)$transaction['amount'])
+            && Db::queryOne("SELECT id FROM bank_transaction WHERE split_of = ? LIMIT 1", "i", $id)) {
+            throw new ApiError("The amount of a split transaction cannot be changed", 400, 'transaction_split_amount');
+        }
+
+        Db::execute("UPDATE bank_transaction SET date = ?, rdate = ?, label = ?, amount = ? WHERE id = ?", "ssssi",
+            $fields['date'], $fields['date'], $fields['label'], $fields['amount'], $id);
+        Db::execute("UPDATE bank_transaction SET date = ?, rdate = ?, label = ? WHERE split_of = ?", "sssi",
+            $fields['date'], $fields['date'], $fields['label'], $id);
+        return self::manualRow($id);
+    }
+
+    /**
+     * Check the values of a transaction entered by hand.
+     *
+     * @param string           $date   Its date (YYYY-MM-DD)
+     * @param string           $label  Its label
+     * @param int|float|string $amount Its amount
+     * @return array{date: string, label: string, amount: string} The values to store (label cleaned)
+     * @throws Error If one is invalid (400)
+     */
+    private static function manualFields(string $date, string $label, int|float|string $amount): array
+    {
+        $parsed = DateTime::createFromFormat('!Y-m-d', $date);
+        if ($parsed === false || $parsed->format('Y-m-d') !== $date) {
+            throw new ApiError("Invalid date (YYYY-MM-DD)", 400, 'transaction_date_invalid');
+        }
+        $label = self::cleanLabel(mb_strtoupper(trim(preg_replace('/[\x00-\x1F\x7F]+/u', ' ', $label) ?? '')));
+        if ($label === '' || mb_strlen($label) > 300) {
+            throw new ApiError("The label must contain 1 to 300 characters", 400, 'transaction_label_invalid');
+        }
+        $cents = is_numeric($amount) ? (int)round((float)$amount * 100) : 0;
+        if ($cents === 0 || abs($cents) >= 100000000) {
+            throw new ApiError("Invalid amount", 400, 'transaction_amount_invalid');
+        }
+        return ['date' => $date, 'label' => $label, 'amount' => sprintf('%.2f', $cents / 100)];
+    }
+
+    /**
+     * A category sent by a user, if it exists.
+     *
+     * @param int|string $category The id of the category
+     * @return int The category
+     * @throws Error If it does not exist (404)
+     */
+    private static function existingCategory(int|string $category): int
+    {
+        if (!ctype_digit((string)$category) || !Db::queryOne("SELECT id FROM bank_transaction_category WHERE id = ?", "i", (int)$category)) {
+            throw new ApiError("Category not found", 404, 'category_not_found');
+        }
+        return (int)$category;
+    }
+
+    /**
+     * A transaction, by its id.
+     *
+     * @param int|string $id The id of the transaction
+     * @return array<string, mixed> Its row
+     * @throws Error If it does not exist (404)
+     */
+    private static function manualRow(int|string $id): array
+    {
+        $transaction = Db::queryOne("SELECT * FROM bank_transaction WHERE id = ?", "i", $id);
+        if (!$transaction) {
+            throw new ApiError("Transaction not found", 404, 'transaction_not_found');
+        }
+        return $transaction;
+    }
+
+    /**
+     * Insert a transaction that does not come from a bank (a part of a split one, one entered by hand).
      *
      * @param array<string, mixed> $row split_of, uuid, date, rdate, type, label (cleaned), category,
      *                                  amount, card, bank_name, account_number, pointed, user

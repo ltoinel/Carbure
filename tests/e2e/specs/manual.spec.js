@@ -1,0 +1,78 @@
+// Manual accounts (Accounts tab) and transactions entered by hand (Transactions tab)
+const { test, expect, tr, openTab, pickCategory, euros, currentMonth } = require('../fixtures');
+
+/** Row of a transaction, by its label */
+const row = (page, label) => page.locator('.transaction-item').filter({ hasText: label });
+
+/** Expenses of the month, as shown at the top of the Transactions tab */
+const expenses = page => page.locator('.stat-card').filter({ hasText: tr('expenseLabel') }).locator('.stat-value');
+
+test('adds a manual account, then enters and changes a cash expense', async ({ adminPage: page, api }) => {
+    await openTab(page, tr('tabAccounts'));
+    await page.getByRole('button', { name: tr('manualAccountAdd') }).click();
+    const accountModal = page.getByRole('dialog', { name: tr('manualAccountAdd') });
+    await accountModal.getByLabel(tr('accountLabel')).fill('Espèces');
+    await accountModal.getByRole('button', { name: tr('save') }).click();
+    await expect(page.locator('.toast')).toHaveText(tr('manualAccountAdded'));
+    const manual = page.locator('.manual-accounts .account-item');
+    await expect(manual).toHaveCount(1);
+    await expect(manual.locator('.account-name')).toHaveText('Espèces');
+    // Not synchronized: no synchronization button
+    await expect(manual.getByRole('button', { name: tr('syncAccount') })).toHaveCount(0);
+
+    await openTab(page, tr('tabTransactions'));
+    await page.locator('.transactions-toolbar').getByRole('button', { name: tr('manualTransactionButton') }).click();
+    const modal = page.getByRole('dialog', { name: tr('manualTransactionTitle') });
+    await expect(modal.getByLabel(tr('manualAccount'))).toHaveValue(/\d+/);
+    await modal.getByLabel(tr('manualAmount', { currency: '€' })).fill('12.50');
+    await modal.getByLabel(tr('manualLabel')).fill('Marché du dimanche');
+    await pickCategory(modal, 'Alimentation');
+    await modal.getByRole('button', { name: tr('save') }).click();
+    await expect(modal).toHaveCount(0);
+    await expect(page.locator('.toast')).toHaveText(tr('manualTransactionAdded'));
+
+    const added = row(page, 'MARCHÉ DU DIMANCHE');
+    await expect(added.locator('.transaction-amount')).toHaveText(euros(-12.5));
+    await expect(added.locator('.category-chip')).toHaveText('Alimentation');
+    await expect(expenses(page)).toHaveText(euros(1596.7));
+
+    // Changed from its detail
+    await added.getByRole('button', { name: new RegExp(tr('transactionDetail')) }).click();
+    await page.getByRole('dialog', { name: tr('transactionDetail') }).getByRole('button', { name: tr('manualTransactionEdit') }).click();
+    const edit = page.getByRole('dialog', { name: tr('manualTransactionEditTitle') });
+    await expect(edit.getByLabel(tr('manualAmount', { currency: '€' }))).toHaveValue('12.50');
+    await edit.getByLabel(tr('manualAmount', { currency: '€' })).fill('15');
+    await edit.getByRole('button', { name: tr('save') }).click();
+    await expect(page.locator('.toast')).toHaveText(tr('transactionSaved'));
+    await expect(added.locator('.transaction-amount')).toHaveText(euros(-15));
+
+    const { month, year } = currentMonth();
+    const saved = (await (await api.get(`/api/transaction?month=${month}&year=${year}`)).json())
+        .find(t => t.label === 'MARCHÉ DU DIMANCHE');
+    expect([saved.bank_name, Number(saved.amount), Number(saved.pointed)]).toEqual(['manual', -15, 1]);
+
+    // A transaction of a bank is not changed
+    await row(page, 'PRLV LOYER AGENCE').getByRole('button', { name: new RegExp(tr('transactionDetail')) }).click();
+    const detail = page.getByRole('dialog', { name: tr('transactionDetail') });
+    await expect(detail.getByRole('button', { name: tr('splitButton') })).toBeVisible();
+    await expect(detail.getByRole('button', { name: tr('manualTransactionEdit') })).toHaveCount(0);
+});
+
+test('a user enters an income by hand once an administrator added a manual account', async ({ userPage: page, api }) => {
+    await page.locator('.transactions-toolbar').getByRole('button', { name: tr('manualTransactionButton') }).click();
+    let modal = page.getByRole('dialog', { name: tr('manualTransactionTitle') });
+    await expect(modal).toContainText(tr('manualNoAccount'));
+    await expect(modal.getByRole('button', { name: tr('save') })).toHaveCount(0);
+    await page.keyboard.press('Escape');
+    await expect(modal).toHaveCount(0);
+
+    expect((await api.post('/api/bank/manual', { data: { label: 'Espèces' } })).ok()).toBe(true);
+    await page.locator('.transactions-toolbar').getByRole('button', { name: tr('manualTransactionButton') }).click();
+    modal = page.getByRole('dialog', { name: tr('manualTransactionTitle') });
+    await modal.getByLabel(tr('manualIncome')).check();
+    await modal.getByLabel(tr('manualAmount', { currency: '€' })).fill('30');
+    await modal.getByLabel(tr('manualLabel')).fill('Vente vide-grenier');
+    await modal.getByLabel(tr('manualLabel')).press('Enter');
+    await expect(page.locator('.toast')).toHaveText(tr('manualTransactionAdded'));
+    await expect(row(page, 'VENTE VIDE-GRENIER').locator('.transaction-amount')).toHaveText(euros(30));
+});

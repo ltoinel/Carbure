@@ -19,6 +19,7 @@
  * Followed accounts grouped under their bank connection, in the order of the
  * connections, then the accounts of no configured connection (removed connection,
  * imported file) in a last group; a connection without followed account keeps its group.
+ * The manual accounts are listed apart (manualAccountsOf()).
  * @param {Array<{name: string}>} backends - Banks connected in woob
  * @param {Array<{bank_name: string}>} accounts - Followed accounts (their order is kept)
  * @returns {Array<{key: string, backend: Object|null, accounts: Array}>} The groups
@@ -27,10 +28,20 @@ export function accountsByBank(backends, accounts) {
     const groups = (backends || []).map(backend => ({ key: `bank-${backend.name}`, backend, accounts: [] }));
     const byName = new Map(groups.map(group => [group.backend.name, group]));
     const others = { key: 'others', backend: null, accounts: [] };
-    for (const account of accounts || []) {
+    for (const account of (accounts || []).filter(a => !a.manual)) {
         (byName.get(account.bank_name) || others).accounts.push(account);
     }
     return others.accounts.length ? [...groups, others] : groups;
+}
+
+/**
+ * Manual accounts among the followed ones: never synchronized, their transactions
+ * entered by hand
+ * @param {Array<{manual?: boolean}>} accounts - Followed accounts
+ * @returns {Array<Object>}
+ */
+export function manualAccountsOf(accounts) {
+    return (accounts || []).filter(a => a.manual);
 }
 
 /** Configuration in woob of a bank being connected, empty */
@@ -51,8 +62,9 @@ export function createAccountsModule(getApiService) {
                 // Label of a followed account, modified in a modal
                 showAccountModal: false,
                 savingAccount: false,
-                // Account of the modal: {id, account_number, bank_name, label}
-                accountForm: { id: null, account_number: '', bank_name: '', label: '' },
+                // Account of the modal: {id, account_number, bank_name, label, manual}; a new
+                // manual account has no id
+                accountForm: { id: null, account_number: '', bank_name: '', label: '', manual: false },
                 // Banks connected in woob (backends): [{name, module, label}]
                 bankBackends: [],
                 // Name of a bank connection, modified in a modal: {name, module, label}
@@ -92,6 +104,22 @@ export function createAccountsModule(getApiService) {
              */
             bankGroups() {
                 return accountsByBank(this.bankBackends, this.bankAccounts);
+            },
+
+            /**
+             * Manual accounts of the household (never synchronized)
+             * @returns {Array<Object>}
+             */
+            manualBankAccounts() {
+                return manualAccountsOf(this.bankAccounts);
+            },
+
+            /**
+             * Whether an account can be synchronized (not a manual one)
+             * @returns {boolean}
+             */
+            hasSyncedAccount() {
+                return this.bankAccounts.some(a => !a.manual);
             }
         },
 
@@ -566,7 +594,15 @@ export function createAccountsModule(getApiService) {
              * @param {Object} account - Account to modify
              */
             openAccountModal(account) {
-                this.accountForm = { id: account.id, account_number: account.account_number, bank_name: account.bank_name, label: account.label || '' };
+                this.accountForm = { id: account.id, account_number: account.account_number, bank_name: account.bank_name, label: account.label || '', manual: !!account.manual };
+                this.showAccountModal = true;
+            },
+
+            /**
+             * Opens the modal adding a manual account (cash, a bank woob does not support)
+             */
+            openManualAccountModal() {
+                this.accountForm = { id: null, account_number: '', bank_name: 'manual', label: '', manual: true };
                 this.showAccountModal = true;
             },
 
@@ -585,8 +621,13 @@ export function createAccountsModule(getApiService) {
                 const form = this.accountForm;
                 this.savingAccount = true;
                 try {
-                    await getApiService().updateBankAccount(form.id, String(form.account_number), form.bank_name, String(form.label || '').trim());
-                    this.showToast(this.t('accountUpdated'));
+                    if (form.id === null) {
+                        await getApiService().createManualAccount(String(form.label || '').trim(), String(form.account_number || '').trim());
+                        this.showToast(this.t('manualAccountAdded'));
+                    } else {
+                        await getApiService().updateBankAccount(form.id, String(form.account_number), form.bank_name, String(form.label || '').trim());
+                        this.showToast(this.t('accountUpdated'));
+                    }
                     this.showAccountModal = false;
                     await this.loadBankAccounts();
                 } catch (error) {

@@ -14,6 +14,7 @@ import { createApiService } from './services/apiService.js';
 import { createBudgetStore } from './stores/budgetStore.js';
 import { createTransactionModule } from './modules/transactionModule.js';
 import { createSplitModule } from './modules/splitModule.js';
+import { createManualModule } from './modules/manualModule.js';
 import { createBudgetModule } from './modules/budgetModule.js';
 import { createInsightsModule } from './modules/insightsModule.js';
 import { createUserModule } from './modules/userModule.js';
@@ -94,6 +95,7 @@ const app = createApp({
     mixins: [
         createTransactionModule(() => apiService),
         createSplitModule(() => apiService),
+        createManualModule(() => apiService),
         createBudgetModule(() => budgetStore, () => apiService),
         createInsightsModule(() => apiService),
         createUserModule(() => apiService),

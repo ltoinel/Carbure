@@ -209,7 +209,8 @@ final class Settings {
         $ini = @parse_ini_file(self::file());
         $token = !empty($ini['sync_token']) ? (string)$ini['sync_token'] : null;
         $masked = !filter_var($reveal, FILTER_VALIDATE_BOOLEAN);
-        $accounts = Db::select("SELECT DISTINCT CONCAT(account_number, '@', bank_name) AS id FROM bank_account ORDER BY id", "")->fetch_all(MYSQLI_ASSOC);
+        $accounts = Db::select("SELECT DISTINCT CONCAT(account_number, '@', bank_name) AS id FROM bank_account WHERE bank_name <> ? ORDER BY id",
+            "s", Bank::MANUAL)->fetch_all(MYSQLI_ASSOC);
 
         return [
             'url' => OAuth::baseUrl() . '/api/bank/sync',

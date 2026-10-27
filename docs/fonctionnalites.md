@@ -71,6 +71,9 @@ bancaire tiers, pas de cloud. Les modules woob couvrent surtout les **banques fr
 - Les **comptes suivis** sont communs au foyer : chacun indique qui l'a ajouté, la date et le
   résultat de sa dernière synchronisation (Synchronisé, Échec avec le message, ou Jamais
   synchronisé). Ne plus suivre un compte conserve ses transactions déjà importées.
+- **Comptes manuels** : pour l'argent liquide, ou une banque que woob ne gère pas, un
+  administrateur ajoute un compte manuel (un nom, et un numéro facultatif). Il n'est jamais
+  synchronisé : ses transactions sont saisies à la main dans l'onglet Transactions.
 
 ### Déroulement d'une synchronisation
 
@@ -131,6 +134,10 @@ transactions du dernier mois restées sans catégorie.
 - **Supprimer** une transaction (depuis son détail, après confirmation) : elle disparaît
   pour tout le foyer et n'est plus réimportée, ni par la synchronisation ni par l'import
   d'un relevé.
+- **Saisir une transaction à la main** (bouton **Ajouter**), par exemple une dépense en
+  espèces, sur un compte manuel : dépense ou revenu, montant, libellé, date, et catégorie
+  (sinon celle des règles). Tout utilisateur peut en saisir ; elle est comptée comme les
+  autres et reste modifiable (libellé, date, montant) depuis son détail.
 - **Répartir** une transaction sur plusieurs catégories (depuis son détail) : un ticket de
   supermarché en partie alimentation et en partie maison, un retrait d'espèces dépensé en
   courses et en transport. Chaque part (catégorie et montant, 10 au plus) devient une
