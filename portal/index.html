@@ -3076,7 +3076,7 @@
 
         <!-- Insights to add: the hidden ones (shown again in one click); administrators also create one -->
         <div v-if="showInsightCatalog" class="modal-overlay" @click.self="closeInsightCatalog">
-            <div class="modal modal-form" role="dialog" aria-modal="true" aria-labelledby="insight-catalog-title">
+            <div class="modal modal-form insight-catalog-dialog" role="dialog" aria-modal="true" aria-labelledby="insight-catalog-title">
                 <div class="modal-header">
                     <span class="material-icons" aria-hidden="true">add_chart</span>
                     <h3 id="insight-catalog-title">{{ t('addInsight') }}</h3>

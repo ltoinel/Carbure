@@ -1015,6 +1015,7 @@
         "insight_icon_invalid": "Invalid icon",
         "insight_name_length": "The name must contain 1 to 20 characters",
         "insight_not_found": "Insight not found",
+        "insight_migration_pending": "The database must be updated first",
         "insight_query_failed": "Invalid query: {cause}",
         "insight_query_forbidden_keyword": "Forbidden keyword in the query: {keyword}",
         "insight_query_length": "The query must contain 1 to 500 characters",

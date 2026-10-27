@@ -1015,6 +1015,7 @@
         "insight_icon_invalid": "Icono no válido",
         "insight_name_length": "El nombre debe tener entre 1 y 20 caracteres",
         "insight_not_found": "Insight no encontrado",
+        "insight_migration_pending": "Primero hay que actualizar la base de datos",
         "insight_query_failed": "Consulta no válida: {cause}",
         "insight_query_forbidden_keyword": "Palabra clave prohibida en la consulta: {keyword}",
         "insight_query_length": "La consulta debe tener entre 1 y 500 caracteres",

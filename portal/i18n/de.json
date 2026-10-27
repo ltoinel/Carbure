@@ -1015,6 +1015,7 @@
         "insight_icon_invalid": "Ungültiges Symbol",
         "insight_name_length": "Der Name muss 1 bis 20 Zeichen enthalten",
         "insight_not_found": "Insight nicht gefunden",
+        "insight_migration_pending": "Die Datenbank muss zuerst aktualisiert werden",
         "insight_query_failed": "Ungültige Abfrage: {cause}",
         "insight_query_forbidden_keyword": "Unzulässiges Schlüsselwort in der Abfrage: {keyword}",
         "insight_query_length": "Die Abfrage muss 1 bis 500 Zeichen enthalten",

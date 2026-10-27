@@ -2,6 +2,7 @@
 
 use Carbure\Lib\ApiError;
 use Carbure\Lib\Db;
+use Carbure\Resources\Backup;
 use Carbure\Resources\Budget;
 use Carbure\Resources\Insight;
 
@@ -59,6 +60,44 @@ class InsightTest extends DatabaseTestCase
             $this->fail('Unknown insight enabled');
         } catch (ApiError $e) {
             $this->assertSame([404, 'insight_not_found'], [$e->getCode(), $e->getErrorCode()]);
+        }
+    }
+
+    public function testEnabledIsABoolean()
+    {
+        $created = Insight::create('Revenus', 'green', self::SQL);
+        $this->assertFalse(Insight::setEnabled($created['id'], 'off')['enabled']);
+        // No value: the default, shown
+        $this->assertTrue(Insight::setEnabled($created['id'], null)['enabled']);
+        $this->expectException(Error::class);
+        $this->expectExceptionCode(400);
+        Insight::setEnabled($created['id'], 'ture');
+    }
+
+    public function testBeforeTheMigrationEveryInsightIsShown()
+    {
+        Insight::create('Revenus', 'green', self::SQL);
+        Db::query("ALTER TABLE budget_insight DROP COLUMN enabled");
+        $ready = new ReflectionProperty(Insight::class, 'ready');
+        $ready->setValue(null, null);
+        try {
+            $this->assertCount(2, Budget::getInsights());
+            $this->assertSame([], Insight::disabled());
+            $this->assertSame([true, true], array_column(Insight::get(), 'enabled'));
+            // The backups work without the column: exported as null, imported shown
+            $exported = json_decode(Backup::export('insights'), true)['datasets']['insights'];
+            $this->assertNull($exported[0]['enabled']);
+            Backup::import(['insights' => $exported]);
+            $this->assertCount(2, Insight::get());
+            try {
+                Insight::setEnabled(1, false);
+                $this->fail('Hidden before the migration');
+            } catch (ApiError $e) {
+                $this->assertSame([409, 'insight_migration_pending'], [$e->getCode(), $e->getErrorCode()]);
+            }
+        } finally {
+            Db::query("ALTER TABLE budget_insight ADD COLUMN `enabled` tinyint(1) NOT NULL DEFAULT 1 AFTER `sql`");
+            $ready->setValue(null, null);
         }
     }
 

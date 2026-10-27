@@ -160,7 +160,7 @@ final class Backup {
     private static function rows(string $name, array $usernames): array
     {
         $dataset = BackupData::DATASETS[$name];
-        $columns = implode(', ', array_map(fn(string $column): string => "`$column`", array_keys($dataset['columns'])));
+        $columns = implode(', ', array_map(fn(string $column): string => "`$column`", self::columns($name)));
         $order = implode(', ', array_map(fn(string $key): string => "`$key`", explode(',', $dataset['key'])));
         $result = Db::select("SELECT $columns FROM `{$dataset['table']}` ORDER BY $order", "");
 
@@ -173,6 +173,19 @@ final class Backup {
             $rows[] = BackupData::encode($name, $row);
         }
         return $rows;
+    }
+
+    /**
+     * The columns of a dataset in the database: without enabled of the insights before the
+     * migration 2026-11-01_insight_enabled (exported as null, imported shown).
+     *
+     * @param string $name The dataset
+     * @return list<string> The columns
+     */
+    private static function columns(string $name): array
+    {
+        $columns = array_keys(BackupData::DATASETS[$name]['columns']);
+        return $name === 'insights' && !Insight::ready() ? array_values(array_diff($columns, ['enabled'])) : $columns;
     }
 
     /**
@@ -296,8 +309,11 @@ final class Backup {
             return 0;
         }
         $dataset = BackupData::DATASETS[$name];
-        $columns = array_keys($dataset['columns']);
-        $types = implode('', array_map(fn(string $type): string => preg_match('/^\??(int|bool|user)/', $type) ? 'i' : 's', $dataset['columns']));
+        $columns = self::columns($name);
+        $types = implode('', array_map(fn(string $type): string => preg_match('/^\??(int|bool|user)/', $type) ? 'i' : 's',
+            array_slice($dataset['columns'], 0, count($columns))));
+        // The columns of a pending migration are the last ones: their values are dropped
+        $values = array_map(fn(array $row): array => array_slice($row, 0, count($columns)), $values);
         $sql = "INSERT INTO `{$dataset['table']}` (`" . implode('`, `', $columns) . "`) VALUES ("
             . implode(', ', array_fill(0, count($columns), '?')) . ")";
         return Db::executeMany($sql, $types, $values);

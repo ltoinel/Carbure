@@ -1015,6 +1015,7 @@
         "insight_icon_invalid": "Icône invalide",
         "insight_name_length": "Le nom doit contenir de 1 à 20 caractères",
         "insight_not_found": "Insight introuvable",
+        "insight_migration_pending": "La base de données doit d'abord être mise à jour",
         "insight_query_failed": "Requête invalide : {cause}",
         "insight_query_forbidden_keyword": "Mot-clé interdit dans la requête : {keyword}",
         "insight_query_length": "La requête doit contenir de 1 à 500 caractères",

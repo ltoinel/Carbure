@@ -65,9 +65,7 @@ test('a refused change is shown, a failed list of the hidden ones gives none', a
     });
     await context.setInsightEnabled({ id: 9, name: 'X' }, true);
     assert.deepEqual(context.toasts, ['Insight not found']);
-    context.disabledInsights = [{ id: 3 }];
-    await context.loadDisabledInsights();
-    assert.deepEqual(context.disabledInsights, []);
+    assert.deepEqual(await context.fetchDisabledInsights(), []);
 });
 
 test('the administrators create an insight from the + list', async () => {
