@@ -126,6 +126,16 @@ test('axe: the menus and the modals', async ({ adminPage: page, api }) => {
     await page.keyboard.press('Escape');
     await expect(copy).toHaveCount(0);
 
+    // Insights to add: one hidden first, so that the list is not empty
+    await openTab(page, tr('tabInsights'));
+    await page.getByRole('button', { name: tr('hideInsightOf', { name: 'Dépenses' }) }).click();
+    await page.getByRole('button', { name: tr('addInsight') }).click();
+    const catalog = page.getByRole('dialog', { name: tr('addInsight') });
+    await expect(catalog.locator('.insight-catalog-item')).toHaveCount(1);
+    problems.push(...await axeViolations(page, tr('addInsight')));
+    await page.keyboard.press('Escape');
+    await expect(catalog).toHaveCount(0);
+
     await openTab(page, tr('tabCategories'));
     await page.getByRole('button', { name: tr('addCategory') }).click();
     const category = page.getByRole('dialog', { name: tr('addCategory') });

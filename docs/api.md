@@ -100,7 +100,7 @@ premier plan ; ensuite, l'en-tête de chaque réponse suffit (voir ci-dessous).
 | `accounts` | synchronisation (compte en erreur, réparé ou autre erreur), `POST`/`PUT`/`DELETE /bank`, `/bank/backend` |
 | `categories` | `POST`/`PUT`/`DELETE /category`, `/category/keyword`, `PUT /category/keyword/settings` |
 | `budgets` | `POST /budget`, `POST /budget/copy`, `DELETE /category` |
-| `insights` | `POST`/`PUT`/`DELETE /insight` |
+| `insights` | `POST`/`PUT`/`DELETE /insight`, `PUT /insight/enabled` |
 | `settings` | `PUT /system/config` |
 | `tags` | `POST`/`PUT`/`DELETE /tag` |
 
@@ -869,16 +869,29 @@ en une fois (`400 tag_selection_limit`). Renvoie `{updated}`. Les transactions r
 
 ### `GET /budget/insights`
 
-`month`, `year` : valeur de chaque insight pour le mois (`id`, `name`, `color`, `icon`,
-`amount`). Une requête en échec donne `0` sans bloquer les autres.
+`month`, `year` : valeur de chaque insight **affiché** pour le mois (`id`, `name`, `color`,
+`icon`, `amount`). Une requête en échec donne `0` sans bloquer les autres ; les insights
+masqués ne sont ni calculés ni renvoyés.
 
 ### `GET /budget/insights/history`
 
-`year` : pour chaque insight, la liste `history` des montants mois par mois.
+`year` : pour chaque insight affiché, la liste `history` des montants mois par mois.
+
+### `GET /insight/disabled`
+
+Les insights masqués, proposés par le bouton **+** de l'écran Insights :
+`[{"id", "name", "color", "icon"}]` (liste vide avant la migration
+`2026-11-01_insight_enabled`).
+
+### `PUT /insight/enabled`
+
+`id`, `enabled` (booléen, `true` par défaut) : affiche ou masque un insight pour tout le
+foyer (tout utilisateur). Renvoie `{"id", "enabled"}` ; `404` (`insight_not_found`) si
+l'insight est inconnu.
 
 ### `GET /insight`, `POST /insight`, `PUT /insight`, `DELETE /insight?id=` — administrateur
 
-Gestion des insights, avec leur requête SQL :
+Gestion des insights, avec leur requête SQL (`GET` renvoie aussi `enabled`) :
 
 | Paramètre | Requis | Description |
 |---|---|---|

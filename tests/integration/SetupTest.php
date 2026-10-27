@@ -241,6 +241,8 @@ class SetupTest extends TestCase
             $amounts[$insight['name']] = $db->query($sql)->fetch_assoc()['amount'];
         }
         $this->assertSame(array_column($starter['insights'], 'en'), array_keys($amounts));
+        $this->assertSame(array_map(fn(array $insight): int => $insight['enabled'] ? 1 : 0, $starter['insights']),
+            array_map('intval', array_column($db->query("SELECT enabled FROM budget_insight ORDER BY id")->fetch_all(MYSQLI_ASSOC), 'enabled')));
         $this->assertEquals(-120, $amounts['Expenses']);
         $this->assertEquals(2000, $amounts['Income']);
         $this->assertEquals(1880, $amounts['Left this month']);

@@ -42,7 +42,7 @@ final class BackupData {
      * before it): table, primary key (its columns separated by commas), and type of each column.
      *
      * Types: int:<max>, string:<max length> (may be empty), name:<max length> (not
-     * empty), enum:<a|b>, decimal (10,2), date (Y-m-d), datetime (Y-m-d H:i:s), bool,
+     * empty), enum:<a|b>, decimal (10,2), date (Y-m-d), datetime (Y-m-d H:i:s), bool (bool:<0|1> = its value when missing),
      * user (username; none or unknown here: the administrator who imports, kept none with
      * ?user); a leading ? accepts null.
      */
@@ -68,7 +68,9 @@ final class BackupData {
         'insights' => [
             'table' => 'budget_insight',
             'key' => 'id',
-            'columns' => ['id' => 'int:4294967295', 'name' => 'name:20', 'color' => 'name:20', 'icon' => '?string:50', 'sql' => 'name:500'],
+            'columns' => ['id' => 'int:4294967295', 'name' => 'name:20', 'color' => 'name:20', 'icon' => '?string:50', 'sql' => 'name:500',
+                // Added with the migration 2026-11-01_insight_enabled: enabled in an older backup
+                'enabled' => 'bool:1'],
         ],
         'transactions' => [
             'table' => 'bank_transaction',
@@ -276,7 +278,8 @@ final class BackupData {
             'decimal' => fn(mixed $value): string => self::decimal($value),
             'date' => fn(mixed $value): string => self::moment($value, 'Y-m-d'),
             'datetime' => fn(mixed $value): string => self::moment($value, 'Y-m-d H:i:s'),
-            'bool' => fn(mixed $value): int => self::flag($value),
+            // bool:<default> = the value of a column missing from an older backup
+            'bool' => fn(mixed $value, string $default): int => $value === null && $default !== '' ? (int)$default : self::flag($value),
             'user' => fn(mixed $value): ?string => $value === null ? null : self::text($value, 20, 1),
         ];
     }

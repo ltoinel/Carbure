@@ -223,8 +223,12 @@ class BackupTest extends DatabaseTestCase
     {
         $insight = ['id' => 7, 'name' => ' Courses ', 'color' => 'blue', 'icon' => '', 'sql' => ' SELECT SUM(amount) AS amount FROM bank_transaction; '];
         Backup::import(['insights' => [$insight]]);
-        $this->assertSame(['id' => 7, 'name' => 'Courses', 'color' => 'blue', 'icon' => null, 'sql' => 'SELECT SUM(amount) AS amount FROM bank_transaction'],
+        $this->assertSame(['id' => 7, 'name' => 'Courses', 'color' => 'blue', 'icon' => null, 'sql' => 'SELECT SUM(amount) AS amount FROM bank_transaction', 'enabled' => true],
             $this->export('insights')['datasets']['insights'][0]);
+
+        // A disabled insight stays disabled; one of an older backup (no enabled) is enabled
+        Backup::import(['insights' => [['enabled' => false] + $insight, ['id' => 8] + $insight]]);
+        $this->assertSame([false, true], array_column($this->export('insights')['datasets']['insights'], 'enabled'));
 
         $cases = [
             [['sql' => 'SELECT COUNT(*) AS amount FROM users'] + $insight, 'The query cannot read users'],
@@ -243,7 +247,8 @@ class BackupTest extends DatabaseTestCase
                 $this->assertStringContainsString("insights, row 1: $message", $e->getMessage());
             }
         }
-        $this->assertSame(1, $this->rowCount('budget_insight'));
+        // The two insights imported before the refused ones
+        $this->assertSame(2, $this->rowCount('budget_insight'));
     }
 
     public function testImportedCategoriesAreCheckedAsWhenSaved()

@@ -156,7 +156,7 @@ button **changes the budget amount** for that month (whole amount in euros).
 
 ### Insights { #apercus }
 
-The month's [insights](insights.md) defined on the server (expenses, income, remaining,
+The month's [insights](insights.md) shown on the server (expenses, income, remaining,
 savings…), as tiles, and a **square chart** of the month: each square is worth 100 €
 (the scale adapts), with what was spent in red, the remaining planned budget in blue and
 the rest of the income in green.

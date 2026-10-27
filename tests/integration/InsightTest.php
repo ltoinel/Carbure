@@ -33,6 +33,35 @@ class InsightTest extends DatabaseTestCase
         $this->assertCount(1, Insight::get());
     }
 
+    public function testDisabledInsightsAreOfferedAndNotRun()
+    {
+        $created = Insight::create('Revenus', 'green', self::SQL, 'savings');
+        $this->assertSame([], Insight::disabled());
+
+        // Any user hides an insight for the household, then shows it again
+        $this->loginAs(self::USER);
+        $this->assertSame(['id' => $created['id'], 'enabled' => false], Insight::setEnabled($created['id'], 'false'));
+        $this->assertNotContains('Revenus', array_column(Budget::getInsights(), 'name'));
+        $this->assertArrayNotHasKey($created['id'], Budget::getInsightsHistory());
+        $this->assertSame([['id' => $created['id'], 'name' => 'Revenus', 'color' => 'green', 'icon' => 'savings']], Insight::disabled());
+
+        Insight::setEnabled((string)$created['id'], '1');
+        $shown = Budget::getInsights();
+        $this->assertContains('Revenus', array_column($shown, 'name'));
+        // Same format as before: no enabled field
+        $this->assertArrayNotHasKey('enabled', $shown[0]);
+        $this->assertSame([], Insight::disabled());
+
+        $this->loginAs(self::ADMIN);
+        $this->assertSame([true, true], array_column(Insight::get(), 'enabled'));
+        try {
+            Insight::setEnabled(999, true);
+            $this->fail('Unknown insight enabled');
+        } catch (ApiError $e) {
+            $this->assertSame([404, 'insight_not_found'], [$e->getCode(), $e->getErrorCode()]);
+        }
+    }
+
     public function testIconAndCheck()
     {
         $created = Insight::create('Revenus', 'green', self::SQL, 'savings');

@@ -18,6 +18,10 @@ export function createInsightsModule(getApiService) {
             return {
                 insights: [],
                 loadingInsights: false,
+                // Insights hidden, offered by the + button: {id, name, color, icon}
+                disabledInsights: [],
+                showInsightCatalog: false,
+                togglingInsight: null,
                 // Insight of the modal: {id, name, color, sql}
                 insightForm: null,
                 savingInsight: false,
@@ -72,6 +76,7 @@ export function createInsightsModule(getApiService) {
                     );
 
                     this.insights = Array.isArray(data) ? data : [];
+                    await this.loadDisabledInsights();
 
                     // Show debug toast in dev mode
                     if (this.isDebugMode) {
@@ -88,6 +93,68 @@ export function createInsightsModule(getApiService) {
                 } finally {
                     this.loadingInsights = false;
                     this.insightsController = null;
+                }
+            },
+
+            /**
+             * Loads the insights hidden, offered by the + button (none on a failure:
+             * the button then only creates an insight)
+             * @returns {Promise<void>}
+             */
+            async loadDisabledInsights() {
+                try {
+                    this.disabledInsights = await getApiService().fetchDisabledInsights();
+                } catch (error) {
+                    this.disabledInsights = [];
+                }
+            },
+
+            /**
+             * Opens the list of the insights to add (the hidden ones; administrators also create one)
+             * @returns {void}
+             */
+            openInsightCatalog() {
+                this.showInsightCatalog = true;
+                this.$nextTick(() => document.querySelector('.insight-catalog button')?.focus());
+            },
+
+            /**
+             * Closes the list of the insights to add
+             * @returns {void}
+             */
+            closeInsightCatalog() {
+                this.showInsightCatalog = false;
+            },
+
+            /**
+             * Creates an insight from the list of the insights to add (administrators)
+             * @returns {Promise<void>}
+             */
+            async createInsightFromCatalog() {
+                this.showInsightCatalog = false;
+                await this.openInsightModal();
+            },
+
+            /**
+             * Shows a hidden insight, or hides a shown one, for the whole household
+             * @param {Object} insight - Insight {id, name}
+             * @param {boolean} enabled - True to show it
+             * @returns {Promise<void>}
+             */
+            async setInsightEnabled(insight, enabled) {
+                this.togglingInsight = insight.id;
+                try {
+                    await getApiService().setInsightEnabled(insight.id, enabled);
+                    const name = this.getInsightName(insight.name);
+                    this.showToast(this.t(enabled ? 'insightShown' : 'insightHidden', { name }));
+                    if (enabled && this.disabledInsights.length <= 1) {
+                        this.showInsightCatalog = false;
+                    }
+                    await this.loadInsights(this.selectedMonth, this.selectedYear);
+                } catch (error) {
+                    this.showToast(this.apiErrorText(error));
+                } finally {
+                    this.togglingInsight = null;
                 }
             },
 

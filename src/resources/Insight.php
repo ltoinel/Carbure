@@ -22,6 +22,7 @@ use Carbure\Lib\Logger;
 use Carbure\Lib\Month;
 use Carbure\Lib\SqlTables;
 use Error;
+use Exception;
 use Throwable;
 
 final class Insight {
@@ -69,12 +70,79 @@ final class Insight {
     /**
      * All the insights with their SQL (administrators).
      *
-     * @return list<array<string, mixed>> The insights: id, name, color, sql
+     * @return list<array<string, mixed>> The insights: id, name, color, icon, sql, enabled (once the
+     *         migration 2026-11-01_insight_enabled is applied)
      */
     #[ApiRoute('/insight', method: 'GET', admin: true)]
     public static function get(): array
     {
-        return Db::select("SELECT id, name, color, icon, `sql` FROM budget_insight ORDER BY id", "")->fetch_all(MYSQLI_ASSOC);
+        return array_map(fn(array $insight): array => self::withEnabled($insight),
+            Db::select("SELECT * FROM budget_insight ORDER BY id", "")->fetch_all(MYSQLI_ASSOC));
+    }
+
+    /**
+     * The insights enabled, shown in the Insights tab (all of them before the migration
+     * 2026-11-01_insight_enabled).
+     *
+     * @return list<array<string, mixed>> The rows of budget_insight
+     */
+    public static function enabled(): array
+    {
+        try {
+            return Db::select("SELECT * FROM budget_insight WHERE enabled = 1 ORDER BY id", "")->fetch_all(MYSQLI_ASSOC);
+        } catch (Exception $e) {
+            return Db::select("SELECT * FROM budget_insight ORDER BY id", "")->fetch_all(MYSQLI_ASSOC);
+        }
+    }
+
+    /**
+     * The insights disabled, offered by the + button of the Insights tab.
+     *
+     * @return list<array{id: int, name: string, color: string, icon: string|null}> The insights
+     */
+    #[ApiRoute('/insight/disabled', method: 'GET')]
+    public static function disabled(): array
+    {
+        try {
+            $rows = Db::select("SELECT id, name, color, icon FROM budget_insight WHERE enabled = 0 ORDER BY id", "")->fetch_all(MYSQLI_ASSOC);
+        } catch (Exception $e) {
+            return [];
+        }
+        return array_map(fn(array $row): array => ['id' => (int)$row['id'], 'name' => (string)$row['name'],
+            'color' => (string)$row['color'], 'icon' => $row['icon'] === null ? null : (string)$row['icon']], $rows);
+    }
+
+    /**
+     * Enable an insight (shown in the Insights tab) or disable it (offered by the + button),
+     * for the whole household.
+     *
+     * @param int|string           $id      The insight
+     * @param bool|int|string|null $enabled True to show it (also "true", "1"...), false to hide it
+     * @return array{id: int, enabled: bool} The insight
+     * @throws Error If not found
+     */
+    #[ApiRoute('/insight/enabled', method: 'PUT', changes: ['insights'])]
+    public static function setEnabled(int|string $id, bool|int|string|null $enabled = true): array
+    {
+        if (!Db::queryOne("SELECT id FROM budget_insight WHERE id = ?", "i", $id)) {
+            throw new ApiError("Insight not found", 404, 'insight_not_found');
+        }
+        $enabled = filter_var($enabled, FILTER_VALIDATE_BOOLEAN);
+        Db::execute("UPDATE budget_insight SET enabled = ? WHERE id = ?", "ii", $enabled ? 1 : 0, $id);
+        return ['id' => (int)$id, 'enabled' => $enabled];
+    }
+
+    /**
+     * An insight with its enabled flag as a boolean (true before the migration
+     * 2026-11-01_insight_enabled).
+     *
+     * @param array<string, mixed> $insight A row of budget_insight
+     * @return array<string, mixed> The insight
+     */
+    private static function withEnabled(array $insight): array
+    {
+        $insight['enabled'] = (int)($insight['enabled'] ?? 1) === 1;
+        return $insight;
     }
 
     /**

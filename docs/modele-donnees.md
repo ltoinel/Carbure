@@ -170,6 +170,7 @@ erDiagram
         varchar color
         varchar icon
         varchar sql "requête avec {month} et {year}"
+        tinyint enabled "affiché"
     }
     settings {
         varchar name PK
@@ -206,7 +207,7 @@ erDiagram
 | `bank_transaction_category` | Catégories hiérarchiques (`parent_category`, `0` = racine). La catégorie `0` « Non catégorisé » (`HORS-BUDGET`) est créée par l'installation et protégée. |
 | `bank_transaction_category_keyword` | Règles : mots-clés (en majuscules) recherchés dans les libellés pour catégoriser automatiquement ; `notify` = chaque nouvelle transaction qui correspond est signalée au foyer. |
 | `budget` | Budget d'une catégorie pour un mois (unique par catégorie et date), en `DECIMAL(10,2)`. |
-| `budget_insight` | Insights : requête SQL renvoyant une colonne `amount`, avec les marqueurs `{month}` et `{year}` remplacés par des entiers ; `icon` (icône Material, facultative) et `color` (13 couleurs). |
+| `budget_insight` | Insights : requête SQL renvoyant une colonne `amount`, avec les marqueurs `{month}` et `{year}` remplacés par des entiers ; `icon` (icône Material, facultative) et `color` (13 couleurs) ; `enabled` = carte affichée (`0` : masqué, proposé par le bouton **+**, non calculé). |
 | `settings` | Réglages modifiés depuis le portail (`mcp_enabled`). |
 | `schema_migrations` | Migrations appliquées et leur date ; créée par `sql/carbure.sql` (version `2026-10-13_base`) ou par `Migrator`. La version du schéma est la dernière migration enregistrée. |
 

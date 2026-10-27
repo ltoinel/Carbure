@@ -162,7 +162,7 @@ bouton ⚙ **modifie le montant du budget** de ce mois (montant entier en euros)
 
 ### Aperçus
 
-Les [insights](insights.md) du mois définis sur le serveur (dépenses, revenus, reste,
+Les [insights](insights.md) du mois affichés sur le serveur (dépenses, revenus, reste,
 épargne…), en tuiles, et un **graphique en carrés** du mois : chaque carré vaut 100 €
 (l'échelle s'adapte), en rouge ce qui est dépensé, en bleu le budget prévu restant et en
 vert le reste des revenus.
