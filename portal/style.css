@@ -1494,8 +1494,11 @@ button .material-icons {
     outline: none;
 }
 
+/* Buttons on several lines when they do not fit (detail of a transaction: delete, edit,
+   split, cancel, save), never cut off */
 .modal-footer {
     display: flex;
+    flex-wrap: wrap;
     justify-content: flex-end;
     gap: 8px;
     padding: 12px 20px;
