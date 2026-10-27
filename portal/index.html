@@ -638,8 +638,8 @@
                                         <span class="toggle-label">{{ t('recurringCount', { count: recurring.length }) }}</span>
                                     </label>
                                     <button v-if="!isSearching && recurring.length > 0" type="button" class="btn-secondary btn-recurring-calendar"
-                                            @click="openRecurringCalendar" :title="t('recurringCalendarHelp')">
-                                        <span class="material-icons" aria-hidden="true">calendar_month</span>{{ t('recurringCalendarButton') }}
+                                            @click="openRecurringCalendar" :title="t('recurringCalendarHelp')" :aria-label="t('recurringCalendarButton')">
+                                        <span class="material-icons" aria-hidden="true">calendar_month</span>
                                     </button>
                                     <button type="button" class="btn-secondary btn-import" @click="openImport" :title="t('importTitle')">
                                         <span class="material-icons" aria-hidden="true">upload_file</span>{{ t('importButton') }}
