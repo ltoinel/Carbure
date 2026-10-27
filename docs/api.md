@@ -96,7 +96,7 @@ premier plan ; ensuite, l'en-tête de chaque réponse suffit (voir ci-dessous).
 
 | Type | Incrémenté par |
 |---|---|
-| `transactions` | synchronisation (transaction nouvelle ou modifiée, catégorie trouvée), `POST /transaction/import`, `PUT /transaction/category`, `PUT /transaction/pointed`, `DELETE /transaction`, règles appliquées à l'historique, `DELETE /category` |
+| `transactions` | synchronisation (transaction nouvelle ou modifiée, catégorie trouvée), `POST /transaction/import`, `PUT /transaction/category`, `PUT /transaction/pointed`, `PUT /transaction/split`, `DELETE /transaction`, règles appliquées à l'historique, `DELETE /category` |
 | `accounts` | synchronisation (compte en erreur, réparé ou autre erreur), `POST`/`PUT`/`DELETE /bank`, `/bank/backend` |
 | `categories` | `POST`/`PUT`/`DELETE /category`, `/category/keyword`, `PUT /category/keyword/settings` |
 | `budgets` | `POST /budget`, `POST /budget/copy`, `DELETE /category` |
@@ -694,12 +694,30 @@ curl -X PUT https://exemple.fr/api/transaction/pointed -H "Authorization: Bearer
   -H 'Content-Type: application/json' -d '{"id":42,"pointed":false}'
 ```
 
+### `PUT /transaction/split`
+
+`id`, `parts` (`[{category, amount}]`) : répartit la transaction sur plusieurs catégories.
+Chaque part devient une transaction (même date, libellé et compte, `split_of` = l'`id` de
+la transaction) ; la transaction garde le reste du montant de la banque. Les parts envoyées
+remplacent les précédentes, `parts: []` annule la répartition. Renvoie la transaction puis
+ses parts. Erreurs `400` : une part ne se répartit pas (`split_of_part`), montants du signe
+de la transaction (`split_sign`), un reste doit subsister (`split_total`), 10 parts au plus
+(`split_limit`) ; `404` si la transaction ou une catégorie n'existe pas.
+
+```bash
+curl -X PUT https://exemple.fr/api/transaction/split -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' -d '{"id":42,"parts":[{"category":3,"amount":-20}]}'
+```
+
+Les transactions renvoyées par `GET /transaction` portent `split_of` (`null` hors part).
+
 ### `DELETE /transaction`
 
 `id` : supprime la transaction (`404` si elle n'existe pas). Son `uuid` est mémorisé
 (table `bank_transaction_deleted`) : la synchronisation de son compte et l'import d'un
 relevé l'ignorent, elle ne revient pas (dans l'aperçu d'un import, la ligne est `known`
-avec `deleted: true`).
+avec `deleted: true`). Une transaction répartie est supprimée avec ses parts ; une part
+supprimée rend son montant à sa transaction.
 
 ```bash
 curl -X DELETE "https://exemple.fr/api/transaction?id=42" -H "Authorization: Bearer $TOKEN"

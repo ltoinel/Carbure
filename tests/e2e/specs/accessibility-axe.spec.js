@@ -94,8 +94,14 @@ test('axe: the menus and the modals', async ({ adminPage: page }) => {
     const detail = page.getByRole('dialog', { name: tr('transactionDetail') });
     await expect(detail).toBeVisible();
     problems.push(...await axeViolations(page, tr('transactionDetail')));
+    // Split of the transaction, with the rest left to it
+    await detail.getByRole('button', { name: tr('splitButton') }).click();
+    const split = page.getByRole('dialog', { name: tr('splitTitle') });
+    await expect(split).toBeVisible();
+    await split.getByLabel(tr('splitPartAmount', { number: 1 })).fill('1');
+    problems.push(...await axeViolations(page, tr('splitTitle')));
     await page.keyboard.press('Escape');
-    await expect(detail).toHaveCount(0);
+    await expect(split).toHaveCount(0);
 
     await openTab(page, tr('tabBudget'));
     await page.getByRole('tab', { name: tr('budgetConfigTab') }).click();

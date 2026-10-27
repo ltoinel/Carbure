@@ -7,6 +7,8 @@
  * @module transactionModule
  */
 
+import { withSplitParts } from './splitModule.js';
+
 // What a bank adds around the merchant: kind of operation first, references after
 const LABEL_PREFIX = /^(FACTURE CARTE DU \d{4,8}|PAIEMENT (PAR )?CB|CB|CARTE|PRLV( SEPA)?|VIREMENT( SEPA)?|VIR( SEPA)?( INST)?|RETRAIT( DAB)?|CHQ|CHEQUE)\s+/;
 const LABEL_NOISE = /^(CARTE|ECH|MDT|REF|\S*\d\S*\d\S*\d\S*|\d{1,2}\/\d{1,2}\S*)$/;
@@ -151,7 +153,8 @@ export function createTransactionModule(getApiService) {
             },
 
             /**
-             * Transactions to display: search results or the month, filtered
+             * Transactions to display: search results or the month, filtered, the parts
+             * of a split transaction right after it
              * @returns {Array}
              */
             displayedTransactions() {
@@ -160,9 +163,9 @@ export function createTransactionModule(getApiService) {
                     list = list.filter(t => this.isRecurring(t));
                 }
                 if (this.transactionFilter === 'unchecked') {
-                    return list.filter(t => !Number(t.pointed));
+                    list = list.filter(t => !Number(t.pointed));
                 }
-                return list;
+                return withSplitParts(list);
             },
 
             /**
@@ -529,7 +532,7 @@ export function createTransactionModule(getApiService) {
             },
 
             /**
-             * Checks or unchecks a transaction (optimistic update)
+             * Checks or unchecks a transaction, with the parts of a split one (optimistic update)
              * @param {Object} transaction - Transaction to update
              * @returns {Promise<void>}
              */
@@ -540,12 +543,13 @@ export function createTransactionModule(getApiService) {
                 }
 
                 const pointed = !Number(transaction.pointed);
-                transaction.pointed = pointed ? 1 : 0;
+                const rows = [transaction, ...this.transactions.filter(t => t.split_of != null && Number(t.split_of) === Number(transaction.id))];
+                rows.forEach(t => { t.pointed = pointed ? 1 : 0; });
 
                 try {
                     await apiService.setTransactionPointed(transaction.id, pointed);
                 } catch (err) {
-                    transaction.pointed = pointed ? 0 : 1;
+                    rows.forEach(t => { t.pointed = pointed ? 0 : 1; });
                     this.showToast(this.apiErrorText(err));
                 }
             },

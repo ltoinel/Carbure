@@ -131,6 +131,14 @@ transactions of the last month still without a category.
 - **Delete** a transaction (from its details, after confirmation): it disappears
   for the whole household and is never imported again, neither by synchronization nor by importing
   a statement.
+- **Split** a transaction across several categories (from its details): a supermarket
+  receipt partly food and partly home, a cash withdrawal spent on groceries and transport.
+  Each part (category and amount, 10 at most) becomes a transaction shown right below the
+  original one, which keeps the rest in its category and shows the bank amount. The total
+  stays the bank's one: budgets, trends, flow and insights count each part in its category.
+  Synchronization keeps the split, rules do not change it, and checking the transaction
+  checks its parts. Deleting a part gives its amount back to the transaction; **Cancel the
+  split** gives it back the whole amount.
 - **Categorize by hand** a transaction without a category: a picker with search,
   icons and colors. For an administrator, Carbure then offers to **create the matching
   rule**, so that the next ones are classified automatically.

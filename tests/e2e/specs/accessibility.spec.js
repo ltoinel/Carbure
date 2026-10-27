@@ -210,8 +210,14 @@ test('the menus, modals and the synchronization log are readable', async ({ admi
     const detail = page.getByRole('dialog', { name: tr('transactionDetail') });
     await expect(detail).toBeVisible();
     problems.push(...await contrastProblems(page, tr('transactionDetail')));
+    // Split of the transaction, with the rest left to it
+    await detail.getByRole('button', { name: tr('splitButton') }).click();
+    const split = page.getByRole('dialog', { name: tr('splitTitle') });
+    await expect(split).toBeVisible();
+    await split.getByLabel(tr('splitPartAmount', { number: 1 })).fill('1');
+    problems.push(...await contrastProblems(page, tr('splitTitle')));
     await page.keyboard.press('Escape');
-    await expect(detail).toHaveCount(0);
+    await expect(split).toHaveCount(0);
 
     // Preview of the import of a statement file read with the profile of its bank
     await page.getByRole('button', { name: tr('importButton') }).click();

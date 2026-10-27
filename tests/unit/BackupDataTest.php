@@ -58,9 +58,11 @@ class BackupDataTest extends TestCase
     public function testValidate()
     {
         $values = BackupData::validate('transactions', [self::TRANSACTION, ['id' => '13', 'pointed' => 0, 'amount' => '5'] + self::TRANSACTION]);
-        $this->assertSame([12, 'abc123', '2026-10-01 08:00:00', '2026-10-01', '2026-09-30', 7, 'CB SUPERMARCHE', 2, '-80.50',
+        // split_of: absent from the backups made before the split of transactions
+        $this->assertSame([12, null, 'abc123', '2026-10-01 08:00:00', '2026-10-01', '2026-09-30', 7, 'CB SUPERMARCHE', 2, '-80.50',
             null, 'bnp', '00087654321', 1, 'admin'], $values[0]);
-        $this->assertSame([13, 0, '5.00'], [$values[1][0], $values[1][12], $values[1][8]]);
+        $this->assertSame([13, 0, '5.00'], [$values[1][0], $values[1][13], $values[1][9]]);
+        $this->assertSame(12, BackupData::validate('transactions', [['id' => '14', 'split_of' => '12'] + self::TRANSACTION])[0][1]);
 
         $this->assertSame([], BackupData::validate('budgets', []));
         $this->assertSame([[0, 'Aucune', 0, 'HORS-BUDGET', 'help', 'grey']],
