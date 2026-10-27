@@ -655,13 +655,13 @@
                                     </button>
                                     <button v-if="activeTags.length" type="button" class="btn-secondary btn-manual-add btn-select" @click="toggleTransactionSelection"
                                             :aria-pressed="selectingTransactions ? 'true' : 'false'" :title="t('tagSelectHelp')">
-                                        <span class="material-icons" aria-hidden="true">{{ selectingTransactions ? 'close' : 'checklist' }}</span>{{ selectingTransactions ? t('tagSelectStop') : t('tagSelect') }}
+                                        <span class="material-icons" aria-hidden="true">{{ selectingTransactions ? 'close' : 'checklist' }}</span><span class="btn-label">{{ selectingTransactions ? t('tagSelectStop') : t('tagSelect') }}</span>
                                     </button>
                                     <button type="button" class="btn-secondary btn-manual-add" @click="openManualTransaction" :title="t('manualTransactionTitle')">
-                                        <span class="material-icons" aria-hidden="true">add</span>{{ t('manualTransactionButton') }}
+                                        <span class="material-icons" aria-hidden="true">add</span><span class="btn-label">{{ t('manualTransactionButton') }}</span>
                                     </button>
                                     <button type="button" class="btn-secondary btn-import" @click="openImport" :title="t('importTitle')">
-                                        <span class="material-icons" aria-hidden="true">upload_file</span>{{ t('importButton') }}
+                                        <span class="material-icons" aria-hidden="true">upload_file</span><span class="btn-label">{{ t('importButton') }}</span>
                                     </button>
                                 </div>
                             </div>
@@ -2801,7 +2801,7 @@
                         <span class="material-icons" aria-hidden="true">edit</span>
                         {{ t('manualTransactionEdit') }}
                     </button>
-                    <button type="button" class="btn-secondary" @click="openSplit" :disabled="savingTransaction" :title="t('splitHelp')" :aria-label="t('splitButton')">
+                    <button type="button" class="btn-secondary btn-icon-only" @click="openSplit" :disabled="savingTransaction" :title="t('splitHelp')" :aria-label="t('splitButton')">
                         <span class="material-icons" aria-hidden="true">call_split</span>
                     </button>
                     <button class="btn-secondary" @click="closeTransactionModal">

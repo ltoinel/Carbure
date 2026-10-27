@@ -58,9 +58,13 @@ test('refuses a rule already existing, with a message readable above the modal',
     await expect(toast).toHaveText(tr('apiErrors.keyword_exists'));
     await expect(modal).toBeVisible();
     // In front of the modal and its blurred background (#364), not only in the page
+    // (elementFromPoint skips it otherwise: a message does not catch the clicks)
     const inFront = await toast.evaluate(element => {
         const box = element.getBoundingClientRect();
-        return element.contains(document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2));
+        element.style.pointerEvents = 'auto';
+        const found = element.contains(document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2));
+        element.style.pointerEvents = '';
+        return found;
     });
     expect(inFront).toBe(true);
 });
