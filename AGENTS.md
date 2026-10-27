@@ -46,20 +46,15 @@ composer test                          # PHPUnit unit suite (vendor/bin/phpunit 
 DB_HOST=127.0.0.1 DB_USER=root DB_PASSWORD=root composer test:all   # + integration (recreates carbure_test)
 node --test 'tests/portal/*.test.mjs'
 cd tests/e2e && npm ci && npx playwright install chromium               # once
-E2E_DB_HOST=127.0.0.1 E2E_DB_PASSWORD=root PHP_BIN=… npx playwright test
+E2E_DB_HOST=127.0.0.1 E2E_DB_PASSWORD=root PHP_BIN=/path/to/php npx playwright test   # PHP_BIN defaults to php
 git config core.hooksPath .githooks   # pre-commit lint, pre-push unit tests
 ```
 
-## Local environment (WSL)
+## Local environment
 
-- Shell is zsh: don't name a variable `path`; `echo ===` fails. Prefer `bash -c '…'`.
-- PHP not installed. Download a static CLI into a scratch dir:
-  `https://dl.static-php.dev/static-php-cli/common/php-8.3.x-cli-linux-x86_64.tar.gz`
-  (lint + unit tests; no `mysqli`/`pcov`) or `…/bulk/…` (has `mysqli`: integration/e2e
-  with MariaDB in Docker; coverage only in CI).
-- Composer not installed either: download `https://getcomposer.org/download/latest-stable/composer.phar`
-  into the same scratch dir and run it with that PHP (`php composer.phar install`, `… test`).
-- Case-insensitive FS; LF line endings (`.gitattributes`).
+- LF line endings (`.gitattributes`).
+- Machine-specific notes (shell, how PHP/Composer are installed) go in an untracked
+  `CLAUDE.local.md`, not here.
 
 ## API conventions
 
@@ -85,13 +80,17 @@ git config core.hooksPath .githooks   # pre-commit lint, pre-push unit tests
   (403 of `User::requireAdmin()`; invalid with `public: true`).
 - Request params (JSON body + query string) are injected **by name** into method params:
   renaming one breaks the API; unknown param → 400.
-- Errors: `throw new Error(msg, 4xx)` (code = HTTP status); `Exception` = 500.
-  Response: `{"error","code","uid"}`. An error a user meets in the portal is a
-  `new ApiError(msg, 4xx, 'stable_code', ['name' => $value])` (`Carbure\Lib\ApiError`,
-  still an `Error`): the response adds `error_code` (+ `params`), the English `error`
-  unchanged; add `apiErrors.<stable_code>` (`{name}` placeholders) to the 6
-  `portal/i18n/*.json` (`tests/portal/apiErrors.test.mjs`); the portal shows errors through
-  `this.apiErrorText(error)` (its translation, else its message).
+- **Errors**:
+  - `throw new Error(msg, 4xx)` (code = HTTP status); `Exception` = 500.
+    Response: `{"error","code","uid"}`.
+  - An error a user meets in the portal is a
+    `new ApiError(msg, 4xx, 'stable_code', ['name' => $value])` (`Carbure\Lib\ApiError`,
+    still an `Error`): the response adds `error_code` (+ `params`), the English `error`
+    unchanged.
+  - Add `apiErrors.<stable_code>` (`{name}` placeholders) to the 6 `portal/i18n/*.json`
+    (`tests/portal/apiErrors.test.mjs`).
+  - The portal shows errors through `this.apiErrorText(error)` (its translation, else
+    its message).
 - SQL: prepared statements only (`Db::execute`, `Db::queryOne`).
 - Current user: `Jwt::getUserIdFromToken()`; headers: `Webservice::getHeader()`.
 - Admin actions (`users.is_admin`): use `admin: true` above; call `User::requireAdmin()`
@@ -102,15 +101,17 @@ git config core.hooksPath .githooks   # pre-commit lint, pre-push unit tests
 - Passwords: `password_hash()`; legacy salted SHA-256 migrated at login (`User::verifyPassword`).
 - `Logger` masks `password`/`token`; never log secrets otherwise.
 - PHPDoc on every method; match existing style.
-- **Types**: every parameter, return value and property has a native type (no
-  `declare(strict_types=1)`: request params are coerced), arrays typed in the PHPDoc
-  (`array<string, mixed>`, `list<…>`). PHPStan (Composer dev dependency, `phpstan.neon`,
-  level 8 + rule `tools/phpstan/NativeTypesRule.php` + deprecation rules; tests:
-  `phpstan.tests.neon`, level 5)
-  checks it in pre-commit and CI: rows through `Db::select()`/`Db::result()` (never a
-  `false` result), dates through `Month::timestamp()`, files through `File::read()`; no
-  `@phpstan-ignore`, no baseline. Route params come as strings from the query string:
-  never a bare `bool` (`"false"` would be `true`), keep what the iOS app sends valid.
+- **Types**:
+  - Every parameter, return value and property has a native type (no
+    `declare(strict_types=1)`: request params are coerced); arrays typed in the PHPDoc
+    (`array<string, mixed>`, `list<…>`).
+  - PHPStan checks it in pre-commit and CI: `phpstan.neon` (level 8 + rule
+    `tools/phpstan/NativeTypesRule.php` + deprecation rules), tests `phpstan.tests.neon`
+    (level 5). No `@phpstan-ignore`, no baseline.
+  - Use the typed helpers: rows through `Db::select()`/`Db::result()` (never a `false`
+    result), dates through `Month::timestamp()`, files through `File::read()`.
+  - Route params come as strings from the query string: never a bare `bool` (`"false"`
+    would be `true`); keep what the iOS app sends valid.
 - **Complexity**: cyclomatic complexity ≤ 10 per function/method (rule
   `tools/phpstan/CyclomaticComplexityRule.php`, threshold in `phpstan.neon`): split a
   growing method into small private ones, use lookup tables instead of if/else chains.
