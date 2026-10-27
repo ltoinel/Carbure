@@ -15,6 +15,7 @@ import { createBudgetStore } from './stores/budgetStore.js';
 import { createTransactionModule } from './modules/transactionModule.js';
 import { createSplitModule } from './modules/splitModule.js';
 import { createManualModule } from './modules/manualModule.js';
+import { createTagsModule } from './modules/tagsModule.js';
 import { createBudgetModule } from './modules/budgetModule.js';
 import { createInsightsModule } from './modules/insightsModule.js';
 import { createUserModule } from './modules/userModule.js';
@@ -96,6 +97,7 @@ const app = createApp({
         createTransactionModule(() => apiService),
         createSplitModule(() => apiService),
         createManualModule(() => apiService),
+        createTagsModule(() => apiService),
         createBudgetModule(() => budgetStore, () => apiService),
         createInsightsModule(() => apiService),
         createUserModule(() => apiService),
@@ -522,6 +524,10 @@ const app = createApp({
                     break;
                 case 'trends':
                     this.loadTrends();
+                    break;
+                case 'tags':
+                    this.tagSummary = null;
+                    this.loadTags();
                     break;
                 case 'rules':
                     this.loadRules();

@@ -161,7 +161,8 @@ final class Backup {
     {
         $dataset = BackupData::DATASETS[$name];
         $columns = implode(', ', array_map(fn(string $column): string => "`$column`", array_keys($dataset['columns'])));
-        $result = Db::select("SELECT $columns FROM `{$dataset['table']}` ORDER BY `{$dataset['key']}`", "");
+        $order = implode(', ', array_map(fn(string $key): string => "`$key`", explode(',', $dataset['key'])));
+        $result = Db::select("SELECT $columns FROM `{$dataset['table']}` ORDER BY $order", "");
 
         $userColumns = BackupData::userColumns($name);
         $rows = [];

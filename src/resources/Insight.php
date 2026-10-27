@@ -42,7 +42,7 @@ final class Insight {
      * Tables an insight can read: the budget data
      */
     public const READABLE_TABLES = ['bank_account', 'bank_backend', 'bank_transaction', 'bank_transaction_category',
-        'bank_transaction_category_keyword', 'budget'];
+        'bank_transaction_category_keyword', 'budget', 'tag', 'transaction_tag'];
 
     /**
      * Tables refused even as a word of the query: every other table of sql/carbure.sql

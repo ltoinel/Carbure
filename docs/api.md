@@ -96,12 +96,13 @@ premier plan ; ensuite, l'en-tête de chaque réponse suffit (voir ci-dessous).
 
 | Type | Incrémenté par |
 |---|---|
-| `transactions` | synchronisation (transaction nouvelle ou modifiée, catégorie trouvée), `POST /transaction/import`, `POST /transaction`, `PUT /transaction`, `PUT /transaction/category`, `PUT /transaction/pointed`, `PUT /transaction/split`, `DELETE /transaction`, règles appliquées à l'historique, `DELETE /category` |
+| `transactions` | synchronisation (transaction nouvelle ou modifiée, catégorie trouvée), `POST /transaction/import`, `POST /transaction`, `PUT /transaction`, `PUT /transaction/category`, `PUT /transaction/pointed`, `PUT /transaction/split`, `PUT /transaction/tags`, `DELETE /tag`, `DELETE /transaction`, règles appliquées à l'historique, `DELETE /category` |
 | `accounts` | synchronisation (compte en erreur, réparé ou autre erreur), `POST`/`PUT`/`DELETE /bank`, `/bank/backend` |
 | `categories` | `POST`/`PUT`/`DELETE /category`, `/category/keyword`, `PUT /category/keyword/settings` |
 | `budgets` | `POST /budget`, `POST /budget/copy`, `DELETE /category` |
 | `insights` | `POST`/`PUT`/`DELETE /insight` |
 | `settings` | `PUT /system/config` |
+| `tags` | `POST`/`PUT`/`DELETE /tag` |
 
 `POST /backup/import` incrémente tous les types. Les insights et les tendances sont
 calculés à partir des transactions et des budgets : un client les recharge quand l'un de
@@ -832,6 +833,37 @@ curl "https://exemple.fr/api/budget/trends?months=6&offset=12" -H "Authorization
 ```json
 [{ "month": "2025-05", "debit": 2130.37, "credit": 5114, "offBudget": -500, "planned": 2330, "savings": 2983.63 }]
 ```
+
+## Tags
+
+Tags d'un projet limités dans le temps, indépendants des catégories ; tout utilisateur les
+gère. Un tag : `id`, `name` (sans le `#`), `color`, `start_date`, `end_date` (`null` : en
+cours), `active` (sa fin n'est pas passée).
+
+### `GET /tag`
+
+Tous les tags, les actifs d'abord, avec `count` (nombre de transactions) et `total` (net).
+
+### `POST /tag`, `PUT /tag`, `DELETE /tag`
+
+`name` (1 à 40 lettres, chiffres, `-` ou `_` ; un `#` en tête est retiré, mis en minuscules),
+`color`, `start_date` (aujourd'hui par défaut à la création), `end_date` (facultative) ;
+`id` pour `PUT` et `DELETE`. Erreurs : `tag_name_invalid`, `tag_date_invalid`,
+`tag_period_invalid` (`400`), `tag_exists` (`409`), `tag_not_found` (`404`). Supprimer un tag
+le retire de ses transactions, sans les changer.
+
+### `GET /tag/summary`
+
+`id` : bilan du tag : `tag`, `total` (net), `count`, `categories` (`[{category, total,
+count}]`, plus grosses dépenses d'abord), `transactions` (les plus récentes d'abord),
+`days` (`[{date, total, cumulative}]`, du plus ancien au plus récent).
+
+### `PUT /transaction/tags`
+
+`ids` (1 à 500 transactions), `add` et `remove` (ids de tags) : ajoute ou retire des tags,
+en une fois (`400 tag_selection_limit`). Renvoie `{updated}`. Les transactions renvoyées par
+`GET /transaction` et `GET /transaction/search` portent `tags` (ids) ; une recherche
+`#nom` renvoie les transactions du tag.
 
 ## Insights
 

@@ -2245,7 +2245,8 @@ button .material-icons {
 
 .modal-body input[type="text"],
 .modal-body input[type="email"],
-.modal-body input[type="password"] {
+.modal-body input[type="password"],
+.modal-body input[type="date"] {
     width: 100%;
     padding: 12px 16px;
     border: 1px solid var(--divider);
@@ -2257,7 +2258,8 @@ button .material-icons {
 
 .modal-body input[type="text"]:focus,
 .modal-body input[type="email"]:focus,
-.modal-body input[type="password"]:focus {
+.modal-body input[type="password"]:focus,
+.modal-body input[type="date"]:focus {
     outline: none;
     border-color: var(--primary-color);
     box-shadow: 0 0 0 3px rgba(209, 44, 72, 0.15);
@@ -7943,5 +7945,323 @@ button.is-busy:not(.btn-confirm-danger):hover {
     .btn-period {
         min-width: 32px;
         padding: 4px;
+    }
+}
+
+/* ===== Tags of a project (Tags tab, chips of the transactions) ===== */
+.tag-dot {
+    display: inline-block;
+    flex-shrink: 0;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+.transaction-tags {
+    display: flex;
+    flex-wrap: wrap;
+    min-width: 0;
+    gap: 4px;
+    margin: 4px 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+/* The text keeps the ink of the page: the dot carries the color of the tag */
+.tag-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 1px 8px;
+    border: 1px solid var(--divider);
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--text-primary);
+    font-size: 12px;
+    font-weight: 500;
+    max-width: 100%;
+    min-width: 0;
+}
+
+/* On one line, cut with an ellipsis in a narrow row (phone) */
+.tag-chip-name {
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tag-chip-remove {
+    display: inline-flex;
+    margin: 0 -4px 0 2px;
+    padding: 2px;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+
+.tag-chip-remove:hover,
+.tag-chip-remove:focus-visible {
+    background: var(--background);
+    color: var(--text-primary);
+}
+
+.tag-chip-remove .material-icons {
+    font-size: 14px;
+}
+
+.tag-add-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.tag-add-row select {
+    flex: 1 1 160px;
+    min-width: 0;
+}
+
+.transaction-select {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}
+
+.tag-selection-bar {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+    padding: 10px 24px;
+    background: var(--background);
+    border-bottom: 1px solid var(--divider);
+}
+
+.tag-selection-count {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.tag-selection-bar select {
+    flex: 0 1 220px;
+    min-width: 0;
+}
+
+.tag-list,
+.tag-categories,
+.tag-transactions {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.tag-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid var(--divider);
+}
+
+.tag-open {
+    flex: 1;
+    min-width: 0;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas: "dot name total" "dot period count";
+    align-items: center;
+    gap: 2px 10px;
+    padding: 12px 4px;
+    border: none;
+    background: transparent;
+    color: var(--text-primary);
+    text-align: left;
+    text-transform: none;
+    letter-spacing: normal;
+    font: inherit;
+    cursor: pointer;
+}
+
+.tag-open:hover,
+.tag-open:focus-visible {
+    background: var(--background);
+}
+
+.tag-open .tag-dot { grid-area: dot; }
+.tag-name { grid-area: name; font-weight: 600; overflow-wrap: anywhere; }
+.tag-period { grid-area: period; color: var(--text-secondary); font-size: 13px; }
+.tag-count { color: var(--text-secondary); font-size: 13px; }
+.tag-open .tag-count { grid-area: count; justify-self: end; }
+.tag-total { grid-area: total; justify-self: end; white-space: nowrap; }
+
+.tag-total.positive,
+.tag-summary .positive {
+    color: var(--success-color);
+}
+
+.tag-total.negative,
+.tag-summary .negative {
+    color: var(--error-color);
+}
+
+.tag-back {
+    margin-bottom: 8px;
+}
+
+.tag-summary-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    font-size: 22px;
+    overflow-wrap: anywhere;
+}
+
+.tag-summary-total {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 12px;
+    margin: 8px 0 16px;
+}
+
+.tag-summary-total strong {
+    font-size: 28px;
+}
+
+.tag-summary-heading {
+    margin: 20px 0 8px;
+    font-size: 15px;
+    color: var(--text-primary);
+}
+
+/* Bars by category: the name, the bar (the color of the category), the amount */
+.tag-category {
+    display: grid;
+    grid-template-columns: minmax(0, 10rem) minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 0;
+}
+
+.tag-category-name {
+    overflow-wrap: anywhere;
+    color: var(--text-primary);
+}
+
+.tag-category-bar {
+    height: 12px;
+    border-radius: 0 4px 4px 0;
+}
+
+.tag-category-bar span {
+    display: block;
+    height: 100%;
+    border-radius: 0 4px 4px 0;
+}
+
+.tag-category-amount {
+    white-space: nowrap;
+    color: var(--text-primary);
+}
+
+/* Running total day by day: one thin line, the zero line recessive */
+.tag-chart {
+    margin: 0;
+}
+
+.tag-chart svg {
+    display: block;
+    width: 100%;
+    height: 180px;
+    overflow: visible;
+}
+
+.tag-chart-zero {
+    stroke: var(--divider);
+    stroke-width: 1;
+}
+
+.tag-chart-line {
+    fill: none;
+    stroke: var(--primary-color);
+    stroke-width: 2;
+    stroke-linejoin: round;
+}
+
+.tag-chart-hit {
+    fill: transparent;
+}
+
+.tag-chart-dot {
+    fill: var(--primary-color);
+    stroke: var(--surface);
+    stroke-width: 2;
+}
+
+.tag-chart-point:hover .tag-chart-dot {
+    stroke: var(--text-primary);
+}
+
+.tag-chart-table {
+    margin-top: 8px;
+}
+
+.tag-chart-table summary {
+    cursor: pointer;
+    color: var(--text-secondary);
+}
+
+.tag-transaction {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--divider);
+}
+
+.tag-transaction-date {
+    color: var(--text-secondary);
+    font-size: 13px;
+    white-space: nowrap;
+}
+
+.tag-transaction-label {
+    overflow-wrap: anywhere;
+}
+
+.tag-transaction-amount {
+    white-space: nowrap;
+    font-weight: 600;
+}
+
+@media (max-width: 600px) {
+    .tag-category {
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .tag-category-bar {
+        grid-column: 1 / -1;
+        grid-row: 2;
+    }
+
+    .tag-transaction {
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .tag-transaction-label {
+        grid-column: 1 / -1;
+        grid-row: 1;
+    }
+
+    .tag-selection-bar {
+        padding: 10px 12px;
     }
 }

@@ -91,6 +91,30 @@ CREATE TABLE `bank_transaction` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
+-- Tables `tag` and `transaction_tag`: tags of a project limited in time, a second axis apart
+-- from the categories
+
+CREATE TABLE `tag` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(40) NOT NULL COMMENT 'Name of the tag, without its #',
+  `color` varchar(30) NOT NULL DEFAULT '' COMMENT 'Color (SwiftUI name or hex, may be empty)',
+  `start_date` date NOT NULL COMMENT 'First day of the project',
+  `end_date` date DEFAULT NULL COMMENT 'Last day of the project (NULL: still running); archived after it',
+  `created` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `unique_tag_name` (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `transaction_tag` (
+  `transaction_id` bigint(20) unsigned NOT NULL,
+  `tag_id` int(10) unsigned NOT NULL,
+  PRIMARY KEY (`transaction_id`, `tag_id`),
+  KEY `transaction_tag_tag` (`tag_id`),
+  CONSTRAINT `fk_transaction_tag_transaction` FOREIGN KEY (`transaction_id`) REFERENCES `bank_transaction` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_transaction_tag_tag` FOREIGN KEY (`tag_id`) REFERENCES `tag` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
 -- Table `bank_transaction_deleted`: transactions deleted by a user, skipped by the
 -- synchronization and the import of a file (same UUID)
 
@@ -376,7 +400,8 @@ INSERT IGNORE INTO `schema_migrations` (`version`) VALUES
 ('2026-10-27_budget_alert_threshold'),
 ('2026-10-28_device_without_token'),
 ('2026-10-29_data_change'),
-('2026-10-30_transaction_split');
+('2026-10-30_transaction_split'),
+('2026-10-31_tags');
 
 SET FOREIGN_KEY_CHECKS = 1;
 COMMIT;

@@ -58,7 +58,7 @@ final class Transaction {
      * @param int|string|null $month    The month of the transactions
      * @param int|string|null $year     The year of the transactions
      * @param int|string|null $category Only this category and its sub-categories (optional)
-     * @return list<array<string, mixed>> The list of transactions
+     * @return list<array<string, mixed>> The list of transactions, with the ids of their tags
      */
     #[ApiRoute('/transaction', method: 'GET')]
     public static function get(int|string|null $month = null, int|string|null $year = null, int|string|null $category = null): array
@@ -85,15 +85,16 @@ final class Transaction {
             }
         }
 
-        return $transactions;
+        return Tag::withTags($transactions);
     }
 
     /**
-     * Search transactions by label, most recent first.
+     * Search transactions by label, most recent first; "#name" gives the transactions of
+     * the tag of this name.
      *
-     * @param string|null $query The text to find in the label (2 characters minimum)
+     * @param string|null $query The text to find in the label (2 characters minimum), or #tag
      * @param int|string  $limit The maximum number of transactions (1 to 500)
-     * @return list<array<string, mixed>> The list of transactions
+     * @return list<array<string, mixed>> The list of transactions, with the ids of their tags
      * @throws Error If the query is too short
      */
     #[ApiRoute('/transaction/search', method: 'GET')]
@@ -104,6 +105,9 @@ final class Transaction {
             throw new ApiError("Search query must contain at least 2 characters", 400, 'search_too_short');
         }
         $limit = max(1, min(500, (int)$limit));
+        if (str_starts_with($query, '#')) {
+            return Tag::transactionsOf($query, $limit);
+        }
 
         // Labels are stored in upper case; LIKE wildcards are escaped
         $pattern = '%' . addcslashes(strtoupper($query), '%_\\') . '%';
@@ -111,7 +115,7 @@ final class Transaction {
         $sql = "SELECT * FROM bank_transaction WHERE label LIKE ? ORDER BY date DESC, rdate DESC LIMIT ?";
         $stmt = Db::execute($sql, "si", $pattern, $limit);
 
-        return Db::result($stmt)->fetch_all(MYSQLI_ASSOC);
+        return Tag::withTags(Db::result($stmt)->fetch_all(MYSQLI_ASSOC));
     }
 
     /**
@@ -955,8 +959,9 @@ final class Transaction {
      * Split a transaction across several categories: each part becomes a transaction of
      * its own (same date, label and account, split_of = the id of the transaction), and the
      * transaction keeps the rest of the amount of the bank, in its category. The parts sent
-     * replace the previous ones: no part cancels the split. The synchronization never
-     * changes the amount of a known transaction, so the split is kept.
+     * replace the previous ones: no part cancels the split. The parts get the tags of the
+     * transaction. The synchronization never changes the amount of a known transaction, so
+     * the split is kept.
      *
      * @param int|string   $id    The id of the transaction (not a part of one)
      * @param array<mixed> $parts [{category, amount}]: at most MAX_SPLIT_PARTS amounts of the
@@ -977,8 +982,8 @@ final class Transaction {
         }
 
         self::replaceSplit($transaction, self::splitParts($parts, (int)$transaction['bank_cents']));
-        return Db::select("SELECT * FROM bank_transaction WHERE id = ? OR split_of = ? ORDER BY split_of IS NOT NULL, id",
-            "ii", $id, $id)->fetch_all(MYSQLI_ASSOC);
+        return Tag::withTags(Db::select("SELECT * FROM bank_transaction WHERE id = ? OR split_of = ? ORDER BY split_of IS NOT NULL, id",
+            "ii", $id, $id)->fetch_all(MYSQLI_ASSOC));
     }
 
     /**
@@ -1043,8 +1048,10 @@ final class Transaction {
             Db::execute("DELETE FROM bank_transaction WHERE split_of = ?", "i", $id);
             Db::execute("UPDATE bank_transaction SET amount = ? WHERE id = ?", "si", sprintf('%.2f', $rest / 100), $id);
             foreach ($parts as $index => [$category, $cents]) {
-                self::insertRow(['split_of' => $id, 'uuid' => md5($transaction['uuid'] . '#split' . ($index + 1)),
+                $part = self::insertRow(['split_of' => $id, 'uuid' => md5($transaction['uuid'] . '#split' . ($index + 1)),
                     'category' => $category, 'amount' => sprintf('%.2f', $cents / 100)] + $transaction);
+                // A part of a project stays in it; its tags may then change apart
+                Tag::copyTags($id, $part);
             }
             $db->commit();
         } catch (Exception $e) {
@@ -1086,7 +1093,7 @@ final class Transaction {
         if (substr($fields['date'], 0, 7) === date('Y-m')) {
             BudgetAlert::check();
         }
-        return self::manualRow($id);
+        return Tag::withTags([self::manualRow($id)])[0];
     }
 
     /**
@@ -1119,7 +1126,7 @@ final class Transaction {
             $fields['date'], $fields['date'], $fields['label'], $fields['amount'], $id);
         Db::execute("UPDATE bank_transaction SET date = ?, rdate = ?, label = ? WHERE split_of = ?", "sssi",
             $fields['date'], $fields['date'], $fields['label'], $id);
-        return self::manualRow($id);
+        return Tag::withTags([self::manualRow($id)])[0];
     }
 
     /**

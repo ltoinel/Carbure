@@ -39,7 +39,7 @@ final class BackupData {
 
     /**
      * Datasets in the order of their dependencies (a dataset only refers to the ones
-     * before it): table, primary key, and type of each column.
+     * before it): table, primary key (its columns separated by commas), and type of each column.
      *
      * Types: int:<max>, string:<max length> (may be empty), name:<max length> (not
      * empty), enum:<a|b>, decimal (10,2), date (Y-m-d), datetime (Y-m-d H:i:s), bool,
@@ -84,6 +84,17 @@ final class BackupData {
             'table' => 'bank_transaction_deleted',
             'key' => 'uuid',
             'columns' => ['uuid' => 'name:32', 'deleted_at' => 'datetime', 'user_id' => '?user'],
+        ],
+        'tags' => [
+            'table' => 'tag',
+            'key' => 'id',
+            'columns' => ['id' => 'int:4294967295', 'name' => 'name:40', 'color' => 'string:30', 'start_date' => 'date',
+                'end_date' => '?date', 'created' => 'datetime'],
+        ],
+        'transaction_tags' => [
+            'table' => 'transaction_tag',
+            'key' => 'transaction_id,tag_id',
+            'columns' => ['transaction_id' => 'int:' . PHP_INT_MAX, 'tag_id' => 'int:4294967295'],
         ],
     ];
 
@@ -221,8 +232,9 @@ final class BackupData {
      */
     private static function checkKeys(string $dataset, array $values): void
     {
-        $position = array_search(self::DATASETS[$dataset]['key'], array_keys(self::DATASETS[$dataset]['columns']), true);
-        $keys = array_column($values, (int)$position);
+        $columns = array_keys(self::DATASETS[$dataset]['columns']);
+        $positions = array_map(fn(string $key): int => (int)array_search($key, $columns, true), explode(',', self::DATASETS[$dataset]['key']));
+        $keys = array_map(fn(array $row): string => implode(',', array_map(fn(int $position): string => (string)$row[$position], $positions)), $values);
         $repeated = array_keys(array_filter(array_count_values(array_map('strval', $keys)), fn(int $count): bool => $count > 1));
         if ($repeated !== []) {
             throw new Error("$dataset: repeated " . self::DATASETS[$dataset]['key'] . ": " . implode(', ', array_slice($repeated, 0, 5)), 400);

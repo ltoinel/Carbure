@@ -12,10 +12,10 @@ test.beforeEach(async ({ page }) => {
 });
 
 /** Tabs of the main navigation (administrators), then those of the Administration menu */
-const MAIN_TABS = ['tabTransactions', 'tabBudget', 'tabInsights', 'tabTrends', 'tabRules', 'tabAccounts'];
+const MAIN_TABS = ['tabTransactions', 'tabBudget', 'tabInsights', 'tabTrends', 'tabTags', 'tabRules', 'tabAccounts'];
 const ADMIN_TABS = ['tabUsers', 'tabCategories', 'tabSync', 'tabPush', 'tabAgents', 'tabLogs', 'tabSettings', 'tabBackup'];
 /** Tabs of a user who is not an administrator */
-const USER_TABS = ['tabTransactions', 'tabBudget', 'tabInsights', 'tabTrends'];
+const USER_TABS = ['tabTransactions', 'tabBudget', 'tabInsights', 'tabTrends', 'tabTags'];
 
 /**
  * Opens a tab and waits for its data
@@ -345,5 +345,31 @@ test('axe: every tab in Spanish, Italian and Portuguese', async ({ adminPage: pa
         problems.push(...await everyTab(page, MAIN_TABS, axeViolations, locale));
         from = locale;
     }
+    expect(problems).toEqual([]);
+});
+
+test('axe: the tags, their form and a summary', async ({ adminPage: page, api }) => {
+    // An active tag with transactions, an archived one
+    const tag = await (await api.post('/api/tag', { data: { name: 'voyage', color: 'green', start_date: '2026-01-01' } })).json();
+    await api.post('/api/tag', { data: { name: 'ete-2020', color: 'orange', start_date: '2020-06-01', end_date: '2020-08-31' } });
+    const transactions = await (await api.get('/api/transaction')).json();
+    await api.put('/api/transaction/tags', { data: { ids: transactions.slice(0, 3).map(t => t.id), add: [tag.id] } });
+    const problems = [];
+
+    await openTab(page, tr('tabTags'));
+    await page.getByRole('button', { name: tr('tagNew') }).click();
+    await expect(page.getByRole('dialog', { name: tr('tagNew') })).toBeVisible();
+    problems.push(...await axeViolations(page, tr('tagNew')));
+    await page.keyboard.press('Escape');
+
+    await page.getByRole('button', { name: tr('tagSummaryOf', { name: 'voyage' }) }).click();
+    await expect(page.locator('.tag-summary .tag-category').first()).toBeVisible();
+    problems.push(...await axeViolations(page, tr('tagSummaryOf', { name: 'voyage' })));
+
+    // The chips of the rows and the selection of the list
+    await openTab(page, tr('tabTransactions'));
+    await page.getByRole('button', { name: tr('tagSelect'), exact: true }).click();
+    await expect(page.locator('.tag-selection-bar')).toBeVisible();
+    problems.push(...await axeViolations(page, tr('tagSelect')));
     expect(problems).toEqual([]);
 });

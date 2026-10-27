@@ -242,4 +242,8 @@ it, the password protected by biometrics are kept on the phone. Details:
   transaction cannot be set back to "not checked".
 - No **deletion** of budgets, and no administration (accounts, rules, categories,
   insights, users): these screens are in the portal.
+- **Split, manual entry and tags**: they are done in the portal. The apps show the **parts**
+  of a split transaction as transactions of their own (same label, each in its category,
+  the total staying the bank's one) and the transactions entered by hand like the others;
+  they do not show the tags yet.
 - Amounts in **euros**, like the server.

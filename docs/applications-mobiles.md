@@ -252,4 +252,8 @@ gardés sur le téléphone. Détails : [Politique de confidentialité](confident
   catégorie ; pas de retour d'une transaction pointée à « non vérifiée ».
 - Pas de **suppression** de budget, ni d'administration (comptes, règles, catégories,
   insights, utilisateurs) : ces écrans sont dans le portail.
+- **Répartition, saisie manuelle et tags** : ils se font dans le portail. Les applications
+  affichent les **parts** d'une transaction répartie comme des transactions à part entière
+  (même libellé, chacune dans sa catégorie, le total restant celui de la banque) et les
+  transactions saisies à la main comme les autres ; elles n'affichent pas encore les tags.
 - Montants en **euros**, comme le serveur.
