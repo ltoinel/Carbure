@@ -282,6 +282,10 @@ export function createTransactionModule(getApiService) {
                     this.transactions = Array.isArray(data) ? data : [];
                     // Categories are shown on every row (name or picker)
                     this.ensureCategories();
+                    // The tags of the rows and of the detail
+                    if (!this.tags?.length) {
+                        this.loadTags?.();
+                    }
                     this.loadRecurring(month, year);
                 } catch (err) {
                     if (err.name === 'AbortError') {

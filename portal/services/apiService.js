@@ -665,6 +665,62 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
     }
 
     /**
+     * Tags of the household, the active ones first
+     * @returns {Promise<Array<Object>>}
+     */
+    async function fetchTags() {
+        const data = await request(`${baseUrl}/tag`, {}, 'Failed to fetch the tags');
+        return Array.isArray(data) ? data : [];
+    }
+
+    /**
+     * Creates a tag
+     * @param {{name: string, color: string, start_date: string, end_date: string|null}} tag - The tag
+     * @returns {Promise<Object>} The tag
+     */
+    async function createTag(tag) {
+        return request(`${baseUrl}/tag`, { method: 'POST', body: JSON.stringify(tag) }, 'Failed to create the tag');
+    }
+
+    /**
+     * Changes a tag
+     * @param {{id: number, name: string, color: string, start_date: string, end_date: string|null}} tag - The tag
+     * @returns {Promise<Object>} The tag
+     */
+    async function updateTag(tag) {
+        return request(`${baseUrl}/tag`, { method: 'PUT', body: JSON.stringify(tag) }, 'Failed to modify the tag');
+    }
+
+    /**
+     * Deletes a tag (its transactions only lose it)
+     * @param {number} id - Tag id
+     * @returns {Promise<void>}
+     */
+    async function deleteTag(id) {
+        await request(`${baseUrl}/tag?id=${encodeURIComponent(id)}`, { method: 'DELETE' }, 'Failed to delete the tag');
+    }
+
+    /**
+     * Summary of a tag: total, by category, transactions, day by day
+     * @param {number} id - Tag id
+     * @returns {Promise<Object>}
+     */
+    async function fetchTagSummary(id) {
+        return request(`${baseUrl}/tag/summary?id=${encodeURIComponent(id)}`, {}, 'Failed to fetch the summary of the tag');
+    }
+
+    /**
+     * Adds or removes tags on transactions
+     * @param {Array<number>} ids - Transaction ids
+     * @param {Array<number>} add - Tags to add
+     * @param {Array<number>} remove - Tags to remove
+     * @returns {Promise<{updated: number}>}
+     */
+    async function setTransactionTags(ids, add = [], remove = []) {
+        return request(`${baseUrl}/transaction/tags`, { method: 'PUT', body: JSON.stringify({ ids, add, remove }) }, 'Failed to tag the transactions');
+    }
+
+    /**
      * Splits a transaction across several categories (replaces its previous parts)
      * @param {number} id - Transaction id
      * @param {Array<{category: number, amount: number}>} parts - Parts, with the sign of the transaction; none cancels the split
@@ -1428,6 +1484,12 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
         updateTransaction,
         fetchAccounts,
         createManualAccount,
+        fetchTags,
+        createTag,
+        updateTag,
+        deleteTag,
+        fetchTagSummary,
+        setTransactionTags,
         deleteTransaction,
         fetchRules,
         createRule,

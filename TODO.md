@@ -33,6 +33,14 @@ keeps track of what was done).
       (`bank_name` = `manual`); offer to enter one (`POST /transaction`, accounts of `GET /bank`
       with `manual`) and to change it (`PUT /transaction`).
 
+- [ ] **Deployment of the tags (#354)**: the migration `2026-10-31_tags` (tables `tag`,
+      `transaction_tag`) is applied at container start; before it, the transactions are
+      returned without tags.
+
+- [ ] **Mobile apps — tags (#354)**: the transactions carry `tags` (ids of `GET /tag`); show
+      their chips, filter by tag and offer to tag (`PUT /transaction/tags`); reload on the
+      change marker `tags`.
+
 - [ ] **YunoHost package (#45, `ltoinel/carbure_ynh`)**: after the 1.10.0 release, merge the
       pull request of its autoupdate Action (version and sha256 of the archive), then
       install it on a test YunoHost server (Debian 12): install, upgrade, backup/restore,

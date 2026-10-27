@@ -95,12 +95,13 @@ is enough (see below).
 
 | Kind | Bumped by |
 |---|---|
-| `transactions` | synchronization (new or modified transaction, category found), `POST /transaction/import`, `POST /transaction`, `PUT /transaction`, `PUT /transaction/category`, `PUT /transaction/pointed`, `PUT /transaction/split`, `DELETE /transaction`, rules applied to the history, `DELETE /category` |
+| `transactions` | synchronization (new or modified transaction, category found), `POST /transaction/import`, `POST /transaction`, `PUT /transaction`, `PUT /transaction/category`, `PUT /transaction/pointed`, `PUT /transaction/split`, `PUT /transaction/tags`, `DELETE /tag`, `DELETE /transaction`, rules applied to the history, `DELETE /category` |
 | `accounts` | synchronization (account in error, repaired or another error), `POST`/`PUT`/`DELETE /bank`, `/bank/backend` |
 | `categories` | `POST`/`PUT`/`DELETE /category`, `/category/keyword`, `PUT /category/keyword/settings` |
 | `budgets` | `POST /budget`, `POST /budget/copy`, `DELETE /category` |
 | `insights` | `POST`/`PUT`/`DELETE /insight` |
 | `settings` | `PUT /system/config` |
+| `tags` | `POST`/`PUT`/`DELETE /tag` |
 
 `POST /backup/import` bumps every kind. The insights and the trends are computed from the
 transactions and the budgets: a client reloads them when one of these kinds moves.
@@ -829,6 +830,37 @@ curl "https://exemple.fr/api/budget/trends?months=6&offset=12" -H "Authorization
 ```json
 [{ "month": "2025-05", "debit": 2130.37, "credit": 5114, "offBudget": -500, "planned": 2330, "savings": 2983.63 }]
 ```
+
+## Tags { #tags }
+
+Tags of a project limited in time, apart from the categories; every user manages them. A
+tag: `id`, `name` (without its `#`), `color`, `start_date`, `end_date` (`null`: running),
+`active` (its end is not past).
+
+### `GET /tag` { #get-tag }
+
+Every tag, the active ones first, with `count` (number of transactions) and `total` (net).
+
+### `POST /tag`, `PUT /tag`, `DELETE /tag` { #post-tag-put-tag-delete-tag }
+
+`name` (1 to 40 letters, digits, `-` or `_`; a leading `#` is removed, put in lower case),
+`color`, `start_date` (today by default on creation), `end_date` (optional); `id` for `PUT`
+and `DELETE`. Errors: `tag_name_invalid`, `tag_date_invalid`, `tag_period_invalid` (`400`),
+`tag_exists` (`409`), `tag_not_found` (`404`). Deleting a tag removes it from its
+transactions, without changing them.
+
+### `GET /tag/summary` { #get-tagsummary }
+
+`id`: summary of the tag: `tag`, `total` (net), `count`, `categories` (`[{category, total,
+count}]`, largest expenses first), `transactions` (most recent first), `days` (`[{date,
+total, cumulative}]`, oldest first).
+
+### `PUT /transaction/tags` { #put-transactiontags }
+
+`ids` (1 to 500 transactions), `add` and `remove` (tag ids): adds or removes tags, all at
+once (`400 tag_selection_limit`). Returns `{updated}`. The transactions returned by
+`GET /transaction` and `GET /transaction/search` have `tags` (ids); a search `#name`
+returns the transactions of the tag.
 
 ## Insights { #insights }
 

@@ -83,6 +83,7 @@ class ChangesTest extends DatabaseTestCase
             'categories' => ['PUT', '/category/keyword/settings', ['keep_categorized' => 'true']],
             'insights' => ['POST', '/insight', ['name' => 'Revenus', 'color' => 'green',
                 'sql' => 'SELECT SUM(amount) AS amount FROM bank_transaction WHERE amount > 0']],
+            'tags' => ['POST', '/tag', ['name' => '#voyage', 'start_date' => '2026-10-01']],
         ];
         foreach ($writes as $kind => [$method, $path, $params]) {
             $before = $this->versions();

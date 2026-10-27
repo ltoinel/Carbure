@@ -30,7 +30,8 @@ class BackupTest extends DatabaseTestCase
     public function testDatasetsWithTheirCounts()
     {
         $counts = array_column(Backup::get(), 'count', 'name');
-        $this->assertSame(['categories' => 5, 'rules' => 3, 'budgets' => 2, 'insights' => 1, 'transactions' => 5, 'deleted_transactions' => 0], $counts);
+        $this->assertSame(['categories' => 5, 'rules' => 3, 'budgets' => 2, 'insights' => 1, 'transactions' => 5, 'deleted_transactions' => 0,
+            'tags' => 0, 'transaction_tags' => 0], $counts);
     }
 
     public function testExport()
@@ -61,6 +62,9 @@ class BackupTest extends DatabaseTestCase
     {
         // Deleted transactions of a user, and of a user since removed (no user)
         Db::query("INSERT INTO bank_transaction_deleted (uuid, deleted_at, user_id) VALUES ('d1', '2026-01-02 03:04:05', 2), ('d2', '2026-01-03 00:00:00', NULL)");
+        // A tag of a project and its transactions
+        Db::query("INSERT INTO tag (id, name, color, start_date, end_date, created) VALUES (7, 'voyage', 'green', '2026-07-01', NULL, '2026-06-30 10:00:00')");
+        Db::query("INSERT INTO transaction_tag (transaction_id, tag_id) SELECT id, 7 FROM bank_transaction WHERE uuid IN ('u1', 'u2')");
         $backup = $this->export();
         $before = $backup['datasets'];
 
@@ -71,7 +75,10 @@ class BackupTest extends DatabaseTestCase
         Db::query("INSERT INTO bank_transaction_deleted (uuid) VALUES ('gone')");
 
         $result = Backup::import($before);
-        $this->assertSame(['categories' => 5, 'rules' => 3, 'budgets' => 2, 'insights' => 1, 'transactions' => 5, 'deleted_transactions' => 2], $result['imported']);
+        $this->assertSame(['categories' => 5, 'rules' => 3, 'budgets' => 2, 'insights' => 1, 'transactions' => 5, 'deleted_transactions' => 2,
+            'tags' => 1, 'transaction_tags' => 2], $result['imported']);
+        $this->assertSame([['id' => 7, 'name' => 'voyage', 'color' => 'green', 'start_date' => '2026-07-01', 'end_date' => null,
+            'created' => '2026-06-30 10:00:00']], $before['tags']);
         $this->assertSame($before, $this->export()['datasets']);
         $this->assertSame([['uuid' => 'd1', 'deleted_at' => '2026-01-02 03:04:05', 'user_id' => 'user'],
             ['uuid' => 'd2', 'deleted_at' => '2026-01-03 00:00:00', 'user_id' => null]], $before['deleted_transactions']);

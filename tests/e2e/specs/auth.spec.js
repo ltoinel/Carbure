@@ -2,7 +2,7 @@
 const { test, expect, tr, asDemoInstance } = require('../fixtures');
 
 const ADMIN_TABS = ['tabRules', 'tabAccounts', 'tabAdministration'];
-const USER_TABS = ['tabTransactions', 'tabBudget', 'tabInsights', 'tabTrends'];
+const USER_TABS = ['tabTransactions', 'tabBudget', 'tabInsights', 'tabTrends', 'tabTags'];
 
 test('logs in and out from the login screen', async ({ page }) => {
     await page.goto('/portal/');

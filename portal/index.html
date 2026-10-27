@@ -427,6 +427,14 @@
                 {{ t('tabTrends') }}
             </button>
             <button 
+                class="tab-button" 
+                :class="{ active: activeTab === 'tags' }"
+                :aria-current="activeTab === 'tags' ? 'page' : null" 
+                @click="setActiveTab('tags')">
+                <span class="material-icons" aria-hidden="true">sell</span>
+                {{ t('tabTags') }}
+            </button>
+            <button 
                 v-if="isAdmin"
                 class="tab-button" 
                 :class="{ active: activeTab === 'rules' }"
@@ -641,6 +649,10 @@
                                             @click="openRecurringCalendar" :title="t('recurringCalendarHelp')" :aria-label="t('recurringCalendarButton')">
                                         <span class="material-icons" aria-hidden="true">calendar_month</span>
                                     </button>
+                                    <button v-if="activeTags.length" type="button" class="btn-secondary btn-manual-add btn-select" @click="toggleTransactionSelection"
+                                            :aria-pressed="selectingTransactions ? 'true' : 'false'" :title="t('tagSelectHelp')">
+                                        <span class="material-icons" aria-hidden="true">{{ selectingTransactions ? 'close' : 'checklist' }}</span>{{ selectingTransactions ? t('tagSelectStop') : t('tagSelect') }}
+                                    </button>
                                     <button type="button" class="btn-secondary btn-manual-add" @click="openManualTransaction" :title="t('manualTransactionTitle')">
                                         <span class="material-icons" aria-hidden="true">add</span>{{ t('manualTransactionButton') }}
                                     </button>
@@ -648,6 +660,18 @@
                                         <span class="material-icons" aria-hidden="true">upload_file</span>{{ t('importButton') }}
                                     </button>
                                 </div>
+                            </div>
+                            <!-- Selection of transactions: one tag added to all of them -->
+                            <div v-if="selectingTransactions" class="tag-selection-bar" role="region" :aria-label="t('tagSelect')">
+                                <span class="tag-selection-count" aria-live="polite">{{ t('tagSelected', { count: selectedTransactionIds.length }) }}</span>
+                                <label class="visually-hidden" for="tag-selection">{{ t('tagChoose') }}</label>
+                                <select id="tag-selection" v-model="selectionTag">
+                                    <option value="">{{ t('tagChoose') }}</option>
+                                    <option v-for="tag in activeTags" :key="tag.id" :value="tag.id">#{{ tag.name }}</option>
+                                </select>
+                                <button type="button" class="btn-manual-add" @click="tagSelectedTransactions" :disabled="!selectionTag || selectedTransactionIds.length === 0">
+                                    <span class="material-icons" aria-hidden="true">sell</span>{{ t('tagAdd') }}
+                                </button>
                             </div>
                             <div v-if="isSearching && !searching && displayedTransactions.length > 0" class="search-total">
                                 <span>{{ t('searchTotal', { count: displayedTransactions.length }) }}</span>
@@ -683,6 +707,9 @@
                             <div class="transactions-list">
                                 <div v-for="transaction in displayedTransactions" :key="transaction.id" class="transaction-item"
                                      :class="{ unchecked: !Number(transaction.pointed), 'transaction-split-part': transaction.split_of != null }">
+                                    <input v-if="selectingTransactions" type="checkbox" class="transaction-select"
+                                           :checked="selectedTransactionIds.includes(Number(transaction.id))" @change="toggleSelectedTransaction(transaction)"
+                                           :aria-label="t('tagSelectTransaction', { label: transaction.label })" />
                                     <button class="transaction-check" @click="toggleTransactionPointed(transaction)"
                                             :class="{ checked: Number(transaction.pointed) }"
                                             :title="Number(transaction.pointed) ? t('uncheckTransaction') : t('checkTransaction')"
@@ -706,6 +733,11 @@
                                             </span>
                                             <span v-else-if="transactionParts(transaction).length" class="split-badge">
                                                 <span class="material-icons" aria-hidden="true">call_split</span>{{ t('splitBankAmount', { amount: formatAmount(transactionBankAmount(transaction)) + ' ' + currencySymbol }) }}
+                                            </span>
+                                        </div>
+                                        <div v-if="transaction.tags && transaction.tags.length" class="transaction-tags">
+                                            <span v-for="tag in transactionTags(transaction)" :key="tag.id" class="tag-chip">
+                                                <span class="tag-dot" :style="{ background: categoryColor(tag) }" aria-hidden="true"></span>#{{ tag.name }}
                                             </span>
                                         </div>
                                     </div>
@@ -1236,6 +1268,126 @@
                                     </tbody>
                                 </table>
                             </div>
+                        </section>
+                    </div>
+                </div>
+
+                <!-- Tags of a project limited in time: list, then the summary of one -->
+                <div v-else-if="activeTab === 'tags'" key="tags" class="tab-panel">
+                    <div class="trends-view">
+                        <section v-if="!tagSummary" class="trends-card tags-card">
+                            <div class="panel-header page-header">
+                                <div>
+                                    <h2>{{ t('tagsTitle') }}</h2>
+                                    <p class="rules-help">{{ t('tagsHelp') }}</p>
+                                </div>
+                                <div class="panel-actions">
+                                    <button type="button" class="btn-add" @click="openTagModal()">
+                                        <span class="material-icons" aria-hidden="true">add</span>
+                                        {{ t('tagNew') }}
+                                    </button>
+                                </div>
+                            </div>
+                            <div v-if="loadingTags && tags.length === 0" class="transactions-hint">{{ t('tagsLoading') }}</div>
+                            <div v-else-if="tags.length === 0" class="transactions-hint">{{ t('tagsEmpty') }}</div>
+                            <template v-for="group in [{ key: 'active', title: t('tagsActive'), list: tags.filter(g => g.active) }, { key: 'archived', title: t('tagsArchived'), list: archivedTags }]" :key="group.key">
+                                <template v-if="group.list.length">
+                                    <h3 class="accounts-section-title">{{ group.title }}</h3>
+                                    <ul class="tag-list" :class="'tag-list-' + group.key" :aria-label="group.title">
+                                        <li v-for="tag in group.list" :key="tag.id" class="tag-item">
+                                            <button type="button" class="tag-open" @click="openTagSummary(tag)" :aria-label="t('tagSummaryOf', { name: tag.name })">
+                                                <span class="tag-dot" :style="{ background: categoryColor(tag) }" aria-hidden="true"></span>
+                                                <span class="tag-name">#{{ tag.name }}</span>
+                                                <span class="tag-period">{{ formatDate(tag.start_date) }} – {{ tag.end_date ? formatDate(tag.end_date) : t('tagRunning') }}</span>
+                                                <span class="tag-count">{{ t('transactionCount', { count: tag.count }) }}</span>
+                                                <strong class="tag-total" :class="tag.total >= 0 ? 'positive' : 'negative'">{{ formatAmount(tag.total) }} {{ currencySymbol }}</strong>
+                                            </button>
+                                            <div class="device-actions">
+                                                <button class="btn-icon" @click="openTagModal(tag)" :title="t('tagEdit')" :aria-label="t('tagEditOf', { name: tag.name })"><span class="material-icons" aria-hidden="true">edit</span></button>
+                                                <button class="btn-icon btn-icon-delete" @click="removeTag(tag)" :title="t('tagDelete')" :aria-label="t('tagDeleteOf', { name: tag.name })"><span class="material-icons" aria-hidden="true">delete</span></button>
+                                            </div>
+                                        </li>
+                                    </ul>
+                                </template>
+                            </template>
+                        </section>
+
+                        <!-- Summary of a tag: net cost, by category, day by day, its transactions -->
+                        <section v-else class="trends-card tag-summary">
+                            <div class="panel-header page-header">
+                                <div>
+                                    <button type="button" class="btn-secondary tag-back" @click="closeTagSummary">
+                                        <span class="material-icons" aria-hidden="true">arrow_back</span>{{ t('tagsBack') }}
+                                    </button>
+                                    <h3 tabindex="-1" class="tag-summary-title">
+                                        <span class="tag-dot" :style="{ background: categoryColor(tagSummary.tag) }" aria-hidden="true"></span>#{{ tagSummary.tag.name }}
+                                    </h3>
+                                    <p class="rules-help">
+                                        {{ formatDate(tagSummary.tag.start_date) }} – {{ tagSummary.tag.end_date ? formatDate(tagSummary.tag.end_date) : t('tagRunning') }}
+                                        · {{ tagSummary.tag.active ? t('tagActive') : t('tagArchived') }}
+                                    </p>
+                                </div>
+                                <div class="panel-actions">
+                                    <button type="button" class="btn-secondary" @click="showTagTransactions(tagSummary.tag)">
+                                        <span class="material-icons" aria-hidden="true">receipt</span>{{ t('tagShowTransactions') }}
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="tag-summary-total">
+                                <span>{{ t('tagTotal') }}</span>
+                                <strong :class="tagSummary.total >= 0 ? 'positive' : 'negative'">{{ formatAmount(tagSummary.total) }} {{ currencySymbol }}</strong>
+                                <span class="tag-count">{{ t('transactionCount', { count: tagSummary.count }) }}</span>
+                            </div>
+
+                            <template v-if="tagSummary.count">
+                                <h4 class="tag-summary-heading">{{ t('tagByCategory') }}</h4>
+                                <ul class="tag-categories">
+                                    <li v-for="c in tagSummary.categories" :key="c.category" class="tag-category"
+                                        :title="(categoryOf(c.category).name || t('uncategorized')) + ' : ' + formatAmount(c.total) + ' ' + currencySymbol">
+                                        <span class="tag-category-name">{{ categoryOf(c.category).name || t('uncategorized') }}</span>
+                                        <span class="tag-category-bar" aria-hidden="true">
+                                            <span :style="{ width: Math.max(2, Math.abs(c.total) / tagSummaryMax * 100) + '%', background: categoryColor(categoryOf(c.category)) }"></span>
+                                        </span>
+                                        <span class="tag-category-amount">{{ formatAmount(c.total) }} {{ currencySymbol }}</span>
+                                    </li>
+                                </ul>
+
+                                <h4 class="tag-summary-heading">{{ t('tagByDay') }}</h4>
+                                <figure class="tag-chart">
+                                    <svg viewBox="-8 -8 616 176" role="img" :aria-label="t('tagChartLabel', { name: tagSummary.tag.name })" preserveAspectRatio="none">
+                                        <line x1="0" x2="600" :y1="tagSummaryChart.zero" :y2="tagSummaryChart.zero" class="tag-chart-zero" />
+                                        <path :d="tagSummaryChart.path" class="tag-chart-line" vector-effect="non-scaling-stroke" />
+                                        <g v-for="p in tagSummaryChart.points" :key="p.date" class="tag-chart-point">
+                                            <circle :cx="p.x" :cy="p.y" r="12" class="tag-chart-hit"><title>{{ formatDate(p.date) }} : {{ formatAmount(p.cumulative) }} {{ currencySymbol }}</title></circle>
+                                            <circle :cx="p.x" :cy="p.y" r="4" class="tag-chart-dot" vector-effect="non-scaling-stroke" />
+                                        </g>
+                                    </svg>
+                                    <details class="tag-chart-table">
+                                        <summary>{{ t('tagChartTable') }}</summary>
+                                        <table class="insight-table">
+                                            <thead><tr><th scope="col">{{ t('transactionDate') }}</th><th scope="col">{{ t('tagDayTotal') }}</th><th scope="col">{{ t('tagCumulative') }}</th></tr></thead>
+                                            <tbody>
+                                                <tr v-for="d in tagSummary.days" :key="d.date">
+                                                    <td>{{ formatDate(d.date) }}</td>
+                                                    <td>{{ formatAmount(d.total) }} {{ currencySymbol }}</td>
+                                                    <td>{{ formatAmount(d.cumulative) }} {{ currencySymbol }}</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </details>
+                                </figure>
+
+                                <h4 class="tag-summary-heading">{{ t('tagTransactions') }}</h4>
+                                <ul class="tag-transactions">
+                                    <li v-for="item in tagSummary.transactions" :key="item.id" class="tag-transaction">
+                                        <span class="tag-transaction-date">{{ formatDate(item.date) }}</span>
+                                        <span class="tag-transaction-label">{{ item.label }}</span>
+                                        <span class="category-chip">{{ categoryOf(item.category).name || t('uncategorized') }}</span>
+                                        <span class="tag-transaction-amount" :class="item.amount >= 0 ? 'positive' : 'negative'">{{ formatAmount(item.amount) }} {{ currencySymbol }}</span>
+                                    </li>
+                                </ul>
+                            </template>
+                            <p v-else class="transactions-hint">{{ t('tagNoTransaction') }}</p>
                         </section>
                     </div>
                 </div>
@@ -2614,6 +2766,27 @@
                         <input type="checkbox" v-model="transactionDetailPointed" />
                         {{ t('transactionChecked') }}
                     </label>
+                    <div class="form-group transaction-detail-tags">
+                        <label :for="tagsToOffer(transactionDetail).length ? 'detail-tag' : null">{{ t('tagsOfTransaction') }}</label>
+                        <ul v-if="transactionTags(transactionDetail).length" class="transaction-tags">
+                            <li v-for="tag in transactionTags(transactionDetail)" :key="tag.id" class="tag-chip">
+                                <span class="tag-dot" :style="{ background: categoryColor(tag) }" aria-hidden="true"></span>#{{ tag.name }}
+                                <button type="button" class="tag-chip-remove" @click="removeDetailTag(transactionDetail, tag)" :aria-label="t('tagRemoveOf', { name: tag.name })">
+                                    <span class="material-icons" aria-hidden="true">close</span>
+                                </button>
+                            </li>
+                        </ul>
+                        <div v-if="tagsToOffer(transactionDetail).length" class="tag-add-row">
+                            <select id="detail-tag" v-model="detailTagToAdd">
+                                <option value="">{{ t('tagChoose') }}</option>
+                                <option v-for="tag in tagsToOffer(transactionDetail)" :key="tag.id" :value="tag.id">#{{ tag.name }}</option>
+                            </select>
+                            <button type="button" class="btn-secondary" @click="addDetailTag(transactionDetail)" :disabled="detailTagToAdd === ''">
+                                <span class="material-icons" aria-hidden="true">sell</span>{{ t('tagAdd') }}
+                            </button>
+                        </div>
+                        <p v-else-if="!transactionTags(transactionDetail).length" class="rules-help">{{ t('tagNoneActive') }}</p>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn-danger btn-danger-icon modal-footer-start" @click="deleteTransactionDetail" :disabled="savingTransaction"
@@ -2632,6 +2805,57 @@
                         {{ t('cancel') }}
                     </button>
                     <button @click="saveTransactionDetail" :disabled="savingTransaction">
+                        <span class="material-icons" aria-hidden="true">check_circle</span>
+                        {{ t('save') }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tag of a project: name, color, period -->
+        <div v-if="showTagModal" class="modal-overlay" @click.self="closeTagModal" @keydown.esc="closeTagModal">
+            <div class="modal modal-form modal-tag" role="dialog" aria-modal="true" aria-labelledby="tag-modal-title">
+                <div class="modal-header">
+                    <span class="material-icons" aria-hidden="true">sell</span>
+                    <h3 id="tag-modal-title">{{ tagForm.id === null ? t('tagNew') : t('tagEdit') }}</h3>
+                    <button class="modal-close" @click="closeTagModal" :aria-label="t('close')">
+                        <span class="material-icons" aria-hidden="true">close</span>
+                    </button>
+                </div>
+                <div class="modal-body manual-form">
+                    <div class="form-group">
+                        <label for="tag-name">{{ t('tagName') }}</label>
+                        <input id="tag-name" v-model="tagForm.name" maxlength="41" :placeholder="t('tagNamePlaceholder')" aria-describedby="tag-name-help"
+                               @keydown.enter="tagForm.name.trim() && saveTag()" />
+                        <small id="tag-name-help">{{ t('tagNameHelp') }}</small>
+                    </div>
+                    <div class="form-group">
+                        <label>{{ t('categoryColor') }}</label>
+                        <div class="color-picker" role="radiogroup" :aria-label="t('categoryColor')">
+                            <button v-for="c in categoryColors" :key="c" type="button" class="color-swatch"
+                                    :class="{ selected: tagForm.color === c }" :style="{ background: categoryColor({ color: c }) }"
+                                    :title="c" :aria-label="c" role="radio" :aria-checked="tagForm.color === c ? 'true' : 'false'"
+                                    @click="tagForm.color = c"></button>
+                        </div>
+                    </div>
+                    <div class="manual-row">
+                        <div class="form-group">
+                            <label for="tag-start">{{ t('tagStart') }}</label>
+                            <input id="tag-start" type="date" v-model="tagForm.start_date" required />
+                        </div>
+                        <div class="form-group">
+                            <label for="tag-end">{{ t('tagEnd') }}</label>
+                            <input id="tag-end" type="date" v-model="tagForm.end_date" :min="tagForm.start_date" aria-describedby="tag-end-help" />
+                            <small id="tag-end-help">{{ t('tagEndHelp') }}</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" @click="closeTagModal">
+                        <span class="material-icons" aria-hidden="true">cancel</span>
+                        {{ t('cancel') }}
+                    </button>
+                    <button @click="saveTag" :disabled="savingTag || !tagForm.name.trim() || !tagForm.start_date">
                         <span class="material-icons" aria-hidden="true">check_circle</span>
                         {{ t('save') }}
                     </button>

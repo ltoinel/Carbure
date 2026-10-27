@@ -227,6 +227,23 @@ subscriptions, bills, reimbursements…
 - a **card payment** must also keep the same amount within 20% (a subscription,
   not the local restaurant); a direct debit or a transfer may vary (electricity, water).
 
+## Tags { #tags }
+
+A **tag** follows the whole cost of a project (a trip, works…) without touching the
+categories: each transaction keeps its own, the budgets and the trends do not change.
+
+- **Tags tab**: a tag has a name (`#trip-italy`), a color and a **period** (start, optional
+  end). During its period it is **active** and offered; after its end it is **archived**: no
+  longer offered, its summary still readable.
+- **Tag by hand**: from the details of a transaction, or on a **selection** of the list
+  (**Select**, tick the transactions, choose the tag, **Add the tag**). A transaction may have
+  several tags; no automatic rule.
+- **Summary of a tag**: its net cost (refunds deducted), the split by category, the evolution
+  day by day (with the table of the values) and its transactions.
+- **Search** `#trip-italy` in Transactions: the transactions of the tag, every month. The
+  parts of a split transaction get its tags, then are tagged apart.
+- The `tag` and `transaction_tag` tables can be read by the [insights](insights.md).
+
 ## Categories { #categories }
 
 Reserved for administrators: **Administration** menu → **Categories**. The API refuses

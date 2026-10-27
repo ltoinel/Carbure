@@ -35,7 +35,8 @@ you type):
   the `user` column of transactions therefore cannot be read;
 - **only the budget tables can be read**: `bank_transaction`,
   `bank_transaction_category`, `bank_transaction_category_keyword` (categorization
-  rules), `budget`, `bank_account` and `bank_backend` (bank connections), with no
+  rules), `budget`, `bank_account` and `bank_backend` (bank connections), `tag` and
+  `transaction_tag` (project tags), with no
   database name in front (`carbure.bank_transaction` is rejected). Any other table is rejected:
   users, two-factor authentication, tokens, devices, OAuth, settings, insights,
   migrations… as well as the system schemas (`mysql`, `information_schema`,
@@ -77,6 +78,8 @@ The useful tables (see [Data model](modele-donnees.md)):
 | `bank_transaction_category` | `id`, `name`, `parent_category` (0 = main category), `type`: `DEBIT`, `CREDIT` or `HORS-BUDGET` |
 | `budget` | `category`, `amount` (planned positive amount), `date` (first day of the month) |
 | `bank_account` | `bank_name`, `account_number`, `label` (name given to the account) |
+| `tag` | `id`, `name` (without its `#`), `start_date`, `end_date` |
+| `transaction_tag` | `transaction_id` (`bank_transaction.id`), `tag_id` (`tag.id`) |
 
 **Transaction types** (`bank_transaction.type`, woob codes, also inferred from the label
 for an imported statement):

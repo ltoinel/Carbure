@@ -35,7 +35,8 @@ la saisie) :
   la colonne `user` des transactions ne peut donc pas être lue ;
 - **seules les tables du budget sont lisibles** : `bank_transaction`,
   `bank_transaction_category`, `bank_transaction_category_keyword` (règles de
-  catégorisation), `budget`, `bank_account` et `bank_backend` (connexions bancaires), sans
+  catégorisation), `budget`, `bank_account` et `bank_backend` (connexions bancaires), `tag` et
+  `transaction_tag` (tags de projet), sans
   nom de base devant (`carbure.bank_transaction` est refusé). Toute autre table est refusée :
   utilisateurs, double authentification, jetons, appareils, OAuth, paramètres, insights,
   migrations… ainsi que les schémas système (`mysql`, `information_schema`,
@@ -77,6 +78,8 @@ Les tables utiles (voir [Modèle de données](modele-donnees.md)) :
 | `bank_transaction_category` | `id`, `name`, `parent_category` (0 = catégorie principale), `type` : `DEBIT`, `CREDIT` ou `HORS-BUDGET` |
 | `budget` | `category`, `amount` (montant positif prévu), `date` (premier jour du mois) |
 | `bank_account` | `bank_name`, `account_number`, `label` (nom donné au compte) |
+| `tag` | `id`, `name` (sans le `#`), `start_date`, `end_date` |
+| `transaction_tag` | `transaction_id` (`bank_transaction.id`), `tag_id` (`tag.id`) |
 
 **Types de transaction** (`bank_transaction.type`, codes de woob, aussi déduits du libellé
 pour un relevé importé) :

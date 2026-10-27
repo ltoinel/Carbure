@@ -32,7 +32,7 @@ use Throwable;
 final class Changes {
 
     /** Kinds of data that have a change marker */
-    public const KINDS = ['transactions', 'accounts', 'categories', 'budgets', 'insights', 'settings'];
+    public const KINDS = ['transactions', 'accounts', 'categories', 'budgets', 'insights', 'settings', 'tags'];
 
     /** Response header of every authenticated response: the versions of every kind */
     public const HEADER = 'X-Carbure-Changes';

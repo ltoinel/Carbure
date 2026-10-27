@@ -30,7 +30,7 @@ test('the login screen of a demonstration instance is readable', async ({ page }
 
 test('every tab is readable, buttons on hover included', async ({ adminPage: page }) => {
     const problems = [];
-    const tabs = ['tabTransactions', 'tabBudget', 'tabInsights', 'tabTrends', 'tabRules', 'tabAccounts'];
+    const tabs = ['tabTransactions', 'tabBudget', 'tabInsights', 'tabTrends', 'tabTags', 'tabRules', 'tabAccounts'];
     for (const tab of tabs) {
         await openTab(page, tr(tab));
         await expect(page.locator('.tab-button.active')).toContainText(tr(tab));
@@ -444,4 +444,30 @@ test('the registration of an app in the profile is readable', async ({ userPage:
     await expect(page.locator('.profile-mfa').getByRole('img', { name: tr('mfaQrLabel') })).toBeVisible();
 
     expect(await contrastProblems(page, tr('mfaSetupButton'))).toEqual([]);
+});
+
+test('the tags, their form and a summary are readable', async ({ adminPage: page, api }) => {
+    // An active tag with transactions, an archived one
+    const tag = await (await api.post('/api/tag', { data: { name: 'voyage', color: 'green', start_date: '2026-01-01' } })).json();
+    await api.post('/api/tag', { data: { name: 'ete-2020', color: 'orange', start_date: '2020-06-01', end_date: '2020-08-31' } });
+    const transactions = await (await api.get('/api/transaction')).json();
+    await api.put('/api/transaction/tags', { data: { ids: transactions.slice(0, 3).map(t => t.id), add: [tag.id] } });
+    const problems = [];
+
+    await openTab(page, tr('tabTags'));
+    await page.getByRole('button', { name: tr('tagNew') }).click();
+    await expect(page.getByRole('dialog', { name: tr('tagNew') })).toBeVisible();
+    problems.push(...await contrastProblems(page, tr('tagNew')));
+    await page.keyboard.press('Escape');
+
+    await page.getByRole('button', { name: tr('tagSummaryOf', { name: 'voyage' }) }).click();
+    await expect(page.locator('.tag-summary .tag-category').first()).toBeVisible();
+    problems.push(...await contrastProblems(page, tr('tagSummaryOf', { name: 'voyage' })));
+
+    // The chips of the rows and the selection of the list
+    await openTab(page, tr('tabTransactions'));
+    await page.getByRole('button', { name: tr('tagSelect'), exact: true }).click();
+    await expect(page.locator('.tag-selection-bar')).toBeVisible();
+    problems.push(...await contrastProblems(page, tr('tagSelect')));
+    expect(problems).toEqual([]);
 });

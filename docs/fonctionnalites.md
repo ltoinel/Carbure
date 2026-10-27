@@ -228,6 +228,23 @@ abonnements, factures, remboursements…
 - un **paiement par carte** doit en plus garder le même montant à 20 % près (un abonnement,
   pas le restaurant du coin) ; un prélèvement ou un virement peut varier (électricité, eau).
 
+## Tags
+
+Un **tag** suit le coût global d'un projet (un voyage, des travaux…) sans toucher aux
+catégories : chaque transaction garde la sienne, les budgets et les tendances ne changent pas.
+
+- **Onglet Tags** : un tag a un nom (`#voyage-italie`), une couleur et une **période** (début,
+  fin facultative). Pendant sa période il est **actif** et proposé à la saisie ; après sa fin
+  il est **archivé** : il n'est plus proposé, son bilan reste consultable.
+- **Étiqueter à la main** : depuis le détail d'une transaction, ou sur une **sélection** de la
+  liste (**Sélectionner**, cocher les transactions, choisir le tag, **Ajouter le tag**). Une
+  transaction peut porter plusieurs tags ; aucune règle automatique.
+- **Bilan d'un tag** : son coût net (remboursements déduits), la répartition par catégorie,
+  l'évolution jour par jour (avec le tableau des valeurs) et ses transactions.
+- **Recherche** `#voyage-italie` dans Transactions : les transactions du tag, tous mois
+  confondus. Les parts d'une transaction répartie reprennent ses tags, puis s'étiquettent à part.
+- Les tables `tag` et `transaction_tag` sont lisibles par les [insights](insights.md).
+
 ## Catégories
 
 Réservées aux administrateurs : menu **Administration** → **Catégories**. L'API refuse
