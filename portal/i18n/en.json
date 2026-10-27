@@ -882,6 +882,8 @@
     "backupDatasetInsights": "Insights",
     "backupDatasetTransactions": "Transactions",
     "backupDatasetDeleted": "Deleted transactions",
+    "backupDatasetTags": "Tags",
+    "backupDatasetTransactionTags": "Tags of the transactions",
     "backupRows_one": "{count} row",
     "backupRows_other": "{count} rows",
     "backupSelectAll": "Select all",

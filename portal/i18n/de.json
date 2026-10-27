@@ -882,6 +882,8 @@
     "backupDatasetInsights": "Insights",
     "backupDatasetTransactions": "Transaktionen",
     "backupDatasetDeleted": "Gelöschte Transaktionen",
+    "backupDatasetTags": "Tags",
+    "backupDatasetTransactionTags": "Tags der Transaktionen",
     "backupRows_one": "{count} Zeile",
     "backupRows_other": "{count} Zeilen",
     "backupSelectAll": "Alle auswählen",

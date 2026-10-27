@@ -882,6 +882,8 @@
     "backupDatasetInsights": "Indicadores",
     "backupDatasetTransactions": "Transações",
     "backupDatasetDeleted": "Transações eliminadas",
+    "backupDatasetTags": "Etiquetas",
+    "backupDatasetTransactionTags": "Etiquetas das transações",
     "backupRows_one": "{count} linha",
     "backupRows_other": "{count} linhas",
     "backupSelectAll": "Selecionar tudo",

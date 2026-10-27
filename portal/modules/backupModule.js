@@ -25,7 +25,9 @@ export const BACKUP_DATASETS = {
     budgets: { icon: 'savings', label: 'backupDatasetBudgets' },
     insights: { icon: 'insights', label: 'backupDatasetInsights' },
     transactions: { icon: 'receipt_long', label: 'backupDatasetTransactions' },
-    deleted_transactions: { icon: 'delete_sweep', label: 'backupDatasetDeleted' }
+    deleted_transactions: { icon: 'delete_sweep', label: 'backupDatasetDeleted' },
+    tags: { icon: 'sell', label: 'backupDatasetTags' },
+    transaction_tags: { icon: 'label', label: 'backupDatasetTransactionTags' }
 };
 
 /** Files offered by the file picker */
