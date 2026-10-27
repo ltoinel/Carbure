@@ -8311,14 +8311,18 @@ button.is-busy:not(.btn-confirm-danger):hover {
     /* The three figures of the month side by side, without their icon */
     .stats {
         grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 8px;
-        margin-bottom: 12px;
+        gap: 6px;
+        margin-bottom: 8px;
     }
 
     .stat-card {
-        padding: 10px 12px;
+        padding: 6px 10px;
         gap: 0;
-        border-radius: var(--border-radius-lg);
+        border-radius: var(--border-radius-md);
+    }
+
+    .stat-card::before {
+        width: 3px;
     }
 
     .stat-card .stat-icon {
@@ -8326,13 +8330,13 @@ button.is-busy:not(.btn-confirm-danger):hover {
     }
 
     .stat-label {
-        font-size: 11px;
-        margin-bottom: 2px;
+        font-size: 10px;
+        margin-bottom: 0;
         letter-spacing: 0.2px;
     }
 
     .stat-value {
-        font-size: 15px;
+        font-size: 14px;
         font-weight: 600;
         overflow-wrap: anywhere;
     }
@@ -8361,6 +8365,12 @@ button.is-busy:not(.btn-confirm-danger):hover {
 
     .transactions-toolbar .transaction-search {
         flex: 1 1 100%;
+    }
+
+    /* One scroll, the page's: the list does not scroll inside it */
+    .transactions-list {
+        max-height: none;
+        overflow-y: visible;
     }
 
     /* A row on two lines: the label (two lines at most) and the amount, then the date, its

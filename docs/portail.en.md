@@ -125,7 +125,8 @@ taskbar or the home screen.
 ![Transactions screen of the Carbure web portal](assets/en/screenshot-transactions.png)
 
 - Statistics of the month: income, expenses, balance.
-- **On a phone**, the three figures of the month fit on one line, the buttons of the
+- **On a phone**, the three figures of the month fit on one compact line, the list
+  scrolls with the page (no scroll of its own), the buttons of the
   toolbar (Calendar, Select, Add, Import) only show their icon (their name is still read
   by screen readers and shown on hover), and each transaction holds on two lines: the
   full label and the amount, then the date, the badges, the tags and the category.
