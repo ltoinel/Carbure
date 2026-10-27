@@ -1279,7 +1279,8 @@ button .material-icons {
     font-size: 14px;
 }
 
-.empty-state .btn-import .material-icons {
+.empty-state .btn-import .material-icons,
+.empty-state .btn-manual-add .material-icons {
     font-size: 18px;
     margin: 0;
     color: inherit;
@@ -1493,8 +1494,11 @@ button .material-icons {
     outline: none;
 }
 
+/* Buttons on several lines when they do not fit (detail of a transaction: delete, edit,
+   split, cancel, save), never cut off */
 .modal-footer {
     display: flex;
+    flex-wrap: wrap;
     justify-content: flex-end;
     gap: 8px;
     padding: 12px 20px;
@@ -3861,6 +3865,54 @@ button .material-icons {
     color: var(--text-primary);
 }
 
+/* Title of the manual accounts, with its button (below it on narrow screens) */
+.accounts-section-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 16px;
+    margin-top: 24px;
+}
+
+.accounts-section-header .accounts-section-title {
+    margin: 0;
+}
+
+/* Transaction entered by hand: direction, then amount and date side by side */
+.manual-direction {
+    display: flex;
+    gap: 24px;
+    margin: 0 0 16px;
+    padding: 0;
+    border: none;
+}
+
+.manual-direction label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+}
+
+.manual-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.manual-form input,
+.manual-form select {
+    width: 100%;
+}
+
+@media (max-width: 480px) {
+    .manual-row {
+        grid-template-columns: 1fr;
+        gap: 0;
+    }
+}
+
 .bank-connections {
     list-style: none;
     margin: 8px 0 0;
@@ -6075,8 +6127,9 @@ textarea:focus-visible,
 }
 
 /* ===== Import of a bank statement file (Transactions tab) ===== */
-/* Compact, the size of the transaction count next to it */
-.btn-import {
+/* Compact, the size of the transaction count next to it (also the manual entry) */
+.btn-import,
+.btn-manual-add {
     display: inline-flex;
     align-items: center;
     gap: 6px;
@@ -6087,7 +6140,8 @@ textarea:focus-visible,
     border-radius: 20px;
 }
 
-.btn-import .material-icons {
+.btn-import .material-icons,
+.btn-manual-add .material-icons {
     font-size: 18px;
 }
 

@@ -31,6 +31,10 @@ final class Bank {
     /** Pause of the waits between two attempts, in seconds (null: sleep(); replaced by the tests) */
     public static ?Closure $sleep = null;
 
+    /** bank_name of a manual account: not a woob backend, never synchronized, its transactions
+     *  are entered by hand (a bank woob does not support, cash) */
+    public const MANUAL = 'manual';
+
     /** Header of the sync token (the scheduler) */
     public const SYNC_TOKEN_HEADER = 'X-Sync-Token';
 
@@ -48,7 +52,8 @@ final class Bank {
      * Get the bank accounts of the household (every user sees all of them).
      * Each bank account is returned with bankId = account_number@bank_name
      * @return list<array<string, mixed>> List of bank accounts with bankId and details
-     *               (label: name given to the account, null if none)
+     *               (label: name given to the account, null if none; manual: an account whose
+     *               transactions are entered by hand)
      */
     #[ApiRoute('/bank', method: 'GET')]
     public static function get(): array
@@ -66,7 +71,8 @@ final class Bank {
                     'bankId' => $row['account_number'] . '@' . $row['bank_name'],
                     'account_number' => $row['account_number'],
                     'bank_name' => $row['bank_name'],
-                    'label' => $row['label']
+                    'label' => $row['label'],
+                    'manual' => $row['bank_name'] === self::MANUAL
                 );
             }
         }
@@ -79,11 +85,15 @@ final class Bank {
      *
      * @param string $accountNumber The account identifier in woob
      * @param string $bankName      The woob backend name
+     * @param bool   $manual        The account is a manual one (its bank_name stays MANUAL)
      * @return void
      * @throws Error If one of them is invalid
      */
-    private static function validateAccount(string $accountNumber, string $bankName): void
+    private static function validateAccount(string $accountNumber, string $bankName, bool $manual = false): void
     {
+        if (($bankName === self::MANUAL) !== $manual) {
+            throw new ApiError("The bank name " . self::MANUAL . " is reserved to the manual accounts", 400, 'bank_name_reserved');
+        }
         // Never starting with "-": woob would read "-x@bank" as an option
         if (!preg_match('/^[A-Za-z0-9_.:][A-Za-z0-9_.:-]{0,99}$/', $accountNumber)) {
             throw new ApiError("Invalid account number", 400, 'account_number_invalid');
@@ -135,7 +145,8 @@ final class Bank {
      *
      * @return list<array<string, mixed>> The accounts: id, bankId, account_number, bank_name,
      *               label (name given to the account, null if none), user_id and username
-     *               (who added it), last_sync_at, last_sync_status (OK|ERROR), last_sync_message
+     *               (who added it), last_sync_at, last_sync_status (OK|ERROR), last_sync_message,
+     *               manual (an account whose transactions are entered by hand, never synchronized)
      */
     #[ApiRoute('/bank/accounts', method: 'GET', admin: true)]
     public static function accounts(): array
@@ -146,7 +157,8 @@ final class Bank {
                 ORDER BY a.bank_name, a.account_number, u.username";
         $accounts = [];
         foreach (Db::select($sql, "")->fetch_all(MYSQLI_ASSOC) as $row) {
-            $accounts[] = ['id' => $row['id'], 'bankId' => $row['account_number'] . '@' . $row['bank_name']] + $row;
+            $accounts[] = ['id' => $row['id'], 'bankId' => $row['account_number'] . '@' . $row['bank_name']] + $row
+                + ['manual' => $row['bank_name'] === self::MANUAL];
         }
         return $accounts;
     }
@@ -177,6 +189,36 @@ final class Bank {
     }
 
     /**
+     * Add a manual account: a bank woob does not support, or cash. It is never
+     * synchronized; its transactions are entered by hand (POST /transaction).
+     *
+     * @param string      $label          Name of the account (required)
+     * @param string|null $account_number Its number (optional, generated when empty)
+     * @return array<string, mixed> The account
+     * @throws Error If the name or the number is invalid, or the number already used (409)
+     */
+    #[ApiRoute('/bank/manual', method: 'POST', admin: true, changes: ['accounts'])]
+    public static function createManual(string $label, ?string $account_number = null): array
+    {
+        $label = self::normalizeLabel($label);
+        if ($label === null) {
+            throw new ApiError("The name of the account is required", 400, 'account_label_required');
+        }
+        $number = trim((string)$account_number) ?: 'M' . bin2hex(random_bytes(4));
+        self::validateAccount($number, self::MANUAL, true);
+        $userId = (int)Jwt::getUserIdFromToken();
+
+        if (Db::queryOne("SELECT id FROM bank_account WHERE account_number = ? AND bank_name = ?", "ss", $number, self::MANUAL)) {
+            throw new ApiError("This account is already followed", 409, 'account_already_followed');
+        }
+        $stmt = Db::execute("INSERT INTO bank_account (bank_name, account_number, label, user_id) VALUES (?, ?, ?, ?)", "sssi",
+            self::MANUAL, $number, $label, $userId);
+
+        return ['id' => $stmt->insert_id, 'bankId' => $number . '@' . self::MANUAL, 'account_number' => $number,
+                'bank_name' => self::MANUAL, 'label' => $label, 'user_id' => $userId, 'manual' => true];
+    }
+
+    /**
      * Modify a followed bank account.
      *
      * @param int         $id             The account id
@@ -191,7 +233,7 @@ final class Bank {
     public static function update(int $id, string $account_number, string $bank_name, ?string $label = null): array
     {
         $account = self::existingAccount($id);
-        self::validateAccount($account_number, $bank_name);
+        self::validateAccount($account_number, $bank_name, $account['bank_name'] === self::MANUAL);
         $label = $label === null ? $account['label'] : self::normalizeLabel($label);
         $userId = (int)$account['user_id'];
 
@@ -428,6 +470,9 @@ final class Bank {
     {
         if (!preg_match(Woob::MODULE_NAME, $module) || !preg_match(Woob::BACKEND_NAME, $backend)) {
             throw new ApiError("Invalid woob module or bank name (lowercase letters, digits, - and _)", 400, 'bank_setup_invalid');
+        }
+        if ($backend === self::MANUAL) {
+            throw new ApiError("The bank name " . self::MANUAL . " is reserved to the manual accounts", 400, 'bank_name_reserved');
         }
         $label = self::normalizeLabel($label);
         if (in_array($backend, array_column(Woob::listBackends(), 'name'), true)) {
@@ -1061,14 +1106,14 @@ final class Bank {
     }
 
     /**
-     * Get all bank IDs from the database.
+     * Get the bank IDs of the synchronized accounts (not the manual ones) from the database.
      *
      * @return list<string> List of bankIds (account_number@bank_name)
      */
     private static function getBankIds(): array
     {
-        $sql = "SELECT DISTINCT account_number, bank_name FROM bank_account ORDER BY bank_name, account_number";
-        $stmt = Db::execute($sql, "");
+        $sql = "SELECT DISTINCT account_number, bank_name FROM bank_account WHERE bank_name <> ? ORDER BY bank_name, account_number";
+        $stmt = Db::execute($sql, "s", self::MANUAL);
         $result = Db::result($stmt);
         
         $bankIds = array();

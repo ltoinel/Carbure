@@ -33,7 +33,7 @@ class BankTest extends DatabaseTestCase
         $accounts = Bank::get();
         // 111@bnp is followed twice (by two users): listed once
         $this->assertSame(['fail@bank', '111@bnp'], array_column($accounts, 'bankId'));
-        $this->assertSame(['bankId' => '111@bnp', 'account_number' => '111', 'bank_name' => 'bnp', 'label' => null],
+        $this->assertSame(['bankId' => '111@bnp', 'account_number' => '111', 'bank_name' => 'bnp', 'label' => null, 'manual' => false],
             array_diff_key($accounts[1], ['id' => true]));
         $this->assertGreaterThan(0, $accounts[1]['id']);
 

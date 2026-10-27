@@ -647,6 +647,24 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
     }
 
     /**
+     * Enters a transaction by hand on a manual account
+     * @param {{account: number, date: string, label: string, amount: number, category?: number}} transaction - The transaction
+     * @returns {Promise<Object>} The transaction saved
+     */
+    async function createTransaction(transaction) {
+        return request(`${baseUrl}/transaction`, { method: 'POST', body: JSON.stringify(transaction) }, 'Failed to add the transaction');
+    }
+
+    /**
+     * Changes a transaction entered by hand
+     * @param {{id: number, date: string, label: string, amount: number}} transaction - The new values
+     * @returns {Promise<Object>} The transaction saved
+     */
+    async function updateTransaction(transaction) {
+        return request(`${baseUrl}/transaction`, { method: 'PUT', body: JSON.stringify(transaction) }, 'Failed to modify the transaction');
+    }
+
+    /**
      * Splits a transaction across several categories (replaces its previous parts)
      * @param {number} id - Transaction id
      * @param {Array<{category: number, amount: number}>} parts - Parts, with the sign of the transaction; none cancels the split
@@ -678,6 +696,25 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
      */
     async function createBankAccount(account_number, bank_name, label = '') {
         return request(`${baseUrl}/bank`, { method: 'POST', body: JSON.stringify({ account_number, bank_name, label }) }, 'Failed to add the account');
+    }
+
+    /**
+     * Accounts of the household (every user), the manual ones flagged
+     * @returns {Promise<Array<{id: number, account_number: string, bank_name: string, label: string|null, manual: boolean}>>}
+     */
+    async function fetchAccounts() {
+        const data = await request(`${baseUrl}/bank`, {}, 'Failed to fetch the accounts');
+        return Array.isArray(data) ? data : [];
+    }
+
+    /**
+     * Adds a manual account (never synchronized, its transactions entered by hand)
+     * @param {string} label - Name of the account
+     * @param {string} [account_number] - Its number (generated when empty)
+     * @returns {Promise<Object>} The account
+     */
+    async function createManualAccount(label, account_number = '') {
+        return request(`${baseUrl}/bank/manual`, { method: 'POST', body: JSON.stringify({ label, account_number }) }, 'Failed to add the account');
     }
 
     /**
@@ -1387,6 +1424,10 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
         deleteCategory,
         setTransactionCategory,
         splitTransaction,
+        createTransaction,
+        updateTransaction,
+        fetchAccounts,
+        createManualAccount,
         deleteTransaction,
         fetchRules,
         createRule,

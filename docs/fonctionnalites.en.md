@@ -71,6 +71,9 @@ aggregator, no cloud. woob modules mostly cover **French banks**.
 - **Followed accounts** are shared by the household: each one shows who added it, and the date and
   result of its last synchronization (Synchronized, Failed with the message, or Never
   synchronized). Unfollowing an account keeps its already imported transactions.
+- **Manual accounts**: for cash, or a bank woob does not support, an administrator adds a
+  manual account (a name, and an optional number). It is never synchronized: its
+  transactions are entered by hand in the Transactions tab.
 
 ### How a synchronization runs { #deroulement-dune-synchronisation }
 
@@ -131,6 +134,10 @@ transactions of the last month still without a category.
 - **Delete** a transaction (from its details, after confirmation): it disappears
   for the whole household and is never imported again, neither by synchronization nor by importing
   a statement.
+- **Enter a transaction by hand** (**Add** button), for example a cash expense, on a manual
+  account: expense or income, amount, label, date, and category (otherwise the one of the
+  rules). Any user can enter one; it counts like the others and stays editable (label,
+  date, amount) from its details.
 - **Split** a transaction across several categories (from its details): a supermarket
   receipt partly food and partly home, a cash withdrawal spent on groceries and transport.
   Each part (category and amount, 10 at most) becomes a transaction shown right below the

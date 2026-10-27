@@ -29,6 +29,10 @@ keeps track of what was done).
       transactions of their own (`split_of` set); show them under their transaction, with its
       bank amount, and offer the split (`PUT /transaction/split`).
 
+- [ ] **Mobile apps — transactions entered by hand (#355)**: the apps show them already
+      (`bank_name` = `manual`); offer to enter one (`POST /transaction`, accounts of `GET /bank`
+      with `manual`) and to change it (`PUT /transaction`).
+
 - [ ] **YunoHost package (#45, `ltoinel/carbure_ynh`)**: after the 1.10.0 release, merge the
       pull request of its autoupdate Action (version and sha256 of the archive), then
       install it on a test YunoHost server (Debian 12): install, upgrade, backup/restore,
