@@ -126,6 +126,11 @@ tâches ou l'écran d'accueil.
 ![Écran Transactions du portail web Carbure](assets/screenshot-transactions.png)
 
 - Statistiques du mois : revenus, dépenses, solde.
+- **Sur téléphone**, les trois chiffres du mois tiennent sur une ligne, les boutons de la
+  barre d'outils (Calendrier, Sélectionner, Ajouter, Importer) n'affichent que leur icône
+  (leur nom reste lu par les lecteurs d'écran et affiché au survol), et chaque transaction
+  tient sur deux lignes : le libellé complet et le montant, puis la date, les badges, les
+  tags et la catégorie.
 - Liste compacte des transactions avec l'icône et la couleur de leur catégorie (celles du
   type d'opération si elles ne sont pas catégorisées), libellé, date et montant.
 - **Pointage** : le bouton rond à gauche de chaque transaction la marque comme vérifiée

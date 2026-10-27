@@ -59,3 +59,39 @@ test('a user without administration finds the AI agents and the logout in the me
     await page.getByRole('dialog', { name: 'marie' }).getByRole('button', { name: tr('logout') }).click();
     await expect(page.getByRole('button', { name: tr('loginButton') })).toBeVisible();
 });
+
+test('the transactions on a phone: figures in one strip, icon buttons, full labels (#384)', async ({ adminPage: page }) => {
+    // The three figures of the month side by side
+    const cards = page.locator('.stat-card');
+    await expect(cards).toHaveCount(3);
+    const tops = await cards.evaluateAll(list => list.map(card => Math.round(card.getBoundingClientRect().top)));
+    expect(new Set(tops).size).toBe(1);
+
+    // The buttons of the toolbar as icons, still named
+    const toolbar = page.locator('.transactions-toolbar');
+    for (const name of [tr('manualTransactionButton'), tr('importButton'), tr('recurringCalendarButton')]) {
+        const button = toolbar.getByRole('button', { name, exact: true });
+        await expect(button).toBeVisible();
+        expect((await button.boundingBox()).width).toBeLessThan(60);
+    }
+
+    // A long label is shown whole (two lines at most), the amount next to it
+    const row = page.locator('.transaction-item').filter({ hasText: 'CB RESTAURANT LE PETIT ZINC' });
+    const label = row.locator('.transaction-label');
+    expect(await label.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
+    const amount = await row.locator('.transaction-amount').boundingBox();
+    const labelBox = await label.boundingBox();
+    expect(amount.y).toBeLessThan(labelBox.y + labelBox.height);
+
+    // A message does not block the buttons it covers
+    expect(await page.evaluate(() => {
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        document.body.appendChild(toast);
+        const value = getComputedStyle(toast).pointerEvents;
+        toast.remove();
+        return value;
+    })).toBe('none');
+
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+});
