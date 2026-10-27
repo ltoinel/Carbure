@@ -52,7 +52,7 @@ There are two profiles:
 
 | Profile | Tabs |
 |---|---|
-| **User** | Transactions, Budget, Insights, Trends; **AI agent** and **My profile** in the user menu |
+| **User** | Transactions, Budget, Insights, Trends, Tags; **AI agent** and **My profile** in the user menu |
 | **Administrator** | In addition: Rules, Accounts, and the **Administration** menu (Users, Categories, Sync, Mobile push, AI agent, Logs, Settings, Backup, API); adding and editing insights; enabling the MCP server; database update |
 
 The administration pages (Rules, Categories, Accounts, Users) and the
@@ -103,7 +103,7 @@ taskbar or the home screen.
 - **On a phone** (window narrower than 768 px), the header fits on one line: the logo and
   the period. The Transactions, Budget, Insights and Trends tabs move to a **bar at the
   bottom of the screen**; its **More** button opens a menu with the other tabs (Rules,
-  Accounts, Administration, or AI agent), **My profile**, the **theme** and **Log out**.
+  Accounts, Administration, Tags, or AI agent), **My profile**, the **theme** and **Log out**.
 
 !!! note "Database update"
     When a new version of Carbure changes the database (pending migrations), a
@@ -161,6 +161,30 @@ taskbar or the home screen.
   label stripped of the operation type (CB, PRLV SEPA, VIR…) and of what follows the
   merchant (card number, date, mandate reference): "PRLV SEPA EDF MDT/123"
   searches for "EDF". The search is then cleared with the cross, like a typed search.
+- **Enter a transaction by hand**: the **Add** button opens a form (manual account,
+  expense or income, amount, date, label, optional category: otherwise the one of the
+  rules). Handy for a cash expense; any user can enter one. The transaction is checked,
+  and stays editable from its details (**Edit** button: date, label, amount). An
+  administrator must first have created a **manual account** in the Accounts tab;
+  otherwise the form says so.
+- **Split a transaction** across several categories: in its details, the **Split** icon
+  button opens a window with one row per part (category and amount, typed without sign: it
+  takes the one of the transaction; 10 parts at most). The **rest**, computed again as you
+  type, stays in the category of the transaction. Example: a Carrefour receipt of €82.40
+  with €20 of restaurant becomes a transaction of €62.40 in Supermarket and a **part** of
+  €20 in Restaurant. Each part is shown right below its transaction, indented, with the
+  **Part** badge; the transaction shows the bank **total**. The total of the month does not
+  change, and each part counts in its category (budgets, trends, flow, insights). Opening
+  **Split** again (from the transaction or one of its parts) changes the parts; **Cancel
+  the split** gives the whole amount back to the transaction; deleting a part gives its
+  amount back. The synchronization keeps the split and the rules do not change it.
+- **Tags**: the tagged transactions show their `#tag` chips below their label.
+  - In the **details**, the Tags section lists those of the transaction (the cross removes
+    one) and offers to **add** an active tag.
+  - **Select** (toolbar, when a tag is active) shows a box per transaction and a bar
+    "n selected": choose the tag then **Add the tag**, for all the ticked transactions at
+    once.
+  - The **search** `#trip-italy` lists the transactions of this tag, every month.
 - **Import a statement**: the "Import" button opens a window where you drop the file
   downloaded from the online banking of the bank (OFX/QFX, QIF, CSV or CAMT.053, 1 MB at
   most; banks whose CSV export is verified: see
@@ -241,6 +265,32 @@ Sample queries are in [Insight recipes](insights.md).
   savings rate is `savings / income`.
 - **Table** view of the data month by month.
 
+## Tags { #tags }
+
+A **tag** follows the whole cost of a project (a trip, works, a wedding…) without touching
+the categories: each transaction keeps its own, the budgets and the trends do not change.
+Every user of the household creates and uses the tags.
+
+- **List**: the **active** tags, then the **archived** ones, each with its color, its
+  period, its number of transactions and its net cost. The pencil and trash buttons edit
+  or delete it (its transactions only lose this tag).
+- **New tag**: a name (`trip-italy`: letters, digits, `-` or `_`, 40 at most, the `#` is
+  added when shown), a color, a start date and an optional end date. During its period, the
+  tag is **active**: it is offered in the details of the transactions and the selection.
+  After its end, it is **archived**: no longer offered, but still in the list with its
+  summary.
+- **Summary** (a click on a tag):
+  - the **net cost** of the project (refunds deducted) and the number of transactions;
+  - one bar **per category**, in the color of the category, largest expenses first;
+  - the **running cost day by day** line (the value of each day on hover), with the
+    **table of the values** below it;
+  - the list of its **transactions**, with their usual category.
+- **Show in Transactions** opens the Transactions tab on the `#name` search of the tag.
+- The parts of a split transaction get its tags, then are tagged apart: only the
+  restaurant part of a receipt can belong to the trip.
+- The `tag` and `transaction_tag` tables can be read by the [insights](insights.md), for
+  an indicator on a project.
+
 ## Rules (administrators) { #regles-administrateurs }
 
 Automatic categorization: a transaction whose label contains the keyword gets
@@ -281,6 +331,12 @@ The page is organized by bank: each **connected bank** (header with its name and
 its actions) shows right below it, indented, the **followed accounts** that come
 from it; a bank without a followed account says so ("No followed account: add accounts of this bank."). Accounts of a bank that is no longer connected in woob,
 or imported from a file, are grouped at the end under **Other accounts**.
+
+The **manual accounts** have their own section, below the banks: an account never
+synchronized (cash, a bank woob does not support), whose transactions are entered by hand
+in the Transactions tab. **Add a manual account** asks for a name ("Cash") and, optionally,
+a number (for example the IBAN without spaces). It is renamed and deleted like the other
+accounts; it has no synchronization button.
 
 - **Household accounts** (shared by all users): each followed account with
   "Added by" (the user who added it), the date and status of its last
@@ -443,7 +499,8 @@ this tab; see [Configuration](configuration.md#push).
 ## Backup (Administration menu) { #sauvegarde-menu-administration }
 
 - **Export the data**: you tick the data to back up (categories, categorization
-  rules, budgets, insights, transactions, deleted transactions), each with its
+  rules, budgets, insights, transactions, deleted transactions, tags and tags of the
+  transactions), each with its
   number of rows, then **Export** downloads `carbure-backup-YYYY-MM-DD.zip`. The ZIP
   contains one JSON file per kind of data and a `manifest.json` (format version,
   Carbure and schema version, date, number of rows). Users, passwords,

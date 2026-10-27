@@ -52,7 +52,7 @@ Deux profils existent :
 
 | Profil | Onglets |
 |---|---|
-| **Utilisateur** | Transactions, Budget, Insights, Tendances ; **Agent IA** et **Mon profil** dans le menu utilisateur |
+| **Utilisateur** | Transactions, Budget, Insights, Tendances, Tags ; **Agent IA** et **Mon profil** dans le menu utilisateur |
 | **Administrateur** | En plus : Règles, Comptes, et le menu **Administration** (Utilisateurs, Catégories, Synchro, Push mobile, Agent IA, Logs, Paramètres, Sauvegarde, API) ; ajout et modification des insights ; activation du serveur MCP ; mise à jour de la base de données |
 
 Les pages d'administration (Règles, Catégories, Comptes, Utilisateurs) et les onglets
@@ -103,7 +103,7 @@ tâches ou l'écran d'accueil.
 - **Sur téléphone** (fenêtre de moins de 768 px), l'en-tête tient sur une ligne : le logo
   et la période. Les onglets Transactions, Budget, Insights et Tendances passent dans une
   **barre en bas de l'écran** ; son bouton **Plus** ouvre un menu avec les autres onglets
-  (Règles, Comptes, Administration, ou Agent IA), **Mon profil**, le **thème** et la
+  (Règles, Comptes, Administration, Tags, ou Agent IA), **Mon profil**, le **thème** et la
   **Déconnexion**.
 
 !!! note "Mise à jour de la base de données"
@@ -162,6 +162,32 @@ tâches ou l'écran d'accueil.
   libellé débarrassé du type d'opération (CB, PRLV SEPA, VIR…) et de ce qui suit le
   commerçant (numéro de carte, date, référence de mandat) : « PRLV SEPA EDF MDT/123 »
   cherche « EDF ». La recherche s'efface ensuite avec la croix, comme une recherche saisie.
+- **Saisir une transaction à la main** : le bouton **Ajouter** ouvre un formulaire
+  (compte manuel, dépense ou revenu, montant, date, libellé, catégorie facultative : sinon
+  celle des règles). Pratique pour une dépense en espèces ; tout utilisateur peut en saisir.
+  La transaction est pointée, et reste modifiable depuis son détail (bouton **Modifier** :
+  date, libellé, montant). Il faut d'abord qu'un administrateur ait créé un **compte
+  manuel** dans l'onglet Comptes ; sinon le formulaire l'explique.
+- **Répartir une transaction** sur plusieurs catégories : dans son détail, le bouton
+  icône **Répartir** ouvre une fenêtre avec une ligne par part (catégorie et montant, saisi
+  sans signe : il prend celui de la transaction ; 10 parts au plus). Le **reste**, recalculé
+  à chaque saisie, demeure dans la catégorie de la transaction. Exemple : un ticket
+  Carrefour de 82,40 € dont 20 € de restaurant devient une transaction de 62,40 € en
+  Supermarché et une **part** de 20 € en Restaurant. Chaque part s'affiche juste sous sa
+  transaction, en retrait, avec le badge **Part** ; la transaction rappelle le **total**
+  de la banque. Le total du mois ne change pas, et chaque part compte dans sa catégorie
+  (budgets, tendances, flux, insights). Rouvrir **Répartir** (depuis la transaction ou une
+  de ses parts) modifie les parts ; **Annuler la répartition** rend tout le montant à la
+  transaction ; supprimer une part lui rend son montant. La synchronisation conserve la
+  répartition et les règles ne la modifient pas.
+- **Tags** : les transactions étiquetées portent leurs puces `#tag` sous leur libellé.
+  - Dans le **détail**, la section Tags liste ceux de la transaction (la croix en retire
+    un) et propose d'**ajouter** un tag actif.
+  - **Sélectionner** (barre d'outils, quand un tag est actif) affiche une case par
+    transaction et une barre « n sélectionnées » : on choisit le tag puis **Ajouter le
+    tag**, pour toutes les transactions cochées d'un coup.
+  - La **recherche** `#voyage-italie` liste les transactions de ce tag, tous mois
+    confondus.
 - **Importer un relevé** : le bouton « Importer » ouvre une fenêtre où déposer le fichier
   téléchargé depuis l'espace client de la banque (OFX/QFX, QIF, CSV ou CAMT.053, 1 Mo au
   plus ; banques dont l'export CSV est vérifié : voir
@@ -242,6 +268,33 @@ Des exemples de requêtes sont dans [Recettes d'insights](insights.md).
   taux d'épargne est `épargne / revenus`.
 - Vue **tableau** des données mois par mois.
 
+## Tags
+
+Un **tag** suit le coût global d'un projet (un voyage, des travaux, un mariage…) sans
+toucher aux catégories : chaque transaction garde la sienne, les budgets et les tendances
+ne changent pas. Tous les utilisateurs du foyer créent et utilisent les tags.
+
+- **Liste** : les tags **actifs**, puis les **archivés**, chacun avec sa couleur, sa période,
+  son nombre de transactions et son coût net. Les boutons crayon et corbeille le modifient
+  ou le suppriment (ses transactions perdent seulement ce tag).
+- **Nouveau tag** : un nom (`voyage-italie` : lettres, chiffres, `-` ou `_`, 40 au plus, le
+  `#` est ajouté à l'affichage), une couleur, une date de début et une date de fin
+  facultative. Pendant sa période, le tag est **actif** : il est proposé dans le détail
+  des transactions et la sélection. Après sa fin, il est **archivé** : il n'est plus
+  proposé, mais reste dans la liste avec son bilan.
+- **Bilan** (un clic sur un tag) :
+  - le **coût net** du projet (remboursements déduits) et le nombre de transactions ;
+  - une barre **par catégorie**, à la couleur de la catégorie, les plus grosses dépenses
+    d'abord ;
+  - la courbe du **coût cumulé jour par jour** (la valeur de chaque jour au survol), avec
+    le **tableau des valeurs** sous la courbe ;
+  - la liste de ses **transactions**, avec leur catégorie habituelle.
+- **Voir dans Transactions** ouvre l'onglet Transactions sur la recherche `#nom` du tag.
+- Les parts d'une transaction répartie reprennent ses tags, puis s'étiquettent à part :
+  seule la part du restaurant d'un ticket peut appartenir au voyage.
+- Les tables `tag` et `transaction_tag` sont lisibles par les
+  [insights](insights.md), pour un indicateur sur un projet.
+
 ## Règles (administrateurs)
 
 Catégorisation automatique : une transaction dont le libellé contient le mot-clé reçoit
@@ -284,6 +337,12 @@ ses actions) présente juste en dessous, en retrait, les **comptes suivis** qui 
 viennent ; une banque sans compte suivi l'indique (« Aucun compte suivi : ajoutez des
 comptes de cette banque »). Les comptes d'une banque qui n'est plus connectée dans woob,
 ou importés depuis un fichier, sont regroupés à la fin sous **Autres comptes**.
+
+Les **comptes manuels** ont leur propre section, sous les banques : un compte jamais
+synchronisé (espèces, banque que woob ne gère pas), dont les transactions sont saisies à
+la main dans l'onglet Transactions. **Ajouter un compte manuel** demande un nom (« Espèces »)
+et, en option, un numéro (par exemple l'IBAN sans espaces). Il se renomme et se supprime
+comme les autres comptes ; il n'a pas de bouton de synchronisation.
 
 - **Comptes du foyer** (partagés par tous les utilisateurs) : chaque compte suivi avec
   « Ajouté par » (l'utilisateur qui l'a ajouté), la date et le statut de sa dernière
@@ -446,7 +505,8 @@ cet onglet ; voir [Configuration](configuration.md#push).
 ## Sauvegarde (menu Administration)
 
 - **Exporter les données** : on coche les données à sauvegarder (catégories, règles de
-  catégorisation, budgets, insights, transactions, transactions supprimées), chacune avec son
+  catégorisation, budgets, insights, transactions, transactions supprimées, tags et tags des
+  transactions), chacune avec son
   nombre de lignes, puis **Exporter** télécharge `carbure-backup-AAAA-MM-JJ.zip`. Le ZIP
   contient un fichier JSON par type de données et un `manifest.json` (version du format,
   version de Carbure et du schéma, date, nombre de lignes). Les utilisateurs, mots de passe,
