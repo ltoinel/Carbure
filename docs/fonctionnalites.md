@@ -131,6 +131,15 @@ transactions du dernier mois restées sans catégorie.
 - **Supprimer** une transaction (depuis son détail, après confirmation) : elle disparaît
   pour tout le foyer et n'est plus réimportée, ni par la synchronisation ni par l'import
   d'un relevé.
+- **Répartir** une transaction sur plusieurs catégories (depuis son détail) : un ticket de
+  supermarché en partie alimentation et en partie maison, un retrait d'espèces dépensé en
+  courses et en transport. Chaque part (catégorie et montant, 10 au plus) devient une
+  transaction affichée juste sous la transaction d'origine, qui garde le reste dans sa
+  catégorie et rappelle le montant de la banque. Le total reste celui de la banque : budgets,
+  tendances, flux et insights comptent chaque part dans sa catégorie. La synchronisation
+  conserve la répartition, les règles ne la modifient pas, et pointer la transaction pointe
+  ses parts. Supprimer une part rend son montant à la transaction ; **Annuler la
+  répartition** lui rend tout le montant.
 - **Catégoriser à la main** une transaction sans catégorie : un sélecteur avec recherche,
   icônes et couleurs. Pour un administrateur, Carbure propose ensuite de **créer la règle**
   correspondante, pour que les prochaines soient classées toutes seules.

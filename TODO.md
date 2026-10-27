@@ -21,6 +21,14 @@ keeps track of what was done).
       5. remove the `[apns]` section and `data/conf/certs/*.p8` from the NAS (no longer used);
       6. later: a release workflow publishing the image of Carbure Push to a registry.
 
+- [ ] **Deployment of the split of transactions (#335)**: the migration
+      `2026-10-30_transaction_split` (`bank_transaction.split_of`) is applied at container
+      start; `PUT /transaction/split` needs it.
+
+- [ ] **Mobile apps — split transactions (#335)**: the apps already show the parts as
+      transactions of their own (`split_of` set); show them under their transaction, with its
+      bank amount, and offer the split (`PUT /transaction/split`).
+
 - [ ] **YunoHost package (#45, `ltoinel/carbure_ynh`)**: after the 1.10.0 release, merge the
       pull request of its autoupdate Action (version and sha256 of the archive), then
       install it on a test YunoHost server (Debian 12): install, upgrade, backup/restore,

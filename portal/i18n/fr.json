@@ -463,6 +463,18 @@
     "recurringCalendarExpected_other": "{count} attendues",
     "recurringCalendarMissing_one": "{count} absente",
     "recurringCalendarMissing_other": "{count} absentes",
+    "splitButton": "Répartir",
+    "splitHelp": "Répartir le montant sur plusieurs catégories",
+    "splitTitle": "Répartir la transaction",
+    "splitPartAmount": "Montant de la part {number}",
+    "splitRemovePart": "Retirer la part",
+    "splitAddPart": "Ajouter une part",
+    "splitRest": "Reste en {category}",
+    "splitCancel": "Annuler la répartition",
+    "splitSaved": "Transaction répartie",
+    "splitCancelled": "Répartition annulée",
+    "splitPartBadge": "Part",
+    "splitBankAmount": "Total {amount}",
     "recurringStatus_received": "Reçue",
     "recurringStatus_expected": "Attendue",
     "recurringStatus_late": "En retard",
@@ -958,6 +970,10 @@
         "user_not_found": "Utilisateur introuvable",
         "username_exists": "Ce nom d'utilisateur existe déjà",
         "woob_fingerprint_invalid": "Empreinte invalide (SHA-1 : 40 caractères hexadécimaux)",
-        "woob_module_invalid": "Module woob invalide"
+        "woob_module_invalid": "Module woob invalide",
+        "split_of_part": "Une part ne peut pas être répartie à nouveau",
+        "split_sign": "Chaque part doit avoir un montant du même signe que la transaction",
+        "split_total": "Les parts doivent laisser un reste à la transaction",
+        "split_limit": "{max} parts au maximum"
     }
 }

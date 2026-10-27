@@ -74,7 +74,7 @@ final class BackupData {
             'table' => 'bank_transaction',
             'key' => 'id',
             'columns' => [
-                'id' => 'int:' . PHP_INT_MAX, 'uuid' => 'name:32', 'imported' => 'datetime', 'date' => 'date', 'rdate' => 'date',
+                'id' => 'int:' . PHP_INT_MAX, 'split_of' => '?int:' . PHP_INT_MAX, 'uuid' => 'name:32', 'imported' => 'datetime', 'date' => 'date', 'rdate' => 'date',
                 'type' => 'int:255', 'label' => 'string:300', 'category' => 'int:255', 'amount' => 'decimal',
                 'card' => '?string:19', 'bank_name' => '?string:50', 'account_number' => '?string:100',
                 'pointed' => 'bool', 'user' => 'user',

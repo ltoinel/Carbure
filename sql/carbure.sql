@@ -65,6 +65,7 @@ CREATE TABLE `bank_backend` (
 
 CREATE TABLE `bank_transaction` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT 'Unique ID for a transaction',
+  `split_of` bigint(20) unsigned DEFAULT NULL COMMENT 'Transaction this part was split from (NULL: not a part)',
   `uuid` varchar(32) NOT NULL COMMENT 'Unique identifier for a transaction',
   `imported` timestamp NOT NULL DEFAULT current_timestamp() COMMENT 'Importation date from the bank',
   `date` date NOT NULL COMMENT 'Transaction date',
@@ -83,8 +84,10 @@ CREATE TABLE `bank_transaction` (
   KEY `transaction_category` (`category`),
   KEY `transaction_user` (`user`),
   KEY `transaction_date` (`date`),
+  KEY `transaction_split_of` (`split_of`),
   CONSTRAINT `fk_transaction_category` FOREIGN KEY (`category`) REFERENCES `bank_transaction_category` (`id`),
-  CONSTRAINT `fk_transaction_user` FOREIGN KEY (`user`) REFERENCES `users` (`id`) ON UPDATE CASCADE
+  CONSTRAINT `fk_transaction_user` FOREIGN KEY (`user`) REFERENCES `users` (`id`) ON UPDATE CASCADE,
+  CONSTRAINT `fk_transaction_split_of` FOREIGN KEY (`split_of`) REFERENCES `bank_transaction` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -372,7 +375,8 @@ INSERT IGNORE INTO `schema_migrations` (`version`) VALUES
 ('2026-10-26_user_browser'),
 ('2026-10-27_budget_alert_threshold'),
 ('2026-10-28_device_without_token'),
-('2026-10-29_data_change');
+('2026-10-29_data_change'),
+('2026-10-30_transaction_split');
 
 SET FOREIGN_KEY_CHECKS = 1;
 COMMIT;

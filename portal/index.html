@@ -679,7 +679,7 @@
                             </div>
                             <div class="transactions-list">
                                 <div v-for="transaction in displayedTransactions" :key="transaction.id" class="transaction-item"
-                                     :class="{ unchecked: !Number(transaction.pointed) }">
+                                     :class="{ unchecked: !Number(transaction.pointed), 'transaction-split-part': transaction.split_of != null }">
                                     <button class="transaction-check" @click="toggleTransactionPointed(transaction)"
                                             :class="{ checked: Number(transaction.pointed) }"
                                             :title="Number(transaction.pointed) ? t('uncheckTransaction') : t('checkTransaction')"
@@ -697,6 +697,12 @@
                                             {{ formatDate(transaction.rdate || transaction.date) }}
                                             <span v-if="isRecurring(transaction)" class="recurring-badge" :title="t('recurringBadgeTitle')">
                                                 <span class="material-icons" aria-hidden="true">autorenew</span>{{ t('recurringBadge') }}
+                                            </span>
+                                            <span v-if="transaction.split_of != null" class="split-badge">
+                                                <span class="material-icons" aria-hidden="true">call_split</span>{{ t('splitPartBadge') }}
+                                            </span>
+                                            <span v-else-if="transactionParts(transaction).length" class="split-badge">
+                                                <span class="material-icons" aria-hidden="true">call_split</span>{{ t('splitBankAmount', { amount: formatAmount(transactionBankAmount(transaction)) + ' ' + currencySymbol }) }}
                                             </span>
                                         </div>
                                     </div>
@@ -2585,11 +2591,69 @@
                             :title="t('deleteTransaction')" :aria-label="t('deleteTransaction')">
                         <span class="material-icons" aria-hidden="true">delete</span>
                     </button>
+                    <button type="button" class="btn-secondary" @click="openSplit" :disabled="savingTransaction" :title="t('splitHelp')">
+                        <span class="material-icons" aria-hidden="true">call_split</span>
+                        {{ t('splitButton') }}
+                    </button>
                     <button class="btn-secondary" @click="closeTransactionModal">
                         <span class="material-icons" aria-hidden="true">cancel</span>
                         {{ t('cancel') }}
                     </button>
                     <button @click="saveTransactionDetail" :disabled="savingTransaction">
+                        <span class="material-icons" aria-hidden="true">check_circle</span>
+                        {{ t('save') }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Split of a transaction across several categories -->
+        <div v-if="splitTransaction" class="modal-overlay" @click.self="closeSplit" @keydown.esc="closeSplit">
+            <div class="modal modal-form modal-split" role="dialog" aria-modal="true" aria-labelledby="split-modal-title">
+                <div class="modal-header">
+                    <span class="material-icons" aria-hidden="true">call_split</span>
+                    <h3 id="split-modal-title">{{ t('splitTitle') }}</h3>
+                    <button class="modal-close" @click="closeSplit" :aria-label="t('close')">
+                        <span class="material-icons" aria-hidden="true">close</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p class="split-summary">
+                        <span class="split-label">{{ splitTransaction.label }}</span>
+                        <span :class="splitBankAmount >= 0 ? 'positive' : 'negative'">{{ formatAmount(splitBankAmount) }} {{ currencySymbol }}</span>
+                    </p>
+                    <ul class="split-parts">
+                        <li v-for="(part, index) in splitParts" :key="index" class="split-part">
+                            <category-picker v-model="part.category" :categories="ruleCategories" :t="t" with-default
+                                             :placeholder="t('chooseCategory')" :icon-for="categoryIcon" :color-for="categoryColor"></category-picker>
+                            <input type="number" step="0.01" min="0" inputmode="decimal" v-model="part.amount"
+                                   :aria-label="t('splitPartAmount', { number: index + 1 })" @keydown.enter="splitValid && saveSplit()" />
+                            <button type="button" class="btn-icon split-remove" @click="removeSplitPart(index)"
+                                    :title="t('splitRemovePart')" :aria-label="t('splitRemovePart')">
+                                <span class="material-icons" aria-hidden="true">remove_circle_outline</span>
+                            </button>
+                        </li>
+                    </ul>
+                    <button type="button" class="btn-secondary split-add" @click="addSplitPart" :disabled="splitFull">
+                        <span class="material-icons" aria-hidden="true">add</span>
+                        {{ t('splitAddPart') }}
+                    </button>
+                    <p class="split-rest" aria-live="polite">
+                        <span>{{ t('splitRest', { category: categoryName(splitTransaction) || t('uncategorized') }) }}</span>
+                        <strong :class="splitRest >= 0 ? 'positive' : 'negative'">{{ formatAmount(splitRest) }} {{ currencySymbol }}</strong>
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button v-if="transactionParts(splitTransaction).length" type="button" class="btn-danger modal-footer-start"
+                            @click="cancelSplit" :disabled="savingSplit">
+                        <span class="material-icons" aria-hidden="true">undo</span>
+                        {{ t('splitCancel') }}
+                    </button>
+                    <button class="btn-secondary" @click="closeSplit">
+                        <span class="material-icons" aria-hidden="true">cancel</span>
+                        {{ t('cancel') }}
+                    </button>
+                    <button @click="saveSplit" :disabled="savingSplit || !splitValid">
                         <span class="material-icons" aria-hidden="true">check_circle</span>
                         {{ t('save') }}
                     </button>

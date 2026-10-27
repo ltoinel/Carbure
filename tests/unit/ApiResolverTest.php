@@ -179,6 +179,7 @@ class ApiResolverTest extends TestCase
         'PUT /system/config' => 'admin',
         'PUT /transaction/category' => 'user',
         'PUT /transaction/pointed' => 'user',
+        'PUT /transaction/split' => 'user',
         'PUT /user' => 'user',
         'PUT /user/notifications' => 'user',
     ];

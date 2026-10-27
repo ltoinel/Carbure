@@ -2443,6 +2443,108 @@ button .material-icons {
     font-size: 14px;
 }
 
+/* Split of a transaction: its parts are listed right after it, indented */
+.split-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    margin-left: 8px;
+    padding: 1px 8px 1px 4px;
+    border-radius: 999px;
+    background: var(--background);
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.split-badge .material-icons {
+    font-size: 14px;
+}
+
+.transaction-item.transaction-split-part {
+    padding-left: 56px;
+    border-top: 1px dashed var(--divider);
+}
+
+@media (max-width: 768px) {
+    .transaction-item.transaction-split-part {
+        padding-left: 32px;
+    }
+
+    .transaction-date .split-badge {
+        margin-left: 0;
+    }
+}
+
+.split-summary,
+.split-rest {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    margin: 0 0 16px;
+}
+
+.split-label {
+    overflow-wrap: anywhere;
+    color: var(--text-secondary);
+}
+
+.split-summary .positive,
+.split-rest .positive {
+    color: var(--success-color);
+}
+
+.split-summary .negative,
+.split-rest .negative {
+    color: var(--error-color);
+}
+
+.split-rest {
+    margin: 16px 0 0;
+    padding-top: 12px;
+    border-top: 1px solid var(--divider);
+}
+
+.split-parts {
+    list-style: none;
+    margin: 0 0 12px;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.split-part {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 7.5rem auto;
+    align-items: center;
+    gap: 8px;
+}
+
+.split-part input {
+    width: 100%;
+    text-align: right;
+}
+
+.split-part .split-remove {
+    margin: 0;
+}
+
+/* Narrow screens: the category on its own line, the amount and the removal below */
+@media (max-width: 480px) {
+    .split-part {
+        grid-template-columns: minmax(0, 1fr) auto;
+        padding-bottom: 8px;
+        border-bottom: 1px solid var(--divider);
+    }
+
+    .split-part .category-picker {
+        grid-column: 1 / -1;
+    }
+}
+
 .recurring-expected {
     padding: 12px 24px;
     background: var(--background);

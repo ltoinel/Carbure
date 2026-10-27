@@ -154,6 +154,46 @@ test('changes the category and the checked state in the detail modal', async ({ 
     expect(Number(saved.pointed)).toBe(1);
 });
 
+test('splits a transaction across several categories, then cancels the split', async ({ adminPage: page, api }) => {
+    await row(page, 'CB SUPERMARCHE CASINO').getByRole('button', { name: new RegExp(tr('transactionDetail')) }).click();
+    await page.getByRole('dialog', { name: tr('transactionDetail') }).getByRole('button', { name: tr('splitButton') }).click();
+
+    const modal = page.getByRole('dialog', { name: tr('splitTitle') });
+    const part = modal.locator('.split-part').first();
+    await pickCategory(part, 'Restaurant');
+    await part.getByLabel(tr('splitPartAmount', { number: 1 })).fill('20');
+    await expect(modal.locator('.split-rest strong')).toHaveText(euros(-62.4));
+    await modal.getByRole('button', { name: tr('save') }).click();
+    await expect(modal).toHaveCount(0);
+    await expect(page.locator('.toast')).toHaveText(tr('splitSaved'));
+
+    // The part right after its transaction, which keeps the rest; the month adds up the same
+    const rows = row(page, 'CB SUPERMARCHE CASINO');
+    await expect(rows).toHaveCount(2);
+    await expect(rows.nth(0).locator('.transaction-amount')).toHaveText(euros(-62.4));
+    await expect(rows.nth(0).locator('.category-chip')).toHaveText('Supermarché');
+    await expect(rows.nth(0).locator('.split-badge')).toContainText(tr('splitBankAmount', { amount: euros(-82.4) }));
+    await expect(rows.nth(1)).toHaveClass(/transaction-split-part/);
+    await expect(rows.nth(1).locator('.transaction-amount')).toHaveText(euros(-20));
+    await expect(rows.nth(1).locator('.category-chip')).toHaveText('Restaurant');
+    await expect(page.locator('.stat-card').filter({ hasText: tr('expenseLabel') }).locator('.stat-value')).toHaveText(euros(1584.2));
+
+    const { month, year } = currentMonth();
+    const saved = (await (await api.get(`/api/transaction?month=${month}&year=${year}`)).json())
+        .filter(t => t.label === 'CB SUPERMARCHE CASINO');
+    const origin = saved.find(t => t.split_of === null);
+    expect(saved.find(t => t.split_of !== null)).toMatchObject({ split_of: origin.id, amount: '-20.00', category: 3 });
+
+    // Cancelled from the part: the transaction gets back the amount of the bank
+    await rows.nth(1).getByRole('button', { name: new RegExp(tr('transactionDetail')) }).click();
+    await page.getByRole('dialog', { name: tr('transactionDetail') }).getByRole('button', { name: tr('splitButton') }).click();
+    await expect(modal.getByLabel(tr('splitPartAmount', { number: 1 }))).toHaveValue('20.00');
+    await modal.getByRole('button', { name: tr('splitCancel') }).click();
+    await expect(page.locator('.toast')).toHaveText(tr('splitCancelled'));
+    await expect(rows).toHaveCount(1);
+    await expect(rows.locator('.transaction-amount')).toHaveText(euros(-82.4));
+});
+
 test('deletes a transaction from its detail', async ({ adminPage: page, api }) => {
     await row(page, 'CB RESTAURANT LE PETIT ZINC').getByRole('button', { name: new RegExp(tr('transactionDetail')) }).click();
     const modal = page.getByRole('dialog', { name: tr('transactionDetail') });

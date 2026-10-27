@@ -95,7 +95,7 @@ is enough (see below).
 
 | Kind | Bumped by |
 |---|---|
-| `transactions` | synchronization (new or modified transaction, category found), `POST /transaction/import`, `PUT /transaction/category`, `PUT /transaction/pointed`, `DELETE /transaction`, rules applied to the history, `DELETE /category` |
+| `transactions` | synchronization (new or modified transaction, category found), `POST /transaction/import`, `PUT /transaction/category`, `PUT /transaction/pointed`, `PUT /transaction/split`, `DELETE /transaction`, rules applied to the history, `DELETE /category` |
 | `accounts` | synchronization (account in error, repaired or another error), `POST`/`PUT`/`DELETE /bank`, `/bank/backend` |
 | `categories` | `POST`/`PUT`/`DELETE /category`, `/category/keyword`, `PUT /category/keyword/settings` |
 | `budgets` | `POST /budget`, `POST /budget/copy`, `DELETE /category` |
@@ -691,12 +691,30 @@ curl -X PUT https://exemple.fr/api/transaction/pointed -H "Authorization: Bearer
   -H 'Content-Type: application/json' -d '{"id":42,"pointed":false}'
 ```
 
+### `PUT /transaction/split` { #put-transactionsplit }
+
+`id`, `parts` (`[{category, amount}]`): splits the transaction across several categories.
+Each part becomes a transaction (same date, label and account, `split_of` = the `id` of the
+transaction); the transaction keeps the rest of the bank amount. The parts sent replace the
+previous ones, `parts: []` cancels the split. Returns the transaction then its parts.
+`400` errors: a part cannot be split (`split_of_part`), amounts of the sign of the
+transaction (`split_sign`), a rest must be left (`split_total`), 10 parts at most
+(`split_limit`); `404` if the transaction or a category does not exist.
+
+```bash
+curl -X PUT https://exemple.fr/api/transaction/split -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' -d '{"id":42,"parts":[{"category":3,"amount":-20}]}'
+```
+
+The transactions returned by `GET /transaction` have `split_of` (`null` unless a part).
+
 ### `DELETE /transaction` { #delete-transaction }
 
 `id`: deletes the transaction (`404` if it does not exist). Its `uuid` is remembered
 (`bank_transaction_deleted` table): the synchronization of its account and the import of a
 statement ignore it, it does not come back (in an import preview, the line is `known`
-with `deleted: true`).
+with `deleted: true`). A split transaction is deleted with its parts; a deleted part gives
+its amount back to its transaction.
 
 ```bash
 curl -X DELETE "https://exemple.fr/api/transaction?id=42" -H "Authorization: Bearer $TOKEN"

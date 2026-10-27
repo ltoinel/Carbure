@@ -39,6 +39,17 @@ final class Transaction {
 
     /** Days between a transaction of a file and one of the database for a probable duplicate */
     const DUPLICATE_DAYS = 3;
+
+    /** Most parts a transaction can be split into */
+    const MAX_SPLIT_PARTS = 10;
+
+    /** SQL condition (bank_transaction without alias) of a transaction neither split nor a part
+     *  of one: the rules leave them alone, as the parts have the label of their transaction */
+    const NOT_SPLIT = "split_of IS NULL AND id NOT IN
+        (SELECT split.split_of FROM (SELECT split_of FROM bank_transaction WHERE split_of IS NOT NULL) AS split)";
+
+    /** SQL amount of the transaction t as the bank gave it: its own one plus the one of its parts */
+    const BANK_AMOUNT = "(t.amount + COALESCE((SELECT SUM(p.amount) FROM bank_transaction p WHERE p.split_of = t.id), 0))";
     
     /**
      * Return the transactions of a month, optionally of one category.
@@ -135,7 +146,9 @@ final class Transaction {
         [$first, $to] = Month::range($month, $year);
         $from = date('Y-m-d', Month::timestamp("$first -$months months"));
 
-        $sql = "SELECT id, date, type, label, category, amount FROM bank_transaction WHERE date >= ? AND date < ? ORDER BY date, id";
+        // A split transaction counts once, with the amount of the bank
+        $sql = "SELECT t.id, t.date, t.type, t.label, t.category, " . self::BANK_AMOUNT . " AS amount
+                FROM bank_transaction t WHERE t.split_of IS NULL AND t.date >= ? AND t.date < ? ORDER BY t.date, t.id";
         $rows = Db::select($sql, "ss", $from, $to)->fetch_all(MYSQLI_ASSOC);
 
         return self::findRecurring($rows, $first);
@@ -346,14 +359,17 @@ final class Transaction {
         if ($row['label'] === '' || Db::queryOne("SELECT id FROM bank_transaction WHERE uuid = ?", "s", $row['uuid']) !== null) {
             return false;
         }
-        $unlabeled = Db::queryOne("SELECT id, category FROM bank_transaction WHERE label = '' AND user = ? AND bank_name = ?
-            AND account_number <=> ? AND rdate = ? AND amount = ? AND type = ? ORDER BY id LIMIT 1", "isssdi",
+        $unlabeled = Db::queryOne("SELECT t.id, t.category FROM bank_transaction t WHERE t.label = '' AND t.split_of IS NULL
+            AND t.user = ? AND t.bank_name = ? AND t.account_number <=> ? AND t.rdate = ? AND " . self::BANK_AMOUNT . " = ?
+            AND t.type = ? ORDER BY t.id LIMIT 1", "isssdi",
             $userId, $origin['bank_name'], $origin['account_number'] ?? null, $row['rdate'], $row['amount'], $row['type']);
         if ($unlabeled === null) {
             return false;
         }
         Db::execute("UPDATE bank_transaction SET label = ?, uuid = ?, card = ? WHERE id = ?", "sssi",
             $row['label'], $row['uuid'], $row['card'], $unlabeled['id']);
+        Db::execute("UPDATE bank_transaction SET label = ?, card = ? WHERE split_of = ?", "ssi",
+            $row['label'], $row['card'], $unlabeled['id']);
         Changes::touch('transactions');
         $category = (int)$unlabeled['category'] === 0 ? Category::find($row['label']) : null;
         if ($category !== null) {
@@ -606,7 +622,9 @@ final class Transaction {
         }
         $from = date('Y-m-d', Month::timestamp(min($dates) . ' -' . self::DUPLICATE_DAYS . ' days'));
         $to = date('Y-m-d', Month::timestamp(max($dates) . ' +' . self::DUPLICATE_DAYS . ' days'));
-        $existing = Db::select("SELECT id, uuid, date, rdate, amount, label FROM bank_transaction WHERE date BETWEEN ? AND ? OR rdate BETWEEN ? AND ?",
+        // A split transaction is matched with the amount of the bank, its parts are not
+        $existing = Db::select("SELECT t.id, t.uuid, t.date, t.rdate, " . self::BANK_AMOUNT . " AS amount, t.label
+            FROM bank_transaction t WHERE t.split_of IS NULL AND (t.date BETWEEN ? AND ? OR t.rdate BETWEEN ? AND ?)",
             "ssss", $from, $to, $from, $to)->fetch_all(MYSQLI_ASSOC);
         $matched = self::markKnown($rows, $existing);
         self::markDeleted($rows);
@@ -858,10 +876,10 @@ final class Transaction {
     {
         if ($all) {
             // We update all transactions without category
-            $sql = "SELECT * FROM bank_transaction WHERE category=0";
+            $sql = "SELECT * FROM bank_transaction WHERE category=0 AND " . self::NOT_SPLIT;
         } else {
             // We update only transactions from the last 1 month without category
-            $sql = "SELECT * FROM bank_transaction WHERE category=0 AND date >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH)";
+            $sql = "SELECT * FROM bank_transaction WHERE category=0 AND date >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH) AND " . self::NOT_SPLIT;
         }
 
         // Get the list of transactions without category
@@ -917,7 +935,7 @@ final class Transaction {
     }
 
     /**
-     * Point (or unpoint) a transaction in database.
+     * Point (or unpoint) a transaction in database, with the parts it was split into.
      *
      * @param int|string           $id      The id of the transaction
      * @param bool|int|string|null $pointed True to point the transaction, false to unpoint it
@@ -928,13 +946,137 @@ final class Transaction {
     public static function updatePointed(int|string $id, bool|int|string|null $pointed = true): void
     {
         // Update the pointed field on a transaction
-        $sql = "UPDATE bank_transaction SET pointed=? WHERE id=?";
-        Db::execute($sql, "ii", filter_var($pointed, FILTER_VALIDATE_BOOLEAN) ? 1 : 0, $id);
+        $sql = "UPDATE bank_transaction SET pointed=? WHERE id=? OR split_of=?";
+        Db::execute($sql, "iii", filter_var($pointed, FILTER_VALIDATE_BOOLEAN) ? 1 : 0, $id, $id);
+    }
+
+    /**
+     * Split a transaction across several categories: each part becomes a transaction of
+     * its own (same date, label and account, split_of = the id of the transaction), and the
+     * transaction keeps the rest of the amount of the bank, in its category. The parts sent
+     * replace the previous ones: no part cancels the split. The synchronization never
+     * changes the amount of a known transaction, so the split is kept.
+     *
+     * @param int|string   $id    The id of the transaction (not a part of one)
+     * @param array<mixed> $parts [{category, amount}]: at most MAX_SPLIT_PARTS amounts of the
+     *                            sign of the transaction, leaving it a rest
+     * @return list<array<string, mixed>> The transaction, then its parts
+     * @throws Error If the transaction does not exist (404) or a part is not valid (400)
+     */
+    #[ApiRoute('/transaction/split', method: 'PUT', changes: ['transactions'])]
+    public static function split(int|string $id, array $parts = []): array
+    {
+        $transaction = Db::queryOne("SELECT t.*, ROUND(" . self::BANK_AMOUNT . " * 100) AS bank_cents
+            FROM bank_transaction t WHERE t.id = ?", "i", $id);
+        if (!$transaction) {
+            throw new ApiError("Transaction not found", 404, 'transaction_not_found');
+        }
+        if ($transaction['split_of'] !== null) {
+            throw new ApiError("A part of a split transaction cannot be split", 400, 'split_of_part');
+        }
+
+        self::replaceSplit($transaction, self::splitParts($parts, (int)$transaction['bank_cents']));
+        return Db::select("SELECT * FROM bank_transaction WHERE id = ? OR split_of = ? ORDER BY split_of IS NOT NULL, id",
+            "ii", $id, $id)->fetch_all(MYSQLI_ASSOC);
+    }
+
+    /**
+     * Check the parts of a split (see split()).
+     *
+     * @param array<mixed> $parts [{category, amount}]
+     * @param int          $bank  The amount of the bank of the transaction, in cents
+     * @return list<array{0: int, 1: int}> The category and the amount in cents of each part
+     * @throws Error If a part is not valid (400)
+     */
+    public static function splitParts(array $parts, int $bank): array
+    {
+        if (count($parts) > self::MAX_SPLIT_PARTS) {
+            throw new ApiError("At most " . self::MAX_SPLIT_PARTS . " parts", 400, 'split_limit', ['max' => self::MAX_SPLIT_PARTS]);
+        }
+        $result = [];
+        foreach ($parts as $part) {
+            [$category, $cents] = self::splitPart($part);
+            if ($cents === 0 || ($cents < 0) !== ($bank < 0)) {
+                throw new ApiError("Each part has an amount of the sign of the transaction", 400, 'split_sign');
+            }
+            $result[] = [$category, $cents];
+        }
+        if ($result !== [] && abs(array_sum(array_column($result, 1))) >= abs($bank)) {
+            throw new ApiError("The parts must leave a rest to the transaction", 400, 'split_total');
+        }
+        return $result;
+    }
+
+    /**
+     * One part of a split sent by a user.
+     *
+     * @param mixed $part {category, amount}
+     * @return array{0: int, 1: int} The category and the amount in cents
+     * @throws Error If it is not valid (400) or its category does not exist (404)
+     */
+    private static function splitPart(mixed $part): array
+    {
+        $category = is_array($part) ? ($part['category'] ?? null) : null;
+        $amount = is_array($part) ? ($part['amount'] ?? null) : null;
+        if (!is_numeric($category) || !is_numeric($amount)) {
+            throw new Error("Each part is {category, amount}", 400);
+        }
+        if (!Db::queryOne("SELECT id FROM bank_transaction_category WHERE id = ?", "i", (int)$category)) {
+            throw new ApiError("Category not found", 404, 'category_not_found');
+        }
+        return [(int)$category, (int)round((float)$amount * 100)];
+    }
+
+    /**
+     * Replace the parts of a transaction, all at once: it keeps the rest of the amount of the bank.
+     *
+     * @param array<string, mixed>        $transaction The row of the transaction, with bank_cents
+     * @param list<array{0: int, 1: int}> $parts       The category and the amount in cents of each part
+     * @return void
+     * @throws Exception If the database fails (nothing is changed)
+     */
+    private static function replaceSplit(array $transaction, array $parts): void
+    {
+        $id = (int)$transaction['id'];
+        $rest = (int)$transaction['bank_cents'] - array_sum(array_column($parts, 1));
+        $db = Db::getConnection();
+        $db->begin_transaction();
+        try {
+            Db::execute("DELETE FROM bank_transaction WHERE split_of = ?", "i", $id);
+            Db::execute("UPDATE bank_transaction SET amount = ? WHERE id = ?", "si", sprintf('%.2f', $rest / 100), $id);
+            foreach ($parts as $index => [$category, $cents]) {
+                self::insertRow(['split_of' => $id, 'uuid' => md5($transaction['uuid'] . '#split' . ($index + 1)),
+                    'category' => $category, 'amount' => sprintf('%.2f', $cents / 100)] + $transaction);
+            }
+            $db->commit();
+        } catch (Exception $e) {
+            $db->rollback();
+            throw $e;
+        }
+    }
+
+    /**
+     * Insert a transaction that does not come from a bank (a part of a split one).
+     *
+     * @param array<string, mixed> $row split_of, uuid, date, rdate, type, label (cleaned), category,
+     *                                  amount, card, bank_name, account_number, pointed, user
+     * @return int The id of the transaction
+     */
+    private static function insertRow(array $row): int
+    {
+        $sql = "INSERT INTO bank_transaction (split_of, uuid, date, rdate, type, label, category, amount, card,
+                    bank_name, account_number, pointed, user)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        $stmt = Db::execute($sql, "isssisissssii", $row['split_of'], $row['uuid'], $row['date'], $row['rdate'],
+            $row['type'], $row['label'], $row['category'], $row['amount'], $row['card'], $row['bank_name'],
+            $row['account_number'], $row['pointed'], $row['user']);
+        return (int)$stmt->insert_id;
     }
 
     /**
      * Delete a transaction. Its UUID is remembered: the synchronization of its account
-     * and the import of a file skip it, so that it does not come back.
+     * and the import of a file skip it, so that it does not come back. Its parts, if it was
+     * split, are deleted with it; a part deleted gives its amount back to its transaction.
      *
      * @param int|string $id The id of the transaction
      * @return bool True once deleted
@@ -943,13 +1085,18 @@ final class Transaction {
     #[ApiRoute('/transaction', method: 'DELETE', changes: ['transactions'])]
     public static function delete(int|string $id): bool
     {
-        $transaction = Db::queryOne("SELECT uuid, label, amount FROM bank_transaction WHERE id = ?", "i", $id);
+        $transaction = Db::queryOne("SELECT uuid, label, amount, split_of FROM bank_transaction WHERE id = ?", "i", $id);
         if (!$transaction) {
             throw new ApiError("Transaction not found", 404, 'transaction_not_found');
         }
 
         $userId = Jwt::getUserIdFromToken();
-        Db::execute("INSERT IGNORE INTO bank_transaction_deleted (uuid, user_id) VALUES (?, ?)", "si", $transaction['uuid'], $userId);
+        if ($transaction['split_of'] !== null) {
+            // A part is not known by the bank: its amount goes back to its transaction
+            Db::execute("UPDATE bank_transaction SET amount = amount + ? WHERE id = ?", "si", $transaction['amount'], $transaction['split_of']);
+        } else {
+            Db::execute("INSERT IGNORE INTO bank_transaction_deleted (uuid, user_id) VALUES (?, ?)", "si", $transaction['uuid'], $userId);
+        }
         Db::execute("DELETE FROM bank_transaction WHERE id = ?", "i", $id);
         Logger::info("Transaction $id deleted by the user $userId");
         return true;

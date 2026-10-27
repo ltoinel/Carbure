@@ -647,6 +647,19 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
     }
 
     /**
+     * Splits a transaction across several categories (replaces its previous parts)
+     * @param {number} id - Transaction id
+     * @param {Array<{category: number, amount: number}>} parts - Parts, with the sign of the transaction; none cancels the split
+     * @returns {Promise<Array<Object>>} The transaction, then its parts
+     */
+    async function splitTransaction(id, parts) {
+        return request(`${baseUrl}/transaction/split`, {
+            method: 'PUT',
+            body: JSON.stringify({ id, parts })
+        }, 'Failed to split the transaction');
+    }
+
+    /**
      * Fetches the bank accounts of the household (administrators)
      * @returns {Promise<Array>} Array of {id, bankId, account_number, bank_name, user_id, username,
      *                           last_sync_at, last_sync_status, last_sync_message}
@@ -1373,6 +1386,7 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
         updateCategory,
         deleteCategory,
         setTransactionCategory,
+        splitTransaction,
         deleteTransaction,
         fetchRules,
         createRule,
