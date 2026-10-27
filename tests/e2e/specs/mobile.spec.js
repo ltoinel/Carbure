@@ -60,12 +60,29 @@ test('a user without administration finds the AI agents and the logout in the me
     await expect(page.getByRole('button', { name: tr('loginButton') })).toBeVisible();
 });
 
-test('the transactions on a phone: figures in one strip, icon buttons, full labels (#384)', async ({ adminPage: page }) => {
-    // The three figures of the month side by side
+test('the transactions on a phone: figures in one strip, icon buttons, full labels (#384, #389)', async ({ adminPage: page, api }) => {
+    // Every transaction tagged: the chips of the recurring ones under their badge
+    const tag = await (await api.post('/api/tag', { data: { name: 'voyage', color: 'green', start_date: '2020-01-01' } })).json();
+    const ids = (await (await api.get('/api/transaction')).json()).map(t => t.id);
+    await api.put('/api/transaction/tags', { data: { ids, add: [tag.id] } });
+    await page.reload();
+
+    // The three figures of the month side by side, compact
     const cards = page.locator('.stat-card');
     await expect(cards).toHaveCount(3);
     const tops = await cards.evaluateAll(list => list.map(card => Math.round(card.getBoundingClientRect().top)));
     expect(new Set(tops).size).toBe(1);
+    expect((await cards.first().boundingBox()).height).toBeLessThan(56);
+
+    // One scroll, the page's: the list does not scroll inside it
+    const list = page.locator('.transactions-list');
+    expect(await list.evaluate(element => element.scrollHeight <= element.clientHeight)).toBe(true);
+
+    // The recurring badge and the tag chips of a row do not overlap
+    const recurring = page.locator('.transaction-item').filter({ has: page.locator('.recurring-badge') }).first();
+    const badge = await recurring.locator('.recurring-badge').boundingBox();
+    const chip = await recurring.locator('.tag-chip').boundingBox();
+    expect(chip.y >= badge.y + badge.height || chip.x >= badge.x + badge.width).toBe(true);
 
     // The buttons of the toolbar as icons, still named
     const toolbar = page.locator('.transactions-toolbar');
