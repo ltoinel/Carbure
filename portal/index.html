@@ -2591,9 +2591,8 @@
                             :title="t('deleteTransaction')" :aria-label="t('deleteTransaction')">
                         <span class="material-icons" aria-hidden="true">delete</span>
                     </button>
-                    <button type="button" class="btn-secondary" @click="openSplit" :disabled="savingTransaction" :title="t('splitHelp')">
+                    <button type="button" class="btn-secondary" @click="openSplit" :disabled="savingTransaction" :title="t('splitHelp')" :aria-label="t('splitButton')">
                         <span class="material-icons" aria-hidden="true">call_split</span>
-                        {{ t('splitButton') }}
                     </button>
                     <button class="btn-secondary" @click="closeTransactionModal">
                         <span class="material-icons" aria-hidden="true">cancel</span>
