@@ -67,14 +67,101 @@ final class Insight {
     public static float $maxSeconds = 5.0;
 
     /**
+     * Whether budget_insight.enabled exists (migration 2026-11-01_insight_enabled), read once
+     */
+    private static ?bool $ready = null;
+
+    /**
      * All the insights with their SQL (administrators).
      *
-     * @return list<array<string, mixed>> The insights: id, name, color, sql
+     * @return list<array<string, mixed>> The insights: id, name, color, icon, sql, enabled (once the
+     *         migration 2026-11-01_insight_enabled is applied)
      */
     #[ApiRoute('/insight', method: 'GET', admin: true)]
     public static function get(): array
     {
-        return Db::select("SELECT id, name, color, icon, `sql` FROM budget_insight ORDER BY id", "")->fetch_all(MYSQLI_ASSOC);
+        $enabled = self::ready() ? ", enabled" : "";
+        return array_map(fn(array $insight): array => self::withEnabled($insight),
+            Db::select("SELECT id, name, color, icon, `sql`$enabled FROM budget_insight ORDER BY id", "")->fetch_all(MYSQLI_ASSOC));
+    }
+
+    /**
+     * Whether the insights can be shown or hidden: the migration 2026-11-01_insight_enabled
+     * is applied (before it, every insight is shown). Read once per request.
+     *
+     * @return bool
+     */
+    public static function ready(): bool
+    {
+        return self::$ready ??= Db::queryOne("SELECT 1 FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'budget_insight' AND COLUMN_NAME = 'enabled'", "") !== null;
+    }
+
+    /**
+     * The insights enabled, shown in the Insights tab (all of them before the migration
+     * 2026-11-01_insight_enabled).
+     *
+     * @return list<array<string, mixed>> The rows of budget_insight
+     */
+    public static function enabled(): array
+    {
+        $where = self::ready() ? " WHERE enabled = 1" : "";
+        return Db::select("SELECT * FROM budget_insight$where ORDER BY id", "")->fetch_all(MYSQLI_ASSOC);
+    }
+
+    /**
+     * The insights disabled, offered by the + button of the Insights tab.
+     *
+     * @return list<array{id: int, name: string, color: string, icon: string|null}> The insights
+     */
+    #[ApiRoute('/insight/disabled', method: 'GET')]
+    public static function disabled(): array
+    {
+        if (!self::ready()) {
+            return [];
+        }
+        $rows = Db::select("SELECT id, name, color, icon FROM budget_insight WHERE enabled = 0 ORDER BY id", "")->fetch_all(MYSQLI_ASSOC);
+        return array_map(fn(array $row): array => ['id' => (int)$row['id'], 'name' => (string)$row['name'],
+            'color' => (string)$row['color'], 'icon' => $row['icon'] === null ? null : (string)$row['icon']], $rows);
+    }
+
+    /**
+     * Enable an insight (shown in the Insights tab) or disable it (offered by the + button),
+     * for the whole household.
+     *
+     * @param int|string           $id      The insight
+     * @param bool|int|string|null $enabled True to show it (also "true", "1"...), false to hide it
+     * @return array{id: int, enabled: bool} The insight
+     * @throws Error If not found, enabled is not a boolean, or the migration is not applied yet (409)
+     */
+    #[ApiRoute('/insight/enabled', method: 'PUT', changes: ['insights'])]
+    public static function setEnabled(int|string $id, bool|int|string|null $enabled = true): array
+    {
+        if (!Db::queryOne("SELECT id FROM budget_insight WHERE id = ?", "i", $id)) {
+            throw new ApiError("Insight not found", 404, 'insight_not_found');
+        }
+        $enabled = $enabled === null ? true : filter_var($enabled, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+        if ($enabled === null) {
+            throw new Error("Invalid enabled: true or false is expected", 400);
+        }
+        if (!self::ready()) {
+            throw new ApiError("The database must be updated first", 409, 'insight_migration_pending');
+        }
+        Db::execute("UPDATE budget_insight SET enabled = ? WHERE id = ?", "ii", $enabled ? 1 : 0, $id);
+        return ['id' => (int)$id, 'enabled' => $enabled];
+    }
+
+    /**
+     * An insight with its enabled flag as a boolean (true before the migration
+     * 2026-11-01_insight_enabled).
+     *
+     * @param array<string, mixed> $insight A row of budget_insight
+     * @return array<string, mixed> The insight
+     */
+    private static function withEnabled(array $insight): array
+    {
+        $insight['enabled'] = (int)($insight['enabled'] ?? 1) === 1;
+        return $insight;
     }
 
     /**

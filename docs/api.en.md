@@ -99,7 +99,7 @@ is enough (see below).
 | `accounts` | synchronization (account in error, repaired or another error), `POST`/`PUT`/`DELETE /bank`, `/bank/backend` |
 | `categories` | `POST`/`PUT`/`DELETE /category`, `/category/keyword`, `PUT /category/keyword/settings` |
 | `budgets` | `POST /budget`, `POST /budget/copy`, `DELETE /category` |
-| `insights` | `POST`/`PUT`/`DELETE /insight` |
+| `insights` | `POST`/`PUT`/`DELETE /insight`, `PUT /insight/enabled` |
 | `settings` | `PUT /system/config` |
 | `tags` | `POST`/`PUT`/`DELETE /tag` |
 
@@ -866,16 +866,29 @@ returns the transactions of the tag.
 
 ### `GET /budget/insights` { #get-budgetinsights }
 
-`month`, `year`: value of each insight for the month (`id`, `name`, `color`, `icon`,
-`amount`). A failing query gives `0` without blocking the others.
+`month`, `year`: value of each **shown** insight for the month (`id`, `name`, `color`,
+`icon`, `amount`). A failing query gives `0` without blocking the others; the hidden
+insights are neither computed nor returned.
 
 ### `GET /budget/insights/history` { #get-budgetinsightshistory }
 
-`year`: for each insight, the `history` list of amounts month by month.
+`year`: for each shown insight, the `history` list of amounts month by month.
+
+### `GET /insight/disabled` { #get-insightdisabled }
+
+The hidden insights, offered by the **+** button of the Insights screen:
+`[{"id", "name", "color", "icon"}]` (empty list before the migration
+`2026-11-01_insight_enabled`).
+
+### `PUT /insight/enabled` { #put-insightenabled }
+
+`id`, `enabled` (boolean, `true` by default): shows or hides an insight for the whole
+household (any user). Returns `{"id", "enabled"}`; `404` (`insight_not_found`) if the
+insight is unknown.
 
 ### `GET /insight`, `POST /insight`, `PUT /insight`, `DELETE /insight?id=` — administrator { #get-insight-post-insight-put-insight-delete-insightid-administrateur }
 
-Management of insights, with their SQL query:
+Management of insights, with their SQL query (`GET` also returns `enabled`):
 
 | Parameter | Required | Description |
 |---|---|---|

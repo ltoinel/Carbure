@@ -240,7 +240,13 @@ Two sub-tabs: **Flow** (shown by default) and **Budgets**.
 
 Indicators of the selected month, as cards (icon, color, amount).
 
-An administrator adds them (**+** button) and edits them (pencil of each card;
+Only the **shown** insights have a card: a new installation shows only the main ones. The
+**+** button opens the list of the hidden insights, each one shown in one click (**Show**);
+the **crossed-out eye** icon of a card hides it. The choice applies to the whole household,
+and a hidden insight is no longer computed. A user sees the **+** button only when some
+insights are hidden.
+
+An administrator creates them (**+** button, then **Create an insight**) and edits them (pencil of each card;
 deletion is done in the modal): a name (20 characters at most), a color among
 13, an icon and an SQL query `SELECT … AS amount` where `{month}` and `{year}` are
 replaced by the month shown. The editor highlights the SQL syntax and has the server check the query

@@ -41,6 +41,14 @@ keeps track of what was done).
       their chips, filter by tag and offer to tag (`PUT /transaction/tags`); reload on the
       change marker `tags`.
 
+- [ ] **Deployment of the shown insights (#386)**: the migration `2026-11-01_insight_enabled`
+      (column `budget_insight.enabled`) is applied at container start; the insights already
+      installed stay shown. Before it, every insight is shown and `GET /insight/disabled` is empty.
+
+- [ ] **Mobile apps — hidden insights (#386)**: `GET /budget/insights` already returns only the
+      shown insights; offer to hide a card and to show a hidden one again
+      (`GET /insight/disabled`, `PUT /insight/enabled`).
+
 - [ ] **YunoHost package (#45, `ltoinel/carbure_ynh`)**: after the 1.10.0 release, merge the
       pull request of its autoupdate Action (version and sha256 of the archive), then
       install it on a test YunoHost server (Debian 12): install, upgrade, backup/restore,

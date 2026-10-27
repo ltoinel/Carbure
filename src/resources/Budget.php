@@ -512,7 +512,7 @@ final class Budget {
     }
 
     /**
-     * Get the insights data.
+     * Get the enabled insights of a month.
      *
      * @param int|string|null $month The month to get the insights
      * @param int|string|null $year  The year to get the insights
@@ -523,11 +523,11 @@ final class Budget {
     {
         [$month, $year] = Month::resolve($month, $year);
 
-        // Each query runs in a read-only transaction; a failing query gives 0
-        $insights = Db::select("SELECT * FROM budget_insight ORDER BY id", "")->fetch_all(MYSQLI_ASSOC);
+        // The enabled insights only; each query runs in a read-only transaction, a failing one gives 0
+        $insights = Insight::enabled();
         foreach ($insights as &$insight) {
             $insight["amount"] = Insight::amount($insight["sql"], $month, $year) ?? 0;
-            unset($insight["sql"]);
+            unset($insight["sql"], $insight["enabled"]);
         }
 
         return $insights;

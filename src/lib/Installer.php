@@ -148,9 +148,11 @@ final class Installer {
                 $stmt->execute();
             }
             $added = $insights ? $starter['insights'] : [];
-            $stmt = Db::prepareOn($db, "INSERT INTO budget_insight (name, color, icon, `sql`) VALUES (?, ?, ?, ?)");
+            // The main insights only are shown at first, the others are offered by the + button
+            $stmt = Db::prepareOn($db, "INSERT INTO budget_insight (name, color, icon, `sql`, enabled) VALUES (?, ?, ?, ?, ?)");
             foreach ($added as $insight) {
-                $stmt->bind_param('ssss', $insight[$language], $insight['color'], $insight['icon'], $insight['sql']);
+                $enabled = $insight['enabled'] ? 1 : 0;
+                $stmt->bind_param('ssssi', $insight[$language], $insight['color'], $insight['icon'], $insight['sql'], $enabled);
                 $stmt->execute();
             }
             $db->commit();

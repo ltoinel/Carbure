@@ -244,7 +244,13 @@ Deux sous-onglets : **Flux** (affiché par défaut) et **Budgets**.
 
 Indicateurs du mois sélectionné, sous forme de cartes (icône, couleur, montant).
 
-Un administrateur les ajoute (bouton **+**) et les modifie (crayon de chaque carte ; la
+Seuls les insights **affichés** ont une carte : une nouvelle installation n'affiche que les
+principaux. Le bouton **+** ouvre la liste des insights masqués, chacun affiché d'un clic
+(**Afficher**) ; l'icône **œil barré** d'une carte la masque. Le choix vaut pour tout le
+foyer, et un insight masqué n'est plus calculé. Le bouton **+** n'apparaît pour un
+utilisateur que s'il y a des insights masqués.
+
+Un administrateur les crée (bouton **+**, puis **Créer un insight**) et les modifie (crayon de chaque carte ; la
 suppression se fait dans la modale) : un nom (20 caractères au plus), une couleur parmi
 13, une icône et une requête SQL `SELECT … AS amount` où `{month}` et `{year}` sont
 remplacés par le mois affiché. L'éditeur colore la syntaxe SQL et fait vérifier la requête

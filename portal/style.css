@@ -5274,6 +5274,41 @@ a.footer-brand:hover {
     color: #ffffff;
 }
 
+/* Insights to add (+ button of the Insights tab) */
+.insight-catalog {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.insight-catalog-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px;
+    border: 1px solid var(--divider);
+    border-left: 4px solid var(--insight-color, var(--primary-color));
+    border-radius: var(--border-radius-lg);
+}
+
+.insight-catalog-item .insight-icon {
+    width: 36px;
+    height: 36px;
+    background: var(--insight-color, var(--primary-color));
+    color: #ffffff;
+    box-shadow: none;
+}
+
+.insight-catalog-name {
+    flex: 1;
+    min-width: 0;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
 .btn-danger.btn-danger-icon {
     justify-content: center;
     width: 44px;

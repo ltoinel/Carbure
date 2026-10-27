@@ -1010,12 +1010,12 @@
                         <p>{{ t('loadingInsightsMessage') }}</p>
                     </div>
 
-                    <div v-else-if="insights.length > 0 || isAdmin" class="content-wrapper">
+                    <div v-else-if="insights.length > 0 || isAdmin || disabledInsights.length > 0" class="content-wrapper">
                         <div class="insights-container">
                             <div class="page-header panel-header">
                                 <h2>{{ t('insightsTitle') }}</h2>
-                                <div v-if="isAdmin" class="panel-actions">
-                                    <button class="btn-add btn-add-icon" @click="openInsightModal()" :title="t('addInsight')" :aria-label="t('addInsight')">
+                                <div v-if="isAdmin || disabledInsights.length > 0" class="panel-actions">
+                                    <button class="btn-add btn-add-icon" @click="openInsightCatalog" :title="t('addInsight')" :aria-label="t('addInsight')">
                                         <span class="material-icons" aria-hidden="true">add</span>
                                     </button>
                                 </div>
@@ -1033,9 +1033,13 @@
                                         {{ formatAmount(Math.abs(insight.amount)) }} {{ currencySymbol }}
                                     </div>
                                 </div>
-                                <div v-if="isAdmin" class="insight-actions">
-                                    <button class="btn-icon" @click="openInsightModal(insight)" :title="t('editInsight')" :aria-label="t('editInsight') + ' ' + getInsightName(insight.name)">
+                                <div class="insight-actions">
+                                    <button v-if="isAdmin" class="btn-icon" @click="openInsightModal(insight)" :title="t('editInsight')" :aria-label="t('editInsight') + ' ' + getInsightName(insight.name)">
                                         <span class="material-icons" aria-hidden="true">edit</span>
+                                    </button>
+                                    <button class="btn-icon" @click="setInsightEnabled(insight, false)" :disabled="togglingInsight === insight.id"
+                                            :title="t('hideInsight')" :aria-label="t('hideInsightOf', { name: getInsightName(insight.name) })">
+                                        <span class="material-icons" aria-hidden="true">visibility_off</span>
                                     </button>
                                 </div>
                             </div>
@@ -3065,6 +3069,42 @@
                     <button @click="answerOAuth(true)" :disabled="oauthBusy">
                         <span class="material-icons" aria-hidden="true">check_circle</span>
                         {{ t('oauthAllow') }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Insights to add: the hidden ones (shown again in one click); administrators also create one -->
+        <div v-if="showInsightCatalog" class="modal-overlay" @click.self="closeInsightCatalog">
+            <div class="modal modal-form insight-catalog-dialog" role="dialog" aria-modal="true" aria-labelledby="insight-catalog-title">
+                <div class="modal-header">
+                    <span class="material-icons" aria-hidden="true">add_chart</span>
+                    <h3 id="insight-catalog-title">{{ t('addInsight') }}</h3>
+                    <button class="modal-close" @click="closeInsightCatalog" :aria-label="t('close')">
+                        <span class="material-icons" aria-hidden="true">close</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p class="rules-help">{{ t('insightCatalogHelp') }}</p>
+                    <ul v-if="disabledInsights.length" class="insight-catalog">
+                        <li v-for="insight in disabledInsights" :key="insight.id" class="insight-catalog-item"
+                            :style="insightColorValues[insight.color] ? { '--insight-color': insightColorValues[insight.color] } : {}">
+                            <span class="insight-icon" aria-hidden="true"><span class="material-icons" aria-hidden="true">{{ insight.icon || getInsightIcon(insight.name) }}</span></span>
+                            <span class="insight-catalog-name">{{ getInsightName(insight.name) }}</span>
+                            <button type="button" class="btn-secondary" @click="setInsightEnabled(insight, true)" :disabled="togglingInsight === insight.id"
+                                    :aria-label="t('showInsightOf', { name: getInsightName(insight.name) })">
+                                <span class="material-icons" aria-hidden="true">add</span>{{ t('showInsight') }}
+                            </button>
+                        </li>
+                    </ul>
+                    <p v-else class="transactions-hint">{{ t('insightCatalogEmpty') }}</p>
+                </div>
+                <div class="modal-footer">
+                    <button v-if="isAdmin" type="button" class="btn-secondary modal-footer-start" @click="createInsightFromCatalog">
+                        <span class="material-icons" aria-hidden="true">edit_note</span>{{ t('createInsight') }}
+                    </button>
+                    <button type="button" class="btn-secondary" @click="closeInsightCatalog">
+                        <span class="material-icons" aria-hidden="true">close</span>{{ t('close') }}
                     </button>
                 </div>
             </div>

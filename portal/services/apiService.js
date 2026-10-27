@@ -381,6 +381,25 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
     }
 
     /**
+     * Fetches the insights disabled, offered by the + button of the Insights tab
+     * @returns {Promise<Array>} Array of {id, name, color, icon}
+     */
+    async function fetchDisabledInsights() {
+        const data = await request(`${baseUrl}/insight/disabled`, {}, 'Failed to fetch the insights');
+        return Array.isArray(data) ? data : [];
+    }
+
+    /**
+     * Shows an insight in the Insights tab, or hides it (for the whole household)
+     * @param {number} id - Insight ID
+     * @param {boolean} enabled - True to show it
+     * @returns {Promise<Object>} {id, enabled}
+     */
+    async function setInsightEnabled(id, enabled) {
+        return request(`${baseUrl}/insight/enabled`, { method: 'PUT', body: JSON.stringify({ id, enabled }) }, 'Failed to change the insight');
+    }
+
+    /**
      * Deletes an insight
      * @param {number} id - Insight ID
      * @returns {Promise<void>}
@@ -1454,6 +1473,8 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
         fetchLogEntries,
         rotateJwtSecret,
         fetchInsightDefinitions,
+        fetchDisabledInsights,
+        setInsightEnabled,
         saveInsight,
         deleteInsight,
         checkInsight,

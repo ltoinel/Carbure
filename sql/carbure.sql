@@ -179,6 +179,7 @@ CREATE TABLE `budget_insight` (
   `color` varchar(20) NOT NULL,
   `icon` varchar(50) DEFAULT NULL COMMENT 'Material icon (default: chosen from the name)',
   `sql` varchar(500) NOT NULL,
+  `enabled` tinyint(1) NOT NULL DEFAULT 1 COMMENT 'Shown in the Insights tab (0: offered by its + button)',
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -401,7 +402,8 @@ INSERT IGNORE INTO `schema_migrations` (`version`) VALUES
 ('2026-10-28_device_without_token'),
 ('2026-10-29_data_change'),
 ('2026-10-30_transaction_split'),
-('2026-10-31_tags');
+('2026-10-31_tags'),
+('2026-11-01_insight_enabled');
 
 SET FOREIGN_KEY_CHECKS = 1;
 COMMIT;

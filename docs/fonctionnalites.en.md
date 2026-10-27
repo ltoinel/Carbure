@@ -31,6 +31,7 @@ who view the same data.
 | | User | Administrator |
 |---|---|---|
 | View transactions, budgets, flow, insights, trends | ✅ | ✅ |
+| Show or hide the insights | ✅ | ✅ |
 | Check off and categorize transactions | ✅ | ✅ |
 | Change budget amounts | ✅ | ✅ |
 | Manage their profile, devices, access tokens | ✅ | ✅ |
@@ -373,6 +374,11 @@ returns an amount for the displayed month.
 - The query runs **read-only**: a single `SELECT` statement, with no writes,
   no access to user accounts or tokens (see [Security](securite.md)).
 - The month-by-month history of each insight is available through the API, for the mobile apps.
+- Each insight is **shown or hidden** for the whole household. A new installation shows
+  only the main insights of the starter pack (expenses, income, left this month, savings,
+  uncategorized, over budget): the others are installed but hidden, and the **+** button of
+  the Insights screen offers them in one click. Any user can hide a useless card; a hidden
+  insight is no longer computed.
 
 **Ready-to-use recipes** (a category and its subcategories, subscriptions,
 comparison with last year, savings rate, emergency fund, remaining budget,

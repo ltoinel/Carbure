@@ -1,4 +1,5 @@
-// Insights tab: amounts of the month, management of the insights by an administrator
+// Insights tab: amounts of the month, insights hidden and shown again (+ button),
+// management of the insights by an administrator
 const { test, expect, tr, openTab, euros } = require('../fixtures');
 
 /** Card of an insight */
@@ -19,14 +20,34 @@ test('shows the amount of each insight for the month', async ({ userPage: page }
     const expenses = card(page, 'Dépenses');
     await expect(expenses.locator('.insight-value')).toHaveText(euros(1584.2));
     await expect(expenses.locator('.insight-value')).toHaveClass(/negative/);
-    // Only the administrators manage the insights
+    // Only the administrators manage the insights; nothing hidden to add again
     await expect(page.getByRole('button', { name: tr('addInsight') })).toHaveCount(0);
-    await expect(expenses.getByRole('button')).toHaveCount(0);
+    await expect(expenses.getByRole('button')).toHaveCount(1);
+});
+
+test('hides an insight, then shows it again with the + button', async ({ userPage: page }) => {
+    await openTab(page, tr('tabInsights'));
+    await card(page, 'Dépenses').getByRole('button', { name: tr('hideInsightOf', { name: 'Dépenses' }) }).click();
+    await expect(page.locator('.toast')).toHaveText(tr('insightHidden', { name: 'Dépenses' }));
+    await expect(page.locator('.insight-card')).toHaveCount(0);
+
+    await page.getByRole('button', { name: tr('addInsight') }).click();
+    const catalog = page.getByRole('dialog', { name: tr('addInsight') });
+    await expect(catalog.locator('.insight-catalog-name')).toHaveText(['Dépenses']);
+    // Only the administrators create an insight
+    await expect(catalog.getByRole('button', { name: tr('createInsight') })).toHaveCount(0);
+    await catalog.getByRole('button', { name: tr('showInsightOf', { name: 'Dépenses' }) }).click();
+
+    // The last hidden one shown: the list closes
+    await expect(catalog).toHaveCount(0);
+    await expect(card(page, 'Dépenses').locator('.insight-value')).toHaveText(euros(1584.2));
+    await expect(page.getByRole('button', { name: tr('addInsight') })).toHaveCount(0);
 });
 
 test('adds an insight whose query is checked while typing', async ({ adminPage: page }) => {
     await openTab(page, tr('tabInsights'));
     await page.getByRole('button', { name: tr('addInsight') }).click();
+    await page.getByRole('button', { name: tr('createInsight') }).click();
 
     const modal = page.getByRole('dialog', { name: tr('addInsight') });
     await modal.getByLabel(new RegExp(tr('insightName'))).fill('Loyer');
@@ -45,6 +66,7 @@ test('adds an insight whose query is checked while typing', async ({ adminPage: 
 test('refuses a query that writes', async ({ adminPage: page }) => {
     await openTab(page, tr('tabInsights'));
     await page.getByRole('button', { name: tr('addInsight') }).click();
+    await page.getByRole('button', { name: tr('createInsight') }).click();
 
     const modal = page.getByRole('dialog', { name: tr('addInsight') });
     await modal.getByLabel(new RegExp(tr('insightName'))).fill('Piège');

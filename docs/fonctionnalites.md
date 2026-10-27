@@ -31,6 +31,7 @@ qui consultent les mêmes données.
 | | Utilisateur | Administrateur |
 |---|---|---|
 | Consulter transactions, budgets, flux, insights, tendances | ✅ | ✅ |
+| Afficher ou masquer les insights | ✅ | ✅ |
 | Pointer et catégoriser les transactions | ✅ | ✅ |
 | Modifier les montants des budgets | ✅ | ✅ |
 | Gérer son profil, ses appareils, ses jetons d'accès | ✅ | ✅ |
@@ -375,6 +376,11 @@ renvoie un montant pour le mois affiché.
 - La requête s'exécute **en lecture seule** : une seule instruction `SELECT`, sans écriture,
   sans accès aux comptes utilisateurs ni aux jetons (voir [Sécurité](securite.md)).
 - L'historique de chaque insight mois par mois est disponible par l'API, pour les apps mobiles.
+- Chaque insight est **affiché ou masqué** pour tout le foyer. Une nouvelle installation
+  n'affiche que les principaux insights du pack de départ (dépenses, revenus, reste du mois,
+  épargne, non catégorisé, dépassement de budget) : les autres sont installés mais masqués,
+  et le bouton **+** de l'écran Insights les propose en un clic. Chaque utilisateur peut
+  masquer une carte inutile ; un insight masqué n'est plus calculé.
 
 Des **recettes prêtes à l'emploi** (une catégorie et ses sous-catégories, abonnements,
 comparaison avec l'an dernier, taux d'épargne, matelas de sécurité, budget restant,
