@@ -1032,10 +1032,17 @@
                                     <div class="insight-value" :class="{ 'negative': insight.amount < 0 }">
                                         {{ formatAmount(Math.abs(insight.amount)) }} {{ currencySymbol }}
                                     </div>
+                                    <div v-if="insightAlerts[insight.id]" class="insight-alert-state">
+                                        <span class="material-icons" aria-hidden="true">notifications_active</span><span class="insight-alert-text">{{ insightAlertText(insight) }}</span>
+                                    </div>
                                 </div>
                                 <div class="insight-actions">
                                     <button v-if="isAdmin" class="btn-icon" @click="openInsightModal(insight)" :title="t('editInsight')" :aria-label="t('editInsight') + ' ' + getInsightName(insight.name)">
                                         <span class="material-icons" aria-hidden="true">edit</span>
+                                    </button>
+                                    <button :id="'insight-alert-button-' + insight.id" class="btn-icon" @click="openInsightAlert(insight)"
+                                            :title="t('insightAlertTitle')" :aria-label="t('insightAlertOf', { name: getInsightName(insight.name) })">
+                                        <span class="material-icons" aria-hidden="true">{{ insightAlerts[insight.id] ? 'notifications_active' : 'notifications_none' }}</span>
                                     </button>
                                     <button class="btn-icon" @click="setInsightEnabled(insight, false)" :disabled="togglingInsight === insight.id"
                                             :title="t('hideInsight')" :aria-label="t('hideInsightOf', { name: getInsightName(insight.name) })">
@@ -2498,6 +2505,10 @@
                                                         <small id="budget-rows-help">{{ t('budgetCategoryThresholdsHelp') }}</small>
                                                     </fieldset>
                                                 </div>
+                                                <!-- Insight alert: its amounts are set on the cards of the Insights tab -->
+                                                <div v-else-if="kind === 'insight'" class="notification-settings">
+                                                    <small>{{ t('notificationsInsightHelp') }}</small>
+                                                </div>
                                             </th>
                                             <td v-for="channel in notificationChannels" :key="channel">
                                                 <input type="checkbox" :id="'notification-' + kind + '-' + channel"
@@ -3105,6 +3116,50 @@
                     </button>
                     <button type="button" class="btn-secondary" @click="closeInsightCatalog">
                         <span class="material-icons" aria-hidden="true">close</span>{{ t('close') }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alert of the user on an insight: above or below an amount, compared with the value of the month -->
+        <div v-if="insightAlertForm" class="modal-overlay" @click.self="closeInsightAlert" @keydown.esc="closeInsightAlert">
+            <div class="modal modal-form insight-alert-dialog" role="dialog" aria-modal="true" aria-labelledby="insight-alert-title">
+                <div class="modal-header">
+                    <span class="material-icons" aria-hidden="true">notifications</span>
+                    <h3 id="insight-alert-title">{{ t('insightAlertOf', { name: insightAlertForm.name }) }}</h3>
+                    <button class="modal-close" @click="closeInsightAlert" :aria-label="t('close')">
+                        <span class="material-icons" aria-hidden="true">close</span>
+                    </button>
+                </div>
+                <form class="modal-body" id="insight-alert-form" @submit.prevent="saveInsightAlert">
+                    <p class="rules-help" id="insight-alert-help">{{ t('insightAlertHelp') }}</p>
+                    <fieldset class="insight-alert-directions">
+                        <legend>{{ t('insightAlertDirection') }}</legend>
+                        <label v-for="direction in insightAlertDirections" :key="direction" class="insight-alert-direction">
+                            <input type="radio" name="insight-alert-direction" :value="direction" v-model="insightAlertForm.direction" />
+                            {{ t('insightAlertDirection_' + direction) }}
+                        </label>
+                    </fieldset>
+                    <div class="form-group">
+                        <label for="insight-alert-threshold">{{ t('insightAlertThreshold') }}</label>
+                        <div class="input-unit">
+                            <input id="insight-alert-threshold" type="text" inputmode="decimal" autocomplete="off" v-model="insightAlertForm.threshold"
+                                   :aria-invalid="insightAlertErrorKey ? 'true' : null"
+                                   :aria-describedby="insightAlertErrorKey ? 'insight-alert-error insight-alert-help' : 'insight-alert-help'" />
+                            <span class="input-unit-suffix" aria-hidden="true">{{ currencySymbol }}</span>
+                        </div>
+                        <p v-if="insightAlertErrorKey" id="insight-alert-error" class="sync-step-error" role="alert">{{ t(insightAlertErrorKey) }}</p>
+                    </div>
+                </form>
+                <div class="modal-footer">
+                    <button v-if="insightAlertForm.exists" type="button" class="btn-secondary modal-footer-start" @click="removeInsightAlert" :disabled="savingInsightAlert">
+                        <span class="material-icons" aria-hidden="true">notifications_off</span>{{ t('insightAlertRemove') }}
+                    </button>
+                    <button type="button" class="btn-secondary" @click="closeInsightAlert">
+                        <span class="material-icons" aria-hidden="true">close</span>{{ t('cancel') }}
+                    </button>
+                    <button type="submit" form="insight-alert-form" class="btn-primary" :disabled="savingInsightAlert">
+                        <span class="material-icons" aria-hidden="true">check</span>{{ t('save') }}
                     </button>
                 </div>
             </div>

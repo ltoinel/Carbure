@@ -8,7 +8,7 @@
  * service Carbure Push: API key of the configuration file) and email to the address of
  * his profile (SMTP server of the configuration file). Without a
  * choice, a kind is pushed and not emailed (table user_notification, no row), except
- * the budget alerts, off on every channel (opt-in).
+ * the budget and insight alerts, off on every channel (opt-in).
  *
  * @author     Ludovic Toinel
  * @copyright  2026 Carbure App
@@ -33,15 +33,16 @@ final class Notification {
     /**
      * Kinds of notification: result of a synchronization, new transaction matching a
      * rule marked "notify", large expense (alert threshold of the user), spending of a
-     * budget over the budget threshold of the user (BudgetAlert)
+     * budget over the budget threshold of the user (BudgetAlert), value of an insight above or
+     * below a threshold of the user (InsightAlert)
      */
-    const KINDS = ['sync', 'rule', 'expense', 'budget'];
+    const KINDS = ['sync', 'rule', 'expense', 'budget', 'insight'];
 
     /** Channels of a notification, and whether each one is on without a choice of the user */
     const DEFAULTS = ['push' => true, 'email' => false];
 
     /** Kinds off on every channel without a choice of the user (opt-in) */
-    const OPT_IN = ['budget'];
+    const OPT_IN = ['budget', 'insight'];
 
     /** Values of a channel accepted by PUT /user/notifications (JSON or query string) */
     private const FLAGS = ['true' => true, '1' => true, 'false' => false, '0' => false];
@@ -73,8 +74,8 @@ final class Notification {
      * Change the channels of kinds of notification of the authenticated user and the
      * settings of his alerts; the kinds, channels and settings not sent are kept.
      *
-     * @param array<mixed>          $preferences     {kind: {push?, email?}}: kind sync, rule, expense
-     *                                               or budget, each channel true, false, "true",
+     * @param array<mixed>          $preferences     {kind: {push?, email?}}: kind sync, rule, expense,
+     *                                               budget or insight, each channel true, false, "true",
      *                                               "false", 1 or 0 (optional)
      * @param int|float|string|null $budgetThreshold Percent of a budget whose spending alerts
      *                                               (kind budget): integer from 50 to 200 (optional)
@@ -272,7 +273,7 @@ final class Notification {
      * that fails is logged and does not stop the other one (nor the synchronization).
      *
      * @param int    $userId The user
-     * @param string $kind   sync, rule, expense or budget
+     * @param string $kind   sync, rule, expense, budget or insight
      * @param string $title  Title (subject of the email)
      * @param string $body   Text
      * @param int    $badge  Badge of the app icon (push)

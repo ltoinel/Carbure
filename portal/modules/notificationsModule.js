@@ -2,7 +2,8 @@
  * Notifications Module
  *
  * Notifications section of the profile page: for each kind of notification
- * (synchronization result, rule marked "notify", large expense, budget exceeded), the
+ * (synchronization result, rule marked "notify", large expense, budget exceeded, insight
+ * alert: its amounts are set on the cards of the Insights tab), the
  * channels it is sent on (push to the iOS app, when the administrator configured the
  * push service; email to the address of the profile), and the settings shown under the
  * label of their kind: the amount of a large expense, and for the budget alerts a global
@@ -13,7 +14,7 @@
  */
 
 /** Kinds of notification, in the order of the table */
-export const NOTIFICATION_KINDS = ['sync', 'rule', 'expense', 'budget'];
+export const NOTIFICATION_KINDS = ['sync', 'rule', 'expense', 'budget', 'insight'];
 
 /** Bounds of the budget alert threshold, in percent of the budget */
 export const BUDGET_THRESHOLD_MIN = 50;

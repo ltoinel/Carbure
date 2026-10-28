@@ -5309,6 +5309,48 @@ a.footer-brand:hover {
     overflow-wrap: anywhere;
 }
 
+/* ===== Insights: alert of the user on a card (bell), and its modal ===== */
+.insight-alert-state {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.insight-alert-state .material-icons {
+    font-size: 16px;
+}
+
+.insight-alert-dialog {
+    max-width: 440px;
+}
+
+.insight-alert-directions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 20px;
+    margin: 0 0 16px;
+    padding: 0;
+    border: none;
+}
+
+.insight-alert-directions legend {
+    width: 100%;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.insight-alert-direction {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 44px;
+    cursor: pointer;
+}
+
 .btn-danger.btn-danger-icon {
     justify-content: center;
     width: 44px;

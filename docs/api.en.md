@@ -886,6 +886,30 @@ The hidden insights, offered by the **+** button of the Insights screen:
 household (any user). Returns `{"id", "enabled"}`; `404` (`insight_not_found`) if the
 insight is unknown.
 
+### `GET /insight/alert` { #get-insightalert }
+
+The alerts of the user on the shown insights: `[{"insight", "direction", "threshold"}]`
+(empty list before the migration `2026-11-03_insight_alert`).
+
+### `PUT /insight/alert` { #put-insightalert }
+
+`insight`, `direction` (`above` or `below`), `threshold` (positive amount, compared with
+the value of the month without its sign): sets or replaces the alert of the user on a shown
+insight, armed again for the current month. Returns `{"insight", "direction", "threshold"}`.
+Errors: `404` `insight_not_found`, `400` `insight_alert_disabled` (hidden insight),
+`insight_alert_direction_invalid`, `insight_alert_threshold_invalid`, `409`
+`insight_migration_pending` (migration not applied).
+
+The alert is sent with the budget alerts (after a synchronization or an import touching the
+current month), once per month, on the channels of the notification kind `insight`
+(`PUT /user/notifications`, off by default). Hiding or deleting the insight deletes its
+alerts.
+
+### `DELETE /insight/alert?insight=` { #delete-insightalertinsight }
+
+Removes the alert of the user on an insight; `404` (`insight_alert_not_found`) if they have
+none.
+
 ### `GET /insight`, `POST /insight`, `PUT /insight`, `DELETE /insight?id=` — administrator { #get-insight-post-insight-put-insight-delete-insightid-administrateur }
 
 Management of insights, with their SQL query (`GET` also returns `enabled`):

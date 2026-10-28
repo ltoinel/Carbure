@@ -251,6 +251,12 @@ principaux. Le bouton **+** ouvre la liste des insights masqués, chacun affich�
 foyer, et un insight masqué n'est plus calculé. Le bouton **+** n'apparaît pour un
 utilisateur que s'il y a des insights masqués.
 
+La **cloche** d'une carte règle l'alerte de l'utilisateur sur cet insight : **au-dessus** ou
+**en dessous** d'un montant, comparé à la valeur du mois sans son signe. La carte rappelle
+l'alerte posée et la cloche se remplit ; **Supprimer l'alerte** la retire. Les canaux se
+choisissent dans **Mon profil → Notifications** (« Alerte d'un insight », désactivée par
+défaut). Voir [Alertes des insights](fonctionnalites.md#alertes-des-insights).
+
 Un administrateur les crée (bouton **+**, puis **Créer un insight**) et les modifie (crayon de chaque carte ; la
 suppression se fait dans la modale) : un nom (20 caractères au plus), une couleur parmi
 13, une icône et une requête SQL `SELECT … AS amount` où `{month}` et `{year}` sont

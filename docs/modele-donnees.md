@@ -24,6 +24,8 @@ erDiagram
     bank_transaction_category |o--o{ users : "budget surveillé"
     users ||--o{ budget_alert_threshold : "seuils"
     bank_transaction_category ||--o{ budget_alert_threshold : "seuil"
+    users ||--o{ insight_alert : "alertes"
+    budget_insight ||--o{ insight_alert : "alerte"
     users ||--o{ bank_account : "a ajouté"
     users ||--o{ bank_transaction : "rattachement"
     bank_transaction_category ||--o{ bank_transaction : "catégorise"
@@ -64,7 +66,7 @@ erDiagram
     }
     user_notification {
         int user_id PK
-        varchar kind PK "sync, rule, expense, budget"
+        varchar kind PK "sync, rule, expense, budget, insight"
         tinyint push "1 par défaut"
         tinyint email "0 par défaut"
     }
@@ -164,6 +166,13 @@ erDiagram
         decimal amount
         date date "1er du mois"
     }
+    insight_alert {
+        int user_id PK
+        int insight_id PK
+        enum direction "above, below"
+        decimal threshold "montant, sans le signe"
+        date notified_month "dernier mois alerté"
+    }
     budget_insight {
         int id PK
         varchar name
@@ -194,6 +203,7 @@ erDiagram
 | `user_browser` | Navigateurs web des connexions au portail : empreinte SHA-256 du jeton du cookie `carbure_browser` (`token_hash`, unique par utilisateur : plusieurs utilisateurs du foyer partagent le cookie d'un navigateur), `label` (User-Agent), `created_at`, `last_login`. Oubliés après 6 mois sans connexion ou à la demande de l'utilisateur, supprimés avec lui. Ni notification ni dispense de la double authentification. |
 | `user_notification` | Canaux choisis par un utilisateur pour un type de notification (`kind` : `sync`, `rule`, `expense`, `budget`) : `push` vers ses appareils, `email` vers l'adresse de son profil. Sans ligne pour un type : push oui, email non, sauf `budget` (ni l'un ni l'autre). Supprimés avec l'utilisateur. |
 | `budget_alert_threshold` | Seuil des alertes de budget d'un utilisateur pour une catégorie (`threshold`, de 50 à 200 %), à la place de son seuil global (`users.budget_threshold`, appliqué à tous les budgets si `users.budget_alert_all`). Supprimé avec l'utilisateur ou la catégorie. |
+| `insight_alert` | Alerte d'un utilisateur sur un insight : `direction` (`above` ou `below`) et `threshold`, comparé à la valeur du mois sans son signe ; `notified_month` = premier jour du dernier mois alerté (`NULL` quand le seuil change : l'alerte est réarmée). Supprimée avec l'utilisateur ou l'insight, et quand l'insight est masqué. |
 | `budget_alert` | Alertes de budget envoyées : une par utilisateur, catégorie et mois (`month`, premier jour), avec le budget (`budget`), les dépenses (`spent`) et le pourcentage (`percent`) au moment de l'alerte. Une nouvelle alerte ne part que si le budget du mois dépasse celui déjà alerté. Supprimées avec l'utilisateur ou la catégorie. |
 | `api_tokens` | Jetons d'accès des agents IA (serveur MCP) : seule l'empreinte SHA-256 (`token_hash`) est stockée, `token_hint` (début du jeton) sert à le reconnaître ; `expires_at` `NULL` = sans expiration. Un jeton obtenu par OAuth porte son `client_id` et l'empreinte de son jeton de rafraîchissement (`refresh_hash`) ; `client_id` `NULL` = créé dans le portail. Supprimés avec l'utilisateur. |
 | `oauth_clients` | Agents IA enregistrés par OAuth (RFC 7591) : `client_id`, empreinte du secret (`NULL` pour un client public, PKCE seul), nom et URI de retour autorisées (tableau JSON). |
@@ -238,6 +248,7 @@ main, ou par `sql/carbure.sql`). Voir [Développement](developpement.md#migratio
 | `2026-10-27_budget_alert_threshold` | Seuil global désactivable et seuils par catégorie des alertes de budget (`users.budget_alert_all`, table `budget_alert_threshold`) ; le budget surveillé devient un seuil de catégorie |
 | `2026-10-30_transaction_split` | Répartition d'une transaction sur plusieurs catégories (`bank_transaction.split_of`) |
 | `2026-10-31_tags` | Tags d'un projet limités dans le temps (tables `tag`, `transaction_tag`) |
+| `2026-11-03_insight_alert` | Alertes des utilisateurs sur les insights (table `insight_alert`) |
 
 ## Modèle « foyer »
 

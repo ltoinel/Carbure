@@ -7,6 +7,29 @@
  * @module insightsModule
  */
 
+/** Directions of an insight alert: the value goes above or below the threshold */
+export const INSIGHT_ALERT_DIRECTIONS = ['above', 'below'];
+
+/**
+ * Why an insight alert threshold is refused ('' when it is valid): a positive amount
+ * @param {number|string} value - Amount typed
+ * @returns {string} Translation key of the error, or ''
+ */
+export function insightAlertThresholdError(value) {
+    const text = String(value ?? '').trim().replace(',', '.');
+    const number = Number(text);
+    return text !== '' && Number.isFinite(number) && number >= 0 && number < 1e10 ? '' : 'insightAlertThresholdInvalid';
+}
+
+/**
+ * The alerts of the user by insight
+ * @param {Array} alerts - Answer of GET /insight/alert: [{insight, direction, threshold}]
+ * @returns {Object} {insightId: {direction, threshold}}
+ */
+export function insightAlertsById(alerts) {
+    return Object.fromEntries((alerts || []).map(alert => [alert.insight, { direction: alert.direction, threshold: Number(alert.threshold) }]));
+}
+
 /**
  * Creates an insights module mixin for Vue components
  * @param {Function} getApiService - Function that returns the API service instance
@@ -22,6 +45,13 @@ export function createInsightsModule(getApiService) {
                 disabledInsights: [],
                 showInsightCatalog: false,
                 togglingInsight: null,
+                // Alerts of the user by insight: {id: {direction, threshold}}
+                insightAlerts: {},
+                insightAlertDirections: INSIGHT_ALERT_DIRECTIONS,
+                // Alert of the modal: {insight, name, direction, threshold, exists}, and its error (translation key)
+                insightAlertForm: null,
+                insightAlertErrorKey: '',
+                savingInsightAlert: false,
                 // Insight of the modal: {id, name, color, sql}
                 insightForm: null,
                 savingInsight: false,
@@ -70,14 +100,16 @@ export function createInsightsModule(getApiService) {
                 this.insightsController = controller;
 
                 try {
-                    // The hidden insights (the same for every month) at the same time
-                    const [data, disabled] = await Promise.all([
+                    // The hidden insights and the alerts (the same for every month) at the same time
+                    const [data, disabled, alerts] = await Promise.all([
                         apiService.fetchInsights(month, year, controller.signal),
-                        this.fetchDisabledInsights()
+                        this.fetchDisabledInsights(),
+                        this.fetchInsightAlerts()
                     ]);
 
                     this.insights = Array.isArray(data) ? data : [];
                     this.disabledInsights = disabled;
+                    this.insightAlerts = alerts;
 
                     // Show debug toast in dev mode
                     if (this.isDebugMode) {
@@ -110,6 +142,103 @@ export function createInsightsModule(getApiService) {
                     return await getApiService().fetchDisabledInsights();
                 } catch (error) {
                     return [];
+                }
+            },
+
+            /**
+             * Fetches the alerts of the user by insight (none on a failure, or on a server
+             * older than the alerts)
+             * @returns {Promise<Object>} {insightId: {direction, threshold}}
+             */
+            async fetchInsightAlerts() {
+                try {
+                    return insightAlertsById(await getApiService().fetchInsightAlerts());
+                } catch (error) {
+                    return {};
+                }
+            },
+
+            /**
+             * Text of the alert of an insight under its value ('' without alert)
+             * @param {Object} insight - Insight {id}
+             * @returns {string}
+             */
+            insightAlertText(insight) {
+                const alert = this.insightAlerts[insight.id];
+                if (!alert) {
+                    return '';
+                }
+                return this.t('insightAlert_' + alert.direction, { amount: `${this.formatAmount(alert.threshold)} ${this.currencySymbol}` });
+            },
+
+            /**
+             * Opens the alert modal of an insight
+             * @param {Object} insight - Insight {id, name}
+             * @returns {void}
+             */
+            openInsightAlert(insight) {
+                const alert = this.insightAlerts[insight.id];
+                this.insightAlertErrorKey = '';
+                this.insightAlertForm = {
+                    insight: insight.id,
+                    name: this.getInsightName(insight.name),
+                    direction: alert ? alert.direction : 'above',
+                    threshold: alert ? String(alert.threshold) : '',
+                    exists: Boolean(alert)
+                };
+                this.$nextTick(() => document.getElementById('insight-alert-threshold')?.focus());
+            },
+
+            /**
+             * Closes the alert modal, the focus back on the bell of its insight
+             * @returns {void}
+             */
+            closeInsightAlert() {
+                const insight = this.insightAlertForm?.insight;
+                this.insightAlertForm = null;
+                this.$nextTick(() => document.getElementById('insight-alert-button-' + insight)?.focus());
+            },
+
+            /**
+             * Saves the alert of the modal
+             * @returns {Promise<void>}
+             */
+            async saveInsightAlert() {
+                const form = this.insightAlertForm;
+                this.insightAlertErrorKey = insightAlertThresholdError(form.threshold);
+                if (this.insightAlertErrorKey) {
+                    return;
+                }
+                this.savingInsightAlert = true;
+                try {
+                    const saved = await getApiService().setInsightAlert(form.insight, form.direction, Number(String(form.threshold).trim().replace(',', '.')));
+                    this.insightAlerts = { ...this.insightAlerts, [saved.insight]: { direction: saved.direction, threshold: Number(saved.threshold) } };
+                    this.showToast(this.t('insightAlertSaved', { name: form.name }));
+                    this.closeInsightAlert();
+                } catch (error) {
+                    this.showToast(this.apiErrorText(error));
+                } finally {
+                    this.savingInsightAlert = false;
+                }
+            },
+
+            /**
+             * Removes the alert of the modal
+             * @returns {Promise<void>}
+             */
+            async removeInsightAlert() {
+                const form = this.insightAlertForm;
+                this.savingInsightAlert = true;
+                try {
+                    await getApiService().deleteInsightAlert(form.insight);
+                    const { [form.insight]: removed, ...alerts } = this.insightAlerts;
+                    this.insightAlerts = alerts;
+                    this.showToast(this.t('insightAlertRemoved', { name: form.name }));
+                    this.closeInsightAlert();
+                } catch (error) {
+                    this.showToast(this.apiErrorText(error));
+                } finally {
+                    this.savingInsightAlert = false;
                 }
             },
 

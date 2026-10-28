@@ -889,6 +889,30 @@ Les insights masqués, proposés par le bouton **+** de l'écran Insights :
 foyer (tout utilisateur). Renvoie `{"id", "enabled"}` ; `404` (`insight_not_found`) si
 l'insight est inconnu.
 
+### `GET /insight/alert`
+
+Les alertes de l'utilisateur sur les insights affichés : `[{"insight", "direction",
+"threshold"}]` (liste vide avant la migration `2026-11-03_insight_alert`).
+
+### `PUT /insight/alert`
+
+`insight`, `direction` (`above` ou `below`), `threshold` (montant positif, comparé à la
+valeur du mois sans son signe) : pose ou remplace l'alerte de l'utilisateur sur un insight
+affiché, réarmée pour le mois en cours. Renvoie `{"insight", "direction", "threshold"}`.
+Erreurs : `404` `insight_not_found`, `400` `insight_alert_disabled` (insight masqué),
+`insight_alert_direction_invalid`, `insight_alert_threshold_invalid`, `409`
+`insight_migration_pending` (migration non appliquée).
+
+L'alerte part avec les alertes de budget (après une synchronisation ou un import touchant
+le mois en cours), une fois par mois, sur les canaux du type de notification `insight`
+(`PUT /user/notifications`, désactivé par défaut). Masquer ou supprimer l'insight supprime
+ses alertes.
+
+### `DELETE /insight/alert?insight=`
+
+Retire l'alerte de l'utilisateur sur un insight ; `404` (`insight_alert_not_found`) s'il
+n'en a pas.
+
 ### `GET /insight`, `POST /insight`, `PUT /insight`, `DELETE /insight?id=` — administrateur
 
 Gestion des insights, avec leur requête SQL (`GET` renvoie aussi `enabled`) :

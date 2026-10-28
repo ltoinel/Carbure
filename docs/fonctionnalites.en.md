@@ -32,6 +32,7 @@ who view the same data.
 |---|---|---|
 | View transactions, budgets, flow, insights, trends | ✅ | ✅ |
 | Show or hide the insights | ✅ | ✅ |
+| Set one's alerts on the insights | ✅ | ✅ |
 | Check off and categorize transactions | ✅ | ✅ |
 | Change budget amounts | ✅ | ✅ |
 | Manage their profile, devices, access tokens | ✅ | ✅ |
@@ -379,6 +380,9 @@ returns an amount for the displayed month.
   uncategorized, over budget): the others are installed but hidden, and the **+** button of
   the Insights screen offers them in one click. Any user can hide a useless card; a hidden
   insight is no longer computed.
+- Each user can set an **alert** on a shown insight, with the **bell** of its card: be told
+  when the value of the month goes **above** or **below** an amount ("Expenses above
+  2,000 €", "Left this month below 200 €"). See [Insight alerts](#alertes-des-insights).
 
 **Ready-to-use recipes** (a category and its subcategories, subscriptions,
 comparison with last year, savings rate, emergency fund, remaining budget,
@@ -417,6 +421,7 @@ administrator registers the instance after accepting its consent terms (see
 | A new expense exceeds the alert threshold | Each user whose threshold is exceeded | "Large expense to check", label and amount |
 | A new transaction matches a "Send a notification" rule | The whole household | The keyword, the label and the amount (only one notification per transaction) |
 | The month's expenses of a budgeted category reach the budget threshold | Each user who has enabled these alerts | "Budget exceeded: Groceries", "312,40 € of 300,00 € (104%)" |
+| The value of the month of an insight goes above or below the amount of its alert | The user who set the alert, if they have enabled these alerts | "Insight above its threshold: Expenses", "2,140.00 € this month (threshold: 2,000.00 €)" |
 
 The app **badge** shows the number of transactions to review. The alert threshold is
 set in **My profile → Notifications**, under "Large expense" (empty = no alert).
@@ -432,9 +437,9 @@ The server's texts are gathered in `src/lib/Messages.php`.
 
 Each user chooses, in **My profile → Notifications**, the channels for each type
 of notification (result of a synchronization, "Notify" rule, large expense,
-budget exceeded): push, email, both or none. By default, everything is sent by push and
-nothing by email, except budget alerts, which are disabled until the user
-enables them.
+budget exceeded, insight alert): push, email, both or none. By default, everything is sent
+by push and nothing by email, except the budget and insight alerts, which are disabled
+until the user enables them.
 Email is offered only if an SMTP server is configured (**Administration →
 Settings**, `[smtp]` section) and the profile has an email address; the failure of one channel
 prevents neither the other nor the synchronization.
@@ -457,6 +462,21 @@ prevents neither the other nor the synchronization.
       Deleting the category deletes its threshold.
 - **Once** per category, month and user, not at every synchronization. If the budget
   is then raised and reached again, the alert fires again for the new amount.
+
+### Insight alerts { #alertes-des-insights }
+
+- **Setting**: the **bell** of each card of the **Insights** screen opens the user's alert
+  on this insight: the direction (**above** or **below**) and an amount. The card reminds
+  the alert set ("Alert above 2,000.00 €"). Each user has their own alerts; the channels are
+  chosen in **My profile → Notifications**, under "Insight alert" (off by default).
+- **Comparison**: with the value of the month **without its sign**, as on the card:
+  expenses of -2,140 € are above 2,000 €. Strictly above or below: a value equal to the
+  amount does not alert.
+- **When**: with the budget alerts, after each synchronization and each import of a
+  statement, for the **current month** only.
+- **Once** per insight, month and user. Changing the direction or the amount arms the
+  alert again for the current month.
+- Only a **shown** insight alerts: hiding or deleting it deletes its alerts.
 
 ## AI agents { #agents-ia }
 

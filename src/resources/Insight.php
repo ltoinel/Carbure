@@ -49,7 +49,7 @@ final class Insight {
      * (credentials, MFA secrets, OAuth, settings... a unit test keeps the list in sync with
      * the schema) and the system schemas
      */
-    public const REFUSED_TABLES = ['api_tokens', 'bank_transaction_deleted', 'budget_alert', 'budget_alert_threshold', 'budget_insight', 'data_change', 'devices',
+    public const REFUSED_TABLES = ['api_tokens', 'bank_transaction_deleted', 'budget_alert', 'budget_alert_threshold', 'budget_insight', 'data_change', 'devices', 'insight_alert',
         'mfa_recovery_code', 'mfa_trusted_browser', 'oauth_clients', 'oauth_codes', 'schema_migrations', 'settings',
         'user_browser', 'user_mfa', 'user_notification', 'users',
         'mysql', 'information_schema', 'performance_schema', 'sys'];
@@ -127,7 +127,7 @@ final class Insight {
 
     /**
      * Enable an insight (shown in the Insights tab) or disable it (offered by the + button),
-     * for the whole household.
+     * for the whole household; disabling it drops its alerts (InsightAlert).
      *
      * @param int|string           $id      The insight
      * @param bool|int|string|null $enabled True to show it (also "true", "1"...), false to hide it
@@ -148,6 +148,10 @@ final class Insight {
             throw new ApiError("The database must be updated first", 409, 'insight_migration_pending');
         }
         Db::execute("UPDATE budget_insight SET enabled = ? WHERE id = ?", "ii", $enabled ? 1 : 0, $id);
+        // A disabled insight no longer alerts
+        if (!$enabled) {
+            InsightAlert::dropAlerts((int)$id);
+        }
         return ['id' => (int)$id, 'enabled' => $enabled];
     }
 

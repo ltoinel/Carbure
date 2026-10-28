@@ -54,6 +54,14 @@ keeps track of what was done).
       shown insights; offer to hide a card and to show a hidden one again
       (`GET /insight/disabled`, `PUT /insight/enabled`).
 
+- [ ] **Deployment of the insight alerts (#387)**: the migration `2026-11-03_insight_alert`
+      (table `insight_alert`) is applied at container start. Before it, `GET /insight/alert`
+      is empty, `PUT /insight/alert` answers 409 and nothing alerts.
+
+- [ ] **Mobile apps — insight alerts (#387)**: a bell on each insight card to set the alert
+      (`GET`/`PUT`/`DELETE /insight/alert`), and the kind `insight` in the notification
+      preferences (`GET`/`PUT /user/notifications`, already returned by the server).
+
 - [ ] **YunoHost package (#45, `ltoinel/carbure_ynh`)**: after the 1.10.0 release, merge the
       pull request of its autoupdate Action (version and sha256 of the archive), then
       install it on a test YunoHost server (Debian 12): install, upgrade, backup/restore,

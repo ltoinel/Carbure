@@ -218,7 +218,7 @@ test('lists the web browsers of the logins, the current one marked, and removes 
 /**
  * Checkbox of a channel of a kind of notification
  * @param {import('@playwright/test').Page} page
- * @param {string} kind - sync, rule, expense or budget
+ * @param {string} kind - sync, rule, expense, budget or insight
  * @param {string} channel - push or email
  */
 function notification(page, kind, channel) {
@@ -240,10 +240,13 @@ test('chooses the channels of each notification', async ({ userPage: page, api }
     // checkbox disabled and greyed, the reason readable under the table
     await expect(page.getByRole('columnheader', { name: tr('notificationsChannel_push') })).toBeVisible();
     await expect(page.locator('#notifications-push-unavailable')).toContainText(tr('notificationsPushUnavailable'));
-    for (const kind of ['sync', 'rule', 'expense', 'budget']) {
+    for (const kind of ['sync', 'rule', 'expense', 'budget', 'insight']) {
         await expect(notification(page, kind, 'push')).toBeDisabled();
     }
     await expect(notification(page, 'sync', 'push')).toBeChecked();
+    // The insight alerts are opt-in; their amounts are set on the cards of the Insights tab
+    await expect(notification(page, 'insight', 'push')).not.toBeChecked();
+    await expect(page.getByRole('table', { name: tr('notificationsTitle') })).toContainText(tr('notificationsInsightHelp'));
     const pushOpacity = await notification(page, 'sync', 'push').evaluate(el => Number(getComputedStyle(el).opacity));
     expect(pushOpacity).toBeLessThan(1);
     expect(await page.locator('#notifications-push-unavailable').evaluate(el => Number(getComputedStyle(el).opacity))).toBe(1);

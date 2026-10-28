@@ -336,6 +336,22 @@ CREATE TABLE `budget_alert_threshold` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
+-- Table `insight_alert`: alert of a user when the value of the month of an enabled insight
+-- goes above or below his threshold (once per month, again when the threshold changes)
+
+CREATE TABLE `insight_alert` (
+  `user_id` int(10) unsigned NOT NULL,
+  `insight_id` int(10) unsigned NOT NULL,
+  `direction` enum('above','below') NOT NULL COMMENT 'Alert when the value goes above or below the threshold',
+  `threshold` decimal(12,2) NOT NULL COMMENT 'Amount compared with the absolute value of the month',
+  `notified_month` date DEFAULT NULL COMMENT 'First day of the month last alerted (NULL: not yet, or threshold changed)',
+  PRIMARY KEY (`user_id`, `insight_id`),
+  KEY `insight_alert_insight` (`insight_id`),
+  CONSTRAINT `fk_insight_alert_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_insight_alert_insight` FOREIGN KEY (`insight_id`) REFERENCES `budget_insight` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
 -- Table `data_change`: change markers of the household data, one version per kind of
 -- data bumped by every write, so that the clients reload only what changed (GET /changes)
 
@@ -403,7 +419,8 @@ INSERT IGNORE INTO `schema_migrations` (`version`) VALUES
 ('2026-10-29_data_change'),
 ('2026-10-30_transaction_split'),
 ('2026-10-31_tags'),
-('2026-11-01_insight_enabled');
+('2026-11-01_insight_enabled'),
+('2026-11-03_insight_alert');
 
 SET FOREIGN_KEY_CHECKS = 1;
 COMMIT;

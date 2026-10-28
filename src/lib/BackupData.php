@@ -12,7 +12,9 @@
  * below. The users are written by their username (their ids differ between instances).
  *
  * Never in a backup: users and passwords, API tokens, OAuth, devices, settings, bank
- * connections and accounts (their credentials live in woob), budget alerts sent.
+ * connections and accounts (their credentials live in woob), budget alerts sent, the
+ * alert settings of the users (budget thresholds, insight alerts: an imported insight
+ * keeps the alerts of its id, those of the insights no longer there are dropped).
  *
  * @author     Ludovic Toinel
  * @copyright  2026 Carbure App
