@@ -281,16 +281,21 @@ Une règle associe un **mot-clé** à une catégorie : toute transaction dont le
 - Le mot-clé est enregistré en majuscules, comme les libellés ; il est unique.
 - Quand plusieurs mots-clés se trouvent dans un même libellé, **la règle créée en premier**
   l'emporte.
-- **Créer ou modifier une règle l'applique tout de suite à tout l'historique**, y compris
-  aux transactions déjà catégorisées à la main ; la fenêtre de la règle indique combien de
-  transactions contiennent le mot-clé et combien sont déjà dans la catégorie.
+- **Créer ou modifier une règle l'applique tout de suite à tout l'historique**, transactions
+  déjà catégorisées comprises ; la fenêtre de la règle indique combien de transactions
+  contiennent le mot-clé et combien sont déjà dans la catégorie.
+- **Une catégorie choisie à la main n'est jamais écrasée par une règle** : Carbure retient
+  l'origine de la catégorie de chaque transaction (règle ou choix à la main depuis le
+  portail, les applications mobiles, une répartition ou une saisie à la main). Les
+  catégories posées avant la version 1.12.0 ont une origine inconnue.
 - À chaque synchronisation, les règles classent les nouvelles transactions sans catégorie.
 - **Resynchroniser** applique toutes les règles à toute la base et indique le nombre de
   transactions recatégorisées.
 - **Conserver les catégories existantes** (interrupteur de l'onglet Règles, désactivé par
   défaut) : la création ou la modification d'une règle et la resynchronisation ne
-  catégorisent plus que les transactions sans catégorie. Les catégories choisies à la main
-  ou reprises d'un import ne sont jamais écrasées.
+  catégorisent plus que les transactions sans catégorie et celles qu'une règle a
+  catégorisées. Corriger une règle (EDF passé d'Énergie à Logement) déplace donc les
+  transactions qu'elle avait classées, mais laisse les catégories d'origine inconnue.
 - **Envoyer une notification** sur une règle : chaque nouvelle transaction qui
   correspond est signalée à tout le foyer, en push ou par email selon les préférences de
   chacun (voir [Notifications](#notifications) ; une cloche marque ces règles). Utile pour

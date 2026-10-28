@@ -82,6 +82,8 @@ final class BackupData {
                 'type' => 'int:255', 'label' => 'string:300', 'category' => 'int:255', 'amount' => 'decimal',
                 'card' => '?string:19', 'bank_name' => '?string:50', 'account_number' => '?string:100',
                 'pointed' => 'bool', 'user' => 'user',
+                // Added with the migration 2026-11-02_category_source: unknown in an older backup
+                'category_source' => '?enum:rule|manual',
             ],
         ],
         'deleted_transactions' => [

@@ -691,7 +691,8 @@ curl -X POST https://exemple.fr/api/transaction/import -H "Authorization: Bearer
 ### `PUT /transaction/category` { #put-transactioncategory }
 
 `id`, `category`: assigns the category and checks off the transaction (`autoPointed=false`
-to leave it unchecked).
+to leave it unchecked). The category is chosen by hand (`category_source` `manual`): the
+rules no longer change it.
 
 ### `PUT /transaction/pointed` { #put-transactionpointed }
 
@@ -738,7 +739,10 @@ curl -X PUT https://exemple.fr/api/transaction/split -H "Authorization: Bearer $
   -H 'Content-Type: application/json' -d '{"id":42,"parts":[{"category":3,"amount":-20}]}'
 ```
 
-The transactions returned by `GET /transaction` have `split_of` (`null` unless a part).
+The transactions returned by `GET /transaction` have `split_of` (`null` unless a part)
+and `category_source`, the origin of their category: `rule` (a rule), `manual` (chosen by
+hand: portal, mobile apps, split, transaction entered by hand) or `null` (unknown: a
+category set before the migration `2026-11-02_category_source`, or none).
 
 ### `DELETE /transaction` { #delete-transaction }
 
@@ -984,12 +988,13 @@ in the rule's category (`categorized`).
 ### `POST /category/keyword/apply` — administrator { #post-categorykeywordapply-administrateur }
 
 Applies every rule to every transaction in the database, including those already
-categorized (the first rule found in the label wins). Returns
+categorized, except the ones whose category was chosen by hand (`category_source`
+`manual`); the first rule found in the label wins. Returns
 `{ "updated": <number of transactions whose category changed> }`. Creating or updating a
 rule (`POST`/`PUT /category/keyword`) also applies it immediately to the whole history and
 returns `applied`, the number of recategorized transactions. With the
 `keep_categorized` setting (below), these three routes only touch uncategorized
-transactions.
+transactions or the ones categorized by a rule (`category_source` `rule`).
 
 ### `GET /category/keyword/settings` { #get-categorykeywordsettings }
 
@@ -1000,7 +1005,8 @@ transactions of the history alone (off by default).
 
 `keep_categorized` (`true`/`false`): turns the setting on or off, returns the new state.
 When on, resynchronizing and creating or updating a rule only categorize the transactions
-without a category; categories chosen by hand or imported are never overwritten.
+without a category or categorized by a rule; the categories of unknown origin are then
+kept too.
 
 ## Devices { #appareils }
 

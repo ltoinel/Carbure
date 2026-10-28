@@ -134,6 +134,7 @@ erDiagram
         tinyint type
         varchar label
         tinyint category FK
+        varchar category_source "origin: rule, manual, NULL unknown"
         decimal amount
         varchar card
         varchar bank_name "source bank"
@@ -210,7 +211,7 @@ erDiagram
 | `oauth_codes` | Pending OAuth authorization codes (SHA-256 hash, PKCE `S256` challenge, 5 minutes, single use); deleted with their client or their user. |
 | `bank_backend` | Name given to a bank connection (woob backend, e.g. `bnp_2` → "Joint account"), displayed instead of the bank name; with no row, the bank name is displayed. The credentials stay with woob. |
 | `bank_account` | Bank accounts followed by the household: `account_number@bank_name` forms the `bankId` passed to woob; `label` is the name given to the account ("Joint account", `NULL` = "BANK ···1234"). `user_id` is the user who added the account ("Added by"); `last_sync_at`, `last_sync_status`, `last_sync_message` describe the last sync. Uniqueness on `(account_number, bank_name, user_id)`; the API also rejects an account already followed by the household. A **manual** account (cash, a bank woob does not support) has the reserved `bank_name` `manual`: never synced, its transactions are entered by hand. |
-| `bank_transaction` | Transactions. The unique `uuid` is used for deduplication; `bank_name` and `account_number` indicate the source synced account (or the account read from an imported statement, `bank_name` `NULL`), `NULL` for transactions saved before they were added; `user` = first user who added the account (`MIN(user_id)`), with no effect on visibility; deleting the user is forbidden as long as they have transactions (`ON DELETE RESTRICT`); `transaction_date` index on `date`. `split_of` = id of the transaction a **part** was taken from (split across several categories; the transaction keeps the rest, deleted with its parts); `bank_name` `manual` = entered by hand. |
+| `bank_transaction` | Transactions. The unique `uuid` is used for deduplication; `bank_name` and `account_number` indicate the source synced account (or the account read from an imported statement, `bank_name` `NULL`), `NULL` for transactions saved before they were added; `user` = first user who added the account (`MIN(user_id)`), with no effect on visibility; deleting the user is forbidden as long as they have transactions (`ON DELETE RESTRICT`); `transaction_date` index on `date`. `split_of` = id of the transaction a **part** was taken from (split across several categories; the transaction keeps the rest, deleted with its parts); `bank_name` `manual` = entered by hand. `category_source` = origin of the category: `rule` (a rule), `manual` (chosen by hand, never overwritten by the rules), `NULL` (unknown, a category set before it was added). |
 | `tag` | Tags of a project limited in time (unique `name` without the `#`, `color`, `start_date`, `end_date` `NULL` = running), apart from the categories. |
 | `transaction_tag` | Tags of the transactions (`transaction_id`, `tag_id`); deleted with the transaction or the tag. |
 | `bank_transaction_deleted` | Transactions deleted by a user (`uuid`, `deleted_at`, `user_id` set to `NULL` if the user is deleted): sync and statement import ignore these UUIDs, so a deleted transaction does not come back. |
@@ -248,6 +249,7 @@ already been applied (by hand, or by `sql/carbure.sql`). See
 | `2026-10-27_budget_alert_threshold` | Global budget alert threshold that can be turned off, and thresholds per category (`users.budget_alert_all`, `budget_alert_threshold` table); the watched budget becomes a threshold of a category |
 | `2026-10-30_transaction_split` | Split of a transaction across several categories (`bank_transaction.split_of`) |
 | `2026-10-31_tags` | Tags of a project limited in time (`tag`, `transaction_tag` tables) |
+| `2026-11-02_category_source` | Origin of the category of a transaction (`bank_transaction.category_source`: `rule`, `manual`, `NULL` unknown): the rules do not overwrite a category chosen by hand |
 | `2026-11-03_insight_alert` | Alerts of the users on the insights (`insight_alert` table) |
 
 ## "Household" model { #modele-foyer }

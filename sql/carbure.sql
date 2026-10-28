@@ -73,6 +73,7 @@ CREATE TABLE `bank_transaction` (
   `type` tinyint(3) unsigned NOT NULL COMMENT 'Type of transaction : Cheque, virement ...',
   `label` varchar(300) NOT NULL COMMENT 'Label for the transaction',
   `category` tinyint(3) unsigned NOT NULL DEFAULT 0 COMMENT 'Category of the transaction',
+  `category_source` varchar(10) DEFAULT NULL COMMENT 'Origin of the category: rule, manual (NULL: unknown)',
   `amount` decimal(10,2) NOT NULL COMMENT 'Amount in currency for this transaction',
   `card` varchar(19) DEFAULT NULL COMMENT 'Card number used for this transaction',
   `bank_name` varchar(50) DEFAULT NULL COMMENT 'Bank (woob backend) of the synchronized account',
@@ -420,6 +421,7 @@ INSERT IGNORE INTO `schema_migrations` (`version`) VALUES
 ('2026-10-30_transaction_split'),
 ('2026-10-31_tags'),
 ('2026-11-01_insight_enabled'),
+('2026-11-02_category_source'),
 ('2026-11-03_insight_alert');
 
 SET FOREIGN_KEY_CHECKS = 1;

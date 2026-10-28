@@ -58,11 +58,19 @@ class BackupDataTest extends TestCase
     public function testValidate()
     {
         $values = BackupData::validate('transactions', [self::TRANSACTION, ['id' => '13', 'pointed' => 0, 'amount' => '5'] + self::TRANSACTION]);
-        // split_of: absent from the backups made before the split of transactions
+        // split_of and category_source: absent from the backups made before the split of
+        // transactions and the origin of the categories
         $this->assertSame([12, null, 'abc123', '2026-10-01 08:00:00', '2026-10-01', '2026-09-30', 7, 'CB SUPERMARCHE', 2, '-80.50',
-            null, 'bnp', '00087654321', 1, 'admin'], $values[0]);
+            null, 'bnp', '00087654321', 1, 'admin', null], $values[0]);
         $this->assertSame([13, 0, '5.00'], [$values[1][0], $values[1][13], $values[1][9]]);
         $this->assertSame(12, BackupData::validate('transactions', [['id' => '14', 'split_of' => '12'] + self::TRANSACTION])[0][1]);
+        $this->assertSame('manual', BackupData::validate('transactions', [['category_source' => 'manual'] + self::TRANSACTION])[0][15]);
+        try {
+            BackupData::validate('transactions', [['category_source' => 'import'] + self::TRANSACTION]);
+            $this->fail('Unknown origin accepted');
+        } catch (Error $e) {
+            $this->assertSame(400, $e->getCode());
+        }
 
         $this->assertSame([], BackupData::validate('budgets', []));
         $this->assertSame([[0, 'Aucune', 0, 'HORS-BUDGET', 'help', 'grey']],
