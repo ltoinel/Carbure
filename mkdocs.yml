@@ -189,6 +189,7 @@ nav:
   - Mise en route:
       - Installation: installation.md
       - NAS Synology: synology.md
+      - YunoHost: yunohost.md
       - Configuration: configuration.md
   - Utilisation:
       - Portail web: portail.md
@@ -201,4 +202,5 @@ nav:
       - Développement: developpement.md
       - Sécurité: securite.md
   - FAQ: faq.md
+  - Changelog: changelog.md
   - Assistance: assistance.md

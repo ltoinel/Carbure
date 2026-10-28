@@ -282,7 +282,7 @@ Une question qui n'est pas ici ? Posez-la sur le
     Oui : le paquet [`carbure_ynh`](https://github.com/ltoinel/carbure_ynh) installe Carbure
     en quelques clics sur un serveur [YunoHost](https://yunohost.org), sur un domaine dédié,
     avec woob et une synchronisation quotidienne des comptes. Il n'est pas encore au catalogue de YunoHost : il
-    s'installe depuis son dépôt, voir [Avec YunoHost](installation.md#avec-yunohost). Un
+    s'installe depuis son dépôt, voir [le tutoriel YunoHost](yunohost.md). Un
     problème avec le paquet ? Ouvrez un ticket sur
     [son dépôt](https://github.com/ltoinel/carbure_ynh/issues).
 

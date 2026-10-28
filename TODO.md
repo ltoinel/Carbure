@@ -21,6 +21,11 @@ keeps track of what was done).
       5. remove the `[apns]` section and `data/conf/certs/*.p8` from the NAS (no longer used);
       6. later: a release workflow publishing the image of Carbure Push to a registry.
 
+- [ ] **Release 1.12.0 — changelog (#391)**: add the `1.12.0` section to `docs/changelog.md`
+      and `docs/changelog.en.md` (features, fixes, migrations to apply: split, tags, insights
+      shown, …); from now on, the upgrade notes of each release go there, not in
+      `docs/installation.md`.
+
 - [ ] **Deployment of the split of transactions (#335)**: the migration
       `2026-10-30_transaction_split` (`bank_transaction.split_of`) is applied at container
       start; `PUT /transaction/split` needs it.

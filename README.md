@@ -145,7 +145,7 @@ forts de chacun.
 | **Démo chez vous** | essayer avec un foyer d'exemple | `docker run --rm -p 8080:80 ltoinel/carbure:demo` |
 | **Docker** (recommandé) | gérer le vrai budget du foyer | voir ci-dessous |
 | **NAS Synology** | un NAS à la maison | [tutoriel pas à pas](https://carbure.org/synology/) |
-| **YunoHost** | un serveur YunoHost | paquet [`carbure_ynh`](https://github.com/ltoinel/carbure_ynh) ([installation](https://carbure.org/installation/#avec-yunohost)) |
+| **YunoHost** | un serveur YunoHost | paquet [`carbure_ynh`](https://github.com/ltoinel/carbure_ynh) ([tutoriel](https://carbure.org/yunohost/)) |
 | **Serveur web** | PHP 8.2 et MariaDB/MySQL déjà en place | [installation sans Docker](https://carbure.org/installation/#sur-un-serveur-web-existant) |
 
 Avec Docker, l'image [`ltoinel/carbure`](https://hub.docker.com/r/ltoinel/carbure) contient

@@ -12,8 +12,10 @@ compte administrateur. Aucune commande n'est nécessaire.
 
 - **Docker** (recommandé) : tout est inclus (nginx, PHP, woob) et la base de données est
   préparée par `docker/docker-compose.yml`.
-- **NAS Synology** : voir le [tutoriel pas à pas](synology.md).
-- **YunoHost** : un [paquet](#avec-yunohost) installe Carbure sur un serveur YunoHost.
+- **NAS Synology** : le [tutoriel Synology](synology.md), sans ligne de commande, avec
+  Container Manager et MariaDB 10.
+- **YunoHost** : le [tutoriel YunoHost](yunohost.md), avec le paquet `carbure_ynh`, sans
+  Docker ni assistant.
 - **Serveur web existant** (PHP + MariaDB/MySQL), sans Docker.
 
 Avant d'installer, découvrez les [fonctionnalités](fonctionnalites.md) de Carbure et son
@@ -220,139 +222,8 @@ Quand `docker compose pull` apporte une nouvelle version majeure de MariaDB (par
 l'ancienne version, d'où l'importance de la sauvegarde. Pour garder une version donnée,
 fixez-la dans `docker/docker-compose.yml` (`image: mariadb:11`).
 
-### Passer à la 1.11.0
-
-- Deux migrations sont appliquées au démarrage : `2026-10-28_device_without_token` (une
-  application mobile connectée sans jeton de notification apparaît dans **Mon profil → Mes appareils**)
-  et `2026-10-29_data_change` (marqueurs de changement des données). Le code fonctionne
-  avant elles, comme avant.
-- **Limitation des connexions** : nginx accepte 30 tentatives de connexion par minute et
-  par client (`/api/user/login`, `/api/user/login/mfa`, `/api/oauth/token`), au-delà il
-  répond `429`. Derrière un proxy inverse, l'adresse du client est lue dans
-  `X-Forwarded-For` quand le proxy a une adresse privée (par défaut) : si votre proxy a une
-  autre adresse, renseignez `TRUSTED_PROXIES`, sinon tout le foyer partage la même limite.
-  Après la mise à jour, vérifiez que les logs montrent bien les adresses des clients. Voir
-  [Limitation des connexions](securite.md#limitation-des-connexions).
-- **Port publié** : `CARBURE_PORT` (dans `docker/.env`) choisit le port de
-  `docker/docker-compose.yml`, `8080` par défaut ; le message du premier démarrage donne
-  le bon port.
-- **Données à jour sans recharger** : chaque réponse de l'API porte les versions des
-  données (en-tête `X-Carbure-Changes`) ; le portail recharge l'onglet ouvert quand un
-  autre membre du foyer ou une synchronisation a changé ce qu'il affiche. Les applications
-  mobiles s'en serviront dans une prochaine version.
-- **Messages d'erreur traduits** : le portail affiche les erreurs de l'API dans la langue
-  de l'utilisateur. L'API ajoute un code stable (`error_code`, `params`) à ses erreurs,
-  sans changer les champs existants (voir [API](api.md#code-stable-dune-erreur)).
-- **Portail sur téléphone** : les onglets du quotidien passent dans une barre en bas de
-  l'écran, les autres, le profil, le thème et la déconnexion dans son menu **Plus** ;
-  l'en-tête tient sur une ligne.
-- **Banques** : les banques qui demandent une validation dès la première connexion
-  (Crédit Mutuel…) se connectent depuis le portail ; les modules qui demandaient des
-  paquets Python absents (Banque Populaire, Caisse d'Épargne, Société Générale…) se
-  chargent ; le choix de la région de Banque Populaire est accepté. À la première banque,
-  un avertissement rappelle que la synchronisation dépend des connecteurs de woob.
-- **Règles** : le réglage **Conserver les catégories existantes** (désactivé par défaut)
-  limite les règles aux transactions non catégorisées.
-- **Calendrier** des transactions récurrentes du mois dans l'onglet Transactions.
-
-### Passer à la 1.10.0
-
-- La migration `2026-10-27_budget_alert_threshold` est appliquée au démarrage : les alertes
-  de budget ont un **seuil global** (tous les budgets), désactivable, et des **seuils par
-  catégorie** (**Mon profil → Notifications**). Les réglages sont repris : un utilisateur
-  qui surveillait un seul budget garde ce budget, à son seuil, sans seuil global. Le code
-  fonctionne avant elle, comme avant.
-- **Salaire de fin de mois** : un virement reçu daté **du 25 ou après** est rattaché au mois
-  suivant (auparavant à partir du 26). Le jour se règle avec `next_month_day`
-  (**Administration → Paramètres**, `0` pour ne jamais déplacer un virement) ; seules les
-  transactions importées ou synchronisées après la mise à jour sont concernées.
-- **Nouvelle version** : un bandeau prévient les administrateurs quand une version de
-  Carbure est publiée. Le serveur demande la dernière version à l'API publique de GitHub
-  une fois par jour, sans rien envoyer sur l'instance ; `update_check=false` le désactive.
-- **Première installation avec Docker Compose** : `docker compose pull && docker compose up -d`
-  utilise l'image publiée (sans `pull`, Compose construisait l'image depuis le clone).
-- **Installation scriptée** : `tools/install.php` installe Carbure sans l'assistant web
-  (voir [Lancer l'assistant](#3-lancer-lassistant)) ; il sert au [paquet YunoHost](#avec-yunohost).
-- Les applications mobiles sont publiées : liens App Store et Google Play dans **Mon profil
-  → Mes appareils**.
-
-### Passer à la 1.9.0
-
-Aucune migration de la base.
-
-- **Synchronisation** : chaque compte commence par la liste des comptes de sa banque
-  (`woob bank list`) avant ses opérations ; certains modules (Crédit Mutuel) ne trouvaient
-  pas le compte sans elle. Un compte que la banque ne liste plus finit en erreur, avec un
-  message explicite, au lieu de « Account not found ».
-- **Devise** : nouveau réglage facultatif `currency` (code ISO 4217, `EUR` par défaut) dans
-  **Administration → Paramètres**, pour afficher les montants dans une autre devise
-  (aucune conversion).
-
-### Passer à la 1.8.0
-
-- La migration `2026-10-26_user_browser` est appliquée au démarrage : elle enregistre les
-  navigateurs web des connexions au portail, listés dans **Mon profil → Mes appareils**
-  (le code fonctionne avant elle, sans navigateur listé).
-- Le réglage `push_url` disparaît : le service de notifications est toujours Carbure Push
-  (`https://api.carbure.org`), une valeur restée dans `/data/conf/prod.ini` est ignorée.
-  L'inscription de l'instance, sa clé et l'état du service sont dans **Administration →
-  Push mobile**.
-- Le QR code de **Mes appareils** donne aux applications mobiles l'adresse de l'API :
-  renseignez `public_url` (**Administration → Paramètres**) si le portail est aussi ouvert
-  par une adresse locale.
-
-### Passer à la 1.6.0
-
-La migration `2026-10-25_device_model` est appliquée au démarrage : modèle, version du
-système et version de l'application de chaque appareil mobile (inconnus pour les appareils
-existants jusqu'à leur prochaine connexion). Elle corrige aussi la plateforme des appareils
-Android déjà enregistrés, notés iOS jusque-là : leurs notifications push repartent.
-
-### Passer à la 1.5.0
-
-À faire **dans cet ordre** :
-
-1. **Sauvegardez la base**, comme avant toute mise à jour.
-2. **Notifications push** : la 1.5.0 n'envoie plus elle-même les notifications à Apple
-   (APNs) mais passe par le service Carbure Push. Tant que l'instance n'y est pas
-   inscrite, **aucune notification push n'est envoyée** (le reste fonctionne normalement).
-   En 1.5.0, l'adresse par défaut du service (`https://push.carbure.org`) n'est pas la
-   bonne : renseignez d'abord `push_url` = `https://api.carbure.org` (c'est l'adresse par
-   défaut à partir de la 1.6.0 ; à partir de la 1.8.0, ce réglage disparaît : le service est
-   toujours `https://api.carbure.org`). Une fois le service disponible, inscrivez l'instance juste après la mise à jour (voir
-   [Notifications push](#notifications-push-carbure-push)), puis retirez la section
-   `[apns]` et la clé `.p8` de `/data/conf`.
-3. **Mettez à jour** l'image (`docker compose pull && docker compose up -d`). Trois
-   migrations sont appliquées au démarrage :
-    - `2026-10-23_device_platform` : plateforme des appareils (`ios` pour les existants) ;
-    - `2026-10-23_user_budget_alert_category` : budget surveillé par les alertes de
-      budget (tous les budgets pour les utilisateurs existants) ;
-    - `2026-10-24_user_mfa` : authentification à deux facteurs (tables vides).
-4. **Vérifiez** :
-    - **Administration → API** affiche Swagger UI : si un message signale que le cadre est
-      bloqué, le proxy inverse de DSM ajoute son propre en-tête `X-Frame-Options: DENY`
-      (à retirer pour `/swagger/`) ;
-    - **Mon profil → Notifications** : le seuil des dépenses importantes y est désormais,
-      avec le budget surveillé et son seuil.
-
-Nouveautés à activer si besoin :
-
-- **Authentification à deux facteurs** (désactivée par défaut) : avant de l'imposer
-  (**Administration → Paramètres**, `mfa_required`), configurez-la sur votre propre compte
-  (**Mon profil**) et gardez vos codes de récupération. L'app iOS actuelle continue de se
-  connecter depuis un iPhone déjà connu, mais un **nouvel** iPhone est refusé tant que l'app
-  ne sait pas saisir le code. En cas de perte de l'app et des codes :
-  `mfa_required=false` dans `/data/conf/prod.ini`.
-- **Sauvegarde** (**Administration → Sauvegarde**) : exportez vos données dans un ZIP ;
-  l'import **remplace** les données de chaque type importé.
-- **Langues** : espagnol, italien, allemand et portugais. Sur une instance qui n'est pas
-  en français, renseignez la catégorie d'épargne des **Tendances** dans
-  **Administration → Paramètres** (`savings_category`, « Epargne » par défaut).
-
-Rien ne change pour les règles de nettoyage des libellés : l'exemple de configuration ne
-contient plus `regex_label["/\s(CARTE.*|CARTE|CART|CAR|CA|C)$/"]=""`, mais gardez-la dans
-votre `prod.ini` si elle y est (la retirer créerait des doublons de transactions par
-carte).
+Ce qui change d'une version à l'autre, et ce qu'il faut faire en mettant à jour
+(migrations, réglages), est dans le [changelog](changelog.md).
 
 ### Notifications push (Carbure Push)
 
@@ -398,43 +269,21 @@ docker compose exec -u www-data carbure php tools/migrate.php --status # version
     Esalia, La Nef). Les modules qui pilotent un vrai navigateur (American Express,
     Sogecartenet, HSBC Hong Kong) ne sont pas pris en charge : utilisez l'import de relevés.
 
+## Sur un NAS Synology
+
+Le [tutoriel NAS Synology](synology.md) installe Carbure avec **Container Manager** et la
+base **MariaDB 10** du NAS, entièrement depuis l'interface de DSM, sans ligne de commande :
+préparation de la base, conteneur, assistant, banques, synchronisation quotidienne avec le
+**Planificateur de tâches**, accès HTTPS par le proxy inversé, sécurisation, mises à jour et
+sauvegardes Hyper Backup.
+
 ## Avec YunoHost
 
-Le paquet [`carbure_ynh`](https://github.com/ltoinel/carbure_ynh) installe Carbure sur un
-serveur [YunoHost](https://yunohost.org) :
-
-- sur un **domaine dédié** (par exemple `budget.exemple.org`), pas dans un sous-chemin ;
-- **sans assistant** : l'utilisateur YunoHost choisi devient l'administrateur de Carbure,
-  avec le mot de passe saisi à l'installation ; la base, les catégories, les règles et les
-  insights de départ sont créés ;
-- avec **woob** et les paquets Python des modules bancaires dans un environnement virtuel,
-  et une **synchronisation quotidienne** de tous les comptes ;
-- les mises à jour appliquent les migrations de la base et mettent à jour les modules
-  bancaires ; les sauvegardes YunoHost comprennent la base et le dossier de données
-  (configuration, logs, woob).
-
-!!! note "Hors du catalogue de YunoHost"
-    Le paquet n'est pas encore dans le catalogue de YunoHost : il s'installe depuis son
-    dépôt. Il a été testé sur une installation neuve ; vos retours sur une mise à jour, une
-    sauvegarde et sa restauration sont les bienvenus dans le
-    [ticket #45](https://github.com/ltoinel/Carbure/issues/45).
-
-Pour l'installer, dans l'interface d'administration de YunoHost : **Applications →
-Installer**, puis en bas de la page **Installer une application personnalisée** avec
-l'adresse `https://github.com/ltoinel/carbure_ynh`. En ligne de commande :
-
-```bash
-sudo yunohost app install https://github.com/ltoinel/carbure_ynh
-```
-
-L'installation demande le domaine, qui peut ouvrir le portail web, la langue, l'utilisateur
-YunoHost administrateur et son mot de passe Carbure (8 caractères minimum).
-
-Carbure garde ses propres comptes (pas de connexion unique avec YunoHost), dont les
-applications mobiles ont besoin : le mot de passe de l'administrateur n'est pas celui de
-YunoHost. L'API reste publique pour les applications mobiles, la synchronisation et les
-agents IA, même si le portail est réservé à certains utilisateurs. Une banque qui demande
-une validation sur le téléphone (authentification forte) se synchronise depuis le portail.
+Le [tutoriel YunoHost](yunohost.md) installe Carbure avec le paquet
+[`carbure_ynh`](https://github.com/ltoinel/carbure_ynh), depuis l'interface
+d'administration de YunoHost : un domaine dédié, l'administrateur créé à l'installation
+(sans assistant), woob et la synchronisation quotidienne inclus, les mises à jour et les
+sauvegardes de YunoHost.
 
 ## Sur un serveur web existant
 
