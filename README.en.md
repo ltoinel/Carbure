@@ -42,17 +42,17 @@
 </p>
 
 <p align="center">
-  <img src="docs/assets/en/screenshot-transactions.png" alt="Transactions of the month: income, expenses, search, check-off and categories" width="100%">
+  <img src="docs/assets/en/screenshot-transactions.webp" alt="Transactions of the month: income, expenses, search, check-off and categories" width="100%">
 </p>
 
 <table>
   <tr>
     <td width="50%" valign="top">
-      <img src="docs/assets/en/screenshot-budget.png" alt="Budgets by category, sub-categories adding up to their parent">
+      <img src="docs/assets/en/screenshot-budget.webp" alt="Budgets by category, sub-categories adding up to their parent">
       <br><sub><b>Budgets</b> — spent, remaining and overspent per category</sub>
     </td>
     <td width="50%" valign="top">
-      <img src="docs/assets/en/screenshot-flow.png" alt="Money flow of the month">
+      <img src="docs/assets/en/screenshot-flow.webp" alt="Money flow of the month">
       <br><sub><b>Money flow</b> — where the month's income goes</sub>
     </td>
   </tr>

@@ -123,7 +123,7 @@ tâches ou l'écran d'accueil.
 
 ## Transactions
 
-![Écran Transactions du portail web Carbure](assets/screenshot-transactions.png)
+![Écran Transactions du portail web Carbure](assets/screenshot-transactions.webp)
 
 - Statistiques du mois : revenus, dépenses, solde.
 - **Sur téléphone**, les trois chiffres du mois tiennent sur une ligne compacte, la liste
@@ -210,7 +210,7 @@ tâches ou l'écran d'accueil.
 
 ## Budget
 
-![Écran Budgets : flux du mois en diagramme de Sankey](assets/screenshot-flow.png)
+![Écran Budgets : flux du mois en diagramme de Sankey](assets/screenshot-flow.webp)
 
 Deux sous-onglets : **Flux** (affiché par défaut) et **Budgets**.
 
@@ -268,7 +268,7 @@ Des exemples de requêtes sont dans [Recettes d'insights](insights.md).
 
 ## Tendances
 
-![Écran Tendances du portail web Carbure](assets/screenshot-trends.png)
+![Écran Tendances du portail web Carbure](assets/screenshot-trends.webp)
 
 - Période de **3, 6 ou 12 mois** se terminant au mois courant.
 - **Comparer à** : sans comparaison, la période précédente ou la même période l'an
@@ -667,11 +667,11 @@ activer :
   sont celles du système ; boutons, onglets, champs, bascules, barres de budget, cartes et
   focus gardent une bordure ou un contour visible.
 
-![Écran Transactions en thème sombre](assets/screenshot-theme-dark.png)
+![Écran Transactions en thème sombre](assets/screenshot-theme-dark.webp)
 
-![Écran Transactions avec le contraste augmenté du système : textes secondaires et bordures plus foncés](assets/screenshot-theme-contrast.png)
+![Écran Transactions avec le contraste augmenté du système : textes secondaires et bordures plus foncés](assets/screenshot-theme-contrast.webp)
 
-![Écran Transactions en couleurs forcées (contraste élevé de Windows) : couleurs du système, chaque bouton, onglet et carte gardant une bordure](assets/screenshot-theme-forced-colors.png)
+![Écran Transactions en couleurs forcées (contraste élevé de Windows) : couleurs du système, chaque bouton, onglet et carte gardant une bordure](assets/screenshot-theme-forced-colors.webp)
 
 Le thème sombre respecte les mêmes règles que le thème clair (4,5:1 pour un texte, 3:1
 pour une icône, au repos, au survol et au focus) : les couleurs d'accent y sont plus

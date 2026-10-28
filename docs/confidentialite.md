@@ -1,6 +1,6 @@
 ---
 title: "Politique de confidentialité des applications Carbure"
-description: "Données traitées par les applications mobiles Carbure (iOS, Android), par le serveur Carbure auto-hébergé et par le service de notifications Carbure Push : ce qui est collecté, où, pourquoi, combien de temps, et vos droits."
+description: "Données traitées par les applications mobiles, le serveur Carbure et Carbure Push : ce qui est collecté, pourquoi, combien de temps, vos droits."
 icon: material/shield-account-outline
 ---
 

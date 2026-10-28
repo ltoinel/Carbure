@@ -36,6 +36,9 @@ theme:
         icon: material/weather-sunny
         name: Passer en mode clair
   features:
+    # Sections as tabs in the header (wide screens), previous/next links under each page
+    - navigation.tabs
+    - navigation.footer
     - navigation.sections
     - navigation.top
     - content.code.copy
@@ -48,6 +51,7 @@ theme:
 # (Universal Links, App Links) and the page their server links open without the app
 exclude_docs: |
   !.well-known/
+  requirements.txt
 not_in_nav: |
   /app.md
   /app.en.md
@@ -98,9 +102,13 @@ plugins:
             Recettes d'insights: Insight recipes
             Comparatif: Comparison
             Confidentialité: Privacy
-            Mise en route: Getting started
+            Découvrir: Discover
+            Installer: Install
+            Avec Docker: With Docker
+            Sur un NAS Synology: On a Synology NAS
+            Avec YunoHost: With YunoHost
             Configuration: Configuration
-            Utilisation: Usage
+            Utiliser: Use
             Portail web: Web portal
             Applications mobiles: Mobile apps
             Agents IA (MCP): AI agents (MCP)
@@ -109,6 +117,7 @@ plugins:
             Modèle de données: Data model
             Développement: Development
             Sécurité: Security
+            Aide: Help
             FAQ: FAQ
             Assistance: Support
           extra:
@@ -153,9 +162,10 @@ extra:
       link: https://www.youtube.com/@carbure-org
       name: "Vidéos de Carbure sur YouTube"
 
-# Docker Hub pull count of the header, read at build time
+# Docker Hub pull count of the header, read at build time; no source map of the theme published
 hooks:
   - overrides/hooks/docker_pulls.py
+  - overrides/hooks/source_maps.py
 
 extra_css:
   - stylesheets/extra.css
@@ -182,25 +192,27 @@ markdown_extensions:
 
 nav:
   - Accueil: index.md
-  - Fonctionnalités: fonctionnalites.md
-  - Recettes d'insights: insights.md
-  - Comparatif: comparatif.md
-  - Confidentialité: confidentialite.md
-  - Mise en route:
-      - Installation: installation.md
-      - NAS Synology: synology.md
-      - YunoHost: yunohost.md
+  - Découvrir:
+      - Fonctionnalités: fonctionnalites.md
+      - Comparatif: comparatif.md
+  - Installer:
+      - Avec Docker: installation.md
+      - Sur un NAS Synology: synology.md
+      - Avec YunoHost: yunohost.md
       - Configuration: configuration.md
-  - Utilisation:
+      - Changelog: changelog.md
+  - Utiliser:
       - Portail web: portail.md
       - Applications mobiles: applications-mobiles.md
+      - Recettes d'insights: insights.md
       - Agents IA (MCP): mcp.md
   - Technique:
       - Architecture: architecture.md
       - API: api.md
       - Modèle de données: modele-donnees.md
-      - Développement: developpement.md
       - Sécurité: securite.md
-  - FAQ: faq.md
-  - Changelog: changelog.md
-  - Assistance: assistance.md
+      - Développement: developpement.md
+  - Aide:
+      - FAQ: faq.md
+      - Assistance: assistance.md
+      - Confidentialité: confidentialite.md

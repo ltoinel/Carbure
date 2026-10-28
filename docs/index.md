@@ -1,5 +1,5 @@
 ---
-title: "Carbure : budget familial auto-hébergé avec synchronisation bancaire"
+title: "Carbure : budget familial auto-hébergé, synchro bancaire"
 description: "Carbure, gestionnaire de budget du foyer gratuit et open source à héberger soi-même : synchronisation des banques françaises, catégories, budgets, tendances."
 icon: material/home-outline
 ---
@@ -36,7 +36,7 @@ Tous s'appuient sur la même **API REST PHP** (`src/`).
 *Carbure en une minute : synchronisation, catégorisation, budgets, flux du mois, tendances,
 insights, notifications, agent IA et foyer.*
 
-![Flux du mois : des revenus aux dépenses, à l'épargne et au reste](assets/screenshot-flow.png)
+![Flux du mois : des revenus aux dépenses, à l'épargne et au reste](assets/screenshot-flow.webp)
 
 <a class="teaser" href="https://www.youtube.com/watch?v=YqSUd7L9fPg" data-youtube="YqSUd7L9fPg" title="Carbure sur iPhone et Android : votre budget, dans votre poche (YouTube)">
   <img src="assets/mobile-apps-youtube.jpg" alt="Lire la vidéo « Carbure sur iPhone et Android : votre budget, dans votre poche » (YouTube)" width="1280" height="720" loading="lazy">

@@ -1,6 +1,6 @@
 ---
-title: "Comparatif : Carbure, Firefly III, Actual Budget, Kresus, Sure et ezBookkeeping"
-description: "Carbure comparé aux gestionnaires de budget open source à héberger soi-même : Firefly III, Actual Budget, Kresus, Sure et ezBookkeeping. Connexion bancaire, budgets, mobile et agent IA."
+title: "Comparatif des gestionnaires de budget auto-hébergés"
+description: "Carbure comparé à Firefly III, Actual Budget, Kresus, Sure et ezBookkeeping : connexion bancaire, budgets, applications mobiles et agent IA."
 icon: material/scale-balance
 ---
 

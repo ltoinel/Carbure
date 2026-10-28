@@ -36,7 +36,7 @@ All of them rely on the same **PHP REST API** (`src/`).
 *Carbure in one minute: synchronization, categorization, budgets, monthly flow, trends,
 insights, notifications, AI agent and household.*
 
-![Monthly flow: from income to expenses, savings and what is left](assets/en/screenshot-flow.png)
+![Monthly flow: from income to expenses, savings and what is left](assets/en/screenshot-flow.webp)
 
 <a class="teaser" href="https://www.youtube.com/watch?v=YqSUd7L9fPg" data-youtube="YqSUd7L9fPg" title="Carbure on iPhone and Android: your budget in your pocket (YouTube)">
   <img src="assets/mobile-apps-youtube.jpg" alt="Play the video “Carbure on iPhone and Android: your budget in your pocket” (YouTube)" width="1280" height="720" loading="lazy">

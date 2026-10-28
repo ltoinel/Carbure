@@ -1,0 +1,26 @@
+{#-
+  Theme override of the sitemap of mkdocs-static-i18n: every page with its language links
+  (x-default = French), without the pages marked `noindex: true` and without the build date
+  and change frequency, which would claim that every page changes every day.
+-#}
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+
+{%- for locale, i18n_files in i18n_alternates.items() %}
+
+{%- for file in i18n_files %}
+    {%- if not file.page or file.page.is_link or (file.page.meta and file.page.meta.noindex) %}
+        {%- continue %}
+    {%- endif %}
+    <url>
+        <loc>{{ file.page.canonical_url | e }}</loc>
+    {%- for i18n_locale, i18n_file in file.alternates.items() %}
+        <xhtml:link rel="alternate" hreflang="{{ i18n_locale }}" href="{{ i18n_file.page.canonical_url | e }}"/>
+        {%- if loop.first %}
+        <xhtml:link rel="alternate" hreflang="x-default" href="{{ i18n_file.page.canonical_url | e }}"/>
+        {%- endif %}
+    {%- endfor %}
+    </url>
+{%- endfor %}
+{%- endfor %}
+</urlset>

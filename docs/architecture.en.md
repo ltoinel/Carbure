@@ -1,6 +1,6 @@
 ---
 title: "Architecture: web portal, PHP REST API and woob"
-description: "How Carbure works: Vue 3 web portal, framework-free PHP REST API, MariaDB, bank sync with woob, push notifications (Carbure Push) and MCP server."
+description: "How Carbure works: Vue 3 portal, PHP REST API without framework, MariaDB, woob synchronization, Carbure Push and MCP server."
 icon: material/sitemap-outline
 ---
 

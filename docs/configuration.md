@@ -1,6 +1,6 @@
 ---
 title: "Configuration du serveur (fichier prod.ini)"
-description: "Référence de la configuration de Carbure : base de données, jetons, woob, synchronisation planifiée, notifications push (Carbure Push), journaux et paramètres du portail."
+description: "Référence de la configuration de Carbure : base de données, jetons, woob, synchronisation planifiée, notifications push et journaux."
 icon: material/cog-outline
 ---
 

@@ -1,8 +1,41 @@
 {#-
-  Theme override (mkdocs.yml: theme.custom_dir): page titles, Open Graph and Twitter card
-  metadata for the links shared on social networks, structured data of the home page.
+  Theme override (mkdocs.yml: theme.custom_dir): absolute language links, pages kept out of
+  search engines, page titles, Open Graph and Twitter card metadata for the links shared on
+  social networks, structured data of the home page.
 -#}
 {% extends "base.html" %}
+
+{#- Same as Material's block, but the language links (hreflang) are absolute, as search
+    engines require, with x-default on the French page; a page with `noindex: true` in its
+    front matter is kept out of search engines -#}
+{% block site_meta %}
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="{{ page.meta.description if page.meta and page.meta.description else config.site_description }}">
+  <meta name="author" content="{{ page.meta.author if page.meta and page.meta.author else config.site_author }}">
+  {% if page.meta and page.meta.noindex %}
+    <meta name="robots" content="noindex">
+  {% endif %}
+  {% if page.canonical_url %}
+    <link rel="canonical" href="{{ page.canonical_url }}">
+  {% endif %}
+  {% if page.previous_page %}
+    <link rel="prev" href="{{ page.previous_page.url | url }}">
+  {% endif %}
+  {% if page.next_page %}
+    <link rel="next" href="{{ page.next_page.url | url }}">
+  {% endif %}
+  {% if config.extra.alternate is iterable %}
+    {% for alt in config.extra.alternate %}
+      {% set alt_path = alt.link.lstrip("/").lstrip(".").lstrip("/") %}
+      <link rel="alternate" href="{{ config.site_url ~ alt_path }}" hreflang="{{ alt.lang }}">
+      {% if loop.first %}
+        <link rel="alternate" href="{{ config.site_url ~ alt_path }}" hreflang="x-default">
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+  <link rel="icon" href="{{ config.theme.favicon | url }}">
+{% endblock %}
 
 {#- Home page: its own title, not "Carbure" alone; other pages: "<title> - Carbure" -#}
 {% block htmltitle %}
@@ -48,7 +81,7 @@
         "url": {{ config.site_url | tojson }},
         "image": {{ share_image | tojson }},
         "applicationCategory": "FinanceApplication",
-        "operatingSystem": "Linux, Docker, Synology DSM",
+        "operatingSystem": "Linux, Docker, Synology DSM, YunoHost, Android, iOS",
         "inLanguage": ["fr", "en"],
         "isAccessibleForFree": true,
         "license": "https://opensource.org/licenses/MIT",

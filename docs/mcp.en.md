@@ -1,5 +1,5 @@
 ---
-title: "AI agents (MCP): query your budget with Claude or ChatGPT"
+title: "AI agents (MCP): your budget in Claude or ChatGPT"
 description: "Connect an AI agent (Claude, ChatGPT, Cursor, Copilot, Gemini) to the household budget through Carbure's MCP server, read-only, with OAuth or a token."
 icon: material/robot-outline
 ---

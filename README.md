@@ -42,17 +42,17 @@
 </p>
 
 <p align="center">
-  <img src="docs/assets/screenshot-transactions.png" alt="Transactions du mois : revenus, dépenses, recherche, pointage et catégories" width="100%">
+  <img src="docs/assets/screenshot-transactions.webp" alt="Transactions du mois : revenus, dépenses, recherche, pointage et catégories" width="100%">
 </p>
 
 <table>
   <tr>
     <td width="50%" valign="top">
-      <img src="docs/assets/screenshot-budget.png" alt="Budgets par catégorie, les sous-catégories s'additionnent dans leur parent">
+      <img src="docs/assets/screenshot-budget.webp" alt="Budgets par catégorie, les sous-catégories s'additionnent dans leur parent">
       <br><sub><b>Budgets</b> — dépensé, restant et dépassement par catégorie</sub>
     </td>
     <td width="50%" valign="top">
-      <img src="docs/assets/screenshot-flow.png" alt="Flux du mois">
+      <img src="docs/assets/screenshot-flow.webp" alt="Flux du mois">
       <br><sub><b>Flux du mois</b> — où partent les revenus du mois</sub>
     </td>
   </tr>

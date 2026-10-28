@@ -1,6 +1,6 @@
 ---
 title: "iPhone and Android mobile apps"
-description: "The Carbure apps for iPhone and Android: connecting to your server, Face ID and fingerprint, transactions, budgets, insights, trends, sync and push notifications."
+description: "The Carbure apps for iPhone and Android: connecting to your server, Face ID, transactions, budgets, trends and push notifications."
 icon: material/cellphone
 ---
 

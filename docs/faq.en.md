@@ -1,6 +1,6 @@
 ---
 title: "Frequently asked questions"
-description: "Carbure FAQ: price, demo, supported banks, synchronization, statement import, categories, budgets, end-of-month salary, alerts, mobile apps, installation, security, backup, privacy and AI agents."
+description: "Carbure FAQ: price, supported banks, synchronization, import, budgets, mobile apps, installation, security and backup."
 icon: material/frequently-asked-questions
 ---
 

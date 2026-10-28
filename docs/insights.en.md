@@ -15,7 +15,7 @@ page gathers **recipes** ready to copy into the add-insight window
 All the queries on this page are checked by Carbure's tests: they follow
 the rules below and run against a test database, with the expected result.
 
-![Add-insight window filled in with the "Average grocery basket" recipe: name, color, icon and SQL query, checked while typing with its result for the month displayed](assets/screenshot-insight-recipe.png)
+![Add-insight window filled in with the "Average grocery basket" recipe: name, color, icon and SQL query, checked while typing with its result for the month displayed](assets/screenshot-insight-recipe.webp)
 
 ## Query rules { #regles-dune-requete }
 

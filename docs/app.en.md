@@ -3,6 +3,8 @@ title: "Open Carbure on your server"
 description: "Link that opens the Carbure mobile apps on a self-hosted server."
 search:
   exclude: true
+# Opened by the links of the mobile apps: kept out of search engines and of the sitemap
+noindex: true
 ---
 
 # Open Carbure on your server

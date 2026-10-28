@@ -1,6 +1,6 @@
 ---
 title: "Privacy policy of the Carbure apps"
-description: "Data processed by the Carbure mobile apps (iOS, Android), by the self-hosted Carbure server and by the Carbure Push notification service: what is collected, where, why, for how long, and your rights."
+description: "Data processed by the mobile apps, the Carbure server and Carbure Push: what is collected, why, for how long, and your rights."
 icon: material/shield-account-outline
 ---
 

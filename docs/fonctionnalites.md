@@ -1,5 +1,5 @@
 ---
-title: "Fonctionnalités : suivi des dépenses, budgets et tendances"
+title: "Fonctionnalités : dépenses, budgets et tendances"
 description: "Tout ce que fait Carbure : synchronisation bancaire, catégorisation par règles, budgets par catégorie, flux du mois, tendances, notifications et agent IA."
 icon: material/star-shooting-outline
 ---
@@ -12,7 +12,7 @@ et les tendances, qui reçoit quelle notification et ce que chacun peut faire. P
 l'utilisation écran par écran, voir [Portail web](portail.md) et
 [Applications mobiles](applications-mobiles.md).
 
-![Liste des transactions du mois dans le portail Carbure, avec leur catégorie](assets/screenshot-transactions.png)
+![Liste des transactions du mois dans le portail Carbure, avec leur catégorie](assets/screenshot-transactions.webp)
 
 ## Le foyer
 
@@ -171,7 +171,7 @@ Pour une banque que woob ne couvre pas, ou pour reprendre l'historique d'avant C
    importé » comme origine), puis les **règles** les catégorisent ; la liste s'ouvre sur le
    dernier mois importé.
 
-![Aperçu de l'import d'un relevé CSV Boursorama : transactions nouvelles cochées, doublons probables décochés, avec la transaction existante correspondante](assets/screenshot-import.png)
+![Aperçu de l'import d'un relevé CSV Boursorama : transactions nouvelles cochées, doublons probables décochés, avec la transaction existante correspondante](assets/screenshot-import.webp)
 
 Un CSV exporté par l'une des banques ci-dessous est lu avec le **profil de sa banque**
 (ses colonnes, son encodage, ses lignes avant l'en-tête) : l'aperçu l'indique, par exemple
@@ -253,7 +253,7 @@ Réservées aux administrateurs : menu **Administration** → **Catégories**. L
 la création, la modification et la suppression d'une catégorie aux autres utilisateurs
 (`403`) ; tous lisent la liste (transactions, budgets, application iOS).
 
-![Catégories hiérarchiques de dépenses et de revenus, avec leur icône et leur couleur](assets/screenshot-categories.png)
+![Catégories hiérarchiques de dépenses et de revenus, avec leur icône et leur couleur](assets/screenshot-categories.webp)
 
 - **Deux niveaux** : des catégories (Alimentation) et leurs sous-catégories (Supermarché,
   Restaurant). Les transactions d'une sous-catégorie comptent aussi pour son parent.
@@ -303,7 +303,7 @@ Une règle associe un **mot-clé** à une catégorie : toute transaction dont le
 
 ## Budgets
 
-![Budgets du mois par catégorie, avec le reste à dépenser ou le dépassement](assets/screenshot-budget.png)
+![Budgets du mois par catégorie, avec le reste à dépenser ou le dépassement](assets/screenshot-budget.webp)
 
 Un budget est un **montant par catégorie et par mois**.
 
@@ -329,7 +329,7 @@ Un budget est un **montant par catégorie et par mois**.
 
 ## Flux du mois
 
-![Flux du mois : diagramme de Sankey des revenus vers les dépenses, l'épargne et le reste](assets/screenshot-flow.png)
+![Flux du mois : diagramme de Sankey des revenus vers les dépenses, l'épargne et le reste](assets/screenshot-flow.webp)
 
 Un diagramme (Sankey) montre **d'où vient l'argent du mois et où il part** :
 
@@ -350,7 +350,7 @@ transactions non catégorisées restent visibles. Les mêmes flux existent en ta
 
 ## Tendances
 
-![Tendances des dépenses, des revenus et de l'épargne sur plusieurs mois](assets/screenshot-trends.png)
+![Tendances des dépenses, des revenus et de l'épargne sur plusieurs mois](assets/screenshot-trends.webp)
 
 Sur **3, 6 ou 12 mois** jusqu'au mois courant, éventuellement **comparés** à la période
 précédente ou à la même période l'an dernier :
@@ -371,7 +371,7 @@ existe aussi en tableau.
 
 ## Insights
 
-![Insights : indicateurs mensuels du budget du foyer et leur historique](assets/screenshot-insights.png)
+![Insights : indicateurs mensuels du budget du foyer et leur historique](assets/screenshot-insights.webp)
 
 Des **indicateurs du mois** que le foyer définit lui-même : courses, carburant, abonnements,
 revenus, épargne… Chaque insight a un nom, une couleur, une icône et une **requête SQL** qui
@@ -489,7 +489,7 @@ n'empêche ni l'autre ni la synchronisation.
 
 ## Agents IA
 
-![Agent IA connecté au serveur MCP de Carbure pour interroger le budget du foyer](assets/screenshot-agents.png)
+![Agent IA connecté au serveur MCP de Carbure pour interroger le budget du foyer](assets/screenshot-agents.webp)
 
 Un **serveur MCP** intégré permet à un agent IA de répondre à des questions sur le budget du
 foyer : « Combien avons-nous dépensé en restaurants cette année ? », « Quelles catégories
