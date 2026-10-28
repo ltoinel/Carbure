@@ -193,6 +193,9 @@ Contributions are welcome: read [CONTRIBUTING.md](CONTRIBUTING.md) (workflow, co
 tests) and [AGENTS.md](AGENTS.md) (code rules), and pick a task in [TODO.md](TODO.md). If
 Carbure is useful to you, a ⭐ helps other people find it.
 
+Thanks to everyone who contributed to Carbure, with their code, ideas or feedback:
+[the list of contributors](https://github.com/ltoinel/Carbure/graphs/contributors).
+
 ## License
 
 [MIT](LICENSE) © Ludovic Toinel. Bundled third-party software and their licenses:
