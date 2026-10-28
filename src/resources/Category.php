@@ -177,7 +177,7 @@ final class Category {
             throw new ApiError("Delete or move its sub-categories first", 409, 'category_has_subcategories');
         }
 
-        Db::execute("UPDATE bank_transaction SET category = 0 WHERE category = ?", "i", $id);
+        Db::execute("UPDATE bank_transaction SET category = 0" . Transaction::sourceSql(null) . " WHERE category = ?", "i", $id);
         Db::execute("DELETE FROM budget WHERE category = ?", "i", $id);
         Db::execute("DELETE FROM bank_transaction_category WHERE id = ?", "i", $id);
 
@@ -364,9 +364,28 @@ final class Category {
     }
 
     /**
+     * SQL condition (to add with AND) of the transactions whose category the rules may
+     * change. A category chosen by hand is never overwritten. With keep_categorized, only
+     * the uncategorized transactions and the ones categorized by a rule (not the ones of
+     * unknown origin, categorized before the migration 2026-11-02_category_source).
+     *
+     * @return string " AND ..." or ""
+     */
+    private static function overwritable(): string
+    {
+        if (!Transaction::categorySourceReady()) {
+            return self::keepCategorized() ? " AND category = 0" : "";
+        }
+        return self::keepCategorized()
+            ? " AND (category = 0 OR category_source = '" . Transaction::SOURCE_RULE . "')"
+            : " AND NOT (category_source <=> '" . Transaction::SOURCE_MANUAL . "')";
+    }
+
+    /**
      * Apply the rules to every transaction of the database (categorized ones
-     * included, unless keep_categorized is on): the first rule found in a label
-     * gives its category. A split transaction and its parts keep the categories of the split.
+     * included, unless keep_categorized is on), except the ones whose category was chosen
+     * by hand: the first rule found in a label gives its category. A split transaction
+     * and its parts keep the categories of the split.
      *
      * @return array{updated: int} The number of transactions whose category changed
      */
@@ -374,13 +393,13 @@ final class Category {
     public static function applyKeywords(): array
     {
         $keywords = self::loadKeywords();
-        $sql = "SELECT id, label, category FROM bank_transaction WHERE " . Transaction::NOT_SPLIT
-            . (self::keepCategorized() ? " AND category = 0" : "");
+        $sql = "SELECT id, label, category FROM bank_transaction WHERE " . Transaction::NOT_SPLIT . self::overwritable();
         $updated = 0;
         foreach (Db::select($sql, "")->fetch_all(MYSQLI_ASSOC) as $row) {
             $category = self::find($row['label'], $keywords);
             if ($category !== null && (int)$category !== (int)$row['category']) {
-                Db::execute("UPDATE bank_transaction SET category = ? WHERE id = ?", "ii", $category, $row['id']);
+                Db::execute("UPDATE bank_transaction SET category = ?" . Transaction::sourceSql(Transaction::SOURCE_RULE) . " WHERE id = ?",
+                    "ii", $category, $row['id']);
                 $updated++;
             }
         }
@@ -389,8 +408,8 @@ final class Category {
 
     /**
      * Apply one rule to every transaction whose label contains its keyword
-     * (categorized ones included, unless keep_categorized is on), except a split
-     * transaction and its parts.
+     * (categorized ones included, unless keep_categorized is on), except the ones whose
+     * category was chosen by hand, a split transaction and its parts.
      *
      * @param string $keyword  The keyword (upper case)
      * @param int    $category The category of the rule
@@ -399,8 +418,8 @@ final class Category {
     private static function applyRule(string $keyword, int $category): int
     {
         $pattern = '%' . addcslashes($keyword, '%_\\') . '%';
-        $sql = "UPDATE bank_transaction SET category = ? WHERE label LIKE ? AND category <> ? AND " . Transaction::NOT_SPLIT
-            . (self::keepCategorized() ? " AND category = 0" : "");
+        $sql = "UPDATE bank_transaction SET category = ?" . Transaction::sourceSql(Transaction::SOURCE_RULE)
+            . " WHERE label LIKE ? AND category <> ? AND " . Transaction::NOT_SPLIT . self::overwritable();
         return (int)Db::execute($sql, "isi", $category, $pattern, $category)->affected_rows;
     }
 

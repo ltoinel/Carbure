@@ -176,8 +176,10 @@ final class Backup {
     }
 
     /**
-     * The columns of a dataset in the database: without enabled of the insights before the
-     * migration 2026-11-01_insight_enabled (exported as null, imported shown).
+     * The columns of a dataset in the database: without the ones of a pending migration,
+     * enabled of the insights (2026-11-01_insight_enabled: exported as null, imported
+     * shown) and category_source of the transactions (2026-11-02_category_source: exported
+     * as null, not imported).
      *
      * @param string $name The dataset
      * @return list<string> The columns
@@ -185,7 +187,12 @@ final class Backup {
     private static function columns(string $name): array
     {
         $columns = array_keys(BackupData::DATASETS[$name]['columns']);
-        return $name === 'insights' && !Insight::ready() ? array_values(array_diff($columns, ['enabled'])) : $columns;
+        $pending = match ($name) {
+            'insights' => Insight::ready() ? [] : ['enabled'],
+            'transactions' => Transaction::categorySourceReady() ? [] : ['category_source'],
+            default => [],
+        };
+        return array_values(array_diff($columns, $pending));
     }
 
     /**

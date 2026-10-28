@@ -50,6 +50,13 @@ keeps track of what was done).
       (column `budget_insight.enabled`) is applied at container start; the insights already
       installed stay shown. Before it, every insight is shown and `GET /insight/disabled` is empty.
 
+- [ ] **Deployment of the origin of the categories (#341)**: the migration
+      `2026-11-02_category_source` (column `bank_transaction.category_source`) is applied at
+      container start; the existing categories have an unknown origin (`NULL`), handled as
+      before (overwritten by the rules unless *Keep the existing categories* is on). Before
+      it, the rules work as in 1.11.0. The mobile apps set a category through
+      `PUT /transaction/category`, recorded as chosen by hand: nothing to change there.
+
 - [ ] **Mobile apps — hidden insights (#386)**: `GET /budget/insights` already returns only the
       shown insights; offer to hide a card and to show a hidden one again
       (`GET /insight/disabled`, `PUT /insight/enabled`).

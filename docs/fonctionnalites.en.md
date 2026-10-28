@@ -281,14 +281,20 @@ A rule associates a **keyword** with a category: any transaction whose label
 - When several keywords appear in the same label, **the rule created first**
   wins.
 - **Creating or editing a rule applies it immediately to the whole history**, including
-  transactions already categorized by hand; the rule's dialog shows how many
+  transactions already categorized; the rule's dialog shows how many
   transactions contain the keyword and how many are already in the category.
+- **A category chosen by hand is never overwritten by a rule**: Carbure remembers the
+  origin of the category of each transaction (a rule, or a choice by hand from the portal,
+  the mobile apps, a split or a transaction entered by hand). The categories set before
+  version 1.12.0 have an unknown origin.
 - At each synchronization, the rules classify the new transactions without a category.
 - **Resynchronize** applies all the rules to the whole database and shows the number of
   recategorized transactions.
 - **Keep the existing categories** (switch of the Rules tab, off by default): creating or
-  editing a rule and resynchronizing only categorize the transactions without a category.
-  Categories chosen by hand or brought by an import are never overwritten.
+  editing a rule and resynchronizing only categorize the transactions without a category
+  and the ones a rule categorized. Correcting a rule (EDF moved from Énergie to Logement)
+  therefore moves the transactions it had classified, but leaves the categories of unknown
+  origin alone.
 - **Send a notification** on a rule: each new matching transaction
   is reported to the whole household, by push or by email according to each person's
   preferences (see [Notifications](#notifications); a bell marks these rules). Useful for

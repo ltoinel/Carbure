@@ -694,7 +694,8 @@ curl -X POST https://exemple.fr/api/transaction/import -H "Authorization: Bearer
 ### `PUT /transaction/category`
 
 `id`, `category` : affecte la catégorie et pointe la transaction (`autoPointed=false`
-pour ne pas la pointer).
+pour ne pas la pointer). La catégorie est choisie à la main (`category_source` `manual`) :
+les règles ne la changent plus.
 
 ### `PUT /transaction/pointed`
 
@@ -741,7 +742,10 @@ curl -X PUT https://exemple.fr/api/transaction/split -H "Authorization: Bearer $
   -H 'Content-Type: application/json' -d '{"id":42,"parts":[{"category":3,"amount":-20}]}'
 ```
 
-Les transactions renvoyées par `GET /transaction` portent `split_of` (`null` hors part).
+Les transactions renvoyées par `GET /transaction` portent `split_of` (`null` hors part)
+et `category_source`, l'origine de leur catégorie : `rule` (une règle), `manual` (choisie
+à la main : portail, applications mobiles, répartition, saisie à la main) ou `null`
+(inconnue : catégorie posée avant la migration `2026-11-02_category_source`, ou aucune).
 
 ### `DELETE /transaction`
 
@@ -987,12 +991,13 @@ dans la catégorie de la règle (`categorized`).
 ### `POST /category/keyword/apply` — administrateur
 
 Applique toutes les règles à toutes les transactions de la base, déjà catégorisées
-comprises (la première règle trouvée dans le libellé l'emporte). Renvoie
+comprises, sauf celles dont la catégorie a été choisie à la main (`category_source`
+`manual`) ; la première règle trouvée dans le libellé l'emporte. Renvoie
 `{ "updated": <nombre de transactions dont la catégorie a changé> }`. Créer ou modifier une
 règle (`POST`/`PUT /category/keyword`) l'applique aussi immédiatement à tout l'historique et
 renvoie `applied`, le nombre de transactions recatégorisées. Avec le réglage
 `keep_categorized` (ci-dessous), ces trois routes ne touchent que les transactions non
-catégorisées.
+catégorisées ou catégorisées par une règle (`category_source` `rule`).
 
 ### `GET /category/keyword/settings`
 
@@ -1003,8 +1008,8 @@ déjà catégorisées de l'historique (désactivé par défaut).
 
 `keep_categorized` (`true`/`false`) : active ou désactive le réglage, renvoie le nouvel état.
 Activé, la resynchronisation et la création ou la modification d'une règle ne catégorisent
-que les transactions sans catégorie ; les catégories choisies à la main ou importées ne
-sont jamais écrasées.
+que les transactions sans catégorie ou catégorisées par une règle ; les catégories d'origine
+inconnue sont alors conservées aussi.
 
 ## Appareils
 

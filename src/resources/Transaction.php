@@ -49,9 +49,46 @@ final class Transaction {
     const NOT_SPLIT = "split_of IS NULL AND id NOT IN
         (SELECT split.split_of FROM (SELECT split_of FROM bank_transaction WHERE split_of IS NOT NULL) AS split)";
 
+    /** Origin of a category (column category_source): set by a rule */
+    const SOURCE_RULE = 'rule';
+
+    /** Origin of a category: chosen by hand (portal, mobile apps, split, transaction entered
+     *  by hand), never overwritten by the rules */
+    const SOURCE_MANUAL = 'manual';
+
+    /** Whether the migration 2026-11-02_category_source is applied (read once per request) */
+    private static ?bool $sourceReady = null;
+
     /** SQL amount of the transaction t as the bank gave it: its own one plus the one of its parts */
     const BANK_AMOUNT = "(t.amount + COALESCE((SELECT SUM(p.amount) FROM bank_transaction p WHERE p.split_of = t.id), 0))";
     
+    /**
+     * Check if the origin of the categories is stored: the migration
+     * 2026-11-02_category_source is applied (before it, the origin is not recorded).
+     *
+     * @return bool
+     */
+    public static function categorySourceReady(): bool
+    {
+        return self::$sourceReady ??= Db::queryOne("SELECT 1 FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'bank_transaction' AND COLUMN_NAME = 'category_source'", "") !== null;
+    }
+
+    /**
+     * SQL assignment of the origin of a category, to add after "SET category = ?" (nothing
+     * before the migration 2026-11-02_category_source).
+     *
+     * @param string|null $source SOURCE_RULE, SOURCE_MANUAL or null (unknown)
+     * @return string ", category_source = ..." or ""
+     */
+    public static function sourceSql(?string $source): string
+    {
+        if (!self::categorySourceReady()) {
+            return '';
+        }
+        return ", category_source = " . ($source === null ? "NULL" : "'" . ($source === self::SOURCE_MANUAL ? self::SOURCE_MANUAL : self::SOURCE_RULE) . "'");
+    }
+
     /**
      * Return the transactions of a month, optionally of one category.
      *
@@ -378,7 +415,7 @@ final class Transaction {
         Changes::touch('transactions');
         $category = (int)$unlabeled['category'] === 0 ? Category::find($row['label']) : null;
         if ($category !== null) {
-            self::updateCategory((int)$unlabeled['id'], $category, false);
+            self::setCategory((int)$unlabeled['id'], $category, self::SOURCE_RULE);
         }
         return true;
     }
@@ -571,7 +608,8 @@ final class Transaction {
         foreach ($created as $transaction) {
             $category = Category::find($transaction['label'], $keywords);
             if ($category !== null) {
-                Db::execute("UPDATE bank_transaction SET category = ? WHERE uuid = ? AND category = 0", "is", $category, $transaction['uuid']);
+                Db::execute("UPDATE bank_transaction SET category = ?" . self::sourceSql(self::SOURCE_RULE)
+                    . " WHERE uuid = ? AND category = 0", "is", $category, $transaction['uuid']);
                 $categorized++;
             }
         }
@@ -908,7 +946,7 @@ final class Transaction {
             if ($category !== null) {
 
                 // Update the transaction
-                self::updateCategory((int)$row["id"], $category, false);
+                self::setCategory((int)$row["id"], $category, self::SOURCE_RULE);
                 $updated++;
             }
         }
@@ -920,7 +958,8 @@ final class Transaction {
     }
 
     /**
-     * Set a category on a transaction.
+     * Set a category on a transaction, chosen by hand (portal, mobile apps): the rules
+     * never overwrite it.
      *
      * @param int|string           $id          The id of the transaction
      * @param int|string           $category    The category to set
@@ -930,14 +969,24 @@ final class Transaction {
     #[ApiRoute('/transaction/category', method: 'PUT', changes: ['transactions'])]
     public static function updateCategory(int|string $id, int|string $category, bool|int|string|null $autoPointed = true): void
     {
-        // Set the category
-        $sql = "UPDATE bank_transaction SET category = ? WHERE id = ?";
-
-        // Db::execute() throws on a failure
-        Db::execute($sql, "ii", $category, $id);
+        self::setCategory($id, $category, self::SOURCE_MANUAL);
         if ($autoPointed) {
             self::updatePointed($id);
         }
+    }
+
+    /**
+     * Set a category on a transaction, with its origin.
+     *
+     * @param int|string $id       The id of the transaction
+     * @param int|string $category The category to set
+     * @param string     $source   SOURCE_RULE or SOURCE_MANUAL
+     * @return void
+     */
+    private static function setCategory(int|string $id, int|string $category, string $source): void
+    {
+        // Db::execute() throws on a failure
+        Db::execute("UPDATE bank_transaction SET category = ?" . self::sourceSql($source) . " WHERE id = ?", "ii", $category, $id);
     }
 
     /**
@@ -1050,7 +1099,8 @@ final class Transaction {
             Db::execute("UPDATE bank_transaction SET amount = ? WHERE id = ?", "si", sprintf('%.2f', $rest / 100), $id);
             foreach ($parts as $index => [$category, $cents]) {
                 $part = self::insertRow(['split_of' => $id, 'uuid' => md5($transaction['uuid'] . '#split' . ($index + 1)),
-                    'category' => $category, 'amount' => sprintf('%.2f', $cents / 100)] + $transaction);
+                    'category' => $category, 'category_source' => self::SOURCE_MANUAL,
+                    'amount' => sprintf('%.2f', $cents / 100)] + $transaction);
                 // A part of a project stays in it; its tags may then change apart
                 Tag::copyTags($id, $part);
             }
@@ -1086,10 +1136,12 @@ final class Transaction {
             throw new ApiError("Transactions are entered by hand on a manual account only", 400, 'account_not_manual');
         }
         $fields = self::manualFields($date, $label, $amount);
-        $category = $category === null || $category === '' ? (Category::find($fields['label']) ?? 0) : self::existingCategory($category);
+        $chosen = $category !== null && $category !== '';
+        $category = $chosen ? self::existingCategory($category) : (Category::find($fields['label']) ?? 0);
+        $source = $chosen ? self::SOURCE_MANUAL : ($category !== 0 ? self::SOURCE_RULE : null);
 
         $id = self::insertRow(['split_of' => null, 'uuid' => md5('manual#' . random_bytes(16)), 'rdate' => $fields['date'],
-            'type' => 8, 'category' => $category, 'card' => '', 'bank_name' => Bank::MANUAL,
+            'type' => 8, 'category' => $category, 'category_source' => $source, 'card' => '', 'bank_name' => Bank::MANUAL,
             'account_number' => $bank['account_number'], 'pointed' => 1, 'user' => (int)Jwt::getUserIdFromToken()] + $fields);
         if (substr($fields['date'], 0, 7) === date('Y-m')) {
             BudgetAlert::check();
@@ -1192,14 +1244,14 @@ final class Transaction {
      * Insert a transaction that does not come from a bank (a part of a split one, one entered by hand).
      *
      * @param array<string, mixed> $row split_of, uuid, date, rdate, type, label (cleaned), category,
-     *                                  amount, card, bank_name, account_number, pointed, user
+     *                                  category_source, amount, card, bank_name, account_number, pointed, user
      * @return int The id of the transaction
      */
     private static function insertRow(array $row): int
     {
-        $sql = "INSERT INTO bank_transaction (split_of, uuid, date, rdate, type, label, category, amount, card,
-                    bank_name, account_number, pointed, user)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        $sql = "INSERT INTO bank_transaction SET split_of = ?, uuid = ?, date = ?, rdate = ?, type = ?, label = ?,
+                    category = ?" . self::sourceSql($row['category_source'] ?? null) . ", amount = ?, card = ?,
+                    bank_name = ?, account_number = ?, pointed = ?, user = ?";
         $stmt = Db::execute($sql, "isssisissssii", $row['split_of'], $row['uuid'], $row['date'], $row['rdate'],
             $row['type'], $row['label'], $row['category'], $row['amount'], $row['card'], $row['bank_name'],
             $row['account_number'], $row['pointed'], $row['user']);

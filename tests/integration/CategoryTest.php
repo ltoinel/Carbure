@@ -189,10 +189,10 @@ class CategoryTest extends DatabaseTestCase
         $this->assertSame(1, $rule['applied']);
         $this->assertSame([2, 2, 3], [$category('u1'), $category('u5'), $category('u6')]);
 
-        // Modified rule: the transactions categorized meanwhile stay where they are
+        // Modified rule: the one it categorized (u6) follows it, the others stay where they are
         $updated = Category::updateKeyword($rule['id'], 'CB SUPER', 1);
-        $this->assertSame(0, $updated['applied']);
-        $this->assertSame([2, 2, 3], [$category('u1'), $category('u5'), $category('u6')]);
+        $this->assertSame(1, $updated['applied']);
+        $this->assertSame([2, 2, 1], [$category('u1'), $category('u5'), $category('u6')]);
 
         // Resynchronize: a category chosen by hand (u2) is kept, the uncategorized u6 gets the
         // first matching rule (SUPERMARCHE, created before CB SUPER)

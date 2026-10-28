@@ -319,11 +319,11 @@ the chosen category.
 - List of the rules grouped by category, filterable, with deletion.
 - **Resynchronize**: applies every rule to every transaction of the database,
   including those already categorized, and shows the number of recategorized transactions. Creating or
-  editing a rule also applies it immediately to the whole history (which replaces a
-  category chosen by hand on a matching transaction); new transactions
+  editing a rule also applies it immediately to the whole history, except to the
+  transactions whose category was chosen by hand; new transactions
   are categorized at each synchronization.
 - **Keep the existing categories** switch: when on, resynchronizing and creating or
-  editing a rule only touch the transactions without a category (the button's help, the
+  editing a rule only touch the transactions without a category or categorized by a rule (the button's help, the
   rule's window and the message shown say so).
 - A click on a rule opens its window: edit the keyword and the category, see how many
   transactions contain the keyword (and how many are already in the category),
