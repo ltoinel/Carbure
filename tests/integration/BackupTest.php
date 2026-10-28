@@ -3,6 +3,7 @@
 use Carbure\Lib\Db;
 use Carbure\Resources\Backup;
 use Carbure\Resources\Category;
+use Carbure\Resources\InsightAlert;
 
 class BackupTest extends DatabaseTestCase
 {
@@ -30,8 +31,8 @@ class BackupTest extends DatabaseTestCase
     public function testDatasetsWithTheirCounts()
     {
         $counts = array_column(Backup::get(), 'count', 'name');
-        $this->assertSame(['categories' => 5, 'rules' => 3, 'budgets' => 2, 'insights' => 1, 'transactions' => 5, 'deleted_transactions' => 0,
-            'tags' => 0, 'transaction_tags' => 0], $counts);
+        $this->assertSame(['categories' => 5, 'rules' => 3, 'budgets' => 2, 'insights' => 1, 'insight_alerts' => 0, 'transactions' => 5,
+            'deleted_transactions' => 0, 'tags' => 0, 'transaction_tags' => 0], $counts);
     }
 
     public function testExport()
@@ -65,6 +66,9 @@ class BackupTest extends DatabaseTestCase
         // A tag of a project and its transactions
         Db::query("INSERT INTO tag (id, name, color, start_date, end_date, created) VALUES (7, 'voyage', 'green', '2026-07-01', NULL, '2026-06-30 10:00:00')");
         Db::query("INSERT INTO transaction_tag (transaction_id, tag_id) SELECT id, 7 FROM bank_transaction WHERE uuid IN ('u1', 'u2')");
+        // The alerts of two users on the insight
+        Db::query("INSERT INTO insight_alert (user_id, insight_id, direction, threshold, notified_month) VALUES
+            (" . self::ADMIN . ", 1, 'above', 500, '2026-10-01'), (" . self::USER . ", 1, 'below', 12.5, NULL)");
         $backup = $this->export();
         $before = $backup['datasets'];
 
@@ -75,11 +79,13 @@ class BackupTest extends DatabaseTestCase
         Db::query("INSERT INTO bank_transaction_deleted (uuid) VALUES ('gone')");
 
         $result = Backup::import($before);
-        $this->assertSame(['categories' => 5, 'rules' => 3, 'budgets' => 2, 'insights' => 1, 'transactions' => 5, 'deleted_transactions' => 2,
-            'tags' => 1, 'transaction_tags' => 2], $result['imported']);
+        $this->assertSame(['categories' => 5, 'rules' => 3, 'budgets' => 2, 'insights' => 1, 'insight_alerts' => 2, 'transactions' => 5,
+            'deleted_transactions' => 2, 'tags' => 1, 'transaction_tags' => 2], $result['imported']);
         $this->assertSame([['id' => 7, 'name' => 'voyage', 'color' => 'green', 'start_date' => '2026-07-01', 'end_date' => null,
             'created' => '2026-06-30 10:00:00']], $before['tags']);
         $this->assertSame($before, $this->export()['datasets']);
+        $this->assertSame([['user_id' => 'admin', 'insight_id' => 1, 'direction' => 'above', 'threshold' => 500.0, 'notified_month' => '2026-10-01'],
+            ['user_id' => 'user', 'insight_id' => 1, 'direction' => 'below', 'threshold' => 12.5, 'notified_month' => null]], $before['insight_alerts']);
         $this->assertSame([['uuid' => 'd1', 'deleted_at' => '2026-01-02 03:04:05', 'user_id' => 'user'],
             ['uuid' => 'd2', 'deleted_at' => '2026-01-03 00:00:00', 'user_id' => null]], $before['deleted_transactions']);
 
@@ -120,6 +126,41 @@ class BackupTest extends DatabaseTestCase
         // A transaction must have an owner: none becomes the administrator who imports
         Backup::import(['transactions' => [['user' => null] + $transaction]]);
         $this->assertSame(self::ADMIN, (int)Db::queryOne("SELECT user FROM bank_transaction", "")['user']);
+    }
+
+    public function testInsightAlertsOfUnknownUsersOrInsightsAreDropped()
+    {
+        $alert = ['insight_id' => 1, 'direction' => 'above', 'threshold' => 100, 'notified_month' => null];
+        $result = Backup::import(['insight_alerts' => [
+            ['user_id' => 'user'] + $alert,
+            // A user of the other instance: not given to the administrator
+            ['user_id' => 'somebody-else', 'direction' => 'below'] + $alert,
+            // An insight not there
+            ['user_id' => 'admin', 'insight_id' => 99] + $alert,
+        ]]);
+        $this->assertSame(['insight_alerts' => 2], $result['imported']);
+        $rows = Db::select("SELECT user_id, insight_id, direction FROM insight_alert", "")->fetch_all(MYSQLI_ASSOC);
+        $this->assertSame([['user_id' => self::USER, 'insight_id' => 1, 'direction' => 'above']],
+            array_map(fn(array $row): array => array_map(fn($value) => is_numeric($value) ? (int)$value : $value, $row), $rows));
+    }
+
+    public function testBeforeTheMigrationTheInsightAlertsAreLeftOut()
+    {
+        Db::query("DROP TABLE insight_alert");
+        $ready = new ReflectionProperty(InsightAlert::class, 'ready');
+        $ready->setValue(null, null);
+        try {
+            $this->assertNotContains('insight_alerts', array_column(Backup::get(), 'name'));
+            $this->assertArrayNotHasKey('insight_alerts', $this->export()['datasets']);
+            // A backup made after the migration still imports, without its alerts
+            $result = Backup::import(['insight_alerts' => [['user_id' => 'user', 'insight_id' => 1, 'direction' => 'above', 'threshold' => 1]],
+                'budgets' => []]);
+            $this->assertSame(['budgets' => 0], $result['imported']);
+        } finally {
+            Db::query(implode("\n", array_filter(explode("\n", file_get_contents(__DIR__ . '/../../sql/migrations/2026-11-03_insight_alert.sql')),
+                fn($line) => !str_starts_with($line, '--'))));
+            $ready->setValue(null, null);
+        }
     }
 
     public function testCategoriesStillUsedCannotDisappear()

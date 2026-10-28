@@ -562,7 +562,7 @@ users open **AI agent** from their menu.
   start the synchronization, with the token masked until "Show"; the tab creates or
   renews this token.
 - **Backup**: export of the chosen data (categories, rules, budgets, insights,
-  transactions, deleted transactions) into a ZIP, one JSON file per type; import of a
+  insight alerts, transactions, deleted transactions, tags) into a ZIP, one JSON file per type; import of a
   ZIP (choosing its files) or of a single file, which **deletes and replaces** the
   data of each imported type, after confirmation, all or nothing. No users, no
   passwords, no tokens and no bank connections in a backup.

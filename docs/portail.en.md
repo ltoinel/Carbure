@@ -516,8 +516,8 @@ this tab; see [Configuration](configuration.md#push).
 ## Backup (Administration menu) { #sauvegarde-menu-administration }
 
 - **Export the data**: you tick the data to back up (categories, categorization
-  rules, budgets, insights, transactions, deleted transactions, tags and tags of the
-  transactions), each with its
+  rules, budgets, insights, insight alerts, transactions, deleted transactions, tags and tags of
+  the transactions), each with its
   number of rows, then **Export** downloads `carbure-backup-YYYY-MM-DD.zip`. The ZIP
   contains one JSON file per kind of data and a `manifest.json` (format version,
   Carbure and schema version, date, number of rows). Users, passwords,
@@ -534,7 +534,8 @@ this tab; see [Configuration](configuration.md#push).
   (transactions, rules, budgets not imported) cannot disappear: you then import that
   data together with the categories. Identifiers (including the UUID of transactions) are
   kept; the owner of a transaction is found by their
-  login, otherwise it is the administrator doing the import.
+  login, otherwise it is the administrator doing the import. The insight alerts of an
+  unknown user are not imported.
 
 ## API (Administration menu) { #api-menu-administration }
 

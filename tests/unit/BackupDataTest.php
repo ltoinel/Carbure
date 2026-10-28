@@ -72,6 +72,10 @@ class BackupDataTest extends TestCase
             $this->assertSame(400, $e->getCode());
         }
 
+        // Insight alerts: a threshold beyond DECIMAL(10,2), no month alerted yet
+        $this->assertSame([['user', 1, 'above', '1234567890.50', null]], BackupData::validate('insight_alerts',
+            [['user_id' => 'user', 'insight_id' => 1, 'direction' => 'above', 'threshold' => 1234567890.5, 'notified_month' => null]]));
+
         $this->assertSame([], BackupData::validate('budgets', []));
         $this->assertSame([[0, 'Aucune', 0, 'HORS-BUDGET', 'help', 'grey']],
             BackupData::validate('categories', [['id' => 0, 'name' => 'Aucune', 'parent_category' => 0, 'type' => 'HORS-BUDGET', 'icon' => 'help', 'color' => 'grey']]));
@@ -109,6 +113,10 @@ class BackupDataTest extends TestCase
             'float id' => ['budgets', [['id' => 1.5, 'category' => 1, 'amount' => 1, 'date' => '2026-02-01']], 'invalid id'],
             'bool amount' => ['budgets', [['id' => 1, 'category' => 1, 'amount' => true, 'date' => '2026-02-01']], 'invalid amount'],
             'invalid UTF-8' => ['transactions', [['label' => "CB \xff"] + self::TRANSACTION], 'invalid label'],
+            'bad direction' => ['insight_alerts', [['user_id' => 'user', 'insight_id' => 1, 'direction' => 'equal', 'threshold' => 1]], 'invalid direction'],
+            'threshold too big' => ['insight_alerts', [['user_id' => 'user', 'insight_id' => 1, 'direction' => 'below', 'threshold' => 1e10]], 'invalid threshold'],
+            'repeated alert' => ['insight_alerts', [['user_id' => 'user', 'insight_id' => 1, 'direction' => 'above', 'threshold' => 1],
+                ['user_id' => 'user', 'insight_id' => 1, 'direction' => 'below', 'threshold' => 2]], 'insight_alerts: repeated user_id,insight_id: user,1'],
             'unknown' => ['users', [], 'Unknown dataset: users'],
         ];
     }

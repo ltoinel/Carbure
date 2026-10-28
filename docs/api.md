@@ -1113,9 +1113,12 @@ Toutes répondent `403` (`access_denied`) quand le serveur MCP est désactivé.
 
 Le portail fabrique le ZIP d'un export et lit celui d'un import : l'API n'échange que du
 JSON. Données (dans l'ordre de leurs dépendances) : `categories`, `rules`, `budgets`,
-`insights`, `transactions`, `deleted_transactions`. Le propriétaire d'une transaction
-(`user`) et l'auteur d'une suppression (`user_id`) sont écrits par leur identifiant de
-connexion. Jamais exportés : utilisateurs, mots de passe, jetons, OAuth, appareils,
+`insights`, `insight_alerts`, `transactions`, `deleted_transactions`, `tags`,
+`transaction_tags`. Le propriétaire d'une transaction (`user`), l'auteur d'une suppression
+et l'utilisateur d'une alerte d'insight (`user_id`) sont écrits par leur identifiant de
+connexion. `insight_alerts` (`user_id`, `insight_id`, `direction`, `threshold`,
+`notified_month`) n'est proposé qu'une fois la migration `2026-11-03_insight_alert`
+appliquée ; avant, il est ignoré à l'import. Jamais exportés : utilisateurs, mots de passe, jetons, OAuth, appareils,
 réglages, connexions et comptes bancaires, alertes de budget envoyées.
 
 ### `GET /backup` — administrateur
@@ -1141,6 +1144,8 @@ contrainte de la base est violée, ou si une donnée conservée ou importée ren
 catégorie absente. La catégorie 0 (par défaut) est recréée si elle manque ; les alertes de
 budget des catégories disparues sont supprimées. Un identifiant de connexion inconnu devient
 l'administrateur qui importe ; une suppression sans auteur (`user_id` à `null`) le reste.
+Les alertes d'insight d'un utilisateur inconnu, ou d'un insight absent ou masqué, ne sont
+pas importées.
 Le portail refuse un fichier d'une version du format plus récente que la sienne. Réponse : `{"imported": {"rules": 1}}`. Corps limité à 32 Mo
 par nginx (2 Mo pour les autres routes).
 
