@@ -104,19 +104,22 @@ test('applies all the rules to the whole history', async ({ adminPage: page }) =
 });
 
 test('a category chosen by hand is never overwritten by the rules (#341)', async ({ adminPage: page, api }) => {
-    // SUPERMARCHE (Supermarché) matches it: moved by hand to Restaurant
-    const transaction = page.locator('.transaction-item').filter({ hasText: 'CB SUPERMARCHE CASINO' });
+    // Uncategorized, put by hand in Restaurant
+    const transaction = page.locator('.transaction-item').filter({ hasText: 'CB BOULANGERIE PAUL' });
     await pickCategory(transaction, 'Restaurant');
     await expect(transaction.locator('.category-chip')).toHaveText('Restaurant');
 
+    // A rule that matches it then leaves it there, as the resynchronization does
+    const created = await (await api.post('/api/category/keyword', { data: { keyword: 'BOULANGERIE', category: 1 } })).json();
+    expect(created.applied).toBe(0);
     await openTab(page, tr('tabRules'));
     await page.getByRole('button', { name: tr('applyRulesHelp') }).click();
     await expect(page.locator('.toast')).toHaveText(tr('rulesApplied', { count: 0 }));
 
     const { month, year } = currentMonth();
     const transactions = await (await api.get(`/api/transaction?month=${month}&year=${year}`)).json();
-    const casino = transactions.find(t => t.label === 'CB SUPERMARCHE CASINO');
-    expect([Number(casino.category), casino.category_source]).toEqual([3, 'manual']);
+    const bakery = transactions.find(t => t.label === 'CB BOULANGERIE PAUL');
+    expect([Number(bakery.category), bakery.category_source]).toEqual([3, 'manual']);
 });
 
 test('keeps the existing categories: the rules only categorize the uncategorized transactions', async ({ adminPage: page, api }) => {
