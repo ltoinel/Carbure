@@ -13,8 +13,9 @@
  *
  * Never in a backup: users and passwords, API tokens, OAuth, devices, settings, bank
  * connections and accounts (their credentials live in woob), budget alerts sent, the
- * alert settings of the users (budget thresholds, insight alerts: an imported insight
- * keeps the alerts of its id, those of the insights no longer there are dropped).
+ * budget thresholds of the users. The insight alerts are saved (insight_alerts): those of
+ * a user unknown on the instance are dropped, and an imported insight without its alerts
+ * keeps the alerts of its id (those of the insights no longer there are dropped).
  *
  * @author     Ludovic Toinel
  * @copyright  2026 Carbure App
@@ -44,9 +45,10 @@ final class BackupData {
      * before it): table, primary key (its columns separated by commas), and type of each column.
      *
      * Types: int:<max>, string:<max length> (may be empty), name:<max length> (not
-     * empty), enum:<a|b>, decimal (10,2), date (Y-m-d), datetime (Y-m-d H:i:s), bool (bool:<0|1> = its value when missing),
+     * empty), enum:<a|b>, decimal (10,2; decimal:<n> = n digits before the point), date (Y-m-d), datetime (Y-m-d H:i:s), bool (bool:<0|1> = its value when missing),
      * user (username; none or unknown here: the administrator who imports, kept none with
-     * ?user); a leading ? accepts null.
+     * ?user); a leading ? accepts null. drop_unknown_users: the rows of a user unknown
+     * here are not imported (instead of going to the administrator who imports).
      */
     public const DATASETS = [
         'categories' => [
@@ -73,6 +75,14 @@ final class BackupData {
             'columns' => ['id' => 'int:4294967295', 'name' => 'name:20', 'color' => 'name:20', 'icon' => '?string:50', 'sql' => 'name:500',
                 // Added with the migration 2026-11-01_insight_enabled: enabled in an older backup
                 'enabled' => 'bool:1'],
+        ],
+        // Added with the migration 2026-11-03_insight_alert: the alerts of each user
+        'insight_alerts' => [
+            'table' => 'insight_alert',
+            'key' => 'user_id,insight_id',
+            'columns' => ['user_id' => 'user', 'insight_id' => 'int:4294967295', 'direction' => 'enum:above|below',
+                'threshold' => 'decimal:10', 'notified_month' => '?date'],
+            'drop_unknown_users' => true,
         ],
         'transactions' => [
             'table' => 'bank_transaction',
@@ -279,7 +289,7 @@ final class BackupData {
             'string' => fn(mixed $value, string $max): string => self::text($value, (int)$max, 0),
             'name' => fn(mixed $value, string $max): string => self::text($value, (int)$max, 1),
             'enum' => fn(mixed $value, string $choices): string => self::choice($value, explode('|', $choices)),
-            'decimal' => fn(mixed $value): string => self::decimal($value),
+            'decimal' => fn(mixed $value, string $digits): string => self::decimal($value, $digits === '' ? 8 : (int)$digits),
             'date' => fn(mixed $value): string => self::moment($value, 'Y-m-d'),
             'datetime' => fn(mixed $value): string => self::moment($value, 'Y-m-d H:i:s'),
             // bool:<default> = the value of a column missing from an older backup
@@ -344,15 +354,16 @@ final class BackupData {
     }
 
     /**
-     * An amount of DECIMAL(10,2).
+     * An amount with 2 decimals: DECIMAL(10,2), or more digits before the point.
      *
-     * @param mixed $value The value
+     * @param mixed $value  The value
+     * @param int   $digits The digits before the point (8 for DECIMAL(10,2))
      * @return string The amount with 2 decimals
      * @throws InvalidArgumentException If invalid
      */
-    private static function decimal(mixed $value): string
+    private static function decimal(mixed $value, int $digits): string
     {
-        if (!(is_int($value) || is_float($value) || (is_string($value) && is_numeric($value))) || abs((float)$value) >= 1e8) {
+        if (!(is_int($value) || is_float($value) || (is_string($value) && is_numeric($value))) || abs((float)$value) >= 10 ** $digits) {
             throw new InvalidArgumentException("an amount is expected");
         }
         return number_format((float)$value, 2, '.', '');

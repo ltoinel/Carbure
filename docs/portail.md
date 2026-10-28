@@ -523,8 +523,8 @@ cet onglet ; voir [Configuration](configuration.md#push).
 ## Sauvegarde (menu Administration)
 
 - **Exporter les données** : on coche les données à sauvegarder (catégories, règles de
-  catégorisation, budgets, insights, transactions, transactions supprimées, tags et tags des
-  transactions), chacune avec son
+  catégorisation, budgets, insights, alertes des insights, transactions, transactions supprimées, tags et
+  tags des transactions), chacune avec son
   nombre de lignes, puis **Exporter** télécharge `carbure-backup-AAAA-MM-JJ.zip`. Le ZIP
   contient un fichier JSON par type de données et un `manifest.json` (version du format,
   version de Carbure et du schéma, date, nombre de lignes). Les utilisateurs, mots de passe,
@@ -541,7 +541,8 @@ cet onglet ; voir [Configuration](configuration.md#push).
   (transactions, règles, budgets non importés) ne peut pas disparaître : on importe alors ces
   données avec les catégories. Les identifiants (dont l'UUID des transactions) sont
   conservés ; le propriétaire d'une transaction est retrouvé par son identifiant de
-  connexion, à défaut c'est l'administrateur qui importe.
+  connexion, à défaut c'est l'administrateur qui importe. Les alertes des insights d'un
+  utilisateur inconnu ne sont pas importées.
 
 ## API (menu Administration)
 

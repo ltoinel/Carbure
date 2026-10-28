@@ -1108,9 +1108,11 @@ They all answer `403` (`access_denied`) when the MCP server is disabled.
 
 The portal builds the ZIP of an export and reads the ZIP of an import: the API only exchanges
 JSON. Datasets (in dependency order): `categories`, `rules`, `budgets`,
-`insights`, `transactions`, `deleted_transactions`. The owner of a transaction
-(`user`) and the author of a deletion (`user_id`) are written as their
-username. Never exported: users, passwords, tokens, OAuth, devices,
+`insights`, `insight_alerts`, `transactions`, `deleted_transactions`, `tags`,
+`transaction_tags`. The owner of a transaction (`user`), the author of a deletion and the
+user of an insight alert (`user_id`) are written as their username. `insight_alerts`
+(`user_id`, `insight_id`, `direction`, `threshold`, `notified_month`) is only offered once
+the migration `2026-11-03_insight_alert` is applied; before, it is ignored by the import. Never exported: users, passwords, tokens, OAuth, devices,
 settings, bank connections and accounts, budget alerts already sent.
 
 ### `GET /backup` — administrator { #get-backup-administrateur }
@@ -1136,6 +1138,8 @@ database constraint is violated, or if a kept or imported dataset refers to a
 missing category. Category 0 (default) is recreated if it is missing; the budget
 alerts of categories that no longer exist are deleted. An unknown username becomes
 the administrator running the import; a deletion without an author (`user_id` set to `null`) stays that way.
+The insight alerts of an unknown user, or of an insight missing or hidden, are not
+imported.
 The portal rejects a file whose format version is newer than its own. Response: `{"imported": {"rules": 1}}`. Body limited to 32 MB
 by nginx (2 MB for the other routes).
 

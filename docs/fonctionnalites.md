@@ -565,7 +565,7 @@ utilisateurs ouvrent **Agent IA** depuis leur menu.
   lancent la synchronisation, avec le jeton masqué jusqu'à « Afficher » ; l'onglet crée ou
   renouvelle ce jeton.
 - **Sauvegarde** : export des données choisies (catégories, règles, budgets, insights,
-  transactions, transactions supprimées) dans un ZIP, un fichier JSON par type ; import d'un
+  alertes des insights, transactions, transactions supprimées, tags) dans un ZIP, un fichier JSON par type ; import d'un
   ZIP (en choisissant ses fichiers) ou d'un seul fichier, qui **supprime et remplace** les
   données de chaque type importé, après confirmation, tout ou rien. Ni utilisateurs, ni mots
   de passe, ni jetons, ni connexions bancaires dans une sauvegarde.

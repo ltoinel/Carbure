@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 
 /** Data set of server/seed.php */
-const SEED = { categories: 8, rules: 4, budgets: 3, insights: 1, transactions: 11, deleted_transactions: 0, tags: 0, transaction_tags: 0 };
+const SEED = { categories: 8, rules: 4, budgets: 3, insights: 1, insight_alerts: 0, transactions: 11, deleted_transactions: 0, tags: 0, transaction_tags: 0 };
 
 /**
  * Opens Administration > Backup
@@ -59,6 +59,7 @@ test('an administrator exports chosen datasets, then restores them from the ZIP'
     await expect(rules).toContainText(tr('backupRows', { count: SEED.rules }));
 
     // Without the transactions
+    await page.locator('input[data-dataset="insight_alerts"]').uncheck();
     await page.locator('input[data-dataset="transactions"]').uncheck();
     await page.locator('input[data-dataset="deleted_transactions"]').uncheck();
     await page.locator('input[data-dataset="tags"]').uncheck();

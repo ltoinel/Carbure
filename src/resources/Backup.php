@@ -51,7 +51,7 @@ final class Backup {
     #[ApiRoute('/backup', method: 'GET', admin: true)]
     public static function get(): array
     {
-        return array_map(fn(string $name): array => ['name' => $name, 'count' => self::count($name)], BackupData::names());
+        return array_map(fn(string $name): array => ['name' => $name, 'count' => self::count($name)], self::available(BackupData::names()));
     }
 
     /**
@@ -65,7 +65,7 @@ final class Backup {
     #[ApiRoute('/backup/export', method: 'GET', raw: true, admin: true)]
     public static function export(?string $datasets = null): string
     {
-        $names = BackupData::select($datasets);
+        $names = self::available(BackupData::select($datasets));
         $usernames = self::usernames();
         $data = [];
         foreach ($names as $name) {
@@ -107,9 +107,10 @@ final class Backup {
             throw new Error("Unknown dataset: " . implode(', ', $unknown), 400);
         }
 
-        // Every row checked before anything is deleted
+        // Every row checked before anything is deleted; a dataset whose table is not
+        // there yet (pending migration) is not imported
         $rows = [];
-        foreach (BackupData::names() as $name) {
+        foreach (self::available(BackupData::names()) as $name) {
             if (array_key_exists($name, $datasets)) {
                 $rows[$name] = BackupData::validate($name, $datasets[$name]);
             }
@@ -120,11 +121,24 @@ final class Backup {
         }
 
         // In place: the rows of a large import are not copied
+        $rows = self::dropUnknownUsers($rows);
         self::resolveUsers($rows);
         $imported = self::replace($rows);
         Logger::info("Backup imported", $imported);
 
         return ['imported' => $imported];
+    }
+
+    /**
+     * The datasets whose table is there: without insight_alerts before the migration
+     * 2026-11-03_insight_alert.
+     *
+     * @param list<string> $names The datasets
+     * @return list<string> The datasets available, in the same order
+     */
+    private static function available(array $names): array
+    {
+        return array_values(array_filter($names, fn(string $name): bool => $name !== 'insight_alerts' || InsightAlert::ready()));
     }
 
     /**
@@ -243,8 +257,9 @@ final class Backup {
 
     /**
      * Replace the usernames of the rows by user ids, in place: a username unknown here
-     * becomes the administrator who imports; no user stays none where a column accepts
-     * it (deleted transactions), the administrator otherwise.
+     * becomes the administrator who imports (the rows of drop_unknown_users are dropped
+     * before); no user stays none where a column accepts it (deleted
+     * transactions), the administrator otherwise.
      *
      * @param array<string, list<list<mixed>>> $rows The values of the rows by dataset, changed in place
      * @return void
@@ -264,6 +279,26 @@ final class Backup {
                 unset($row);
             }
         }
+    }
+
+    /**
+     * Drop the rows of the users unknown here, in the datasets that do not give them to
+     * the administrator who imports (drop_unknown_users: insight alerts).
+     *
+     * @param array<string, list<list<mixed>>> $rows The values of the rows by dataset
+     * @return array<string, list<list<mixed>>> The rows, without those of unknown users there
+     */
+    private static function dropUnknownUsers(array $rows): array
+    {
+        $ids = array_flip(self::usernames());
+        foreach (array_keys($rows) as $name) {
+            if (BackupData::DATASETS[$name]['drop_unknown_users'] ?? false) {
+                $positions = array_keys(array_intersect(array_keys(BackupData::DATASETS[$name]['columns']), BackupData::userColumns($name)));
+                $rows[$name] = array_values(array_filter($rows[$name],
+                    fn(array $row): bool => array_filter($positions, fn(int $position): bool => !isset($ids[(string)$row[$position]])) === []));
+            }
+        }
+        return $rows;
     }
 
     /**
@@ -292,7 +327,7 @@ final class Backup {
                 $imported[$name] = self::insert($name, $values);
             }
             self::afterCategories(isset($rows['categories']));
-            if (isset($rows['insights'])) {
+            if (isset($rows['insights']) || isset($rows['insight_alerts'])) {
                 InsightAlert::dropOrphans();
             }
             $db->commit();

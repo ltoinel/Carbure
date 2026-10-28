@@ -24,6 +24,7 @@ export const BACKUP_DATASETS = {
     rules: { icon: 'rule', label: 'backupDatasetRules' },
     budgets: { icon: 'savings', label: 'backupDatasetBudgets' },
     insights: { icon: 'insights', label: 'backupDatasetInsights' },
+    insight_alerts: { icon: 'notifications_active', label: 'backupDatasetInsightAlerts' },
     transactions: { icon: 'receipt_long', label: 'backupDatasetTransactions' },
     deleted_transactions: { icon: 'delete_sweep', label: 'backupDatasetDeleted' },
     tags: { icon: 'sell', label: 'backupDatasetTags' },

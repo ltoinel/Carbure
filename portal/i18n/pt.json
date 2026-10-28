@@ -904,6 +904,7 @@
     "backupDatasetRules": "Regras de categorização",
     "backupDatasetBudgets": "Orçamentos",
     "backupDatasetInsights": "Indicadores",
+    "backupDatasetInsightAlerts": "Alertas dos insights",
     "backupDatasetTransactions": "Transações",
     "backupDatasetDeleted": "Transações eliminadas",
     "backupDatasetTags": "Etiquetas",
