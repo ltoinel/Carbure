@@ -271,7 +271,7 @@ A question that isn't here? Ask it on the
     Yes: the [`carbure_ynh`](https://github.com/ltoinel/carbure_ynh) package installs Carbure
     in a few clicks on a [YunoHost](https://yunohost.org) server, on a domain of its own, with
     woob and a daily synchronization of the accounts. It is not in the YunoHost catalog yet: it is installed from
-    its repository, see [With YunoHost](installation.md#avec-yunohost). A problem with the
+    its repository, see [the YunoHost tutorial](yunohost.md). A problem with the
     package? Open an issue in [its repository](https://github.com/ltoinel/carbure_ynh/issues).
 
 ??? question "How do I reach it from outside or from my phone?"

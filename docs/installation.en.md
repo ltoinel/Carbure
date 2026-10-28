@@ -12,8 +12,10 @@ administrator account. No command is needed.
 
 - **Docker** (recommended): everything is included (nginx, PHP, woob) and the database is
   prepared by `docker/docker-compose.yml`.
-- **Synology NAS**: see the [step-by-step tutorial](synology.md).
-- **YunoHost**: a [package](#avec-yunohost) installs Carbure on a YunoHost server.
+- **Synology NAS**: the [Synology tutorial](synology.md), without the command line, with
+  Container Manager and MariaDB 10.
+- **YunoHost**: the [YunoHost tutorial](yunohost.md), with the `carbure_ynh` package,
+  without Docker or wizard.
 - **Existing web server** (PHP + MariaDB/MySQL), without Docker.
 
 Before installing, discover Carbure's [features](fonctionnalites.md) and its
@@ -220,139 +222,8 @@ When `docker compose pull` brings a new major version of MariaDB (for example fr
 the old version, hence the importance of the backup. To stay on a given version,
 pin it in `docker/docker-compose.yml` (`image: mariadb:11`).
 
-### Upgrading to 1.11.0 { #passer-a-la-1110 }
-
-- Two migrations are applied at startup: `2026-10-28_device_without_token` (a mobile app
-  signed in without a notification token is listed in **My profile → My devices**) and
-  `2026-10-29_data_change` (change markers of the data). The code works before them, as
-  before.
-- **Login rate limit**: nginx accepts 30 login attempts per minute and per client
-  (`/api/user/login`, `/api/user/login/mfa`, `/api/oauth/token`), then answers `429`.
-  Behind a reverse proxy, the address of the client is read from `X-Forwarded-For` when
-  the proxy has a private address (by default): if your proxy has another address, set
-  `TRUSTED_PROXIES`, otherwise the whole household shares one limit. After the upgrade,
-  check that the logs show the addresses of the clients. See
-  [Login rate limit](securite.md#limitation-des-connexions).
-- **Published port**: `CARBURE_PORT` (in `docker/.env`) chooses the port of
-  `docker/docker-compose.yml`, `8080` by default; the message of the first start gives the
-  right port.
-- **Data up to date without reloading**: every answer of the API carries the versions of
-  the data (`X-Carbure-Changes` header); the portal reloads the open tab when another
-  member of the household or a synchronization changed what it shows. The mobile apps will
-  use it in a next version.
-- **Translated error messages**: the portal shows the errors of the API in the language of
-  the user. The API adds a stable code (`error_code`, `params`) to its errors, without
-  changing the existing fields (see [API](api.md#code-stable-dune-erreur)).
-- **Portal on a phone**: the tabs of every day move to a bar at the bottom of the screen,
-  the others, the profile, the theme and the logout to its **More** menu; the header fits
-  on one line.
-- **Banks**: the banks asking a validation at the first connection (Crédit Mutuel…)
-  connect from the portal; the modules that needed missing Python packages (Banque
-  Populaire, Caisse d'Épargne, Société Générale…) load; the region of Banque Populaire is
-  accepted. At the first bank, a warning tells that the synchronization depends on the
-  connectors of woob.
-- **Rules**: the **Keep the existing categories** setting (off by default) limits the rules
-  to the uncategorized transactions.
-- **Calendar** of the recurring transactions of the month in the Transactions tab.
-
-### Upgrading to 1.10.0 { #passer-a-la-1100 }
-
-- The `2026-10-27_budget_alert_threshold` migration is applied at startup: budget alerts
-  get a **global threshold** (all the budgets), which can be turned off, and **thresholds
-  per category** (**My profile → Notifications**). The settings are kept: a user who
-  watched one budget keeps that budget, at their threshold, without a global threshold. The
-  code works before it, as before.
-- **End-of-month salary**: a received transfer dated **on the 25th or later** is attached to
-  the next month (before: from the 26th). The day is set with `next_month_day`
-  (**Administration → Settings**, `0` to never move a transfer); only the transactions
-  imported or synchronized after the upgrade are concerned.
-- **New release**: a banner tells administrators when a release of Carbure is published.
-  The server asks the public API of GitHub for the latest release once a day, sending
-  nothing about the instance; `update_check=false` turns it off.
-- **First installation with Docker Compose**: `docker compose pull && docker compose up -d`
-  uses the published image (without `pull`, Compose built the image from the clone).
-- **Scripted installation**: `tools/install.php` installs Carbure without the web wizard
-  (see [Run the wizard](#3-lancer-lassistant)); the [YunoHost package](#avec-yunohost) uses it.
-- The mobile apps are published: App Store and Google Play links in **My profile → My
-  devices**.
-
-### Upgrading to 1.9.0 { #passer-a-la-190 }
-
-No database migration.
-
-- **Synchronization**: each account starts with the list of the accounts of its bank
-  (`woob bank list`) before its transactions; some modules (Crédit Mutuel) did not find the
-  account without it. An account the bank no longer lists ends in error, with a clear
-  message, instead of "Account not found".
-- **Currency**: new optional setting `currency` (ISO 4217 code, `EUR` by default) in
-  **Administration → Settings**, to show the amounts in another currency (nothing is
-  converted).
-
-### Upgrading to 1.8.0 { #passer-a-la-180 }
-
-- The migration `2026-10-26_user_browser` is applied at startup: it records the web
-  browsers of the portal logins, listed in **My profile → My devices** (the code works
-  before it, with no browser listed).
-- The `push_url` setting is gone: the notification service is always Carbure Push
-  (`https://api.carbure.org`), a value left in `/data/conf/prod.ini` is ignored. The
-  registration of the instance, its key and the state of the service are in
-  **Administration → Mobile push**.
-- The QR code of **My devices** gives the address of the API to the mobile apps: set
-  `public_url` (**Administration → Settings**) if the portal is also opened through a
-  local address.
-
-### Upgrading to 1.6.0 { #passer-a-la-160 }
-
-The `2026-10-25_device_model` migration is applied at startup: model, system version
-and app version of each mobile device (unknown for existing devices
-until their next connection). It also fixes the platform of Android devices
-already registered, recorded as iOS until then: their push notifications start working again.
-
-### Upgrading to 1.5.0 { #passer-a-la-150 }
-
-To be done **in this order**:
-
-1. **Back up the database**, as before any update.
-2. **Push notifications**: 1.5.0 no longer sends notifications to Apple
-   (APNs) itself but goes through the Carbure Push service. As long as the instance is not
-   registered with it, **no push notification is sent** (everything else works normally).
-   In 1.5.0, the default address of the service (`https://push.carbure.org`) is not the
-   right one: first set `push_url` = `https://api.carbure.org` (the default address
-   starting with 1.6.0; starting with 1.8.0, this setting is gone: the service is always
-   `https://api.carbure.org`). Once the service is available, register the instance right after the update (see
-   [Push notifications](#notifications-push-carbure-push)), then remove the
-   `[apns]` section and the `.p8` key from `/data/conf`.
-3. **Update** the image (`docker compose pull && docker compose up -d`). Three
-   migrations are applied at startup:
-    - `2026-10-23_device_platform`: device platform (`ios` for existing ones);
-    - `2026-10-23_user_budget_alert_category`: budget watched by budget alerts
-      (all budgets for existing users);
-    - `2026-10-24_user_mfa`: two-factor authentication (empty tables).
-4. **Check**:
-    - **Administration → API** shows Swagger UI: if a message says the frame is
-      blocked, the DSM reverse proxy adds its own `X-Frame-Options: DENY` header
-      (to be removed for `/swagger/`);
-    - **My profile → Notifications**: the large expense threshold is now there,
-      along with the watched budget and its threshold.
-
-New features to enable if needed:
-
-- **Two-factor authentication** (disabled by default): before enforcing it
-  (**Administration → Settings**, `mfa_required`), set it up on your own account
-  (**My profile**) and keep your recovery codes. The current iOS app keeps
-  signing in from an already known iPhone, but a **new** iPhone is rejected until the app
-  can enter the code. If you lose the app and the codes:
-  `mfa_required=false` in `/data/conf/prod.ini`.
-- **Backup** (**Administration → Backup**): export your data to a ZIP;
-  importing **replaces** the data of each imported type.
-- **Languages**: Spanish, Italian, German and Portuguese. On an instance that is not
-  in French, set the savings category for **Trends** in
-  **Administration → Settings** (`savings_category`, "Epargne" by default).
-
-Nothing changes for the label cleanup rules: the sample configuration no longer
-contains `regex_label["/\s(CARTE.*|CARTE|CART|CAR|CA|C)$/"]=""`, but keep it in
-your `prod.ini` if it is there (removing it would create duplicate card
-transactions).
+What changes from one version to the next, and what to do when upgrading
+(migrations, settings), is in the [changelog](changelog.md).
 
 ### Push notifications (Carbure Push) { #notifications-push-carbure-push }
 
@@ -398,41 +269,21 @@ docker compose exec -u www-data carbure php tools/migrate.php --status # databas
     La Nef). The modules driving a real browser (American Express, Sogecartenet, HSBC Hong
     Kong) are not supported: use the statement import.
 
+## On a Synology NAS { #sur-un-nas-synology }
+
+The [Synology NAS tutorial](synology.md) installs Carbure with **Container Manager** and the
+**MariaDB 10** database of the NAS, entirely from the DSM interface, without the command
+line: database, container, wizard, banks, daily synchronization with the **Task
+Scheduler**, HTTPS access through the reverse proxy, hardening, updates and Hyper Backup
+backups.
+
 ## With YunoHost { #avec-yunohost }
 
-The [`carbure_ynh`](https://github.com/ltoinel/carbure_ynh) package installs Carbure on a
-[YunoHost](https://yunohost.org) server:
-
-- on a **domain of its own** (for instance `budget.example.org`), not in a sub-path;
-- **without the wizard**: the chosen YunoHost user becomes the Carbure administrator, with
-  the password typed at the installation; the database and the starter categories, rules
-  and insights are created;
-- with **woob** and the Python packages of the bank modules in a virtualenv, and a **daily
-  synchronization** of every account;
-- upgrades apply the migrations of the database and update the bank modules; the YunoHost
-  backups include the database and the data folder (configuration, logs, woob).
-
-!!! note "Not in the YunoHost catalog"
-    The package is not in the YunoHost catalog yet: it is installed from its repository.
-    It was tested on a fresh installation; your feedback on an upgrade, a backup and its
-    restoration is welcome in [issue #45](https://github.com/ltoinel/Carbure/issues/45).
-
-To install it, in the administration interface of YunoHost: **Applications → Install**,
-then at the bottom of the page **Install a custom app** with the address
-`https://github.com/ltoinel/carbure_ynh`. From the command line:
-
-```bash
-sudo yunohost app install https://github.com/ltoinel/carbure_ynh
-```
-
-The installation asks for the domain, who can open the web portal, the language, the
-YunoHost user who becomes administrator and their Carbure password (8 characters at least).
-
-Carbure keeps its own accounts (no single sign-on with YunoHost), which the mobile apps
-need: the administrator password is not the YunoHost one. The API stays public for the
-mobile apps, the synchronization and the AI agents, even when the portal is restricted to
-some users. A bank that asks for a validation on the phone (strong authentication) is
-synchronized from the portal.
+The [YunoHost tutorial](yunohost.md) installs Carbure with the
+[`carbure_ynh`](https://github.com/ltoinel/carbure_ynh) package, from the YunoHost
+administration interface: a domain of its own, the administrator created at the
+installation (no wizard), woob and the daily synchronization included, the YunoHost
+updates and backups.
 
 ## On an existing web server { #sur-un-serveur-web-existant }
 
