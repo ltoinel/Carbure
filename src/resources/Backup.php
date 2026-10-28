@@ -285,6 +285,9 @@ final class Backup {
                 $imported[$name] = self::insert($name, $values);
             }
             self::afterCategories(isset($rows['categories']));
+            if (isset($rows['insights'])) {
+                InsightAlert::dropOrphans();
+            }
             $db->commit();
             return $imported;
         } catch (Throwable $e) {

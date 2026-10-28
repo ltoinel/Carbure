@@ -126,8 +126,18 @@ test('axe: the menus and the modals', async ({ adminPage: page, api }) => {
     await page.keyboard.press('Escape');
     await expect(copy).toHaveCount(0);
 
-    // Insights to add: one hidden first, so that the list is not empty
+    // Alert of an insight, its amount refused to show the error
     await openTab(page, tr('tabInsights'));
+    await page.getByRole('button', { name: tr('insightAlertOf', { name: 'Dépenses' }) }).click();
+    const alert = page.getByRole('dialog', { name: tr('insightAlertOf', { name: 'Dépenses' }) });
+    await alert.getByLabel(tr('insightAlertThreshold')).fill('-1');
+    await alert.getByRole('button', { name: tr('save') }).click();
+    await expect(alert.getByRole('alert')).toHaveText(tr('insightAlertThresholdInvalid'));
+    problems.push(...await axeViolations(page, tr('insightAlertTitle')));
+    await page.keyboard.press('Escape');
+    await expect(alert).toHaveCount(0);
+
+    // Insights to add: one hidden first, so that the list is not empty
     await page.getByRole('button', { name: tr('hideInsightOf', { name: 'Dépenses' }) }).click();
     await page.getByRole('button', { name: tr('addInsight') }).click();
     const catalog = page.getByRole('dialog', { name: tr('addInsight') });

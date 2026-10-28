@@ -400,6 +400,35 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
     }
 
     /**
+     * Fetches the alerts of the user on the enabled insights
+     * @returns {Promise<Array>} Array of {insight, direction, threshold}
+     */
+    async function fetchInsightAlerts() {
+        const data = await request(`${baseUrl}/insight/alert`, {}, 'Failed to fetch the insight alerts');
+        return Array.isArray(data) ? data : [];
+    }
+
+    /**
+     * Sets the alert of the user on an insight, replacing the previous one
+     * @param {number} insight - Insight ID
+     * @param {string} direction - above or below
+     * @param {number} threshold - Amount compared with the absolute value of the month
+     * @returns {Promise<Object>} {insight, direction, threshold}
+     */
+    async function setInsightAlert(insight, direction, threshold) {
+        return request(`${baseUrl}/insight/alert`, { method: 'PUT', body: JSON.stringify({ insight, direction, threshold }) }, 'Failed to save the insight alert');
+    }
+
+    /**
+     * Removes the alert of the user on an insight
+     * @param {number} insight - Insight ID
+     * @returns {Promise<void>}
+     */
+    async function deleteInsightAlert(insight) {
+        await request(`${baseUrl}/insight/alert?insight=${encodeURIComponent(insight)}`, { method: 'DELETE' }, 'Failed to remove the insight alert');
+    }
+
+    /**
      * Deletes an insight
      * @param {number} id - Insight ID
      * @returns {Promise<void>}
@@ -1475,6 +1504,9 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
         fetchInsightDefinitions,
         fetchDisabledInsights,
         setInsightEnabled,
+        fetchInsightAlerts,
+        setInsightAlert,
+        deleteInsightAlert,
         saveInsight,
         deleteInsight,
         checkInsight,

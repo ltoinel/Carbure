@@ -543,9 +543,10 @@ final class Transaction {
         $categorized = self::categorizeImported($created);
         Logger::info("Import of a " . $parsed['format'] . " file (" . ($parsed['bank']['id'] ?? 'generic') . "): " . count($created) . " new transaction(s), $categorized categorized");
 
-        // Budget alerts: only the current month (an import of past months alerts nothing)
+        // Budget and insight alerts: only the current month (an import of past months alerts nothing)
         if ($created && self::touchesCurrentMonth($data)) {
             BudgetAlert::check();
+            InsightAlert::check();
         }
 
         $dates = array_column($data, 'date');
@@ -1092,6 +1093,7 @@ final class Transaction {
             'account_number' => $bank['account_number'], 'pointed' => 1, 'user' => (int)Jwt::getUserIdFromToken()] + $fields);
         if (substr($fields['date'], 0, 7) === date('Y-m')) {
             BudgetAlert::check();
+            InsightAlert::check();
         }
         return Tag::withTags([self::manualRow($id)])[0];
     }

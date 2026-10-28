@@ -28,9 +28,9 @@ class NotificationTest extends DatabaseTestCase
         $notifications = Notification::get();
 
         $default = ['push' => true, 'email' => false];
-        // The budget alerts are opt-in: off on every channel
+        // The budget and insight alerts are opt-in: off on every channel
         $off = ['push' => false, 'email' => false];
-        $this->assertSame(['sync' => $default, 'rule' => $default, 'expense' => $default, 'budget' => $off], $notifications['preferences']);
+        $this->assertSame(['sync' => $default, 'rule' => $default, 'expense' => $default, 'budget' => $off, 'insight' => $off], $notifications['preferences']);
         $this->assertSame(100, $notifications['budget_threshold']);
         $this->assertNull($notifications['alert_threshold']);
         $this->assertNull($notifications['budget_category']);
@@ -79,6 +79,7 @@ class NotificationTest extends DatabaseTestCase
             'rule' => ['push' => true, 'email' => false],
             'expense' => ['push' => true, 'email' => true],
             'budget' => ['push' => false, 'email' => false],
+            'insight' => ['push' => false, 'email' => false],
         ], $notifications['preferences']);
 
         // Saved, and only for this user

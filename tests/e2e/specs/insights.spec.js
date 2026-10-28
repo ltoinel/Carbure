@@ -20,9 +20,9 @@ test('shows the amount of each insight for the month', async ({ userPage: page }
     const expenses = card(page, 'Dépenses');
     await expect(expenses.locator('.insight-value')).toHaveText(euros(1584.2));
     await expect(expenses.locator('.insight-value')).toHaveClass(/negative/);
-    // Only the administrators manage the insights; nothing hidden to add again
+    // Only the administrators manage the insights (the user hides one and sets his alert); nothing hidden to add again
     await expect(page.getByRole('button', { name: tr('addInsight') })).toHaveCount(0);
-    await expect(expenses.getByRole('button')).toHaveCount(1);
+    await expect(expenses.getByRole('button')).toHaveCount(2);
 });
 
 test('hides an insight, then shows it again with the + button', async ({ userPage: page }) => {
@@ -94,4 +94,41 @@ test('modifies then deletes an insight', async ({ adminPage: page }) => {
     await modal.getByRole('button', { name: tr('deleteInsight') }).click();
     await expect(page.locator('.toast')).toHaveText(tr('insightDeleted'));
     await expect(page.locator('.insight-card')).toHaveCount(0);
+});
+
+test('sets an alert on an insight, changes it, then removes it', async ({ userPage: page }) => {
+    await openTab(page, tr('tabInsights'));
+    const expenses = card(page, 'Dépenses');
+    const bell = expenses.getByRole('button', { name: tr('insightAlertOf', { name: 'Dépenses' }) });
+    await bell.click();
+
+    const modal = page.getByRole('dialog', { name: tr('insightAlertOf', { name: 'Dépenses' }) });
+    const amount = modal.getByLabel(tr('insightAlertThreshold'));
+    await expect(amount).toBeFocused();
+    await expect(modal.getByRole('radio', { name: tr('insightAlertDirection_above') })).toBeChecked();
+    // Nothing to remove yet
+    await expect(modal.getByRole('button', { name: tr('insightAlertRemove') })).toHaveCount(0);
+
+    await amount.fill('2000');
+    await modal.getByRole('button', { name: tr('save') }).click();
+    await expect(page.locator('.toast')).toHaveText(tr('insightAlertSaved', { name: 'Dépenses' }));
+    await expect(modal).toHaveCount(0);
+    await expect(bell).toBeFocused();
+    await expect(expenses.locator('.insight-alert-text')).toHaveText(tr('insightAlert_above', { amount: euros(2000) }));
+
+    // Kept after a reload, then changed to below
+    await page.reload();
+    await openTab(page, tr('tabInsights'));
+    await expect(expenses.locator('.insight-alert-text')).toHaveText(tr('insightAlert_above', { amount: euros(2000) }));
+    await bell.click();
+    await expect(amount).toHaveValue('2000');
+    await modal.getByRole('radio', { name: tr('insightAlertDirection_below') }).check();
+    await amount.fill('500,5');
+    await modal.getByRole('button', { name: tr('save') }).click();
+    await expect(expenses.locator('.insight-alert-text')).toHaveText(tr('insightAlert_below', { amount: euros(500.5) }));
+
+    await bell.click();
+    await modal.getByRole('button', { name: tr('insightAlertRemove') }).click();
+    await expect(page.locator('.toast')).toHaveText(tr('insightAlertRemoved', { name: 'Dépenses' }));
+    await expect(expenses.locator('.insight-alert-state')).toHaveCount(0);
 });

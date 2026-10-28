@@ -87,3 +87,84 @@ test('the API of the hidden insights', async () => {
     assert.deepEqual(calls.map(c => [c.url, c.options.method || 'GET']), [[`${base}/insight/disabled`, 'GET'], [`${base}/insight/enabled`, 'PUT']]);
     assert.deepEqual(JSON.parse(calls[1].options.body), { id: 2, enabled: true });
 });
+
+test('the API of the insight alerts', async () => {
+    const base = 'https://carbure.example.com/api';
+    const calls = mockFetch(() => json([{ insight: 1, direction: 'above', threshold: 2000 }]));
+    const api = createApiService(base, 't');
+
+    assert.deepEqual(await api.fetchInsightAlerts(), [{ insight: 1, direction: 'above', threshold: 2000 }]);
+    await api.setInsightAlert(1, 'below', 150.5);
+    await api.deleteInsightAlert(1);
+    assert.deepEqual(calls.map(c => [c.url, c.options.method || 'GET']),
+        [[`${base}/insight/alert`, 'GET'], [`${base}/insight/alert`, 'PUT'], [`${base}/insight/alert?insight=1`, 'DELETE']]);
+    assert.deepEqual(JSON.parse(calls[1].options.body), { insight: 1, direction: 'below', threshold: 150.5 });
+});
+
+test('the alerts of the user on the insights', async () => {
+    const { insightAlertThresholdError, insightAlertsById } = await import('../../portal/modules/insightsModule.js');
+    assert.equal(insightAlertThresholdError('2000'), '');
+    assert.equal(insightAlertThresholdError('12,5'), '');
+    assert.equal(insightAlertThresholdError(0), '');
+    for (const value of ['', ' ', '-1', 'abc', '1e12', null]) {
+        assert.equal(insightAlertThresholdError(value), 'insightAlertThresholdInvalid', String(value));
+    }
+    assert.deepEqual(insightAlertsById([{ insight: 3, direction: 'below', threshold: '200.5' }]), { 3: { direction: 'below', threshold: 200.5 } });
+    assert.deepEqual(insightAlertsById(null), {});
+});
+
+test('sets, changes and removes the alert of an insight', async () => {
+    const calls = [];
+    const context = insightsContext({
+        ...fakeApi([{ id: 1, name: 'Dépenses', enabled: true }]),
+        fetchInsightAlerts: async () => [{ insight: 1, direction: 'above', threshold: 2000 }],
+        setInsightAlert: async (insight, direction, threshold) => { calls.push(['set', insight, direction, threshold]); return { insight, direction, threshold }; },
+        deleteInsightAlert: async insight => { calls.push(['delete', insight]); },
+    });
+    Object.assign(context, { formatAmount: amount => amount.toFixed(2), currencySymbol: '€' });
+    await context.loadInsights(10, 2026);
+    assert.deepEqual(context.insightAlerts, { 1: { direction: 'above', threshold: 2000 } });
+    assert.equal(context.insightAlertText(context.insights[0]), 'insightAlert_above {"amount":"2000.00 €"}');
+    assert.equal(context.insightAlertText({ id: 9 }), '');
+
+    context.openInsightAlert(context.insights[0]);
+    assert.deepEqual(context.insightAlertForm, { insight: 1, name: 'Dépenses', direction: 'above', threshold: '2000', exists: true });
+
+    // A wrong amount is refused before the call
+    context.insightAlertForm.threshold = '-5';
+    await context.saveInsightAlert();
+    assert.equal(context.insightAlertErrorKey, 'insightAlertThresholdInvalid');
+    assert.deepEqual(calls, []);
+
+    context.insightAlertForm.direction = 'below';
+    context.insightAlertForm.threshold = '150,5';
+    await context.saveInsightAlert();
+    assert.deepEqual(calls, [['set', 1, 'below', 150.5]]);
+    assert.deepEqual(context.insightAlerts, { 1: { direction: 'below', threshold: 150.5 } });
+    assert.equal(context.insightAlertForm, null);
+
+    context.openInsightAlert(context.insights[0]);
+    await context.removeInsightAlert();
+    assert.deepEqual(calls[1], ['delete', 1]);
+    assert.deepEqual(context.insightAlerts, {});
+    assert.deepEqual(context.toasts, ['insightAlertSaved {"name":"Dépenses"}', 'insightAlertRemoved {"name":"Dépenses"}']);
+
+    // A new alert starts above, empty
+    context.openInsightAlert(context.insights[0]);
+    assert.deepEqual(context.insightAlertForm, { insight: 1, name: 'Dépenses', direction: 'above', threshold: '', exists: false });
+    context.closeInsightAlert();
+});
+
+test('a refused alert is shown, a failed list of the alerts gives none', async () => {
+    const context = insightsContext({
+        fetchInsightAlerts: async () => { throw new Error('offline'); },
+        setInsightAlert: async () => { throw new Error('Only an enabled insight can alert'); },
+    });
+    assert.deepEqual(await context.fetchInsightAlerts(), {});
+    context.openInsightAlert({ id: 1, name: 'X' });
+    context.insightAlertForm.threshold = '10';
+    await context.saveInsightAlert();
+    assert.deepEqual(context.toasts, ['Only an enabled insight can alert']);
+    assert.notEqual(context.insightAlertForm, null);
+    assert.equal(context.savingInsightAlert, false);
+});

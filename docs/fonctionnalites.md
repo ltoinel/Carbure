@@ -32,6 +32,7 @@ qui consultent les mêmes données.
 |---|---|---|
 | Consulter transactions, budgets, flux, insights, tendances | ✅ | ✅ |
 | Afficher ou masquer les insights | ✅ | ✅ |
+| Poser ses alertes sur les insights | ✅ | ✅ |
 | Pointer et catégoriser les transactions | ✅ | ✅ |
 | Modifier les montants des budgets | ✅ | ✅ |
 | Gérer son profil, ses appareils, ses jetons d'accès | ✅ | ✅ |
@@ -381,6 +382,10 @@ renvoie un montant pour le mois affiché.
   épargne, non catégorisé, dépassement de budget) : les autres sont installés mais masqués,
   et le bouton **+** de l'écran Insights les propose en un clic. Chaque utilisateur peut
   masquer une carte inutile ; un insight masqué n'est plus calculé.
+- Chaque utilisateur peut poser une **alerte** sur un insight affiché, avec la **cloche** de
+  sa carte : être prévenu quand la valeur du mois passe **au-dessus** ou **en dessous** d'un
+  montant (« Dépenses au-dessus de 2 000 € », « Reste du mois en dessous de 200 € »). Voir
+  [Alertes des insights](#alertes-des-insights).
 
 Des **recettes prêtes à l'emploi** (une catégorie et ses sous-catégories, abonnements,
 comparaison avec l'an dernier, taux d'épargne, matelas de sécurité, budget restant,
@@ -419,6 +424,7 @@ administrateur inscrit l'instance après avoir accepté son consentement (voir
 | Une nouvelle dépense dépasse le seuil d'alerte | Chaque utilisateur dont le seuil est dépassé | « Dépense importante à vérifier », libellé et montant |
 | Une nouvelle transaction correspond à une règle « Envoyer une notification » | Tout le foyer | Le mot-clé, le libellé et le montant (une seule notification par transaction) |
 | Les dépenses du mois d'une catégorie budgétée atteignent le seuil des budgets | Chaque utilisateur qui a activé ces alertes | « Budget dépassé : Courses », « 312,40 € sur 300,00 € (104 %) » |
+| La valeur du mois d'un insight passe au-dessus ou en dessous du montant de son alerte | L'utilisateur qui a posé l'alerte, s'il a activé ces alertes | « Insight au-dessus du seuil : Dépenses », « 2 140,00 € ce mois-ci (seuil : 2 000,00 €) » |
 
 Le **badge** de l'app indique le nombre de transactions à vérifier. Le seuil d'alerte se
 règle dans **Mon profil → Notifications**, sous « Dépense importante » (vide = pas d'alerte).
@@ -434,9 +440,9 @@ Les textes du serveur sont regroupés dans `src/lib/Messages.php`.
 
 Chaque utilisateur choisit, dans **Mon profil → Notifications**, les canaux de chaque type
 de notification (résultat d'une synchronisation, règle « Notifier », dépense importante,
-budget dépassé) : push, email, les deux ou aucun. Par défaut, tout est envoyé en push et
-rien par email, sauf les alertes de budget, désactivées tant que l'utilisateur ne les
-active pas.
+budget dépassé, alerte d'un insight) : push, email, les deux ou aucun. Par défaut, tout est
+envoyé en push et rien par email, sauf les alertes de budget et des insights, désactivées
+tant que l'utilisateur ne les active pas.
 L'email n'est proposé que si un serveur SMTP est configuré (**Administration →
 Paramètres**, section `[smtp]`) et que le profil a une adresse email ; l'échec d'un canal
 n'empêche ni l'autre ni la synchronisation.
@@ -459,6 +465,22 @@ n'empêche ni l'autre ni la synchronisation.
       logement à 100 %. Supprimer la catégorie supprime son seuil.
 - **Une fois** par catégorie, mois et utilisateur, pas à chaque synchronisation. Si le budget
   est ensuite relevé et de nouveau atteint, l'alerte repart pour le nouveau montant.
+
+### Alertes des insights
+
+- **Réglage** : la **cloche** de chaque carte de l'écran **Insights** ouvre l'alerte de
+  l'utilisateur sur cet insight : le sens (**au-dessus** ou **en dessous**) et un montant.
+  La carte rappelle l'alerte posée (« Alerte au-dessus de 2 000,00 € »). Chacun a ses
+  propres alertes ; les canaux se choisissent dans **Mon profil → Notifications**, sous
+  « Alerte d'un insight » (désactivée par défaut).
+- **Comparaison** : avec la valeur du mois **sans son signe**, comme sur la carte : des
+  dépenses de -2 140 € sont au-dessus de 2 000 €. Strictement au-dessus ou en dessous : une
+  valeur égale au montant n'alerte pas.
+- **Quand** : avec les alertes de budget, après chaque synchronisation et chaque import
+  d'un relevé, pour le **mois en cours** uniquement.
+- **Une fois** par insight, mois et utilisateur. Changer le sens ou le montant réarme
+  l'alerte pour le mois en cours.
+- Seul un insight **affiché** alerte : le masquer ou le supprimer supprime ses alertes.
 
 ## Agents IA
 
