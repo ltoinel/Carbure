@@ -181,6 +181,10 @@ git config core.hooksPath .githooks   # pre-commit lint, pre-push unit tests
   - optional scopes: `api`, `portal`, `sync`, `import`, `mcp`, `oauth`, `docker`, `db`, `deps`…;
   - breaking change: `type(scope)!: …` (exceptional: the iOS app must keep working).
 - Commit messages inside a branch: same format; body = bullet list of changes.
+- A PR that takes up someone else's work (a contributor's PR, a patch from an issue) credits
+  them: the squash commit ends with `Co-authored-by: Name <id+login@users.noreply.github.com>`
+  (`gh pr merge <n> --squash --body "…"`, GitHub drops it otherwise), and the PR body says
+  where the work comes from (`from #329`).
 - Label the PR with its kind (`enhancement`, `bug`, `security`, `documentation`,
   `dependencies`): `.github/release.yml` groups the release notes by label.
 
