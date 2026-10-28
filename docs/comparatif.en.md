@@ -1,6 +1,6 @@
 ---
-title: "Comparison: Carbure, Firefly III, Actual Budget, Kresus, Sure and ezBookkeeping"
-description: "Carbure compared with self-hosted open source budget managers: Firefly III, Actual Budget, Kresus, Sure and ezBookkeeping. Bank connection, budgets, mobile and AI agent."
+title: "Comparison of self-hosted budget managers"
+description: "Carbure compared with Firefly III, Actual Budget, Kresus, Sure and ezBookkeeping: bank connection, budgets, mobile apps and AI agent."
 icon: material/scale-balance
 ---
 

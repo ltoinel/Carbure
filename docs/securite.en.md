@@ -1,5 +1,5 @@
 ---
-title: "Security: authentication, bank data and Docker image"
+title: "Security: authentication and bank data"
 description: "How Carbure protects household data: passwords, JWT, sign-in lockout, bank credentials kept by woob and Docker image scanning."
 icon: material/shield-lock-outline
 ---

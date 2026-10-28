@@ -1,6 +1,6 @@
 ---
 title: "Insights : recettes de requêtes SQL"
-description: "Une collection de cas d'usage pour les insights de Carbure : dépenses, comparaisons, épargne, budget et qualité des données, avec la requête SQL de chacun et la lecture de son résultat."
+description: "Des recettes d'insights pour Carbure : dépenses, comparaisons, épargne, budget et qualité des données, avec leur requête SQL."
 icon: material/chart-box-outline
 ---
 
@@ -15,7 +15,7 @@ page rassemble des **recettes** prêtes à copier dans la fenêtre d'ajout d'un 
 Toutes les requêtes de cette page sont vérifiées par les tests de Carbure : elles respectent
 les règles ci-dessous et s'exécutent sur une base de test, avec le résultat attendu.
 
-![Fenêtre d'ajout d'un insight remplie avec la recette « Panier moyen des courses » : nom, couleur, icône et requête SQL, vérifiée pendant la saisie avec son résultat pour le mois affiché](assets/screenshot-insight-recipe.png)
+![Fenêtre d'ajout d'un insight remplie avec la recette « Panier moyen des courses » : nom, couleur, icône et requête SQL, vérifiée pendant la saisie avec son résultat pour le mois affiché](assets/screenshot-insight-recipe.webp)
 
 ## Règles d'une requête
 

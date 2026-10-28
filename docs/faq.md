@@ -1,6 +1,6 @@
 ---
 title: "Questions fréquentes"
-description: "FAQ de Carbure : prix, démo, banques prises en charge, synchronisation, import de relevés, catégories, budgets, salaire de fin de mois, alertes, applications mobiles, installation, sécurité, sauvegarde, confidentialité et agents IA."
+description: "FAQ de Carbure : prix, banques prises en charge, synchronisation, import, budgets, applications mobiles, installation, sécurité et sauvegarde."
 icon: material/frequently-asked-questions
 ---
 

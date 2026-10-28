@@ -1,6 +1,6 @@
 ---
 title: "Tutorial: install Carbure on YunoHost"
-description: "Install Carbure on a YunoHost server with the carbure_ynh package: a domain of its own, the administrator created at the installation, woob and the daily synchronization included, YunoHost backups."
+description: "Install Carbure on YunoHost with the carbure_ynh package: a domain of its own, woob and the daily synchronization included, YunoHost backups."
 icon: material/server
 ---
 

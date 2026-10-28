@@ -3,6 +3,8 @@ title: "Ouvrir Carbure sur votre serveur"
 description: "Lien d'ouverture des applications mobiles Carbure sur un serveur auto-hébergé."
 search:
   exclude: true
+# Opened by the links of the mobile apps: kept out of search engines and of the sitemap
+noindex: true
 ---
 
 # Ouvrir Carbure sur votre serveur

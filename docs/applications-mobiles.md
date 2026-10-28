@@ -1,6 +1,6 @@
 ---
 title: "Applications mobiles iPhone et Android"
-description: "Les applications Carbure pour iPhone et Android : connexion à votre serveur, Face ID et empreinte, transactions, budgets, aperçus, tendances, synchronisation et notifications push."
+description: "Les applications Carbure pour iPhone et Android : connexion à votre serveur, Face ID, transactions, budgets, tendances et notifications push."
 icon: material/cellphone
 ---
 

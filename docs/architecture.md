@@ -1,6 +1,6 @@
 ---
 title: "Architecture : portail web, API REST PHP et woob"
-description: "Comment fonctionne Carbure : portail web Vue 3, API REST PHP sans framework, MariaDB, synchronisation bancaire par woob, notifications push (Carbure Push) et serveur MCP."
+description: "Comment fonctionne Carbure : portail Vue 3, API REST PHP sans framework, MariaDB, synchronisation par woob, Carbure Push et serveur MCP."
 icon: material/sitemap-outline
 ---
 

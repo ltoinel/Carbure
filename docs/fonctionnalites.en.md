@@ -12,7 +12,7 @@ computed, who receives which notification and what each person can do. For scree
 usage, see [Web portal](portail.md) and
 [Mobile apps](applications-mobiles.md).
 
-![List of the transactions of the month in the Carbure portal, with their category](assets/en/screenshot-transactions.png)
+![List of the transactions of the month in the Carbure portal, with their category](assets/en/screenshot-transactions.webp)
 
 ## The household { #le-foyer }
 
@@ -170,7 +170,7 @@ For a bank that woob does not cover, or to bring in the history from before Carb
    statement" as their origin), then the **rules** categorize them; the list opens on the
    last imported month.
 
-![Preview of the import of a Boursorama CSV statement: new transactions ticked, probable duplicates unticked, with the matching existing transaction](assets/screenshot-import.png)
+![Preview of the import of a Boursorama CSV statement: new transactions ticked, probable duplicates unticked, with the matching existing transaction](assets/screenshot-import.webp)
 
 A CSV exported by one of the banks below is read with the **profile of its bank**
 (its columns, its encoding, its rows before the header): the preview says so, for example
@@ -252,7 +252,7 @@ Reserved for administrators: **Administration** menu → **Categories**. The API
 the creation, modification and deletion of a category to other users
 (`403`); everyone can read the list (transactions, budgets, iOS app).
 
-![Hierarchical expense and income categories, with their icon and color](assets/screenshot-categories.png)
+![Hierarchical expense and income categories, with their icon and color](assets/screenshot-categories.webp)
 
 - **Two levels**: categories (Food) and their subcategories (Supermarket,
   Restaurant). The transactions of a subcategory also count for its parent.
@@ -302,7 +302,7 @@ A rule associates a **keyword** with a category: any transaction whose label
 
 ## Budgets { #budgets }
 
-![Budgets of the month per category, with the amount left to spend or the overspend](assets/en/screenshot-budget.png)
+![Budgets of the month per category, with the amount left to spend or the overspend](assets/en/screenshot-budget.webp)
 
 A budget is an **amount per category and per month**.
 
@@ -328,7 +328,7 @@ A budget is an **amount per category and per month**.
 
 ## Money flow of the month { #flux-du-mois }
 
-![Money flow of the month: Sankey diagram from income to expenses, savings and what is left](assets/en/screenshot-flow.png)
+![Money flow of the month: Sankey diagram from income to expenses, savings and what is left](assets/en/screenshot-flow.webp)
 
 A (Sankey) diagram shows **where the month's money comes from and where it goes**:
 
@@ -349,7 +349,7 @@ uncategorized transactions remain visible. The same flows are available as a tab
 
 ## Trends { #tendances }
 
-![Trends of expenses, income and savings over several months](assets/screenshot-trends.png)
+![Trends of expenses, income and savings over several months](assets/screenshot-trends.webp)
 
 Over **3, 6 or 12 months** up to the current month, optionally **compared** with the previous
 period or with the same period last year:
@@ -370,7 +370,7 @@ is also available as a table.
 
 ## Insights { #insights }
 
-![Insights: monthly indicators of the household budget and their history](assets/screenshot-insights.png)
+![Insights: monthly indicators of the household budget and their history](assets/screenshot-insights.webp)
 
 **Indicators of the month** that the household defines itself: groceries, fuel, subscriptions,
 income, savings… Each insight has a name, a color, an icon and an **SQL query** that
@@ -486,7 +486,7 @@ prevents neither the other nor the synchronization.
 
 ## AI agents { #agents-ia }
 
-![AI agent connected to the Carbure MCP server to query the household budget](assets/screenshot-agents.png)
+![AI agent connected to the Carbure MCP server to query the household budget](assets/screenshot-agents.webp)
 
 A built-in **MCP server** lets an AI agent answer questions about the household's
 budget: "How much did we spend on restaurants this year?", "Which categories

@@ -1,6 +1,6 @@
 ---
 title: "Server configuration (prod.ini file)"
-description: "Carbure configuration reference: database, tokens, woob, scheduled sync, push notifications (Carbure Push), logs and portal settings."
+description: "Reference of the Carbure configuration: database, tokens, woob, scheduled synchronization, push notifications and logs."
 icon: material/cog-outline
 ---
 

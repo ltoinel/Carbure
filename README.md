@@ -41,23 +41,6 @@
   <a href="https://www.youtube.com/watch?v=PUCd27oJkig"><img src="docs/assets/teaser-youtube-play.jpg" alt="Voir le teaser de Carbure (1 min) sur YouTube" width="100%"></a>
 </p>
 
-<p align="center">
-  <img src="docs/assets/screenshot-transactions.png" alt="Transactions du mois : revenus, dépenses, recherche, pointage et catégories" width="100%">
-</p>
-
-<table>
-  <tr>
-    <td width="50%" valign="top">
-      <img src="docs/assets/screenshot-budget.png" alt="Budgets par catégorie, les sous-catégories s'additionnent dans leur parent">
-      <br><sub><b>Budgets</b> — dépensé, restant et dépassement par catégorie</sub>
-    </td>
-    <td width="50%" valign="top">
-      <img src="docs/assets/screenshot-flow.png" alt="Flux du mois">
-      <br><sub><b>Flux du mois</b> — où partent les revenus du mois</sub>
-    </td>
-  </tr>
-</table>
-
 <p align="center">👉 <a href="https://carbure.org/fonctionnalites/"><b>Toutes les fonctionnalités</b></a>, avec chaque écran</p>
 
 ## Fonctionnalités
@@ -93,11 +76,6 @@ disponibles en France pour le moment ([détails](https://carbure.org/application
 
 <p align="center">
   <a href="https://www.youtube.com/watch?v=YqSUd7L9fPg"><img src="docs/assets/mobile-apps-youtube-play.jpg" alt="Voir la vidéo « Carbure sur iPhone et Android : votre budget, dans votre poche » sur YouTube" width="100%"></a>
-</p>
-
-<p align="center">
-  <img src="docs/assets/mobile/ios-transactions.png" alt="Transactions du mois dans l'app iPhone" width="220">
-  <img src="docs/assets/mobile/android-budgets.png" alt="Budgets du mois dans l'app Android" width="220">
 </p>
 
 ## Vos données restent chez vous
@@ -193,7 +171,19 @@ conventions, tests) et [AGENTS.md](AGENTS.md) (règles du code), et choisissez u
 [TODO.md](TODO.md). Si Carbure vous est utile, une ⭐ aide d'autres personnes à le découvrir.
 
 Merci à toutes les personnes qui ont contribué à Carbure, par leur code, leurs idées ou leurs
-retours : [la liste des contributeurs](https://github.com/ltoinel/Carbure/graphs/contributors).
+retours :
+
+<p>
+  <a href="https://github.com/ltoinel" title="Ludovic Toinel"><img src="https://github.com/ltoinel.png?size=96" width="48" height="48" alt="Ludovic Toinel"></a>
+  <a href="https://github.com/viking76" title="Gaël"><img src="https://github.com/viking76.png?size=96" width="48" height="48" alt="Gaël"></a>
+  <a href="https://github.com/matlink" title="Matlink"><img src="https://github.com/matlink.png?size=96" width="48" height="48" alt="Matlink"></a>
+  <a href="https://github.com/GILMorgan" title="GIL Morgan"><img src="https://github.com/GILMorgan.png?size=96" width="48" height="48" alt="GIL Morgan"></a>
+  <a href="https://github.com/claneys" title="Romain Forlot"><img src="https://github.com/claneys.png?size=96" width="48" height="48" alt="Romain Forlot"></a>
+  <a href="https://github.com/yanvigdev" title="yann vignolet"><img src="https://github.com/yanvigdev.png?size=96" width="48" height="48" alt="yann vignolet"></a>
+</p>
+
+Et tous les autres, sur la [liste des contributeurs](https://github.com/ltoinel/Carbure/graphs/contributors)
+et dans les [issues](https://github.com/ltoinel/Carbure/issues).
 
 ## Licence
 

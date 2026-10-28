@@ -122,7 +122,7 @@ taskbar or the home screen.
 
 ## Transactions { #transactions }
 
-![Transactions screen of the Carbure web portal](assets/en/screenshot-transactions.png)
+![Transactions screen of the Carbure web portal](assets/en/screenshot-transactions.webp)
 
 - Statistics of the month: income, expenses, balance.
 - **On a phone**, the three figures of the month fit on one compact line, the list
@@ -206,7 +206,7 @@ taskbar or the home screen.
 
 ## Budget { #budget }
 
-![Budgets screen: money flow of the month as a Sankey diagram](assets/en/screenshot-flow.png)
+![Budgets screen: money flow of the month as a Sankey diagram](assets/en/screenshot-flow.webp)
 
 Two sub-tabs: **Flow** (shown by default) and **Budgets**.
 
@@ -264,7 +264,7 @@ Sample queries are in [Insight recipes](insights.md).
 
 ## Trends { #tendances }
 
-![Trends screen of the Carbure web portal](assets/screenshot-trends.png)
+![Trends screen of the Carbure web portal](assets/screenshot-trends.webp)
 
 - Period of **3, 6 or 12 months** ending with the current month.
 - **Compare with**: no comparison, the previous period or the same period last
@@ -660,11 +660,11 @@ enable:
   are the system's; buttons, tabs, fields, toggles, budget bars, cards and
   focus keep a visible border or outline.
 
-![Transactions screen in dark theme](assets/screenshot-theme-dark.png)
+![Transactions screen in dark theme](assets/screenshot-theme-dark.webp)
 
-![Transactions screen with the system's increased contrast: darker secondary texts and borders](assets/screenshot-theme-contrast.png)
+![Transactions screen with the system's increased contrast: darker secondary texts and borders](assets/screenshot-theme-contrast.webp)
 
-![Transactions screen in forced colors (Windows high contrast): system colors, each button, tab and card keeping a border](assets/screenshot-theme-forced-colors.png)
+![Transactions screen in forced colors (Windows high contrast): system colors, each button, tab and card keeping a border](assets/screenshot-theme-forced-colors.webp)
 
 The dark theme follows the same rules as the light theme (4.5:1 for text, 3:1
 for an icon, at rest, on hover and on focus): accent colors are
