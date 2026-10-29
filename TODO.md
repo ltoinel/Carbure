@@ -28,7 +28,11 @@ keeps track of what was done).
 
 - [ ] **Deployment of the split of transactions (#335)**: the migration
       `2026-10-30_transaction_split` (`bank_transaction.split_of`) is applied at container
-      start; `PUT /transaction/split` needs it.
+      start; `PUT /transaction/split` needs it. The migration
+      `2026-11-04_insight_largest_expense` then makes the starter insight "Largest expense"
+      count a split transaction once, with the amount of the bank (#409), unless its query
+      was changed; the insights written by the users that count transactions (`COUNT(*)`)
+      count each part: see the note of `docs/insights.md`.
 
 - [ ] **Mobile apps — split transactions (#335)**: the apps already show the parts as
       transactions of their own (`split_of` set); show them under their transaction, with its

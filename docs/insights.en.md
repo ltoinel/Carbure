@@ -74,7 +74,7 @@ The useful tables (see [Data model](modele-donnees.md)):
 
 | Table | Useful columns |
 |---|---|
-| `bank_transaction` | `date` (debit date, the one of the month displayed), `rdate` (actual transaction date: day of a card payment), `type`, `label`, `category`, `amount` (negative = debit), `pointed` (1 = checked), `bank_name`, `account_number` |
+| `bank_transaction` | `date` (debit date, the one of the month displayed), `rdate` (actual transaction date: day of a card payment), `type`, `label`, `category`, `amount` (negative = debit), `pointed` (1 = checked), `bank_name`, `account_number`, `split_of` (a part of a split transaction: the id of the original transaction, otherwise `NULL`) |
 | `bank_transaction_category` | `id`, `name`, `parent_category` (0 = main category), `type`: `DEBIT`, `CREDIT` or `HORS-BUDGET` |
 | `budget` | `category`, `amount` (planned positive amount), `date` (first day of the month) |
 | `bank_account` | `bank_name`, `account_number`, `label` (name given to the account) |
@@ -107,6 +107,16 @@ A few expressions come up again and again in the recipes:
   comparison ignores case and accents. The names used here are those of the French
   starter pack: adapt them to yours.
 
+!!! note "Split transactions"
+    A transaction split across several categories takes several rows: the original
+    transaction, which keeps the rest of the amount, and one row per part
+    (`split_of` = the id of the original), with the same date, label and type.
+    A **sum** therefore stays right. To **count payments** (a withdrawal, a trip to the
+    checkout), count `COUNT(DISTINCT COALESCE(split_of, id))` rather than `COUNT(*)`;
+    for the **amount of the bank** of a payment, start from the rows `split_of IS NULL` and
+    add their parts:
+    `amount + IFNULL((SELECT SUM(p.amount) FROM bank_transaction p WHERE p.split_of = t.id), 0)`.
+
 ## Spending { #depenses }
 
 ### A category and its subcategories { #une-categorie-et-ses-sous-categories }
@@ -133,7 +143,7 @@ The average amount of a trip to the checkout: useful to see the effect of inflat
 switching stores, regardless of the number of trips.
 
 ```sql
-SELECT AVG(amount) AS amount
+SELECT SUM(amount) / COUNT(DISTINCT COALESCE(split_of, id)) AS amount
 FROM bank_transaction
 WHERE amount < 0
   AND category = (SELECT id FROM bank_transaction_category WHERE name = 'Courses')
@@ -141,7 +151,8 @@ WHERE amount < 0
 ```
 
 - **Name**: `Panier moyen courses` — color `green`, icon `shopping_cart`
-- **Reading**: negative, in euros per purchase.
+- **Reading**: negative, in euros per purchase. A split receipt counts as one purchase, with
+  its share of groceries.
 
 ### A merchant { #une-enseigne }
 
@@ -249,7 +260,7 @@ The number of cash withdrawals in the month (the starter pack already gives the 
 many small withdrawals mean as many expenses that Carbure will not be able to categorize.
 
 ```sql
-SELECT COUNT(*) AS amount
+SELECT COUNT(DISTINCT COALESCE(split_of, id)) AS amount
 FROM bank_transaction
 WHERE type = 6
   AND MONTH(date) = {month} AND YEAR(date) = {year}
@@ -542,7 +553,7 @@ The number of the month's transactions without a category (the starter pack give
 each one is a categorization rule to create.
 
 ```sql
-SELECT COUNT(*) AS amount
+SELECT COUNT(DISTINCT COALESCE(split_of, id)) AS amount
 FROM bank_transaction
 WHERE category = 0
   AND MONTH(date) = {month} AND YEAR(date) = {year}
@@ -557,7 +568,7 @@ The number of the month's transactions that nobody has checked yet ("checked" bo
 the Transactions tab).
 
 ```sql
-SELECT COUNT(*) AS amount
+SELECT COUNT(DISTINCT COALESCE(split_of, id)) AS amount
 FROM bank_transaction
 WHERE pointed = 0
   AND MONTH(date) = {month} AND YEAR(date) = {year}
@@ -608,12 +619,14 @@ SELECT COUNT(*) AS amount
 FROM bank_transaction a
 JOIN bank_transaction b ON b.id > a.id AND b.amount = a.amount AND b.label = a.label
   AND ABS(DATEDIFF(b.date, a.date)) <= 3
+  AND a.split_of IS NULL AND b.split_of IS NULL
 WHERE MONTH(a.date) = {month} AND YEAR(a.date) = {year}
 ```
 
 - **Name**: `Doublons possibles` — color `red`, icon `warning`
 - **Reading**: positive, a **count** of pairs; two genuine identical purchases (two
-  baguettes on the same day) are counted too.
+  baguettes on the same day) are counted too, but not the parts of a split
+  transaction.
 
 ## What an insight cannot show { #ce-quun-insight-ne-peut-pas-montrer }
 

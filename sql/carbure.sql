@@ -422,7 +422,8 @@ INSERT IGNORE INTO `schema_migrations` (`version`) VALUES
 ('2026-10-31_tags'),
 ('2026-11-01_insight_enabled'),
 ('2026-11-02_category_source'),
-('2026-11-03_insight_alert');
+('2026-11-03_insight_alert'),
+('2026-11-04_insight_largest_expense');
 
 SET FOREIGN_KEY_CHECKS = 1;
 COMMIT;

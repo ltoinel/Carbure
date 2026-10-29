@@ -251,6 +251,7 @@ already been applied (by hand, or by `sql/carbure.sql`). See
 | `2026-10-31_tags` | Tags of a project limited in time (`tag`, `transaction_tag` tables) |
 | `2026-11-02_category_source` | Origin of the category of a transaction (`bank_transaction.category_source`: `rule`, `manual`, `NULL` unknown): the rules do not overwrite a category chosen by hand |
 | `2026-11-03_insight_alert` | Alerts of the users on the insights (`insight_alert` table) |
+| `2026-11-04_insight_largest_expense` | The starter insight "Largest expense" counts a split transaction once, with the amount of the bank (only when its query was not changed) |
 
 ## "Household" model { #modele-foyer }
 

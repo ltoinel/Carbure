@@ -233,6 +233,10 @@ class SetupTest extends TestCase
             ('s2', '$day', '$day', 1, 'VIR SALAIRE', 28, 2000.00, 1),
             ('s3', '$day', '$day', 1, 'VIR LIVRET A', 32, -300.00, 1),
             ('s4', '$day', '$day', 6, 'RETRAIT DAB', 0, -40.00, 1)");
+        // CB CARREFOUR split: -50 kept, a part of -30
+        $db->query("UPDATE bank_transaction SET amount = -50.00 WHERE uuid = 's1'");
+        $db->query("INSERT INTO bank_transaction (split_of, uuid, date, rdate, type, label, category, amount, user)
+            SELECT id, 's1#split1', date, rdate, type, label, category, -30.00, user FROM bank_transaction WHERE uuid = 's1'");
         $db->query("INSERT INTO budget (category, amount, date) VALUES (1, 50, '" . date('Y-m-01') . "')");
 
         $amounts = [];
@@ -249,6 +253,7 @@ class SetupTest extends TestCase
         $this->assertEquals(300, $amounts['Savings']);
         $this->assertEquals(-40, $amounts['Uncategorized']);
         $this->assertEquals(-30, $amounts['Over budget']);
+        // The split payment, with the amount of the bank: not its biggest part (-50)
         $this->assertEquals(-80, $amounts['Largest expense']);
         $this->assertEquals(-40, $amounts['Cash withdrawals']);
         // The spending of this month is not in the safety cushion (6 complete months before)

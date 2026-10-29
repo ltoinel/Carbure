@@ -2,6 +2,7 @@
 
 use Carbure\Lib\Db;
 use Carbure\Resources\Insight;
+use Carbure\Resources\Transaction;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 require_once __DIR__ . '/../unit/InsightCookbookDocTest.php';
@@ -116,6 +117,13 @@ class InsightCookbookTest extends DatabaseTestCase
         foreach ($rows as $i => [$date, $type, $label, $category, $amount, $pointed, $account]) {
             Db::execute("INSERT INTO bank_transaction (uuid, date, rdate, type, label, category, amount, pointed, account_number, user)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)", "sssisidis", "cookbook$i", $date, $date, $type, $label, $category, $amount, $pointed, $account);
+        }
+
+        // Two split transactions: the recipes count each payment once (the withdrawal, still
+        // uncategorized and unchecked; the Leclerc basket, whose part is not a duplicate)
+        foreach (['cookbook8' => [0, -40], 'cookbook2' => [5, -45]] as $uuid => [$category, $amount]) {
+            $id = (int)Db::queryOne("SELECT id FROM bank_transaction WHERE uuid = ?", "s", $uuid)['id'];
+            Transaction::split($id, [['category' => $category, 'amount' => $amount]]);
         }
 
         Db::query("INSERT INTO budget (category, amount, date) VALUES
