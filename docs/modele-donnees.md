@@ -251,6 +251,7 @@ main, ou par `sql/carbure.sql`). Voir [Développement](developpement.md#migratio
 | `2026-10-31_tags` | Tags d'un projet limités dans le temps (tables `tag`, `transaction_tag`) |
 | `2026-11-02_category_source` | Origine de la catégorie d'une transaction (`bank_transaction.category_source` : `rule`, `manual`, `NULL` inconnue) : les règles n'écrasent pas une catégorie choisie à la main |
 | `2026-11-03_insight_alert` | Alertes des utilisateurs sur les insights (table `insight_alert`) |
+| `2026-11-04_insight_largest_expense` | L'insight de départ « Plus grosse dépense » compte une transaction répartie une fois, avec le montant de la banque (seulement si sa requête n'a pas été modifiée) |
 
 ## Modèle « foyer »
 

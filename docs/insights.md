@@ -74,7 +74,7 @@ Les tables utiles (voir [Modèle de données](modele-donnees.md)) :
 
 | Table | Colonnes utiles |
 |---|---|
-| `bank_transaction` | `date` (date de débit, celle du mois affiché), `rdate` (date réelle de l'opération : jour d'un paiement par carte), `type`, `label`, `category`, `amount` (négatif = débit), `pointed` (1 = vérifiée), `bank_name`, `account_number` |
+| `bank_transaction` | `date` (date de débit, celle du mois affiché), `rdate` (date réelle de l'opération : jour d'un paiement par carte), `type`, `label`, `category`, `amount` (négatif = débit), `pointed` (1 = vérifiée), `bank_name`, `account_number`, `split_of` (une part d'une transaction répartie : l'id de la transaction d'origine, sinon `NULL`) |
 | `bank_transaction_category` | `id`, `name`, `parent_category` (0 = catégorie principale), `type` : `DEBIT`, `CREDIT` ou `HORS-BUDGET` |
 | `budget` | `category`, `amount` (montant positif prévu), `date` (premier jour du mois) |
 | `bank_account` | `bank_name`, `account_number`, `label` (nom donné au compte) |
@@ -107,6 +107,16 @@ Quelques expressions reviennent dans les recettes :
   comparaison ignore la casse et les accents. Les noms utilisés ici sont ceux du pack de
   départ en français : adaptez-les aux vôtres.
 
+!!! note "Transactions réparties"
+    Une transaction répartie sur plusieurs catégories occupe plusieurs lignes : la
+    transaction d'origine, qui garde le reste du montant, et une ligne par part
+    (`split_of` = l'id de l'origine), avec la même date, le même libellé et le même type.
+    Une **somme** reste donc juste. Pour **compter des paiements** (un retrait, un passage
+    en caisse), comptez `COUNT(DISTINCT COALESCE(split_of, id))` plutôt que `COUNT(*)` ;
+    pour le **montant de la banque** d'un paiement, partez des lignes `split_of IS NULL` et
+    ajoutez leurs parts :
+    `amount + IFNULL((SELECT SUM(p.amount) FROM bank_transaction p WHERE p.split_of = t.id), 0)`.
+
 ## Dépenses
 
 ### Une catégorie et ses sous-catégories
@@ -133,7 +143,7 @@ Le montant moyen d'un passage en caisse : utile pour voir l'effet de l'inflation
 changement d'enseigne, indépendamment du nombre de passages.
 
 ```sql
-SELECT AVG(amount) AS amount
+SELECT SUM(amount) / COUNT(DISTINCT COALESCE(split_of, id)) AS amount
 FROM bank_transaction
 WHERE amount < 0
   AND category = (SELECT id FROM bank_transaction_category WHERE name = 'Courses')
@@ -141,7 +151,8 @@ WHERE amount < 0
 ```
 
 - **Nom** : `Panier moyen courses` — couleur `green`, icône `shopping_cart`
-- **Lecture** : négatif, en euros par achat.
+- **Lecture** : négatif, en euros par achat. Un ticket réparti compte pour un achat, avec sa
+  part de courses.
 
 ### Une enseigne
 
@@ -249,7 +260,7 @@ Le nombre de retraits d'espèces du mois (le pack de départ en donne déjà le 
 beaucoup de petits retraits, c'est autant de dépenses que Carbure ne pourra pas classer.
 
 ```sql
-SELECT COUNT(*) AS amount
+SELECT COUNT(DISTINCT COALESCE(split_of, id)) AS amount
 FROM bank_transaction
 WHERE type = 6
   AND MONTH(date) = {month} AND YEAR(date) = {year}
@@ -542,7 +553,7 @@ Le nombre de transactions du mois sans catégorie (le pack de départ en donne l
 chacune est une règle de catégorisation à créer.
 
 ```sql
-SELECT COUNT(*) AS amount
+SELECT COUNT(DISTINCT COALESCE(split_of, id)) AS amount
 FROM bank_transaction
 WHERE category = 0
   AND MONTH(date) = {month} AND YEAR(date) = {year}
@@ -557,7 +568,7 @@ Le nombre de transactions du mois que personne n'a encore pointées (case « vé
 l'onglet Transactions).
 
 ```sql
-SELECT COUNT(*) AS amount
+SELECT COUNT(DISTINCT COALESCE(split_of, id)) AS amount
 FROM bank_transaction
 WHERE pointed = 0
   AND MONTH(date) = {month} AND YEAR(date) = {year}
@@ -608,12 +619,14 @@ SELECT COUNT(*) AS amount
 FROM bank_transaction a
 JOIN bank_transaction b ON b.id > a.id AND b.amount = a.amount AND b.label = a.label
   AND ABS(DATEDIFF(b.date, a.date)) <= 3
+  AND a.split_of IS NULL AND b.split_of IS NULL
 WHERE MONTH(a.date) = {month} AND YEAR(a.date) = {year}
 ```
 
 - **Nom** : `Doublons possibles` — couleur `red`, icône `warning`
 - **Lecture** : positif, un **nombre** de paires ; deux vrais achats identiques (deux
-  baguettes le même jour) sont aussi comptés.
+  baguettes le même jour) sont aussi comptés, mais pas les parts d'une transaction
+  répartie.
 
 ## Ce qu'un insight ne peut pas montrer
 

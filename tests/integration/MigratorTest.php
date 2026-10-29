@@ -97,4 +97,21 @@ class MigratorTest extends DatabaseTestCase
         $migrator->migrate(function ($m) use (&$log) { $log[] = $m; }, true);
         $this->assertSame([], array_values(array_filter($log, fn($line) => !str_ends_with($line, 'already applied, recorded'))));
     }
+
+    public function testLargestExpenseCountsASplitTransactionOnce()
+    {
+        // An installation of 1.11 with the starter query, and a query of its own
+        $starter = "SELECT MIN(amount) AS amount FROM bank_transaction WHERE amount < 0 AND category NOT IN (SELECT id FROM bank_transaction_category WHERE type = 'HORS-BUDGET' AND id <> 0) AND MONTH(date) = {month} AND YEAR(date) = {year}";
+        $own = "SELECT MIN(amount) AS amount FROM bank_transaction WHERE amount < -10";
+        Db::execute("INSERT INTO budget_insight (name, color, `sql`) VALUES ('Plus grosse dépense', 'pink', ?), ('Mine', 'red', ?)", "ss", $starter, $own);
+        $name = '2026-11-04_insight_largest_expense';
+        copy(dirname(__DIR__, 2) . "/sql/migrations/$name.sql", "$this->dir/$name.sql");
+
+        $this->assertSame([$name], (new Migrator(Db::getConnection(), $this->dir))->migrate());
+
+        $queries = array_column(Db::select("SELECT name, `sql` FROM budget_insight", "")->fetch_all(MYSQLI_ASSOC), 'sql', 'name');
+        $expected = array_column(json_decode(file_get_contents(dirname(__DIR__, 2) . '/sql/starter.json'), true)['insights'], 'sql', 'fr');
+        $this->assertSame($expected['Plus grosse dépense'], $queries['Plus grosse dépense']);
+        $this->assertSame($own, $queries['Mine']);
+    }
 }
