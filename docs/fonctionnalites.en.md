@@ -128,7 +128,10 @@ transactions of the last month still without a category.
   is shown in the notifications and in the iPhone app badge.
 - **Month picker** in the header, limited to months that have transactions.
 - **Search** across all months, from two characters, with the total of the
-  transactions found.
+  transactions found. The **advanced search** (button next to the field) adds criteria:
+  expenses or incomes, smallest and largest amount (without sign), period, categories (with
+  their sub-categories) and accounts. Each criterion is shown under the toolbar and removed in
+  one click.
 - **Details**: amount, full label, date and actual date, type (card, transfer,
   direct debit…), card, originating bank, import date; the category and the checked status can be
   changed there. **Similar transactions** runs a search on the merchant's name

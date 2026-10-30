@@ -8,6 +8,7 @@
  */
 
 import { withSplitParts } from './splitModule.js';
+import { EMPTY_FILTERS, searchParams } from './searchModule.js';
 
 // What a bank adds around the merchant: kind of operation first, references after
 const LABEL_PREFIX = /^(FACTURE CARTE DU \d{4,8}|PAIEMENT (PAR )?CB|CB|CARTE|PRLV( SEPA)?|VIREMENT( SEPA)?|VIR( SEPA)?( INST)?|RETRAIT( DAB)?|CHQ|CHEQUE)\s+/;
@@ -137,11 +138,12 @@ export function createTransactionModule(getApiService) {
 
         computed: {
             /**
-             * Checks if a search is active (2 characters minimum)
+             * Checks if a search is active: 2 characters minimum, or a criterion of the
+             * advanced search
              * @returns {boolean}
              */
             isSearching() {
-                return this.searchQuery.trim().length >= 2;
+                return this.searchQuery.trim().length >= 2 || (this.searchFilterCount || 0) > 0;
             },
 
             /**
@@ -588,7 +590,7 @@ export function createTransactionModule(getApiService) {
             },
 
             /**
-             * Searches transactions by label
+             * Searches transactions by label and by the criteria of the advanced search
              * @returns {Promise<void>}
              */
             async runSearch() {
@@ -597,12 +599,13 @@ export function createTransactionModule(getApiService) {
                     return;
                 }
 
-                const query = this.searchQuery.trim();
+                const params = searchParams(this.searchQuery, this.searchFilters);
+                const key = JSON.stringify(params);
                 this.searching = true;
                 try {
-                    const results = await apiService.searchTransactions(query);
-                    // Ignore late answers for an older query
-                    if (query === this.searchQuery.trim()) {
+                    const results = await apiService.searchTransactions(params);
+                    // Ignore late answers for an older search
+                    if (key === JSON.stringify(searchParams(this.searchQuery, this.searchFilters))) {
                         this.searchResults = results;
                     }
                 } catch (err) {
@@ -613,11 +616,12 @@ export function createTransactionModule(getApiService) {
             },
 
             /**
-             * Clears the search and goes back to the month view
+             * Clears the search (text and criteria) and goes back to the month view
              */
             clearSearch() {
                 clearTimeout(this.searchTimer);
                 this.searchQuery = '';
+                this.searchFilters = { ...EMPTY_FILTERS };
                 this.searchResults = [];
             },
 

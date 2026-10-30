@@ -636,6 +636,11 @@
                                             <span class="material-icons" aria-hidden="true">close</span>
                                         </button>
                                     </div>
+                                    <button type="button" class="btn-secondary btn-advanced-search" :class="{ active: searchFilterCount > 0 }" @click="openAdvancedSearch"
+                                            :title="t('advancedSearch')" :aria-label="searchFilterCount ? t('advancedSearchActive', { count: searchFilterCount }) : t('advancedSearch')">
+                                        <span class="material-icons" aria-hidden="true">tune</span>
+                                        <span v-if="searchFilterCount" class="advanced-search-count" aria-hidden="true">{{ searchFilterCount }}</span>
+                                    </button>
                                     <div class="transaction-count">{{ t('transactionCount', { count: isSearching ? searchResults.length : transactions.length }) }}</div>
                                     <label class="toggle-switch toggle-unchecked" :class="{ on: transactionFilter === 'unchecked' }">
                                         <input type="checkbox" role="switch"
@@ -676,6 +681,16 @@
                                 <button type="button" class="btn-manual-add" @click="tagSelectedTransactions" :disabled="!selectionTag || selectedTransactionIds.length === 0">
                                     <span class="material-icons" aria-hidden="true">sell</span>{{ t('tagAdd') }}
                                 </button>
+                            </div>
+                            <!-- Criteria of the advanced search, each one removable -->
+                            <div v-if="searchFilterCount" class="search-filters" role="group" :aria-label="t('advancedSearchFilters')">
+                                <span v-for="chip in searchFilterChips" :key="chip.key + (chip.value ?? '')" class="search-filter-chip">
+                                    <span class="search-filter-chip-label">{{ chip.label }}</span>
+                                    <button type="button" @click="removeSearchFilter(chip)" :title="t('advancedSearchRemove', { filter: chip.label })" :aria-label="t('advancedSearchRemove', { filter: chip.label })">
+                                        <span class="material-icons" aria-hidden="true">close</span>
+                                    </button>
+                                </span>
+                                <button type="button" class="search-filters-clear" @click="clearSearch">{{ t('clearSearch') }}</button>
                             </div>
                             <div v-if="isSearching && !searching && displayedTransactions.length > 0" class="search-total">
                                 <span>{{ t('searchTotal', { count: displayedTransactions.length }) }}</span>
@@ -2942,6 +2957,79 @@
                     </button>
                 </div>
             </div>
+        </div>
+
+        <!-- Advanced search: criteria added to the search by label -->
+        <div v-if="searchDraft" class="modal-overlay" @click.self="closeAdvancedSearch" @keydown.esc="closeAdvancedSearch">
+            <form class="modal modal-form modal-advanced-search" role="dialog" aria-modal="true" aria-labelledby="advanced-search-title" @submit.prevent="applyAdvancedSearch">
+                <div class="modal-header">
+                    <span class="material-icons" aria-hidden="true">tune</span>
+                    <h3 id="advanced-search-title">{{ t('advancedSearch') }}</h3>
+                    <button type="button" class="modal-close" @click="closeAdvancedSearch" :aria-label="t('close')">
+                        <span class="material-icons" aria-hidden="true">close</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="advanced-search-query">{{ t('advancedSearchLabel') }}</label>
+                        <input id="advanced-search-query" type="search" v-model="searchDraft.query" maxlength="300" :placeholder="t('searchPlaceholder')" />
+                    </div>
+                    <fieldset class="manual-direction">
+                        <legend>{{ t('advancedSearchKind') }}</legend>
+                        <label><input type="radio" value="" v-model="searchDraft.kind" /> {{ t('advancedSearchAll') }}</label>
+                        <label><input type="radio" value="debit" v-model="searchDraft.kind" /> {{ t('advancedSearchExpenses') }}</label>
+                        <label><input type="radio" value="credit" v-model="searchDraft.kind" /> {{ t('advancedSearchIncomes') }}</label>
+                    </fieldset>
+                    <div class="manual-row">
+                        <div class="form-group">
+                            <label for="advanced-search-min">{{ t('advancedSearchMin', { currency: currencySymbol }) }}</label>
+                            <input id="advanced-search-min" type="number" step="0.01" min="0" inputmode="decimal" v-model="searchDraft.min" aria-describedby="advanced-search-amount-help" />
+                        </div>
+                        <div class="form-group">
+                            <label for="advanced-search-max">{{ t('advancedSearchMax', { currency: currencySymbol }) }}</label>
+                            <input id="advanced-search-max" type="number" step="0.01" min="0" inputmode="decimal" v-model="searchDraft.max" aria-describedby="advanced-search-amount-help" />
+                        </div>
+                    </div>
+                    <small id="advanced-search-amount-help" class="advanced-search-help">{{ t('advancedSearchAmountHelp') }}</small>
+                    <div class="manual-row">
+                        <div class="form-group">
+                            <label for="advanced-search-from">{{ t('advancedSearchFrom') }}</label>
+                            <input id="advanced-search-from" type="date" v-model="searchDraft.from" :max="searchDraft.to || null" />
+                        </div>
+                        <div class="form-group">
+                            <label for="advanced-search-to">{{ t('advancedSearchTo') }}</label>
+                            <input id="advanced-search-to" type="date" v-model="searchDraft.to" :min="searchDraft.from || null" />
+                        </div>
+                    </div>
+                    <fieldset class="advanced-search-list">
+                        <legend>{{ t('advancedSearchCategories') }}</legend>
+                        <small class="advanced-search-help">{{ t('advancedSearchCategoriesHelp') }}</small>
+                        <div class="advanced-search-options">
+                            <label v-for="option in searchCategoryOptions" :key="option.id" :class="{ child: option.child }">
+                                <input type="checkbox" :value="option.id" v-model="searchDraft.categories" /> {{ option.name }}
+                            </label>
+                        </div>
+                    </fieldset>
+                    <fieldset v-if="searchAccounts.length > 1" class="advanced-search-list">
+                        <legend>{{ t('advancedSearchAccounts') }}</legend>
+                        <div class="advanced-search-options">
+                            <label v-for="account in searchAccounts" :key="account.bankId">
+                                <input type="checkbox" :value="account.bankId" v-model="searchDraft.accounts" /> {{ searchAccountName(account) }}
+                            </label>
+                        </div>
+                    </fieldset>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" @click="resetAdvancedSearch">
+                        <span class="material-icons" aria-hidden="true">restart_alt</span>
+                        {{ t('advancedSearchReset') }}
+                    </button>
+                    <button type="submit">
+                        <span class="material-icons" aria-hidden="true">search</span>
+                        {{ t('advancedSearchApply') }}
+                    </button>
+                </div>
+            </form>
         </div>
 
         <!-- Split of a transaction across several categories -->

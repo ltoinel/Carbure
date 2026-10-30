@@ -78,7 +78,7 @@ from the Internet (see [Synology](synology.md), step 8).
 |---|---|
 | `list_categories` | Categories: name, parent, type (expense, income, off-budget) |
 | `list_transactions` | Transactions of a month, optionally of a category |
-| `search_transactions` | Transactions whose label contains a text |
+| `search_transactions` | Transactions of every month: by text of the label, amount, expenses or incomes, categories, period |
 | `spending_by_category` | Total and number of transactions per category over a period (`YYYY-MM`) |
 | `get_budget` | Spent and planned budget per category for a month |
 | `get_trends` | Debit, credit, off-budget, planned budget and savings month by month |

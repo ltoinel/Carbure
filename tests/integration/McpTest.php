@@ -90,6 +90,8 @@ class McpTest extends DatabaseTestCase
         $found = $this->tool('search_transactions', ['query' => 'edf']);
         $this->assertNotEmpty($found);
         $this->assertStringContainsString('EDF', $found[0]['label']);
+        // Without text: by kind, amount and categories (Énergie and Salaire)
+        $this->assertSame(['VIR SALAIRE'], array_column($this->tool('search_transactions', ['kind' => 'credit', 'min' => 1000, 'category_ids' => [3, 4]]), 'label'));
 
         $spending = $this->tool('spending_by_category');
         $this->assertSame(date('Y-m'), $spending['to']);
@@ -104,6 +106,8 @@ class McpTest extends DatabaseTestCase
     {
         // Invalid argument: a tool error the model can correct
         $response = $this->rpc('tools/call', ['name' => 'search_transactions', 'arguments' => ['query' => 'a']]);
+        $this->assertTrue($response['result']['isError']);
+        $response = $this->rpc('tools/call', ['name' => 'search_transactions', 'arguments' => []]);
         $this->assertTrue($response['result']['isError']);
 
         $response = $this->rpc('tools/call', ['name' => 'spending_by_category', 'arguments' => ['from' => '2026-13']]);

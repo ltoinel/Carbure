@@ -635,13 +635,25 @@ curl "https://exemple.fr/api/transaction/recurring?month=10&year=2026" -H "Autho
 
 ### `GET /transaction/search`
 
+Transactions de tous les mois, les plus récentes d'abord. Chaque critère est facultatif, il en
+faut au moins un (`400 search_too_short` sinon).
+
 | Paramètre | Requis | Description |
 |---|---|---|
-| `query` | oui | Texte recherché dans le libellé (2 caractères minimum, insensible à la casse) |
+| `query` | non | Texte recherché dans le libellé (2 caractères minimum, insensible à la casse) ; `#nom` : les transactions du tag |
+| `min`, `max` | non | Montant minimal et maximal, sans signe : `min=50` trouve une dépense de -50 comme un revenu de 50 (`400 search_amount_invalid` si négatif ou `min` > `max`) |
+| `kind` | non | `debit` : dépenses seules, `credit` : revenus seuls |
+| `categories` | non | Ids de catégories séparés par des virgules ; une catégorie inclut ses sous-catégories |
+| `accounts` | non | Comptes séparés par des virgules, sous la forme `bankId` de `GET /bank` (`numéro@banque`) |
+| `from`, `to` | non | Premier et dernier jour, inclus (`YYYY-MM-DD` ; `400 search_date_invalid`, `400 search_period_invalid` si `from` > `to`) |
 | `limit` | non | Nombre maximal de résultats (1 à 500, défaut 100) |
+
+Les parts d'une transaction répartie sont cherchées comme les autres lignes : avec `categories`,
+une part de la catégorie est trouvée sans sa transaction d'origine.
 
 ```bash
 curl "https://exemple.fr/api/transaction/search?query=amazon" -H "Authorization: Bearer $TOKEN"
+curl "https://exemple.fr/api/transaction/search?kind=debit&min=100&categories=1&from=2026-01-01" -H "Authorization: Bearer $TOKEN"
 ```
 
 ### `POST /transaction/import/preview`

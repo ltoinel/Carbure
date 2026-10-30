@@ -128,7 +128,10 @@ transactions du dernier mois restées sans catégorie.
   repris par les notifications et le badge de l'app iPhone.
 - **Choix du mois** dans l'en-tête, limité aux mois qui ont des transactions.
 - **Recherche** sur tous les mois, à partir de deux caractères, avec le total des
-  transactions trouvées.
+  transactions trouvées. La **recherche avancée** (bouton à côté du champ) y ajoute des
+  critères : dépenses ou revenus, montant minimal et maximal (sans signe), période,
+  catégories (avec leurs sous-catégories) et comptes. Chaque critère s'affiche sous la barre
+  d'outils et se retire d'un clic.
 - **Détail** : montant, libellé complet, date et date réelle, type (carte, virement,
   prélèvement…), carte, banque d'origine, date d'import ; la catégorie et le pointage s'y
   modifient. **Transactions similaires** y lance la recherche sur le nom du commerçant

@@ -19,6 +19,7 @@ use Carbure\Lib\Db;
 use Carbure\Lib\Jwt;
 use Carbure\Lib\Logger;
 use Carbure\Lib\Month;
+use Carbure\Lib\TransactionSearch;
 use Carbure\Lib\Webservice;
 use DateTime;
 use Error;
@@ -126,33 +127,34 @@ final class Transaction {
     }
 
     /**
-     * Search transactions by label, most recent first; "#name" gives the transactions of
-     * the tag of this name.
+     * Search transactions of every period, most recent first: by label ("#name" gives the
+     * transactions of the tag of this name) and by the criteria of the advanced search. Each
+     * criterion is optional, at least one is needed.
      *
-     * @param string|null $query The text to find in the label (2 characters minimum), or #tag
-     * @param int|string  $limit The maximum number of transactions (1 to 500)
+     * @param string|null           $query      The text to find in the label (2 characters minimum), or #tag
+     * @param int|string            $limit      The maximum number of transactions (1 to 500)
+     * @param int|float|string|null $min        Smallest amount, without sign (50: an expense of -50 or an income of 50)
+     * @param int|float|string|null $max        Largest amount, without sign
+     * @param string|null           $kind       "debit" (expenses) or "credit" (incomes)
+     * @param string|null           $categories Ids of categories, comma-separated (their sub-categories included)
+     * @param string|null           $accounts   Accounts, comma-separated bankIds (account_number@bank_name, see GET /bank)
+     * @param string|null           $from       First day (YYYY-MM-DD)
+     * @param string|null           $to         Last day (YYYY-MM-DD)
      * @return list<array<string, mixed>> The list of transactions, with the ids of their tags
-     * @throws Error If the query is too short
+     * @throws Error If there is no criterion, the query is too short or a criterion is invalid (400)
      */
     #[ApiRoute('/transaction/search', method: 'GET')]
-    public static function search(?string $query, int|string $limit = 100): array
+    public static function search(?string $query = null, int|string $limit = 100, int|float|string|null $min = null,
+        int|float|string|null $max = null, ?string $kind = null, ?string $categories = null, ?string $accounts = null,
+        ?string $from = null, ?string $to = null): array
     {
-        $query = trim((string)$query);
-        if (mb_strlen($query) < 2) {
-            throw new ApiError("Search query must contain at least 2 characters", 400, 'search_too_short');
-        }
+        [$where, $types, $params] = (new TransactionSearch($query, $min, $max, $kind, $categories, $accounts, $from, $to))->where();
         $limit = max(1, min(500, (int)$limit));
-        if (str_starts_with($query, '#')) {
-            return Tag::transactionsOf($query, $limit);
-        }
 
-        // Labels are stored in upper case; LIKE wildcards are escaped
-        $pattern = '%' . addcslashes(strtoupper($query), '%_\\') . '%';
+        $sql = "SELECT b.* FROM bank_transaction b WHERE $where ORDER BY b.date DESC, b.rdate DESC LIMIT ?";
+        $rows = Db::select($sql, $types . 'i', ...[...$params, $limit])->fetch_all(MYSQLI_ASSOC);
 
-        $sql = "SELECT * FROM bank_transaction WHERE label LIKE ? ORDER BY date DESC, rdate DESC LIMIT ?";
-        $stmt = Db::execute($sql, "si", $pattern, $limit);
-
-        return Tag::withTags(Db::result($stmt)->fetch_all(MYSQLI_ASSOC));
+        return Tag::withTags($rows);
     }
 
     /**

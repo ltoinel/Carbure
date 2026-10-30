@@ -66,6 +66,45 @@ test('searches the transactions of every month by label', async ({ adminPage: pa
     await expect(page.locator('.transactions-hint')).toHaveText(tr('noSearchResults'));
 });
 
+test('searches with the criteria of the advanced search, removable one by one', async ({ adminPage: page }) => {
+    const button = page.locator('.transactions-toolbar').getByRole('button', { name: tr('advancedSearch') });
+    await button.click();
+    const modal = page.getByRole('dialog', { name: tr('advancedSearch') });
+    await expect(modal.getByLabel(tr('advancedSearchLabel'))).toBeFocused();
+
+    // Expenses of 100 or more in Alimentation and its sub-categories, of every month
+    await modal.getByRole('radio', { name: tr('advancedSearchExpenses') }).check();
+    await modal.getByLabel(tr('advancedSearchMin', { currency: '€' })).fill('100');
+    await modal.getByRole('checkbox', { name: 'Alimentation' }).check();
+    await modal.getByRole('button', { name: tr('advancedSearchApply') }).click();
+
+    await expect(modal).toHaveCount(0);
+    await expect(page.locator('.transactions-header h2')).toHaveText(tr('searchResultsTitle'));
+    await expect(page.locator('.transaction-item')).toHaveCount(1);
+    await expect(page.locator('.transaction-item')).toContainText('CB SUPERMARCHE CARREFOUR');
+    await expect(button).toHaveAccessibleName(tr('advancedSearchActive', { count: 3 }));
+    const chips = page.locator('.search-filter-chip-label');
+    await expect(chips).toHaveText([tr('advancedSearchExpenses'), tr('advancedSearchAmountMin', { amount: euros(100) }), 'Alimentation']);
+
+    // Without the amount: the restaurant and the supermarket of this month too
+    await page.getByRole('button', { name: tr('advancedSearchRemove', { filter: tr('advancedSearchAmountMin', { amount: euros(100) }) }) }).click();
+    await expect(page.locator('.transaction-item')).toHaveCount(3);
+    await expect(page.locator('.search-total strong')).toHaveText(euros(-247.4));
+
+    // The modal starts from the search shown; a text narrows it
+    await button.click();
+    await expect(modal.getByRole('checkbox', { name: 'Alimentation' })).toBeChecked();
+    await modal.getByLabel(tr('advancedSearchLabel')).fill('casino');
+    await modal.getByRole('button', { name: tr('advancedSearchApply') }).click();
+    await expect(page.getByRole('searchbox', { name: tr('searchPlaceholder') })).toHaveValue('casino');
+    await expect(page.locator('.transaction-item')).toHaveCount(1);
+
+    await page.locator('.search-filters').getByRole('button', { name: tr('clearSearch') }).click();
+    await expect(page.locator('.search-filters')).toHaveCount(0);
+    await expect(page.getByRole('searchbox', { name: tr('searchPlaceholder') })).toHaveValue('');
+    await expect(page.locator('.transaction-item')).toHaveCount(6);
+});
+
 test('filters the transactions not checked yet', async ({ adminPage: page }) => {
     const toggle = page.locator('.toggle-unchecked');
     await expect(page.locator('.toggle-unchecked .toggle-label')).toHaveText(tr('uncheckedCount', { count: 3 }));

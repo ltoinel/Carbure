@@ -50,6 +50,10 @@ keeps track of what was done).
       their chips, filter by tag and offer to tag (`PUT /transaction/tags`); reload on the
       change marker `tags`.
 
+- [ ] **Mobile apps — advanced search (#407)**: `GET /transaction/search` takes optional
+      criteria (`min`, `max` without sign, `kind`, `categories`, `accounts`, `from`, `to`), the
+      text being optional with a criterion; offer them like the portal's modal.
+
 - [ ] **Deployment of the shown insights (#386)**: the migration `2026-11-01_insight_enabled`
       (column `budget_insight.enabled`) is applied at container start; the insights already
       installed stay shown. Before it, every insight is shown and `GET /insight/disabled` is empty.

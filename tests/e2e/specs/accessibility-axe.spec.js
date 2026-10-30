@@ -117,6 +117,19 @@ test('axe: the menus and the modals', async ({ adminPage: page, api }) => {
     await page.keyboard.press('Escape');
     await expect(manual).toHaveCount(0);
 
+    // Advanced search: its modal (categories and accounts), then the chips of its criteria
+    await page.locator('.transactions-toolbar').getByRole('button', { name: tr('advancedSearch') }).click();
+    const advanced = page.getByRole('dialog', { name: tr('advancedSearch') });
+    await expect(advanced.getByRole('group', { name: tr('advancedSearchAccounts') })).toBeVisible();
+    await advanced.getByRole('radio', { name: tr('advancedSearchExpenses') }).check();
+    await advanced.getByLabel(tr('advancedSearchMin', { currency: '€' })).fill('100');
+    problems.push(...await axeViolations(page, tr('advancedSearch')));
+    await advanced.getByRole('button', { name: tr('advancedSearchApply') }).click();
+    await expect(page.locator('.search-filter-chip')).toHaveCount(2);
+    problems.push(...await axeViolations(page, tr('advancedSearchFilters')));
+    await page.locator('.search-filters').getByRole('button', { name: tr('clearSearch') }).click();
+    await expect(page.locator('.search-filters')).toHaveCount(0);
+
     await openTab(page, tr('tabBudget'));
     await page.getByRole('tab', { name: tr('budgetConfigTab') }).click();
     await page.locator('.budget-copy-button').click();
