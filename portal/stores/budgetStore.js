@@ -35,8 +35,9 @@ export function createBudgetStore(apiService) {
         breadcrumbStack: [],
         
         /**
-         * Cached children budgets by parent ID
-         * @type {Object<number, Array>}
+         * Cached children budgets by month and parent ID ("2026-10:4"), emptied at each load
+         * of the budgets: amounts change with the month and with the transactions
+         * @type {Object<string, Array>}
          */
         childrenCache: {},
         
@@ -72,6 +73,17 @@ export function createBudgetStore(apiService) {
             .filter(b => b && b.name) // Only filter out invalid items
             .sort((a, b) => parseFloat(b.progress || 0) - parseFloat(a.progress || 0));
     }
+
+    /**
+     * Key of the children of a category in the cache
+     * @param {number} categoryId - Parent category
+     * @param {number} month - Month (1-12)
+     * @param {number} year - Year
+     * @returns {string}
+     */
+    function cacheKey(categoryId, month, year) {
+        return `${year}-${month}:${categoryId}`;
+    }
     
     /**
      * Loads root budget data
@@ -82,6 +94,8 @@ export function createBudgetStore(apiService) {
     async function loadRootBudgets(month, year) {
         state.isLoading = true;
         state.error = null;
+        // The sub-categories are fetched again: their amounts may have changed (#402)
+        state.childrenCache = {};
         
         try {
             const data = await apiService.fetchBudget(month, year);
@@ -112,10 +126,11 @@ export function createBudgetStore(apiService) {
      */
     async function navigateToChildren(item, month, year) {
         const categoryId = item.id;
+        const key = cacheKey(categoryId, month, year);
         
         // Check cache first
-        if (state.childrenCache[categoryId] && Array.isArray(state.childrenCache[categoryId])) {
-            const cachedList = state.childrenCache[categoryId];
+        if (Array.isArray(state.childrenCache[key])) {
+            const cachedList = state.childrenCache[key];
             
             if (cachedList.length === 0) {
                 // No children: stay on current page
@@ -132,7 +147,7 @@ export function createBudgetStore(apiService) {
             state.loadingChildren[categoryId] = true;
             
             const children = await apiService.fetchBudget(month, year, categoryId);
-            state.childrenCache[categoryId] = children;
+            state.childrenCache[key] = children;
             
             if (children.length === 0) {
                 // No children: stay on current page
@@ -173,11 +188,12 @@ export function createBudgetStore(apiService) {
             return;
         }
         
-        const cached = state.childrenCache[target.id];
-        if (cached && Array.isArray(cached)) {
+        const cached = state.childrenCache[cacheKey(target.id, month, year)];
+        if (Array.isArray(cached)) {
             state.currentList = cached;
         } else {
-            // Fetch if not cached
+            // Fetch if not cached (navigateToChildren pushes the level back)
+            state.breadcrumbStack.pop();
             await navigateToChildren({ id: target.id, name: target.name }, month, year);
         }
     }
@@ -194,7 +210,6 @@ export function createBudgetStore(apiService) {
         await apiService.updateBudget(budgetId, month, year, newAmount);
         // Reload the budgets (a parent depends on its sub-categories), staying on the displayed level
         const stack = state.breadcrumbStack.slice();
-        state.childrenCache = {};
         await loadRootBudgets(month, year);
         for (const crumb of stack) {
             await navigateToChildren(crumb, month, year);
@@ -212,7 +227,6 @@ export function createBudgetStore(apiService) {
         const result = await apiService.copyBudgets(month, year, overwrite);
         // Reload the budgets (a parent depends on its sub-categories), staying on the displayed level
         const stack = state.breadcrumbStack.slice();
-        state.childrenCache = {};
         await loadRootBudgets(month, year);
         for (const crumb of stack) {
             await navigateToChildren(crumb, month, year);

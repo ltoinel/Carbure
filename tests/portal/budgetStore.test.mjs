@@ -89,6 +89,47 @@ test('after a copy of the previous month, reloads and stays on the displayed lev
     assert.equal(api.calls.filter(c => c[0] === 'fetchBudget' && c[3] === 1).length, 2);
 });
 
+test('fetches the sub-categories again at each load of the budgets (#402)', async () => {
+    const api = fakeApi(LEVELS);
+    const store = createBudgetStore(api);
+    await store.loadRootBudgets(9, 2026);
+    await store.navigateToChildren(LEVELS[0][0], 9, 2026);
+
+    // Change of month: the sub-categories of September are not shown in October
+    await store.loadRootBudgets(10, 2026);
+    await store.navigateToChildren(LEVELS[0][0], 10, 2026);
+    // Reload of the same month (data changed elsewhere): fetched again too
+    await store.loadRootBudgets(10, 2026);
+    await store.navigateToChildren(LEVELS[0][0], 10, 2026);
+
+    assert.deepEqual(api.calls.filter(c => c[3] === 1).map(c => `${c[1]}/${c[2]}`), ['9/2026', '10/2026', '10/2026']);
+});
+
+test('a sub-category answer of another month never feeds the displayed month', async () => {
+    const api = fakeApi(LEVELS);
+    const store = createBudgetStore(api);
+    await store.loadRootBudgets(10, 2026);
+    // Children of September fetched while October is displayed (slow answer after a change of month)
+    await store.navigateToChildren(LEVELS[0][0], 9, 2026);
+    await store.navigateToBreadcrumb(-1, 10, 2026);
+
+    await store.navigateToChildren(LEVELS[0][0], 10, 2026);
+    assert.deepEqual(api.calls.filter(c => c[3] === 1).map(c => c[1]), [9, 10]);
+});
+
+test('goes back to a level no longer cached without repeating it in the breadcrumb', async () => {
+    const levels = { ...LEVELS, 2: [{ id: 6, name: 'Bio', progress: 10 }] };
+    const store = createBudgetStore(fakeApi(levels));
+    await store.loadRootBudgets(10, 2026);
+    await store.navigateToChildren(levels[0][0], 10, 2026);
+    await store.navigateToChildren(levels[1][0], 10, 2026);
+    store.state.childrenCache = {};
+
+    await store.navigateToBreadcrumb(0, 10, 2026);
+    assert.deepEqual(store.state.breadcrumbStack, [{ id: 1, name: 'Alimentation' }]);
+    assert.deepEqual(store.state.currentList.map(i => i.name), ['Supermarché', 'Restaurant']);
+});
+
 test('keeps the error of a failed load', async t => {
     t.mock.method(console, 'error', () => {});
     const store = createBudgetStore({ async fetchBudget() { throw new Error('Failed to fetch budget (500)'); } });
