@@ -242,3 +242,33 @@ test('a budget changed by another member of the household is shown without reloa
     await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
     await expectAmounts(card(page, 'Logement'), 950, `/ ${euros(1100)}`);
 });
+
+test('the sub-categories show the amounts of the displayed month after a change of month (#402)', async ({ adminPage: page }) => {
+    await openBudgets(page);
+    await card(page, 'Alimentation').click();
+    await expect(card(page, 'Supermarché').locator('.spent')).toHaveText(euros(82.4));
+
+    // Previous month: CB SUPERMARCHE CARREFOUR, not the amount of the current month
+    await page.getByRole('button', { name: tr('periodPrevious'), exact: true }).click();
+    await card(page, 'Alimentation').click();
+    await expect(card(page, 'Supermarché').locator('.spent')).toHaveText(euros(120));
+});
+
+test('the sub-categories follow a transaction recategorized elsewhere (#402)', async ({ adminPage: page, api }) => {
+    await openBudgets(page);
+    await card(page, 'Alimentation').click();
+    await expect(card(page, 'Supermarché').locator('.spent')).toHaveText(euros(82.4));
+    await page.getByRole('button', { name: tr('allCategories') }).click();
+
+    // Another member puts the bakery in Supermarché, then the page comes back to the foreground
+    const { month, year } = currentMonth();
+    const transactions = await (await api.get(`/api/transaction?month=${month}&year=${year}`)).json();
+    const bakery = transactions.find(t => t.label === 'CB BOULANGERIE PAUL');
+    expect((await api.put('/api/transaction/category', { data: { id: bakery.id, category: 2 } })).ok()).toBeTruthy();
+    await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+    await expect(card(page, 'Alimentation').locator('.spent')).toHaveText(euros(134.2));
+
+    // Its sub-category is fetched again, not taken from the cache
+    await card(page, 'Alimentation').click();
+    await expect(card(page, 'Supermarché').locator('.spent')).toHaveText(euros(89.2));
+});
