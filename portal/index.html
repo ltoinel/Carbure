@@ -685,7 +685,7 @@
                             <!-- Criteria of the advanced search, each one removable -->
                             <div v-if="searchFilterCount" class="search-filters" role="group" :aria-label="t('advancedSearchFilters')">
                                 <span v-for="chip in searchFilterChips" :key="chip.key + (chip.value ?? '')" class="search-filter-chip">
-                                    {{ chip.label }}
+                                    <span class="search-filter-chip-label">{{ chip.label }}</span>
                                     <button type="button" @click="removeSearchFilter(chip)" :title="t('advancedSearchRemove', { filter: chip.label })" :aria-label="t('advancedSearchRemove', { filter: chip.label })">
                                         <span class="material-icons" aria-hidden="true">close</span>
                                     </button>

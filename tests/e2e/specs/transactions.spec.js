@@ -83,7 +83,7 @@ test('searches with the criteria of the advanced search, removable one by one', 
     await expect(page.locator('.transaction-item')).toHaveCount(1);
     await expect(page.locator('.transaction-item')).toContainText('CB SUPERMARCHE CARREFOUR');
     await expect(button).toHaveAccessibleName(tr('advancedSearchActive', { count: 3 }));
-    const chips = page.locator('.search-filter-chip');
+    const chips = page.locator('.search-filter-chip-label');
     await expect(chips).toHaveText([tr('advancedSearchExpenses'), tr('advancedSearchAmountMin', { amount: euros(100) }), 'Alimentation']);
 
     // Without the amount: the restaurant and the supermarket of this month too
