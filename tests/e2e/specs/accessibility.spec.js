@@ -233,6 +233,19 @@ test('the menus, modals and the synchronization log are readable', async ({ admi
     await page.keyboard.press('Escape');
     await expect(manual).toHaveCount(0);
 
+    // Advanced search: its modal (categories and accounts), then the chips of its criteria
+    await page.locator('.transactions-toolbar').getByRole('button', { name: tr('advancedSearch') }).click();
+    const advanced = page.getByRole('dialog', { name: tr('advancedSearch') });
+    await expect(advanced.getByRole('group', { name: tr('advancedSearchAccounts') })).toBeVisible();
+    await advanced.getByRole('radio', { name: tr('advancedSearchExpenses') }).check();
+    await advanced.getByLabel(tr('advancedSearchMin', { currency: '€' })).fill('100');
+    problems.push(...await contrastProblems(page, tr('advancedSearch')));
+    await advanced.getByRole('button', { name: tr('advancedSearchApply') }).click();
+    await expect(page.locator('.search-filter-chip')).toHaveCount(2);
+    problems.push(...await contrastProblems(page, tr('advancedSearchFilters')));
+    await page.locator('.search-filters').getByRole('button', { name: tr('clearSearch') }).click();
+    await expect(page.locator('.search-filters')).toHaveCount(0);
+
     // Preview of the import of a statement file read with the profile of its bank
     await page.getByRole('button', { name: tr('importButton') }).click();
     const importModal = page.getByRole('dialog', { name: tr('importTitle') });

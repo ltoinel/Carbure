@@ -286,11 +286,17 @@ final class Mcp {
             [
                 'name' => 'search_transactions',
                 'title' => 'Search transactions',
-                'description' => 'Search the transactions whose label contains a text (e.g. a shop or a company), most recent first.',
+                'description' => 'Search the transactions of every period, most recent first: by a text of the label (e.g. a shop or a company) and/or by amount, kind, categories and dates. Give at least one criterion.',
                 'inputSchema' => ['type' => 'object', 'properties' => [
                     'query' => ['type' => 'string', 'minLength' => 2, 'description' => 'Text to find in the label'],
+                    'min' => ['type' => 'number', 'minimum' => 0, 'description' => 'Smallest amount, without sign (50 finds an expense of -50)'],
+                    'max' => ['type' => 'number', 'minimum' => 0, 'description' => 'Largest amount, without sign'],
+                    'kind' => ['type' => 'string', 'enum' => ['debit', 'credit'], 'description' => 'debit: expenses only, credit: incomes only'],
+                    'category_ids' => ['type' => 'array', 'items' => ['type' => 'integer'], 'description' => 'Only these categories and their sub-categories'],
+                    'from' => ['type' => 'string', 'format' => 'date', 'description' => 'First day (YYYY-MM-DD)'],
+                    'to' => ['type' => 'string', 'format' => 'date', 'description' => 'Last day (YYYY-MM-DD)'],
                     'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 500, 'description' => 'Maximum number of transactions (100 by default)'],
-                ], 'required' => ['query']],
+                ]],
                 'annotations' => $readOnly,
             ],
             [
@@ -363,6 +369,23 @@ final class Mcp {
     }
 
     /**
+     * The tool search_transactions: the criteria of GET /transaction/search.
+     *
+     * @param array<mixed> $arguments Its arguments
+     * @param int          $limit     Maximum number of transactions
+     * @return list<array<string, mixed>> The transactions
+     * @throws Error If there is no criterion or one is invalid
+     */
+    private static function searchTransactions(array $arguments, int $limit): array
+    {
+        $text = fn($key) => isset($arguments[$key]) && is_scalar($arguments[$key]) ? (string)$arguments[$key] : null;
+        $categories = is_array($arguments['category_ids'] ?? null)
+            ? implode(',', array_map(fn($id) => is_scalar($id) ? (string)$id : '', $arguments['category_ids'])) : null;
+        return Transaction::search($text('query'), $limit, $text('min'), $text('max'), $text('kind'), $categories,
+            null, $text('from'), $text('to'));
+    }
+
+    /**
      * Run a tool.
      *
      * @param string       $name      The tool
@@ -382,7 +405,7 @@ final class Mcp {
                 return self::compact(Transaction::get($int('month'), $int('year'), $int('category_id')));
 
             case 'search_transactions':
-                return self::compact(Transaction::search($arguments['query'] ?? '', $int('limit', 100)));
+                return self::compact(self::searchTransactions($arguments, $int('limit', 100)));
 
             case 'spending_by_category':
                 return self::spendingByCategory($arguments['from'] ?? null, $arguments['to'] ?? null);

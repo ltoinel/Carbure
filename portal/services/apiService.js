@@ -213,13 +213,14 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
     }
 
     /**
-     * Searches transactions by label
-     * @param {string} query - Text to find in the label (2 characters minimum)
+     * Searches transactions by label and by the criteria of the advanced search
+     * @param {Object<string, string>} params - Parameters (searchParams() of searchModule.js):
+     *                                          query, min, max, kind, from, to, categories, accounts
      * @returns {Promise<Array>} Array of transaction objects, most recent first
      * @throws {Error} If request fails
      */
-    async function searchTransactions(query) {
-        const url = `${baseUrl}/transaction/search?query=${encodeURIComponent(query)}`;
+    async function searchTransactions(params) {
+        const url = `${baseUrl}/transaction/search?${new URLSearchParams(params)}`;
         const data = await request(url, {}, 'Failed to search transactions');
         return Array.isArray(data) ? data : [];
     }

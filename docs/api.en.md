@@ -632,13 +632,25 @@ curl "https://exemple.fr/api/transaction/recurring?month=10&year=2026" -H "Autho
 
 ### `GET /transaction/search` { #get-transactionsearch }
 
+Transactions of every month, most recent first. Each criterion is optional, at least one is
+needed (`400 search_too_short` otherwise).
+
 | Parameter | Required | Description |
 |---|---|---|
-| `query` | yes | Text searched in the label (2 characters minimum, case-insensitive) |
+| `query` | no | Text searched in the label (2 characters minimum, case-insensitive); `#name`: the transactions of the tag |
+| `min`, `max` | no | Smallest and largest amount, without sign: `min=50` finds an expense of -50 as well as an income of 50 (`400 search_amount_invalid` if negative or `min` > `max`) |
+| `kind` | no | `debit`: expenses only, `credit`: incomes only |
+| `categories` | no | Comma-separated category ids; a category includes its sub-categories |
+| `accounts` | no | Comma-separated accounts, as the `bankId` of `GET /bank` (`number@bank`) |
+| `from`, `to` | no | First and last day, included (`YYYY-MM-DD`; `400 search_date_invalid`, `400 search_period_invalid` if `from` > `to`) |
 | `limit` | no | Maximum number of results (1 to 500, default 100) |
+
+The parts of a split transaction are searched like the other rows: with `categories`, a part
+of the category is found without its original transaction.
 
 ```bash
 curl "https://exemple.fr/api/transaction/search?query=amazon" -H "Authorization: Bearer $TOKEN"
+curl "https://exemple.fr/api/transaction/search?kind=debit&min=100&categories=1&from=2026-01-01" -H "Authorization: Bearer $TOKEN"
 ```
 
 ### `POST /transaction/import/preview` { #post-transactionimportpreview }

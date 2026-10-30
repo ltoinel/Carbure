@@ -13,6 +13,7 @@ import FlowChart from './components/FlowChart.js';
 import { createApiService } from './services/apiService.js';
 import { createBudgetStore } from './stores/budgetStore.js';
 import { createTransactionModule } from './modules/transactionModule.js';
+import { createSearchModule } from './modules/searchModule.js';
 import { createSplitModule } from './modules/splitModule.js';
 import { createManualModule } from './modules/manualModule.js';
 import { createTagsModule } from './modules/tagsModule.js';
@@ -95,6 +96,7 @@ const app = createApp({
     // Apply mixins from modules
     mixins: [
         createTransactionModule(() => apiService),
+        createSearchModule(() => apiService),
         createSplitModule(() => apiService),
         createManualModule(() => apiService),
         createTagsModule(() => apiService),

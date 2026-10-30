@@ -1,5 +1,6 @@
 <?php
 
+use Carbure\Lib\ApiError;
 use Carbure\Lib\Db;
 use Carbure\Resources\Transaction;
 
@@ -51,6 +52,82 @@ class TransactionIntegrationTest extends DatabaseTestCase
         $this->expectException(Error::class);
         $this->expectExceptionCode(400);
         Transaction::search(' a ');
+    }
+
+    public function testSearchByAmountWithoutSign()
+    {
+        // 50 to 80: the expenses of -50 and -80, not the income of 2000 nor the -10
+        $this->assertSame(['PRLV SEPA EDF ', 'CB SUPERMARCHE'], $this->searchLabels(min: '50', max: '80'));
+        $this->assertSame(['VIR SALAIRE'], $this->searchLabels(min: '1000,5'));
+    }
+
+    public function testSearchByKind()
+    {
+        $this->assertSame(['VIR SALAIRE'], $this->searchLabels(kind: 'credit'));
+        $this->assertNotContains('VIR SALAIRE', $this->searchLabels(kind: 'debit'));
+        $this->assertCount(4, $this->searchLabels(kind: 'debit'));
+    }
+
+    public function testSearchByCategoryWithItsSubCategories()
+    {
+        // Alimentation (1) includes Supermarché (2), of every period
+        $this->assertSame(['CB SUPERMARCHE', 'CB SUPERMARCHE ANCIEN'], $this->searchLabels(categories: '1'));
+        $this->assertSame(['PRLV SEPA EDF ', 'VIR SALAIRE'], $this->searchLabels(categories: '3, 4'));
+        // The default category (0) has no sub-category: not every top-level category
+        $this->assertSame(['CB 100% BIO'], $this->searchLabels(categories: '0'));
+    }
+
+    public function testSearchByAccount()
+    {
+        Db::query("UPDATE bank_transaction SET bank_name = 'bnp', account_number = '111' WHERE uuid IN ('u2', 'u3')");
+
+        $this->assertSame(['PRLV SEPA EDF ', 'VIR SALAIRE'], $this->searchLabels(accounts: '111@bnp'));
+        $this->assertSame([], $this->searchLabels(accounts: '111@other'));
+    }
+
+    public function testSearchByPeriodAndCombined()
+    {
+        $this->assertSame(['CB SUPERMARCHE ANCIEN'], $this->searchLabels(from: '2020-01-01', to: '2020-01-31'));
+        $this->assertSame(['CB SUPERMARCHE'], $this->searchLabels('super', from: $this->day(1)));
+        $this->assertSame(['CB SUPERMARCHE ANCIEN'], $this->searchLabels('super', max: '10', kind: 'debit'));
+    }
+
+    public function testSearchRejectsInvalidCriteria()
+    {
+        $cases = [
+            'no criterion' => [[], 'search_too_short'],
+            'empty criteria' => [['query' => ' ', 'min' => '', 'categories' => ' , '], 'search_too_short'],
+            'short text with a criterion' => [['query' => 'a', 'kind' => 'debit'], 'search_too_short'],
+            'negative amount' => [['min' => '-5'], 'search_amount_invalid'],
+            'not an amount' => [['max' => 'abc'], 'search_amount_invalid'],
+            'min above max' => [['min' => '20', 'max' => '10'], 'search_amount_invalid'],
+            'invalid day' => [['from' => '2026-02-30'], 'search_date_invalid'],
+            'reversed period' => [['from' => '2026-02-01', 'to' => '2026-01-01'], 'search_period_invalid'],
+            'unknown kind' => [['kind' => 'all'], null],
+            'invalid category' => [['categories' => '1,x'], null],
+            'account without bank' => [['accounts' => '111'], null],
+        ];
+        foreach ($cases as $name => [$criteria, $code]) {
+            try {
+                Transaction::search(...$criteria);
+                $this->fail("$name: no error");
+            } catch (Error $e) {
+                $this->assertSame(400, $e->getCode(), $name);
+                $this->assertSame($code, $e instanceof ApiError ? $e->getErrorCode() : null, $name);
+            }
+        }
+    }
+
+    /**
+     * Labels found by a search
+     *
+     * @param string|null $query Text
+     * @param string|null $min, $max, $kind, $categories, $accounts, $from, $to Criteria
+     */
+    private function searchLabels(?string $query = null, ?string $min = null, ?string $max = null, ?string $kind = null,
+        ?string $categories = null, ?string $accounts = null, ?string $from = null, ?string $to = null): array
+    {
+        return array_column(Transaction::search($query, 100, $min, $max, $kind, $categories, $accounts, $from, $to), 'label');
     }
 
     public function testDelete()

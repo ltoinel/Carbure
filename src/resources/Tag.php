@@ -166,22 +166,6 @@ final class Tag {
     }
 
     /**
-     * The transactions of a tag, by its name (the search "#name"), most recent first.
-     *
-     * @param string $name  The name of the tag (with or without its #)
-     * @param int    $limit The maximum number of transactions
-     * @return list<array<string, mixed>> The transactions, with their tags
-     */
-    public static function transactionsOf(string $name, int $limit): array
-    {
-        $name = mb_strtolower(ltrim(trim($name), '#'));
-        $rows = Db::select("SELECT b.* FROM bank_transaction b JOIN transaction_tag tt ON tt.transaction_id = b.id
-            JOIN tag g ON g.id = tt.tag_id WHERE g.name = ? ORDER BY b.date DESC, b.rdate DESC LIMIT ?", "si", $name, $limit)
-            ->fetch_all(MYSQLI_ASSOC);
-        return self::withTags($rows);
-    }
-
-    /**
      * Transactions with the ids of their tags (tags: [] before the migration of the tags).
      *
      * @param list<array<string, mixed>> $transactions Rows of bank_transaction

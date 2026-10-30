@@ -78,7 +78,7 @@ depuis Internet (voir [Synology](synology.md), étape 8).
 |---|---|
 | `list_categories` | Catégories : nom, parent, type (dépense, revenu, hors budget) |
 | `list_transactions` | Transactions d'un mois, éventuellement d'une catégorie |
-| `search_transactions` | Transactions dont le libellé contient un texte |
+| `search_transactions` | Transactions de tous les mois : par texte du libellé, montant, dépenses ou revenus, catégories, période |
 | `spending_by_category` | Total et nombre de transactions par catégorie sur une période (`YYYY-MM`) |
 | `get_budget` | Dépensé et budget prévu par catégorie pour un mois |
 | `get_trends` | Débit, crédit, hors budget, budget prévu et épargne mois par mois |
