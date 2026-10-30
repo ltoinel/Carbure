@@ -249,7 +249,7 @@ test('the sub-categories show the amounts of the displayed month after a change 
     await expect(card(page, 'Supermarché').locator('.spent')).toHaveText(euros(82.4));
 
     // Previous month: CB SUPERMARCHE CARREFOUR, not the amount of the current month
-    await page.getByRole('button', { name: tr('periodPrevious') }).click();
+    await page.getByRole('button', { name: tr('periodPrevious'), exact: true }).click();
     await card(page, 'Alimentation').click();
     await expect(card(page, 'Supermarché').locator('.spent')).toHaveText(euros(120));
 });
