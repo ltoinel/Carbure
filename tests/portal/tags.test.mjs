@@ -159,7 +159,7 @@ test('a tag that cannot be created is not added', async () => {
     assert.deepEqual(context.toasts, ['A tag named #voyage already exists']);
 });
 
-test('creates a tag typed in the selection bar, then adds it to the selection', async () => {
+test('creates a tag typed in the selection bar, then applies it to the selection', async () => {
     const sent = [];
     const context = tagsContext({
         createTag: async t => ({ id: 8, ...t, active: true }),
@@ -167,15 +167,17 @@ test('creates a tag typed in the selection bar, then adds it to the selection', 
         fetchTags: async () => context.tags,
     });
     context.transactions = [{ id: 4, tags: [] }];
-    // Nothing selected: nothing created
-    await context.createSelectionTag('noel');
-    assert.equal(context.tags.length, 3);
-
     context.toggleTransactionSelection();
     context.toggleSelectedTransaction(context.transactions[0]);
+
+    // Created and chosen, not applied yet: the button of the bar applies it
     await context.createSelectionTag('noel');
+    assert.equal(context.selectionTag, 8);
+    assert.deepEqual(sent, []);
+    await context.tagSelectedTransactions(context.selectionTag);
     assert.deepEqual(sent, [[[4], [8], []]]);
     assert.deepEqual(context.transactions[0].tags, [8]);
+    assert.equal(context.selectionTag, '');
 });
 
 test('saves a new tag, then reloads the tags', async () => {

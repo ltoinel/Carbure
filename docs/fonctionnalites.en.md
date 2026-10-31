@@ -249,8 +249,9 @@ categories: each transaction keeps its own, the budgets and the trends do not ch
   longer offered, its summary still readable.
 - **Tag by hand**: from the details of a transaction, or on a **selection** of the list
   (**Select**, tick the transactions). **Type** the tag: the matching active tags are listed,
-  Enter or a click adds it at once; a new name offers to **create** the tag (from today,
-  default color). A transaction may have several tags; no automatic rule.
+  Enter or a click chooses it; a new name offers to **create** the tag (from today, default
+  color). In the details, the tag chosen is added at once; on a selection, **Apply the tag**
+  adds it to the ticked transactions. A transaction may have several tags; no automatic rule.
 - **Summary of a tag**: its net cost (refunds deducted), the split by category, the evolution
   day by day (with the table of the values) and its transactions.
 - **Search** `#trip-italy` in Transactions: the transactions of the tag, every month. The

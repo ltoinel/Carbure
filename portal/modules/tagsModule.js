@@ -100,7 +100,9 @@ export function createTagsModule(getApiService) {
                 tagSummary: null,
                 // Selection of transactions of the list, to tag them at once
                 selectingTransactions: false,
-                selectedTransactionIds: []
+                selectedTransactionIds: [],
+                // Tag chosen in the selection bar, applied by its button
+                selectionTag: ''
             };
         },
 
@@ -365,6 +367,7 @@ export function createTagsModule(getApiService) {
             toggleTransactionSelection() {
                 this.selectingTransactions = !this.selectingTransactions;
                 this.selectedTransactionIds = [];
+                this.selectionTag = '';
             },
 
             /**
@@ -398,6 +401,7 @@ export function createTagsModule(getApiService) {
                     this.showToast(this.t('tagAddedToSelection', { count: ids.length, name: this.tagsById.get(tag)?.name || '' }));
                     this.selectingTransactions = false;
                     this.selectedTransactionIds = [];
+                    this.selectionTag = '';
                     this.loadTags();
                 } catch (error) {
                     this.showToast(this.apiErrorText(error));
@@ -405,18 +409,14 @@ export function createTagsModule(getApiService) {
             },
 
             /**
-             * Creates a tag typed in the selection bar, then adds it to the selected transactions
+             * Creates a tag typed in the selection bar: it becomes the tag chosen, applied by
+             * the button of the bar
              * @param {string} name - Name of the tag
              * @returns {Promise<void>}
              */
             async createSelectionTag(name) {
-                if (!this.selectedTransactionIds.length) {
-                    return;
-                }
                 const tag = await this.createTypedTag(name);
-                if (tag) {
-                    await this.tagSelectedTransactions(Number(tag.id));
-                }
+                this.selectionTag = tag ? Number(tag.id) : '';
             }
         }
     };

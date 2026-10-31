@@ -53,9 +53,21 @@ test('tags transactions of a project, then shows its summary', async ({ userPage
     await page.getByLabel(tr('tagSelectTransaction', { label: 'CB SUPERMARCHE CASINO' })).check();
     await page.getByLabel(tr('tagSelectTransaction', { label: 'CB BOULANGERIE PAUL' })).check();
     await expect(page.locator('.tag-selection-count')).toHaveText(tr('tagSelected', { count: 2 }));
+    // The tag typed and chosen stays in the field, then "Apply the tag" adds it to the selection
+    const bar = page.locator('.tag-selection-bar');
+    const apply = bar.getByRole('button', { name: tr('tagApply') });
+    await expect(apply).toBeDisabled();
     const selectionField = page.getByRole('combobox', { name: tr('tagAddToSelection') });
     await selectionField.fill('voyage');
-    await page.locator('.tag-selection-bar').getByRole('option', { name: '#voyage-italie' }).click();
+    await bar.getByRole('option', { name: '#voyage-italie' }).click();
+    await expect(selectionField).toHaveValue('#voyage-italie');
+    await expect(bar.getByRole('listbox')).toBeHidden();
+    // Changed: no tag chosen anymore
+    await selectionField.fill('#voyage-ital');
+    await expect(apply).toBeDisabled();
+    await selectionField.press('Enter');
+    await expect(selectionField).toHaveValue('#voyage-italie');
+    await apply.click();
     await expect(page.locator('.toast')).toHaveText(tr('tagAddedToSelection', { count: 2, name: 'voyage-italie' }));
     await expect(page.locator('.tag-selection-bar')).toHaveCount(0);
 
