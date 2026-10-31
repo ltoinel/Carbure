@@ -1,6 +1,6 @@
 // Accessibility: every text of the portal is readable (WCAG 2.2 AA contrast), the
 // buttons at rest and on hover, on every tab and in the modals (see a11y.js)
-const { test, expect, tr, openTab, trustWoobRepository, asDemoInstance, woobFile } = require('../fixtures');
+const { test, expect, tr, openTab, offerBudgetCopy, trustWoobRepository, asDemoInstance, woobFile } = require('../fixtures');
 const { contrastProblems } = require('../a11y');
 const { startFakeSmtp } = require('../fake-smtp');
 const { startFakePushRelay } = require('../fake-push-relay');
@@ -256,6 +256,8 @@ test('the menus, modals and the synchronization log are readable', async ({ admi
     await expect(importModal).toHaveCount(0);
 
     // Copy of the budgets of the previous month (Budgets view)
+    // Offered when the month has no budget and the previous month has some
+    await offerBudgetCopy(api);
     await openTab(page, tr('tabBudget'));
     await page.getByRole('tab', { name: tr('budgetConfigTab') }).click();
     await page.locator('.budget-copy-button').click();

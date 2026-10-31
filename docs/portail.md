@@ -239,7 +239,10 @@ Deux sous-onglets : **Flux** (affiché par défaut) et **Budgets**.
   le montant saisi la remplace.
 - **Recopier les budgets du mois précédent** : le bouton au-dessus de la synthèse reprend
   les budgets du mois précédent (`POST /budget/copy`), en complétant seulement les
-  catégories sans budget ou en écrasant le mois affiché.
+  catégories sans budget ou en écrasant le mois affiché. Il n'apparaît que si le mois
+  affiché n'a aucun budget et que le mois précédent en a (`GET /budget/copy`) ; il est
+  réévalué au changement de mois, après un réglage, après la recopie et quand un autre
+  membre du foyer modifie les budgets.
 
 ## Insights
 

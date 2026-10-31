@@ -142,6 +142,71 @@ class BudgetTest extends DatabaseTestCase
         $this->assertEquals(160, $budget['Alimentation']['budget']);
     }
 
+    public function testCopyStatusOfAMonthWithBudgets()
+    {
+        // The current month has its budgets: the copy is not offered
+        $status = Budget::copyStatus();
+        $this->assertSame(date('Y-m'), $status['month']);
+        $this->assertSame(date('Y-m', strtotime(date('Y-m-01') . ' -1 month')), $status['source']);
+        $this->assertTrue($status['defined']);
+        $this->assertFalse($status['copyable']);
+    }
+
+    public function testCopyStatusOfAnEmptyMonthAfterAMonthWithBudgets()
+    {
+        // Next month is empty, the current month has budgets: the copy is offered
+        $next = strtotime(date('Y-m-01') . ' +1 month');
+        $status = Budget::copyStatus(date('n', $next), date('Y', $next));
+        $this->assertSame(date('Y-m', $next), $status['month']);
+        $this->assertSame(date('Y-m'), $status['source']);
+        $this->assertFalse($status['defined']);
+        $this->assertTrue($status['source_defined']);
+        $this->assertTrue($status['copyable']);
+
+        // Once copied, the month has its budgets: no longer offered
+        Budget::copy(date('n', $next), date('Y', $next));
+        $this->assertFalse(Budget::copyStatus(date('n', $next), date('Y', $next))['copyable']);
+    }
+
+    public function testCopyStatusRouteForAUser()
+    {
+        // GET /budget/copy, the month from the query string, for any member of the household
+        $this->loginAs(self::USER);
+        $next = strtotime(date('Y-m-01') . ' +1 month');
+        $status = json_decode($this->callRoute('GET', '/budget/copy', ['month' => date('n', $next), 'year' => date('Y', $next)]), true);
+        $this->assertSame(['month' => date('Y-m', $next), 'source' => date('Y-m'), 'defined' => false, 'source_defined' => true, 'copyable' => true], $status);
+    }
+
+    public function testCopyStatusWithoutBudgetInThePreviousMonth()
+    {
+        // Two months ahead: neither the month nor the previous one has a budget
+        $later = strtotime(date('Y-m-01') . ' +2 months');
+        $status = Budget::copyStatus(date('n', $later), date('Y', $later));
+        $this->assertFalse($status['defined']);
+        $this->assertFalse($status['source_defined']);
+        $this->assertFalse($status['copyable']);
+    }
+
+    public function testCopyStatusIgnoresBudgetsAtZero()
+    {
+        // A budget at 0 ("sum of the sub-categories") is not a defined budget
+        Budget::create(1, 0, 2, 2020);
+        Budget::create(1, 0, 3, 2020);
+        $this->assertFalse(Budget::copyStatus(3, 2020)['source_defined']);
+        $this->assertFalse(Budget::copyStatus(3, 2020)['defined']);
+
+        // February has an amount, March only rows at 0: the copy is offered
+        Budget::create(2, 160, 2, 2020);
+        $status = Budget::copyStatus(3, 2020);
+        $this->assertSame('2020-02', $status['source']);
+        $this->assertTrue($status['copyable']);
+
+        // Across the year boundary too
+        Budget::create(4, 50, 12, 2019);
+        $this->assertSame('2019-12', Budget::copyStatus('1', '2020')['source']);
+        $this->assertTrue(Budget::copyStatus('1', '2020')['copyable']);
+    }
+
     public function testParentBudgetIsTheSumOfItsChildren()
     {
         // 0 removes the override of Alimentation: the budget of Supermarché is used

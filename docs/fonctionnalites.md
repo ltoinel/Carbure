@@ -338,7 +338,8 @@ Un budget est un **montant par catégorie et par mois**.
   utilisateurs.
 - **Recopie du mois précédent** : le bouton au-dessus de la synthèse reprend les budgets
   du mois précédent, en complétant seulement les catégories sans budget ou en écrasant
-  le mois affiché.
+  le mois affiché. Il n'est proposé que si le mois affiché n'a encore aucun budget et que
+  le mois précédent en a (un budget à 0, somme des sous-catégories, ne compte pas).
 
 ## Flux du mois
 
