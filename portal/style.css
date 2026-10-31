@@ -4141,26 +4141,12 @@ button .material-icons {
     cursor: default;
 }
 
-/* Sections of the Accounts page: connected banks, then followed accounts */
+/* Titles of the groups of a list (e.g. the Admin settings) */
 .accounts-section-title {
     margin: 20px 0 4px;
     font-size: 15px;
     font-weight: 600;
     color: var(--text-primary);
-}
-
-/* Title of the manual accounts, with its button (below it on narrow screens) */
-.accounts-section-header {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px 16px;
-    margin-top: 24px;
-}
-
-.accounts-section-header .accounts-section-title {
-    margin: 0;
 }
 
 /* Transaction entered by hand: direction, then amount and date side by side */

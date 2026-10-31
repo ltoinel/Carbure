@@ -350,15 +350,23 @@ protégée.
 
 ## Comptes (administrateurs)
 
-La page est organisée par banque : chaque **banque connectée** (en-tête avec son nom et
+La page a deux blocs : **Comptes synchronisés** (avec woob) et **Comptes manuels**. La
+synchronisation, la mise à jour des modules bancaires et **Connecter une banque** ne
+concernent que le premier.
+
+Les comptes synchronisés sont organisés par banque : chaque **banque connectée** (en-tête avec son nom et
 ses actions) présente juste en dessous, en retrait, les **comptes suivis** qui en
 viennent ; une banque sans compte suivi l'indique (« Aucun compte suivi : ajoutez des
 comptes de cette banque »). Les comptes d'une banque qui n'est plus connectée dans woob,
 ou importés depuis un fichier, sont regroupés à la fin sous **Autres comptes**.
 
-Les **comptes manuels** ont leur propre section, sous les banques : un compte jamais
+Le bouton rond **+** des comptes synchronisés ajoute des comptes d'une **banque déjà
+connectée** : on choisit la banque (directement ses comptes s'il n'y en a qu'une, la
+connexion d'une banque s'il n'y en a aucune), puis on coche ses comptes à suivre.
+
+Les **comptes manuels** ont leur propre bloc : un compte jamais
 synchronisé (espèces, banque que woob ne gère pas), dont les transactions sont saisies à
-la main dans l'onglet Transactions. **Ajouter un compte manuel** demande un nom (« Espèces »)
+la main dans l'onglet Transactions. Son bouton rond **+** (**Ajouter un compte manuel**) demande un nom (« Espèces »)
 et, en option, un numéro (par exemple l'IBAN sans espaces). Il se renomme et se supprime
 comme les autres comptes ; il n'a pas de bouton de synchronisation.
 

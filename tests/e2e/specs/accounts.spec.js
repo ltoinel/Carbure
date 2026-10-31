@@ -170,6 +170,37 @@ test('adds accounts of a connected bank, from the accounts woob lists for it', a
     await expect(account(page, '00087654321@bnp').locator('.account-name')).toContainText('Livret A');
 });
 
+test('two blocks: the synchronized accounts with their actions, the manual ones with their + (#434)', async ({ adminPage: page }) => {
+    await openTab(page, tr('tabAccounts'));
+    const synced = page.getByRole('region', { name: tr('syncedAccountsTitle') });
+    const manual = page.getByRole('region', { name: tr('manualAccountsTitle') });
+    await expect(synced.locator('.bank-group')).toHaveCount(3);
+    await expect(manual.locator('.account-item')).toHaveCount(0);
+    await expect(manual.locator('.transactions-hint')).toHaveText(tr('manualAccountsEmpty'));
+
+    // Sync, update of the woob modules and connection of a bank: only for the synchronized accounts
+    for (const name of [tr('syncAllAccounts'), tr('woobUpdateButton'), tr('connectBankTitle')]) {
+        await expect(synced.getByRole('button', { name })).toBeVisible();
+        await expect(manual.getByRole('button', { name })).toHaveCount(0);
+    }
+    await expect(manual.getByRole('button', { name: tr('manualAccountAdd') })).toHaveClass(/btn-add-icon/);
+
+    // The + of the synchronized accounts: a bank already connected, then its accounts
+    await synced.getByRole('button', { name: tr('addAccountsFromBank') }).click();
+    const modal = page.getByRole('dialog', { name: tr('addAccountsFromBank') });
+    const bank = modal.getByLabel(tr('addAccountsBank'));
+    await expect(bank.locator('option')).toHaveCount(3);
+    await expect(bank.locator('option').nth(1)).toHaveText('BNP Paribas (bnp)');
+    await expect(modal.getByRole('checkbox')).toHaveCount(0);
+    await bank.selectOption('bnp');
+    const bnp = page.getByRole('dialog', { name: tr('addAccountsTitle', { bank: 'BNP Paribas (bnp)' }) });
+    await expect(bnp.getByRole('checkbox', { name: /Compte chèques/ })).toBeChecked();
+    await bnp.getByRole('checkbox', { name: /Livret A/ }).check();
+    await bnp.getByRole('button', { name: tr('followSelected', { count: 1 }) }).click();
+    await expect(page.locator('.toast')).toHaveText(tr('accountsFollowedToast', { count: 1 }));
+    await expect(account(page, '00087654321@bnp')).toHaveCount(1);
+});
+
 test('names an account, shown instead of the bank and the end of its number', async ({ adminPage: page }) => {
     await openTab(page, tr('tabAccounts'));
     const bnp = account(page, 'DEMO0000001@bnp');
