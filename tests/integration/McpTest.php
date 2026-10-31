@@ -4,6 +4,7 @@ use Carbure\Lib\Db;
 use Carbure\Lib\Jwt;
 use Carbure\Lib\Setting;
 use Carbure\Resources\ApiToken;
+use Carbure\Resources\Insight;
 use Carbure\Resources\Mcp;
 
 class McpTest extends DatabaseTestCase
@@ -46,6 +47,7 @@ class McpTest extends DatabaseTestCase
         $this->assertSame('2025-06-18', $response['result']['protocolVersion']);
         $this->assertSame('carbure', $response['result']['serverInfo']['name']);
         $this->assertArrayHasKey('tools', $response['result']['capabilities']);
+        $this->assertArrayHasKey('prompts', $response['result']['capabilities']);
 
         // Unknown version: the most recent one supported
         $this->assertSame('2025-11-25', $this->rpc('initialize', ['protocolVersion' => '1999-01-01'])['result']['protocolVersion']);
@@ -67,7 +69,8 @@ class McpTest extends DatabaseTestCase
     {
         $tools = array_column($this->rpc('tools/list')['result']['tools'], null, 'name');
         $this->assertEqualsCanonicalizing(
-            ['list_categories', 'list_transactions', 'search_transactions', 'spending_by_category', 'get_budget', 'get_trends', 'list_rules'],
+            ['list_categories', 'list_transactions', 'search_transactions', 'spending_by_category', 'get_budget', 'get_trends', 'list_rules',
+                'get_insight_guide', 'check_insight_query'],
             array_keys($tools)
         );
         foreach ($tools as $tool) {
@@ -100,6 +103,76 @@ class McpTest extends DatabaseTestCase
         $this->assertNotEmpty($this->tool('get_budget'));
         $this->assertCount(3, $this->tool('get_trends', ['months' => 3]));
         $this->assertNotEmpty($this->tool('list_rules'));
+    }
+
+    public function testInsightGuide()
+    {
+        $guide = $this->tool('get_insight_guide');
+        $this->assertSame(Insight::COLORS, $guide['colors']);
+        $this->assertArrayHasKey('bank_transaction', $guide['tables']);
+        // Only the tables an insight can read are described
+        $this->assertEqualsCanonicalizing(Insight::READABLE_TABLES, array_keys($guide['tables']));
+        $this->assertNotEmpty($guide['insights']);
+        // The queries of the insights are for the administrators
+        $this->assertArrayNotHasKey('sql', $guide['insights'][0]);
+        $this->loginAs(self::ADMIN);
+        $this->assertArrayHasKey('sql', $this->tool('get_insight_guide')['insights'][0]);
+
+        // Its examples follow the rules of the portal
+        foreach ($guide['examples'] as $example) {
+            $this->assertLessThanOrEqual(20, mb_strlen($example['name']), $example['name']);
+            $this->assertContains($example['color'], Insight::COLORS);
+            $this->assertTrue(Insight::check($example['sql'])['valid'], $example['name']);
+        }
+    }
+
+    public function testCheckInsightQuery()
+    {
+        $sql = 'SELECT SUM(amount) AS amount FROM bank_transaction WHERE MONTH(date) = {month} AND YEAR(date) = {year}';
+
+        // Administrators only, as POST /insight/check
+        $response = $this->rpc('tools/call', ['name' => 'check_insight_query', 'arguments' => ['sql' => $sql]]);
+        $this->assertTrue($response['result']['isError']);
+
+        $this->loginAs(self::ADMIN);
+        $check = $this->tool('check_insight_query', ['sql' => $sql, 'months' => 3]);
+        $this->assertTrue($check['valid']);
+        $this->assertCount(3, $check['amounts']);
+        // Oldest first, ending with the current month
+        $this->assertSame(date('Y-m'), $check['amounts'][2]['month']);
+        $this->assertEquals(Insight::check($sql)['amount'], $check['amounts'][2]['amount']);
+
+        // An invalid query: the error of the portal, to fix (not a tool error)
+        $check = $this->tool('check_insight_query', ['sql' => 'SELECT password AS amount FROM users']);
+        $this->assertFalse($check['valid']);
+        $this->assertNotEmpty($check['error']);
+        $this->assertArrayHasKey('error_code', $check);
+        $check = $this->tool('check_insight_query', ['sql' => 'SELECT 1 FROM bank_transaction']);
+        $this->assertSame('insight_query_no_amount', $check['error_code']);
+
+        // Invalid arguments: tool errors
+        foreach ([['sql' => ''], ['sql' => $sql, 'months' => 7], ['sql' => $sql, 'month' => 13]] as $arguments) {
+            $response = $this->rpc('tools/call', ['name' => 'check_insight_query', 'arguments' => $arguments]);
+            $this->assertTrue($response['result']['isError'], json_encode($arguments));
+        }
+    }
+
+    public function testProposeInsightPrompt()
+    {
+        $prompts = $this->rpc('prompts/list')['result']['prompts'];
+        $this->assertSame(['propose_insight'], array_column($prompts, 'name'));
+        $this->assertTrue($prompts[0]['arguments'][0]['required']);
+
+        $prompt = $this->rpc('prompts/get', ['name' => 'propose_insight', 'arguments' => ['need' => 'mes restaurants le week-end']])['result'];
+        $this->assertSame('user', $prompt['messages'][0]['role']);
+        $text = $prompt['messages'][0]['content']['text'];
+        $this->assertStringContainsString('mes restaurants le week-end', $text);
+        $this->assertStringContainsString('get_insight_guide', $text);
+        $this->assertStringContainsString('check_insight_query', $text);
+
+        // Unknown prompt, missing need: JSON-RPC errors
+        $this->assertSame(-32602, $this->rpc('prompts/get', ['name' => 'drop_database'])['error']['code']);
+        $this->assertSame(-32602, $this->rpc('prompts/get', ['name' => 'propose_insight', 'arguments' => []])['error']['code']);
     }
 
     public function testToolErrors()

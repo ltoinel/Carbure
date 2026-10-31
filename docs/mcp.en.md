@@ -83,6 +83,24 @@ from the Internet (see [Synology](synology.md), step 8).
 | `get_budget` | Spent and planned budget per category for a month |
 | `get_trends` | Debit, credit, off-budget, planned budget and savings month by month |
 | `list_rules` | Automatic categorization rules |
+| `get_insight_guide` | Everything needed to write an insight: rules of the query, readable tables and columns, common expressions, colors, examples and the insights already defined (their query for an administrator) |
+| `check_insight_query` | Checks an insight query with the rules of the portal and runs it read-only on a month and up to 5 months before it (administrators): its amount per month, or the error to fix. Nothing is saved |
+
+## Proposing an insight in natural language { #proposer-un-insight }
+
+The agent can turn a need expressed in natural language ("how much do I spend at
+restaurants at the weekend?") into an [insight](insights.md) ready to add: name, color,
+icon and checked SQL query. For this the server offers the **prompt** `propose_insight`
+(argument `need`, the need), which agents show as a command (in Claude Code:
+`/mcp__carbure__propose_insight`). It asks the agent to read `get_insight_guide` and the
+categories, write the query, check it with `check_insight_query` on the last three months
+and make sure the amounts are plausible. Without the prompt, just ask the agent to propose
+an insight: its instructions point it to these tools.
+
+The server stays **read-only**: the agent proposes, an **administrator** adds the insight
+in the Insights tab (**+** button, then **Create an insight**), where the query is checked
+again. `check_insight_query` is for administrators only, like the check of the portal: with
+the token of another user, the agent proposes a query without being able to run it.
 
 ## Technical details { #details-techniques }
 

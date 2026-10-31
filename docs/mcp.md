@@ -83,6 +83,25 @@ depuis Internet (voir [Synology](synology.md), étape 8).
 | `get_budget` | Dépensé et budget prévu par catégorie pour un mois |
 | `get_trends` | Débit, crédit, hors budget, budget prévu et épargne mois par mois |
 | `list_rules` | Règles de catégorisation automatique |
+| `get_insight_guide` | Tout ce qu'il faut pour écrire un insight : règles de la requête, tables et colonnes lisibles, expressions courantes, couleurs, exemples et insights déjà définis (leur requête pour un administrateur) |
+| `check_insight_query` | Vérifie une requête d'insight avec les règles du portail et l'exécute en lecture seule sur un mois et jusqu'à 5 mois avant (administrateurs) : son montant par mois, ou l'erreur à corriger. Rien n'est enregistré |
+
+## Proposer un insight en langage naturel { #proposer-un-insight }
+
+L'agent peut transformer un besoin exprimé en langage naturel (« combien je dépense au
+restaurant le week-end ? ») en un [insight](insights.md) prêt à ajouter : nom, couleur,
+icône et requête SQL vérifiée. Le serveur propose pour cela le **prompt** `propose_insight`
+(argument `need`, le besoin), que les agents présentent comme une commande (dans Claude Code :
+`/mcp__carbure__propose_insight`). Il demande à l'agent de lire `get_insight_guide` et les
+catégories, d'écrire la requête, de la vérifier avec `check_insight_query` sur les trois
+derniers mois et de contrôler que les montants sont plausibles. Sans le prompt, il suffit de
+demander à l'agent de proposer un insight : ses instructions l'orientent vers ces outils.
+
+Le serveur reste en **lecture seule** : l'agent propose, un **administrateur** ajoute
+l'insight dans l'onglet Insights (bouton **+**, puis **Créer un insight**), où la requête
+est vérifiée à nouveau. `check_insight_query` est réservé aux administrateurs, comme la
+vérification du portail : avec le jeton d'un autre utilisateur, l'agent propose une requête
+sans pouvoir l'exécuter.
 
 ## Détails techniques
 
