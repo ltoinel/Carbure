@@ -199,7 +199,7 @@ test('the accounts grouped under their bank are readable', async ({ adminPage: p
     expect(await contrastProblems(page, tr('tabAccounts'))).toEqual([]);
 });
 
-test('the menus, modals and the synchronization log are readable', async ({ adminPage: page }) => {
+test('the menus, modals and the synchronization log are readable', async ({ adminPage: page, api }) => {
     const problems = [];
 
     await page.locator('.user-menu-toggle').click();

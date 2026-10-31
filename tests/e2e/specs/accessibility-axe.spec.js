@@ -79,7 +79,7 @@ test('axe: every tab of a user', async ({ userPage: page }) => {
     expect(await everyTab(page, USER_TABS, axeViolations)).toEqual([]);
 });
 
-test('axe: the menus and the modals', async ({ adminPage: page }) => {
+test('axe: the menus and the modals', async ({ adminPage: page, api }) => {
     const problems = [];
 
     await page.locator('.user-menu-toggle').click();
