@@ -130,8 +130,8 @@ transactions du dernier mois restées sans catégorie.
   caractères, avec le total des transactions trouvées. La **recherche avancée** (bouton dans
   le champ) y ajoute des
   critères : dépenses ou revenus, montant minimal et maximal (sans signe), période,
-  catégories (avec leurs sous-catégories) et comptes. Chaque critère s'affiche sous la barre
-  d'outils et se retire d'un clic.
+  catégories (avec leurs sous-catégories) et comptes. Chaque critère s'affiche juste sous la barre
+  de recherche et se retire d'un clic.
 - **Détail** : montant, libellé complet, date et date réelle, type (carte, virement,
   prélèvement…), carte, banque d'origine, date d'import ; la catégorie et le pointage s'y
   modifient. **Transactions similaires** y lance la recherche sur le nom du commerçant
