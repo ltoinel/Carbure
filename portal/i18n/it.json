@@ -531,6 +531,7 @@
     "tagNew": "Nuovo tag",
     "tagsLoading": "Caricamento dei tag…",
     "tagsEmpty": "Ancora nessun tag.",
+    "tagsEmptyHelp": "Creane uno con il pulsante + per seguire il costo di un viaggio, di lavori…",
     "tagsActive": "Attivi",
     "tagsArchived": "Archiviati",
     "tagSummaryOf": "Bilancio di #{name}",

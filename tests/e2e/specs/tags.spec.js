@@ -75,8 +75,14 @@ test('tags transactions of a project, then shows its summary', async ({ userPage
     await page.locator('.transaction-search input').fill('#voyage-italie');
     await expect(page.locator('.transaction-item')).toHaveCount(3);
 
-    // Its summary: net cost, by category, its transactions
+    // Its card in the list: its count and its net cost
     await openTab(page, tr('tabTags'));
+    const card = page.locator('.tag-list-active .tag-item').filter({ hasText: '#voyage-italie' });
+    await expect(card.locator('.tag-count')).toHaveText(tr('transactionCount', { count: 3 }));
+    await expect(card.locator('.tag-total')).toHaveText(euros(-134.2));
+    await expect(card.locator('.tag-status')).toHaveCount(0);
+
+    // Its summary: net cost, by category, its transactions
     await page.getByRole('button', { name: tr('tagSummaryOf', { name: 'voyage-italie' }) }).click();
     const summary = page.locator('.tag-summary');
     await expect(summary.locator('.tag-summary-total strong')).toHaveText(euros(-134.2));
@@ -124,6 +130,9 @@ test('tags transactions of a project, then shows its summary', async ({ userPage
 test('an archived tag is no more offered, its summary stays readable', async ({ userPage: page, api }) => {
     await createTag(page, 'ete-2020', '2020-08-31');
     await expect(page.locator('.tag-list-archived .tag-name')).toHaveText('#ete-2020');
+    // Its card says it is archived, without the bar of the time gone
+    await expect(page.locator('.tag-list-archived .tag-status')).toHaveText(tr('tagArchived'));
+    await expect(page.locator('.tag-list-archived .tag-progress')).toHaveCount(0);
 
     await openTab(page, tr('tabTransactions'));
     // Not offered in the detail, and its name cannot be taken again

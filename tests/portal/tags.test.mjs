@@ -3,7 +3,7 @@ import { mockFetch, json } from './setup.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-    createTagsModule, categoryShares, cumulativeChart, dateLabels, nearestPoint, niceTicks, tagChanges, tagFigures, tagName, tagStatus, MAX_TAG_SELECTION
+    createTagsModule, categoryShares, cumulativeChart, dateLabels, nearestPoint, niceTicks, tagChanges, tagFigures, tagName, tagProgress, tagStatus, MAX_TAG_SELECTION
 } from '../../portal/modules/tagsModule.js';
 import { createApiService } from '../../portal/services/apiService.js';
 import { matchingTags, tagToCreate } from '../../portal/components/TagInput.js';
@@ -46,6 +46,15 @@ test('tagStatus: active until its end date', () => {
     assert.equal(tagStatus({ end_date: null }, '2026-10-27'), 'active');
     assert.equal(tagStatus({ end_date: '2026-10-27' }, '2026-10-27'), 'active');
     assert.equal(tagStatus({ end_date: '2026-10-26' }, '2026-10-27'), 'archived');
+});
+
+test('tagProgress: the share of the period gone, none without an end or once archived', () => {
+    const tag = { start_date: '2026-07-01', end_date: '2026-07-10', active: true };
+    assert.equal(tagProgress(tag, '2026-07-03'), 30);
+    assert.equal(tagProgress(tag, '2026-06-20'), 0);
+    assert.equal(tagProgress(tag, '2026-07-10'), 100);
+    assert.equal(tagProgress({ ...tag, end_date: null }, '2026-07-03'), null);
+    assert.equal(tagProgress({ ...tag, active: false }, '2026-07-12'), null);
 });
 
 test('tagChanges: the tags to add and to remove', () => {

@@ -304,9 +304,12 @@ Un **tag** suit le coût global d'un projet (un voyage, des travaux, un mariage�
 toucher aux catégories : chaque transaction garde la sienne, les budgets et les tendances
 ne changent pas. Tous les utilisateurs du foyer créent et utilisent les tags.
 
-- **Liste** : les tags **actifs**, puis les **archivés**, chacun avec sa couleur, sa période,
-  son nombre de transactions et son coût net. Les boutons crayon et corbeille le modifient
-  ou le suppriment (ses transactions perdent seulement ce tag).
+- **Liste** : les tags **actifs**, puis les **archivés** (avec leur nombre), une carte par
+  tag : sa couleur en bordure, son nom, sa période, une barre du temps écoulé pour un tag
+  actif qui a une date de fin, la mention **Archivé** sinon, son nombre de transactions et
+  son coût net. Un clic sur la carte ouvre son bilan ; les boutons crayon et corbeille le
+  modifient ou le suppriment (ses transactions perdent seulement ce tag). Sans aucun tag,
+  la liste explique comment en créer un.
 - **Nouveau tag** : un nom (`voyage-italie` : lettres, chiffres, `-` ou `_`, 40 au plus, le
   `#` est ajouté à l'affichage), une couleur, une date de début et une date de fin
   facultative. Pendant sa période, le tag est **actif** : il est proposé dans le détail

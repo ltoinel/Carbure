@@ -1320,21 +1320,38 @@
                                 </div>
                             </div>
                             <div v-if="loadingTags && tags.length === 0" class="transactions-hint">{{ t('tagsLoading') }}</div>
-                            <div v-else-if="tags.length === 0" class="transactions-hint">{{ t('tagsEmpty') }}</div>
+                            <div v-else-if="tags.length === 0" class="tags-empty">
+                                <span class="tags-empty-icon" aria-hidden="true"><span class="material-icons">sell</span></span>
+                                <p class="tags-empty-title">{{ t('tagsEmpty') }}</p>
+                                <p class="rules-help">{{ t('tagsEmptyHelp') }}</p>
+                            </div>
                             <template v-for="group in [{ key: 'active', title: t('tagsActive'), list: tags.filter(g => g.active) }, { key: 'archived', title: t('tagsArchived'), list: archivedTags }]" :key="group.key">
                                 <template v-if="group.list.length">
-                                    <h3 class="accounts-section-title">{{ group.title }}</h3>
+                                    <h3 class="accounts-section-title tag-list-title">{{ group.title }}<span class="tag-list-count">{{ group.list.length }}</span></h3>
+                                    <!-- A card per tag: its color as an accent, the time gone of its period, its cost -->
                                     <ul class="tag-list" :class="'tag-list-' + group.key" :aria-label="group.title">
-                                        <li v-for="tag in group.list" :key="tag.id" class="tag-item">
+                                        <li v-for="tag in group.list" :key="tag.id" class="tag-item" :class="{ 'tag-item-archived': !tag.active }" :style="{ '--tag-color': categoryColor(tag) }">
                                             <button type="button" class="tag-open" @click="openTagSummary(tag)" :aria-label="t('tagSummaryOf', { name: tag.name })">
-                                                <span class="tag-dot" :style="{ background: categoryColor(tag) }" aria-hidden="true"></span>
-                                                <span class="tag-name">#{{ tag.name }}</span>
-                                                <span class="tag-period">{{ formatDate(tag.start_date) }} – {{ tag.end_date ? formatDate(tag.end_date) : t('tagRunning') }}</span>
-                                                <span class="tag-count">{{ t('transactionCount', { count: tag.count }) }}</span>
-                                                <strong class="tag-total" :class="tag.total >= 0 ? 'positive' : 'negative'">{{ formatAmount(tag.total) }} {{ currencySymbol }}</strong>
+                                                <span class="tag-open-head">
+                                                    <span class="tag-dot" aria-hidden="true"></span>
+                                                    <span class="tag-name">#{{ tag.name }}</span>
+                                                    <span v-if="!tag.active" class="tag-status tag-status-archived">
+                                                        <span class="material-icons" aria-hidden="true">inventory_2</span>{{ t('tagArchived') }}
+                                                    </span>
+                                                </span>
+                                                <span class="tag-period">
+                                                    <span class="material-icons" aria-hidden="true">date_range</span>{{ formatDate(tag.start_date) }} – {{ tag.end_date ? formatDate(tag.end_date) : t('tagRunning') }}
+                                                </span>
+                                                <span v-if="tagProgress(tag) !== null" class="tag-progress" aria-hidden="true">
+                                                    <span :style="{ width: tagProgress(tag) + '%' }"></span>
+                                                </span>
+                                                <span class="tag-open-foot">
+                                                    <span class="tag-count">{{ t('transactionCount', { count: tag.count }) }}</span>
+                                                    <strong class="tag-total" :class="tag.total >= 0 ? 'positive' : 'negative'">{{ formatAmount(tag.total) }} {{ currencySymbol }}</strong>
+                                                </span>
                                             </button>
-                                            <div class="device-actions">
-                                                <button class="btn-icon" @click="openTagModal(tag)" :title="t('tagEdit')" :aria-label="t('tagEditOf', { name: tag.name })"><span class="material-icons" aria-hidden="true">edit</span></button>
+                                            <div class="device-actions tag-item-actions">
+                                                <button class="btn-icon btn-icon-edit" @click="openTagModal(tag)" :title="t('tagEdit')" :aria-label="t('tagEditOf', { name: tag.name })"><span class="material-icons" aria-hidden="true">edit</span></button>
                                                 <button class="btn-icon btn-icon-delete" @click="removeTag(tag)" :title="t('tagDelete')" :aria-label="t('tagDeleteOf', { name: tag.name })"><span class="material-icons" aria-hidden="true">delete</span></button>
                                             </div>
                                         </li>
