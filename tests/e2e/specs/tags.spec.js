@@ -78,3 +78,15 @@ test('an archived tag is no more offered, its summary stays readable', async ({ 
     await expect(page.locator('.tag-summary')).toContainText(tr('tagNoTransaction'));
     expect((await (await api.get('/api/tag')).json())[0]).toMatchObject({ name: 'ete-2020', active: false });
 });
+
+test('the add buttons of the Tags and Transactions tabs are round + buttons (#419)', async ({ adminPage: page }) => {
+    const round = async button => {
+        await expect(button).toBeVisible();
+        await expect(button).toHaveClass(/btn-add-icon/);
+        const box = await button.boundingBox();
+        expect(Math.round(box.width)).toBe(Math.round(box.height));
+    };
+    await round(page.locator('.transactions-toolbar').getByRole('button', { name: tr('manualTransactionTitle') }));
+    await openTab(page, tr('tabTags'));
+    await round(page.getByRole('button', { name: tr('tagNew') }));
+});
