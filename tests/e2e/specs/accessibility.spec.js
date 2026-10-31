@@ -491,7 +491,7 @@ test('the tags, their form and a summary are readable', async ({ adminPage: page
     const detail = page.getByRole('dialog', { name: tr('transactionDetail') });
     const field = detail.getByRole('combobox', { name: tr('tagsOfTransaction') });
     await field.fill('v');
-    await expect(detail.getByRole('option')).toHaveText(['#voyage', tr('tagCreateNamed', { name: 'v' })]);
+    await expect(detail.getByRole('option').locator('.tag-input-name')).toHaveText(['#voyage', tr('tagCreateNamed', { name: 'v' })]);
     await field.press('ArrowDown');
     problems.push(...await contrastProblems(page, `${tr('transactionDetail')} (tags)`));
     expect(problems).toEqual([]);

@@ -31,7 +31,7 @@ test('tags transactions of a project, then shows its summary', async ({ userPage
     // Typed: the matching tags are listed, Enter adds the first one, no button to click
     const field = detail.getByRole('combobox', { name: tr('tagsOfTransaction') });
     await field.fill('ital');
-    await expect(detail.getByRole('option')).toHaveText(['#voyage-italie', tr('tagCreateNamed', { name: 'ital' })]);
+    await expect(detail.getByRole('option').locator('.tag-input-name')).toHaveText(['#voyage-italie', tr('tagCreateNamed', { name: 'ital' })]);
     await expect(detail.getByRole('option').first().locator('mark')).toHaveText('ital');
     await field.press('Enter');
     await expect(detail.locator('.tag-chip')).toContainText('#voyage-italie');
@@ -39,7 +39,7 @@ test('tags transactions of a project, then shows its summary', async ({ userPage
     await expect(field).toBeFocused();
     // A name matching no tag creates it
     await field.fill('#Resto');
-    await expect(detail.getByRole('option')).toHaveText([tr('tagCreateNamed', { name: 'resto' })]);
+    await expect(detail.getByRole('option').locator('.tag-input-name')).toHaveText([tr('tagCreateNamed', { name: 'resto' })]);
     await detail.getByRole('option', { name: tr('tagCreateNamed', { name: 'resto' }) }).click();
     await expect(detail.locator('.tag-chip')).toHaveText(['#voyage-italie', '#resto']);
     await detail.getByRole('button', { name: tr('tagRemoveOf', { name: 'resto' }) }).click();
