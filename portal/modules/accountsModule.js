@@ -81,6 +81,8 @@ export function createAccountsModule(getApiService) {
                 // Step 2: accounts woob lists for one connected bank, to follow
                 showAddAccountsModal: false,
                 addAccountsBackend: '',
+                // Opened from the + of the synchronized accounts: the bank is chosen in the modal
+                addAccountsPicking: false,
                 discoveredAccounts: [],
                 selectedAccounts: [],
                 discovering: false,
@@ -545,6 +547,49 @@ export function createAccountsModule(getApiService) {
             },
 
             /**
+             * Adds accounts of a bank already connected (the + of the synchronized accounts):
+             * straight to its accounts when there is one bank, the bank chosen first when there
+             * are several, the connection of a bank when there is none
+             * @returns {Promise<void>|void}
+             */
+            openAddAccountsPicker() {
+                const backends = this.bankBackends || [];
+                if (backends.length === 0) {
+                    this.openConnectModal();
+                    return;
+                }
+                if (backends.length === 1) {
+                    return this.openAddAccounts(backends[0].name);
+                }
+                this.addAccountsPicking = true;
+                this.addAccountsBackend = '';
+                this.discoveredAccounts = [];
+                this.selectedAccounts = [];
+                this.discoverError = null;
+                this.discovering = false;
+                this.showAddAccountsModal = true;
+                this.$nextTick?.(() => document.querySelector('#add-accounts-bank')?.focus());
+            },
+
+            /**
+             * Bank chosen in the modal adding accounts: lists its accounts (the listing of
+             * the bank chosen before is stopped)
+             * @param {string} backend - woob backend (bank connection), '' for none
+             * @returns {Promise<void>|void}
+             */
+            chooseAddAccountsBackend(backend) {
+                if (this.discoverAbort) {
+                    this.discoverAbort.abort();
+                }
+                if (backend) {
+                    return this.openAddAccounts(backend);
+                }
+                this.addAccountsBackend = '';
+                this.discoveredAccounts = [];
+                this.selectedAccounts = [];
+            },
+
+            /**
              * Closes the modal adding accounts
              */
             closeAddAccounts() {
@@ -553,6 +598,7 @@ export function createAccountsModule(getApiService) {
                     this.discoverAbort.abort();
                 }
                 this.showAddAccountsModal = false;
+                this.addAccountsPicking = false;
                 this.discoveredAccounts = [];
                 this.selectedAccounts = [];
             },
