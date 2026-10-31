@@ -254,6 +254,29 @@ class ApiResolverTest extends TestCase
         $this->assertNull(ApiResolver::findRoute('/changes', 'GET')['apiRoute']->changes);
     }
 
+    public function testOnlyTheHealthCheckIsQuiet()
+    {
+        $quiet = [];
+        foreach (glob(__DIR__ . '/../../src/resources/*.php') as $file) {
+            $class = new ReflectionClass(ApiResolver::RESOURCES_NAMESPACE . basename($file, '.php'));
+            foreach ($class->getMethods() as $method) {
+                foreach ($method->getAttributes(ApiRoute::class) as $attribute) {
+                    $route = $attribute->newInstance();
+                    if ($route->quiet) {
+                        $quiet[] = $route->method . ' ' . $route->path;
+                    }
+                }
+            }
+        }
+        // Logged at the DEBUG level only: a route that a user calls must stay visible
+        $this->assertSame(['GET /health'], $quiet);
+
+        // Carried by the cached routes
+        ApiResolver::clearRouteCache();
+        $this->assertTrue(ApiResolver::findRoute('/health', 'GET')['apiRoute']->quiet);
+        $this->assertFalse(ApiResolver::findRoute('/user/me', 'GET')['apiRoute']->quiet);
+    }
+
     public function testAnUnknownKindOfDataIsRefused()
     {
         $this->expectException(LogicException::class);
