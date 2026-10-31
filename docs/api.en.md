@@ -95,7 +95,7 @@ is enough (see below).
 
 | Kind | Bumped by |
 |---|---|
-| `transactions` | synchronization (new or modified transaction, category found), `POST /transaction/import`, `POST /transaction`, `PUT /transaction`, `PUT /transaction/category`, `PUT /transaction/pointed`, `PUT /transaction/split`, `PUT /transaction/tags`, `DELETE /tag`, `DELETE /transaction`, rules applied to the history, `DELETE /category` |
+| `transactions` | synchronization (new or modified transaction, category found), `POST /transaction/import`, `POST /transaction`, `PUT /transaction`, `PUT /transaction/category`, `PUT /transaction/date`, `PUT /transaction/pointed`, `PUT /transaction/split`, `PUT /transaction/tags`, `DELETE /tag`, `DELETE /transaction`, rules applied to the history, `DELETE /category` |
 | `accounts` | synchronization (account in error, repaired or another error), `POST`/`PUT`/`DELETE /bank`, `/bank/backend` |
 | `categories` | `POST`/`PUT`/`DELETE /category`, `/category/keyword`, `PUT /category/keyword/settings` |
 | `budgets` | `POST /budget`, `POST /budget/copy`, `DELETE /category` |
@@ -713,6 +713,20 @@ rules no longer change it.
 ```bash
 curl -X PUT https://exemple.fr/api/transaction/pointed -H "Authorization: Bearer $TOKEN" \
   -H 'Content-Type: application/json' -d '{"id":42,"pointed":false}'
+```
+
+### `PUT /transaction/date` { #put-transactiondate }
+
+`id`, `date` (`YYYY-MM-DD`): changes the date the transaction is counted on (its month, for
+the totals and the budgets), synchronized or not. The real date of the bank (`rdate`) and the
+UUID do not change: the synchronization and the import recognize it and keep the chosen date.
+The parts of a split transaction follow its date (the `id` of a part moves its transaction
+with all its parts). Returns the transaction of the `id`. `400 transaction_date_invalid`,
+`404 transaction_not_found`.
+
+```bash
+curl -X PUT https://exemple.fr/api/transaction/date -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' -d '{"id":42,"date":"2026-09-30"}'
 ```
 
 ### `POST /transaction` { #post-transaction }
