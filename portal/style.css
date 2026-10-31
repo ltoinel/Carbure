@@ -2647,6 +2647,64 @@ button .material-icons {
     padding-left: 20px;
 }
 
+/* Categories chosen in the advanced search: a chip with the icon of the category, removable */
+.advanced-search-categories {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 0 0 8px;
+    padding: 0;
+    list-style: none;
+}
+
+.advanced-search-category {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 100%;
+    padding: 3px 4px 3px 3px;
+    border: 1px solid var(--divider);
+    border-radius: 999px;
+    background: var(--background);
+    color: var(--text-primary);
+    font-size: 14px;
+}
+
+.advanced-search-category .category-badge {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+}
+
+.advanced-search-category .category-badge .material-icons {
+    font-size: 16px;
+}
+
+.advanced-search-category-name {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.advanced-search-category button {
+    display: inline-flex;
+    padding: 4px;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--text-secondary);
+    box-shadow: none;
+}
+
+.advanced-search-category button:hover:not(:disabled) {
+    transform: none;
+    box-shadow: none;
+    background: var(--hover-surface);
+    color: var(--text-primary);
+}
+
+.advanced-search-category button .material-icons {
+    font-size: 18px;
+}
+
 @media (max-width: 480px) {
     .search-filters {
         padding: 8px 12px;

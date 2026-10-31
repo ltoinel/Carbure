@@ -2999,11 +2999,21 @@
                     <fieldset class="advanced-search-list">
                         <legend>{{ t('advancedSearchCategories') }}</legend>
                         <small class="advanced-search-help">{{ t('advancedSearchCategoriesHelp') }}</small>
-                        <div class="advanced-search-options">
-                            <label v-for="option in searchCategoryOptions" :key="option.id" :class="{ child: option.child }">
-                                <input type="checkbox" :value="option.id" v-model="searchDraft.categories" /> {{ option.name }}
-                            </label>
-                        </div>
+                        <!-- The categories chosen, each one removable, then the list of the portal to add one -->
+                        <ul v-if="searchDraftCategories.length" class="advanced-search-categories">
+                            <li v-for="category in searchDraftCategories" :key="category.id" class="advanced-search-category">
+                                <span class="category-badge" :style="badgeStyleFor(categoryColor(category))">
+                                    <span class="material-icons" aria-hidden="true">{{ categoryIcon(category) }}</span>
+                                </span>
+                                <span class="advanced-search-category-name">{{ category.name }}</span>
+                                <button type="button" @click="removeSearchCategory(category.id)"
+                                        :title="t('advancedSearchRemove', { filter: category.name })" :aria-label="t('advancedSearchRemove', { filter: category.name })">
+                                    <span class="material-icons" aria-hidden="true">close</span>
+                                </button>
+                            </li>
+                        </ul>
+                        <category-picker :model-value="''" @update:model-value="addSearchCategory" :categories="searchCategoryChoices" :t="t" with-default
+                                         :placeholder="t('advancedSearchAddCategory')" :icon-for="categoryIcon" :color-for="categoryColor"></category-picker>
                     </fieldset>
                     <fieldset v-if="searchAccounts.length > 1" class="advanced-search-list">
                         <legend>{{ t('advancedSearchAccounts') }}</legend>

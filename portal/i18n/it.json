@@ -596,6 +596,7 @@
     "advancedSearchFrom": "Dal",
     "advancedSearchTo": "Al",
     "advancedSearchCategories": "Categorie",
+    "advancedSearchAddCategory": "Aggiungi una categoria",
     "advancedSearchCategoriesHelp": "Una categoria include le sue sottocategorie.",
     "advancedSearchAccounts": "Conti",
     "advancedSearchReset": "Reimposta",
