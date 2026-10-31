@@ -209,4 +209,17 @@ class TransactionTest extends TestCase
         $this->assertCount(1, $series);
         $this->assertSame(5, $series[0]['months']);
     }
+
+    public function testEnteredByHandOnAnyAccount()
+    {
+        $hand = 'manual' . substr(md5('x'), 6);
+        // On a manual account (before MANUAL_UUID), or a UUID no bank gives (an md5 is hexadecimal)
+        $this->assertTrue(Transaction::enteredByHand(['split_of' => null, 'bank_name' => 'manual', 'uuid' => md5('a')]));
+        $this->assertTrue(Transaction::enteredByHand(['split_of' => null, 'bank_name' => 'bnp', 'uuid' => $hand]));
+        $this->assertFalse(Transaction::enteredByHand(['split_of' => null, 'bank_name' => 'bnp', 'uuid' => md5('a')]));
+        $this->assertFalse(Transaction::enteredByHand(['split_of' => null, 'bank_name' => null, 'uuid' => md5('a')]));
+        // A part of a split one is changed with its transaction
+        $this->assertFalse(Transaction::enteredByHand(['split_of' => 4, 'bank_name' => 'bnp', 'uuid' => $hand]));
+        $this->assertFalse(Transaction::enteredByHand(['split_of' => 4, 'bank_name' => 'manual', 'uuid' => md5('a')]));
+    }
 }
