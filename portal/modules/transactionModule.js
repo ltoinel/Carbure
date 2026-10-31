@@ -195,6 +195,16 @@ export function createTransactionModule(getApiService) {
             },
 
             /**
+             * Net amount of the recurring series of the month: received, plus the usual
+             * amount of those still expected
+             * @returns {number}
+             */
+            recurringTotal() {
+                const { received, expected } = this.recurringCalendar;
+                return Math.round((received.total + expected.total) * 100) / 100;
+            },
+
+            /**
              * Short names of the days of the week, Monday first
              * @returns {Array<string>}
              */
@@ -228,26 +238,6 @@ export function createTransactionModule(getApiService) {
              */
             displayedTotal() {
                 return this.displayedTransactions.reduce((sum, t) => sum + parseFloat(t.amount), 0);
-            },
-
-            /**
-             * Calculates income/expense statistics from transactions
-             * @returns {{income: number, expense: number, balance: number}}
-             */
-            stats() {
-                const income = this.transactions
-                    .filter(t => t.amount > 0)
-                    .reduce((sum, t) => sum + parseFloat(t.amount), 0);
-                
-                const expense = this.transactions
-                    .filter(t => t.amount < 0)
-                    .reduce((sum, t) => sum + parseFloat(t.amount), 0);
-                
-                return {
-                    income,
-                    expense,
-                    balance: income + expense
-                };
             }
         },
 
