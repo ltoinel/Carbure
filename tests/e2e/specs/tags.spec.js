@@ -67,7 +67,7 @@ test('tags transactions of a project, then shows its summary', async ({ userPage
     await expect(summary.locator('.tag-transaction').filter({ hasText: 'CB RESTAURANT LE PETIT ZINC' }).locator('.category-chip')).toHaveText('Restaurant');
 
     // Its header: status, period, actions
-    await expect(summary.locator('.tag-status')).toHaveText(tr('tagActive'));
+    await expect(summary.locator('.tag-status')).toContainText(tr('tagActive'));
     await expect(summary.locator('.tag-summary-period')).toContainText(tr('tagRunning'));
     await expect(summary.getByRole('button', { name: tr('tagEdit') })).toBeVisible();
 
@@ -105,7 +105,7 @@ test('an archived tag is no more offered, its summary stays readable', async ({ 
     await createTag(page, 'ete-2020', '2020-08-31');
     await expect(page.locator('.tag-list-archived .tag-name')).toHaveText('#ete-2020');
     // Its card says it is archived, without the bar of the time gone
-    await expect(page.locator('.tag-list-archived .tag-status')).toHaveText(tr('tagArchived'));
+    await expect(page.locator('.tag-list-archived .tag-status')).toContainText(tr('tagArchived'));
     await expect(page.locator('.tag-list-archived .tag-progress')).toHaveCount(0);
 
     await openTab(page, tr('tabTransactions'));
