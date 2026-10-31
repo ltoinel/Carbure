@@ -2702,6 +2702,38 @@ button .material-icons {
     margin: 0;
 }
 
+/* Place of the removal button on the first line (the transaction itself) */
+.split-remove-placeholder {
+    width: 36px;
+}
+
+/* Amount left to allocate: red while some is left or the amount is exceeded, green at 0 */
+.split-rest strong {
+    color: var(--error-color);
+}
+
+.split-rest.split-rest-done strong {
+    color: var(--success-color);
+}
+
+/* Why the split cannot be saved yet */
+.split-hint {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 8px 0 0;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.split-hint .material-icons {
+    font-size: 18px;
+}
+
+.split-hint.split-hint-error {
+    color: var(--error-color);
+}
+
 /* Narrow screens: the category on its own line, the amount and the removal below */
 @media (max-width: 480px) {
     .split-part {

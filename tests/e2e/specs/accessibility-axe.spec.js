@@ -94,7 +94,7 @@ test('axe: the menus and the modals', async ({ adminPage: page, api }) => {
     const detail = page.getByRole('dialog', { name: tr('transactionDetail') });
     await expect(detail).toBeVisible();
     problems.push(...await axeViolations(page, tr('transactionDetail')));
-    // Split of the transaction, with the rest left to it
+    // Split of the transaction, with the amount left to allocate and why it cannot be saved yet
     await detail.getByRole('button', { name: tr('splitButton') }).click();
     const split = page.getByRole('dialog', { name: tr('splitTitle') });
     await expect(split).toBeVisible();

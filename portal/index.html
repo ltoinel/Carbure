@@ -3058,19 +3058,26 @@
                                              :placeholder="t('chooseCategory')" :icon-for="categoryIcon" :color-for="categoryColor"></category-picker>
                             <input type="number" step="0.01" min="0" inputmode="decimal" v-model="part.amount"
                                    :aria-label="t('splitPartAmount', { number: index + 1 })" @keydown.enter="splitValid && saveSplit()" />
-                            <button type="button" class="btn-icon split-remove" @click="removeSplitPart(index)"
+                            <!-- The first line is the transaction itself: it cannot be removed -->
+                            <button v-if="index > 0" type="button" class="btn-icon split-remove" @click="removeSplitPart(index)"
                                     :title="t('splitRemovePart')" :aria-label="t('splitRemovePart')">
                                 <span class="material-icons" aria-hidden="true">remove_circle_outline</span>
                             </button>
+                            <span v-else class="split-remove-placeholder" aria-hidden="true"></span>
                         </li>
                     </ul>
                     <button type="button" class="btn-secondary split-add" @click="addSplitPart" :disabled="splitFull">
                         <span class="material-icons" aria-hidden="true">add</span>
                         {{ t('splitAddPart') }}
                     </button>
-                    <p class="split-rest" aria-live="polite">
-                        <span>{{ t('splitRest', { category: categoryName(splitTransaction) || t('uncategorized') }) }}</span>
-                        <strong :class="splitRest >= 0 ? 'positive' : 'negative'">{{ formatAmount(splitRest) }} {{ currencySymbol }}</strong>
+                    <p class="split-rest" :class="{ 'split-rest-done': splitRest === 0, 'split-rest-exceeded': splitExceeded }" aria-live="polite">
+                        <span>{{ t('splitToAllocate') }}</span>
+                        <strong>{{ formatAmount(splitToAllocate) }} {{ currencySymbol }}</strong>
+                    </p>
+                    <p v-if="!splitValid" id="split-hint" class="split-hint" :class="{ 'split-hint-error': splitExceeded }">
+                        <span class="material-icons" aria-hidden="true">{{ splitExceeded ? 'error_outline' : 'info_outline' }}</span>
+                        {{ splitExceeded ? t('splitExceeded', { amount: formatAmount(Math.abs(splitRest)) + ' ' + currencySymbol })
+                            : splitRest === 0 ? t('splitHintIncomplete') : t('splitHintAllocate') }}
                     </p>
                 </div>
                 <div class="modal-footer">
@@ -3083,7 +3090,7 @@
                         <span class="material-icons" aria-hidden="true">cancel</span>
                         {{ t('cancel') }}
                     </button>
-                    <button @click="saveSplit" :disabled="savingSplit || !splitValid">
+                    <button @click="saveSplit" :disabled="savingSplit || !splitValid" :aria-describedby="splitValid ? null : 'split-hint'">
                         <span class="material-icons" aria-hidden="true">check_circle</span>
                         {{ t('save') }}
                     </button>

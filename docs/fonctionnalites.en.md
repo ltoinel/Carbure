@@ -145,8 +145,11 @@ transactions of the last month still without a category.
   date, amount) from its details.
 - **Split** a transaction across several categories (from its details): a supermarket
   receipt partly food and partly home, a cash withdrawal spent on groceries and transport.
-  Each part (category and amount, 10 at most) becomes a transaction shown right below the
-  original one, which keeps the rest in its category and shows the bank amount. The total
+  The first line is the transaction itself (its category, which may change, and the amount
+  it keeps), the next ones its parts (category and amount, 10 at most); the whole amount must
+  be allocated, without exceeding it: **Save** is possible only once the **amount left to
+  allocate** is 0, and the window says what is missing otherwise. Each part becomes a
+  transaction shown right below the original one, which shows the bank amount. The total
   stays the bank's one: budgets, trends, flow and insights count each part in its category.
   Synchronization keeps the split, rules do not change it, and checking the transaction
   checks its parts. Deleting a part gives its amount back to the transaction; **Cancel the
