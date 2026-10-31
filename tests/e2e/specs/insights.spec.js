@@ -144,7 +144,12 @@ test('sets an alert on an insight, changes it, then removes it', async ({ userPa
     await expect(expenses.locator('.insight-alert-text')).toHaveText(tr('insightAlert_below', { amount: euros(500.5) }));
 
     await bell.click();
-    await modal.getByRole('button', { name: tr('insightAlertRemove') }).click();
+    // The small red trash button at the bottom left of the footer, as in a transaction detail
+    const remove = modal.getByRole('button', { name: tr('insightAlertRemove') });
+    await expect(remove).toHaveClass(/btn-danger-icon/);
+    await expect(remove).toHaveClass(/modal-footer-start/);
+    await expect(remove.locator('.material-icons')).toHaveText('delete');
+    await remove.click();
     await expect(page.locator('.toast')).toHaveText(tr('insightAlertRemoved', { name: 'Dépenses' }));
     await expect(expenses.locator('.insight-alert-state')).toHaveCount(0);
 });
