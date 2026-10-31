@@ -271,7 +271,8 @@ test('deletes the selected transactions (#421)', async ({ adminPage: page, api }
     // No tag: the selection still offers the deletion
     await page.getByRole('button', { name: tr('tagSelect'), exact: true }).click();
     const bar = page.getByRole('region', { name: tr('tagSelect') });
-    await expect(bar.locator('#tag-selection')).toHaveCount(0);
+    // No tag yet: the tag can be typed, nothing to apply
+    await expect(bar.getByRole('button', { name: tr('tagApply') })).toBeDisabled();
     const remove = bar.getByRole('button', { name: tr('selectionDelete') });
     await expect(remove).toBeDisabled();
 

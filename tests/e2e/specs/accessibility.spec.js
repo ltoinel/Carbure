@@ -482,5 +482,17 @@ test('the tags, their form and a summary are readable', async ({ adminPage: page
     await page.getByRole('button', { name: tr('tagSelect'), exact: true }).click();
     await expect(page.locator('.tag-selection-bar')).toBeVisible();
     problems.push(...await contrastProblems(page, tr('tagSelect')));
+    // Out of the selection: the button of the toolbar is "Done" while selecting
+    await page.getByRole('button', { name: tr('tagSelectStop'), exact: true }).click();
+    await expect(page.locator('.tag-selection-bar')).toHaveCount(0);
+
+    // The tag field of a transaction detail, its list open: a tag highlighted, a creation offered
+    await page.locator('.transaction-item:not(:has(.tag-chip))').first().getByRole('button', { name: new RegExp(tr('transactionDetail')) }).click();
+    const detail = page.getByRole('dialog', { name: tr('transactionDetail') });
+    const field = detail.getByRole('combobox', { name: tr('tagsOfTransaction') });
+    await field.fill('v');
+    await expect(detail.getByRole('option').locator('.tag-input-name')).toHaveText(['#voyage', tr('tagCreateNamed', { name: 'v' })]);
+    await field.press('ArrowDown');
+    problems.push(...await contrastProblems(page, `${tr('transactionDetail')} (tags)`));
     expect(problems).toEqual([]);
 });

@@ -4,6 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createTagsModule, cumulativePath, tagChanges, tagName, tagStatus, MAX_TAG_SELECTION } from '../../portal/modules/tagsModule.js';
 import { createApiService } from '../../portal/services/apiService.js';
+import { matchingTags, tagToCreate } from '../../portal/components/TagInput.js';
 
 const TAGS = [
     { id: 1, name: 'voyage', color: 'green', start_date: '2026-07-01', end_date: null, active: true, count: 2, total: -120 },
@@ -82,10 +83,11 @@ test('adds and removes the tags of a transaction from its detail', async () => {
     const context = tagsContext({ setTransactionTags: async (...args) => { sent.push(args); }, fetchTags: async () => TAGS });
     const transaction = { id: 9, tags: [1] };
 
-    context.detailTagToAdd = 3;
-    await context.addDetailTag(transaction);
+    await context.addDetailTag(transaction, 3);
     assert.deepEqual(transaction.tags, [1, 3]);
-    assert.equal(context.detailTagToAdd, '');
+    // Already on it, or none: nothing sent
+    await context.addDetailTag(transaction, 3);
+    await context.addDetailTag(transaction, 0);
     await context.removeDetailTag(transaction, TAGS[0]);
     assert.deepEqual(transaction.tags, [3]);
     assert.deepEqual(sent, [[[9], [3], []], [[9], [], [1]]]);
@@ -104,13 +106,78 @@ test('tags a selection of the list at once', async () => {
     context.toggleSelectedTransaction(context.transactions[2]);
     assert.deepEqual(context.selectedTransactionIds, [4, 5]);
 
-    context.selectionTag = '3';
-    await context.tagSelectedTransactions();
+    await context.tagSelectedTransactions(3);
     assert.deepEqual(sent, [[[4, 5], [3], []]]);
     assert.deepEqual(context.transactions.map(t => t.tags), [[3], [3], []]);
     assert.equal(context.selectingTransactions, false);
     assert.equal(context.toasts.length, 1);
     assert.equal(MAX_TAG_SELECTION, 500);
+});
+
+test('matchingTags: the tags containing the text typed, those starting with it first', () => {
+    const tags = [{ id: 1, name: 'voyage' }, { id: 2, name: 'travaux' }, { id: 3, name: 'anniversaire' }, { id: 4, name: 'avion' }];
+    assert.deepEqual(matchingTags(tags, '').map(t => t.name), ['anniversaire', 'avion', 'travaux', 'voyage']);
+    assert.deepEqual(matchingTags(tags, '#A').map(t => t.name), ['anniversaire', 'avion', 'travaux', 'voyage']);
+    assert.deepEqual(matchingTags(tags, 'av').map(t => t.name), ['avion', 'travaux']);
+    assert.deepEqual(matchingTags(tags, 'zz'), []);
+});
+
+test('tagToCreate: a valid name that no tag has, an archived one included', () => {
+    assert.equal(tagToCreate(TAGS, ' #Noël '), 'noël');
+    assert.equal(tagToCreate(TAGS, 'Voyage'), null);
+    assert.equal(tagToCreate(TAGS, 'ete-2020'), null);
+    assert.equal(tagToCreate(TAGS, ''), null);
+    assert.equal(tagToCreate(TAGS, 'deux mots'), null);
+    assert.equal(tagToCreate(TAGS, 'x'.repeat(41)), null);
+});
+
+test('creates a tag typed in the detail of a transaction, then adds it', async () => {
+    const sent = [];
+    const created = [];
+    const context = tagsContext({
+        createTag: async t => { created.push(t); return { id: 7, ...t, active: true }; },
+        setTransactionTags: async (...args) => { sent.push(args); },
+        fetchTags: async () => context.tags,
+    });
+    const transaction = { id: 9, tags: [1] };
+
+    await context.createDetailTag(transaction, '#Noël');
+    assert.equal(created[0].name, 'noël');
+    assert.equal(created[0].color, 'blue');
+    assert.match(created[0].start_date, /^\d{4}-\d{2}-\d{2}$/);
+    assert.deepEqual(transaction.tags, [1, 7]);
+    assert.ok(context.tagsById.has(7));
+    assert.deepEqual(sent, [[[9], [7], []]]);
+    assert.deepEqual(context.toasts, ['tagCreated {"name":"noël"}']);
+});
+
+test('a tag that cannot be created is not added', async () => {
+    const context = tagsContext({ createTag: async () => { throw new Error('A tag named #voyage already exists'); } });
+    const transaction = { id: 9, tags: [] };
+    await context.createDetailTag(transaction, 'voyage');
+    assert.deepEqual(transaction.tags, []);
+    assert.deepEqual(context.toasts, ['A tag named #voyage already exists']);
+});
+
+test('creates a tag typed in the selection bar, then applies it to the selection', async () => {
+    const sent = [];
+    const context = tagsContext({
+        createTag: async t => ({ id: 8, ...t, active: true }),
+        setTransactionTags: async (...args) => { sent.push(args); },
+        fetchTags: async () => context.tags,
+    });
+    context.transactions = [{ id: 4, tags: [] }];
+    context.toggleTransactionSelection();
+    context.toggleSelectedTransaction(context.transactions[0]);
+
+    // Created and chosen, not applied yet: the button of the bar applies it
+    await context.createSelectionTag('noel');
+    assert.equal(context.selectionTag, 8);
+    assert.deepEqual(sent, []);
+    await context.tagSelectedTransactions(context.selectionTag);
+    assert.deepEqual(sent, [[[4], [8], []]]);
+    assert.deepEqual(context.transactions[0].tags, [8]);
+    assert.equal(context.selectionTag, '');
 });
 
 test('saves a new tag, then reloads the tags', async () => {
