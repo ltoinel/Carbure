@@ -42,6 +42,19 @@ export function similarLabelQuery(label) {
 }
 
 /**
+ * Whether a value is a real date in the YYYY-MM-DD format (no 30th of February)
+ * @param {string} value - Value of a date field
+ * @returns {boolean}
+ */
+export function isIsoDate(value) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value || ''))) {
+        return false;
+    }
+    const date = new Date(`${value}T00:00:00Z`);
+    return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+}
+
+/**
  * Calendar of the recurring series of a month (GET /transaction/recurring), weeks
  * starting on Monday. A received series is on the day of its transaction, an expected
  * one on its usual day (the last day of a shorter month): "late" once that day is past
@@ -129,6 +142,8 @@ export function createTransactionModule(getApiService) {
                 transactionDetail: null,
                 transactionDetailCategory: '',
                 transactionDetailPointed: false,
+                // Date it is counted on (its month), changed in the modal
+                transactionDetailDate: '',
                 savingTransaction: false,
 
                 // Search by label
@@ -424,6 +439,7 @@ export function createTransactionModule(getApiService) {
                 this.transactionDetail = transaction;
                 this.transactionDetailCategory = Number(transaction.category) || 0;
                 this.transactionDetailPointed = !!Number(transaction.pointed);
+                this.transactionDetailDate = transaction.date || '';
                 // The categories are needed by the picker
                 if (!this.ruleCategories.length && getApiService()) {
                     getApiService().fetchCategories().then(c => { this.ruleCategories = c; }).catch(() => {});
@@ -463,13 +479,21 @@ export function createTransactionModule(getApiService) {
             },
 
             /**
-             * Saves the category and the checked state of the transaction of the modal
+             * Saves the category, the checked state and the date (the month it is counted
+             * on) of the transaction of the modal; a new date reloads the list, the totals
+             * and the periods: the transaction may move to another month
              * @returns {Promise<void>}
              */
             async saveTransactionDetail() {
                 const transaction = this.transactionDetail;
                 const category = Number(this.transactionDetailCategory) || 0;
                 const pointed = this.transactionDetailPointed;
+                const date = this.transactionDetailDate;
+                if (!isIsoDate(date)) {
+                    this.showToast(this.t('apiErrors.transaction_date_invalid'));
+                    return;
+                }
+                const dateChanged = date !== transaction.date;
                 this.savingTransaction = true;
                 try {
                     if (category !== (Number(transaction.category) || 0)) {
@@ -486,13 +510,37 @@ export function createTransactionModule(getApiService) {
                     if (pointed !== !!Number(transaction.pointed)) {
                         await this.toggleTransactionPointed(transaction);
                     }
+                    if (dateChanged) {
+                        await getApiService().setTransactionDate(transaction.id, date);
+                        this.moveTransactionDate(transaction, date);
+                    }
                     this.transactionDetail = null;
                     this.showToast(this.t('transactionSaved'));
+                    if (dateChanged) {
+                        this.loadPeriods();
+                        this.loadTransactions(this.selectedMonth, this.selectedYear);
+                    }
                 } catch (error) {
                     this.showToast(this.apiErrorText(error));
                 } finally {
                     this.savingTransaction = false;
                 }
+            },
+
+            /**
+             * Gives its new date to a transaction in the lists shown (month and search), with
+             * its split transaction and the other parts: they follow it
+             * @param {Object} transaction - Transaction (or a part of one)
+             * @param {string} date - New date (YYYY-MM-DD)
+             */
+            moveTransactionDate(transaction, date) {
+                const parent = Number(transaction.split_of ?? transaction.id);
+                for (const t of [...this.transactions, ...this.searchResults]) {
+                    if (Number(t.id) === parent || Number(t.split_of) === parent) {
+                        t.date = date;
+                    }
+                }
+                transaction.date = date;
             },
 
             /**

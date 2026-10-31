@@ -159,7 +159,11 @@ taskbar or the home screen.
 - **Transaction details**: a click (or Enter) on the label opens a window with
   the amount, the full label, the dates, the type, the card, the bank (synchronized account
   or imported statement) and the import date; the
-  category can be changed there with the visual picker and the transaction can be checked. The trash
+  category can be changed there with the visual picker and the transaction can be checked. The
+  **Counted on** field changes the month the transaction counts in, synchronized or not (the
+  real date of the bank stays shown and does not change): once saved, the list, the totals and
+  the months offered are reloaded, the transaction moves to its new month and the next
+  synchronizations keep this date. The trash
   button deletes the transaction, after confirmation: it is no longer imported again, neither by
   the synchronization nor by a statement import (marked "Deleted" in the preview).
   The **Similar transactions** button closes the window and starts a search with the

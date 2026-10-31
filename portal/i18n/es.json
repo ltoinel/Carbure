@@ -21,6 +21,8 @@
     "transactionDetail": "Detalle de la transacción",
     "transactionDate": "Fecha",
     "transactionRealDate": "Fecha real",
+    "transactionCountedOn": "Contabilizada el",
+    "transactionCountedOnHelp": "El mes en que cuenta (totales, presupuestos). La fecha real del banco no cambia, la sincronización conserva esta elección.",
     "transactionType": "Tipo",
     "transactionCard": "Tarjeta",
     "transactionBank": "Banco",

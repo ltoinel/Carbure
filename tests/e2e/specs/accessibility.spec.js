@@ -210,6 +210,11 @@ test('the menus, modals and the synchronization log are readable', async ({ admi
     const detail = page.getByRole('dialog', { name: tr('transactionDetail') });
     await expect(detail).toBeVisible();
     problems.push(...await contrastProblems(page, tr('transactionDetail')));
+    // The date it is counted on: a labelled field, with its help, readable on focus
+    const countedOn = detail.getByLabel(tr('transactionCountedOn'));
+    await expect(countedOn).toHaveAccessibleDescription(tr('transactionCountedOnHelp'));
+    await countedOn.focus();
+    problems.push(...await contrastProblems(page, `${tr('transactionCountedOn')} (focus)`));
     // Split of the transaction, with the amount left to allocate and why it cannot be saved yet
     await detail.getByRole('button', { name: tr('splitButton') }).click();
     const split = page.getByRole('dialog', { name: tr('splitTitle') });
