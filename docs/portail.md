@@ -377,8 +377,8 @@ protégée.
 ## Comptes (administrateurs)
 
 La page a deux blocs : **Comptes synchronisés** (avec woob) et **Comptes manuels**. La
-synchronisation, la mise à jour des modules bancaires et **Connecter une banque** ne
-concernent que le premier.
+synchronisation, la mise à jour des modules bancaires et le bouton rond **+** (ajout d'une
+banque ou de comptes) ne concernent que le premier.
 
 Les comptes synchronisés sont organisés par banque : chaque **banque connectée** (en-tête avec son nom et
 ses actions) présente juste en dessous, en retrait, les **comptes suivis** qui en
@@ -386,9 +386,11 @@ viennent ; une banque sans compte suivi l'indique (« Aucun compte suivi : ajout
 comptes de cette banque »). Les comptes d'une banque qui n'est plus connectée dans woob,
 ou importés depuis un fichier, sont regroupés à la fin sous **Autres comptes**.
 
-Le bouton rond **+** des comptes synchronisés ajoute des comptes d'une **banque déjà
-connectée** : on choisit la banque (directement ses comptes s'il n'y en a qu'une, la
-connexion d'une banque s'il n'y en a aucune), puis on coche ses comptes à suivre.
+Le bouton rond **+** des comptes synchronisés (**Ajouter une banque ou des comptes**) ajoute
+des comptes d'une **banque déjà connectée** : on choisit la banque (directement ses comptes
+s'il n'y en a qu'une), puis on coche ses comptes à suivre. Le dernier choix de la liste,
+**Connecter une nouvelle banque…**, ouvre la connexion d'une banque, aussi ouverte
+directement quand aucune banque n'est connectée.
 
 Les **comptes manuels** ont leur propre bloc : un compte jamais
 synchronisé (espèces, banque que woob ne gère pas), dont les transactions sont saisies à
@@ -407,7 +409,7 @@ comme les autres comptes ; il n'a pas de bouton de synchronisation.
   la synchronisation de tous les comptes suivis, avec le même suivi en direct qu'un compte
   seul.
 - **Ajout en deux étapes** :
-    1. **Connecter une banque** (fenêtre modale) : choisir la banque parmi celles que
+    1. **Connecter une banque** (fenêtre modale, depuis le bouton **+**) : choisir la banque parmi celles que
        woob supporte ; le formulaire demande les identifiants attendus par son module woob
        (numéro client, code, type de compte…), que **Connecter la banque** confie à woob
        (Carbure ne les enregistre ni ne les journalise). Une banque déjà connectée reste

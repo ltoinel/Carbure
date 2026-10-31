@@ -401,7 +401,8 @@ test('accounts: closing the modal stops woob waiting for the approval of the ban
     assert.equal(context.showAddAccountsModal, false);
 });
 
-test('accounts: the + of the synchronized accounts goes to the banks already connected', async () => {
+test('accounts: the + of the synchronized accounts goes to the banks already connected, or a new one', async () => {
+    const { NEW_BANK } = await import('../../portal/modules/accountsModule.js');
     const listed = [];
     const context = await accountsContext({ discoverBankAccounts: async backend => { listed.push(backend); return [{ bankId: `1@${backend}`, followed: false }]; } });
     let connecting = 0;
@@ -413,11 +414,12 @@ test('accounts: the + of the synchronized accounts goes to the banks already con
     assert.equal(connecting, 1);
     assert.equal(context.showAddAccountsModal, false);
 
-    // One bank: straight to its accounts
+    // One bank: straight to its accounts, the list still offering a new bank
     context.bankBackends = [{ name: 'bnp', module: 'bnp' }];
     await context.openAddAccountsPicker();
     assert.deepEqual(listed, ['bnp']);
-    assert.equal(context.addAccountsPicking, false);
+    assert.equal(context.addAccountsBackend, 'bnp');
+    assert.equal(context.addAccountsPicking, true);
     context.closeAddAccounts();
 
     // Several: the bank is chosen first, nothing listed before
@@ -435,7 +437,10 @@ test('accounts: the + of the synchronized accounts goes to the banks already con
     context.chooseAddAccountsBackend('');
     assert.equal(context.addAccountsBackend, '');
     assert.deepEqual(context.discoveredAccounts, []);
-    context.closeAddAccounts();
+    // Last choice of the list: the connection of a new bank, instead of the modal
+    context.chooseAddAccountsBackend(NEW_BANK);
+    assert.equal(connecting, 2);
+    assert.equal(context.showAddAccountsModal, false);
     assert.equal(context.addAccountsPicking, false);
 });
 

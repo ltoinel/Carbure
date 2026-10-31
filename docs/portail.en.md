@@ -371,17 +371,19 @@ protected.
 ## Accounts (administrators) { #comptes-administrateurs }
 
 The page has two blocks: **Synchronized accounts** (with woob) and **Manual accounts**. The
-synchronization, the update of the bank modules and **Connect a bank** only concern the
-first one.
+synchronization, the update of the bank modules and the round **+** button (addition of a
+bank or accounts) only concern the first one.
 
 The synchronized accounts are organized by bank: each **connected bank** (header with its name and
 its actions) shows right below it, indented, the **followed accounts** that come
 from it; a bank without a followed account says so ("No followed account: add accounts of this bank."). Accounts of a bank that is no longer connected in woob,
 or imported from a file, are grouped at the end under **Other accounts**.
 
-The round **+** button of the synchronized accounts adds accounts of a **bank already
-connected**: you choose the bank (straight to its accounts when there is only one, to the
-connection of a bank when there is none), then tick its accounts to follow.
+The round **+** button of the synchronized accounts (**Add a bank or accounts**) adds
+accounts of a **bank already connected**: you choose the bank (straight to its accounts
+when there is only one), then tick its accounts to follow. The last choice of the list,
+**Connect a new bank…**, opens the connection of a bank, also opened directly when no bank
+is connected.
 
 The **manual accounts** have their own block: an account never
 synchronized (cash, a bank woob does not support), whose transactions are entered by hand
@@ -400,7 +402,7 @@ accounts; it has no synchronization button.
   the synchronization of every followed account, with the same live tracking as a single
   account.
 - **Adding in two steps**:
-    1. **Connect a bank** (modal window): choose the bank among those that
+    1. **Connect a bank** (modal window, from the **+** button): choose the bank among those that
        woob supports; the form asks for the credentials expected by its woob module
        (customer number, code, account type…), which **Connect the bank** hands to woob
        (Carbure neither stores nor logs them). A bank that is already connected is still
