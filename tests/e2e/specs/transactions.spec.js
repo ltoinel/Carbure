@@ -253,6 +253,30 @@ test('splits a transaction across several categories, then cancels the split', a
     await expect(rows.locator('.transaction-amount')).toHaveText(euros(-82.4));
 });
 
+test('deletes the selected transactions (#421)', async ({ adminPage: page, api }) => {
+    // No tag: the selection still offers the deletion
+    await page.getByRole('button', { name: tr('tagSelect'), exact: true }).click();
+    const bar = page.getByRole('region', { name: tr('tagSelect') });
+    await expect(bar.locator('#tag-selection')).toHaveCount(0);
+    const remove = bar.getByRole('button', { name: tr('selectionDelete') });
+    await expect(remove).toBeDisabled();
+
+    await page.getByLabel(tr('tagSelectTransaction', { label: 'CB SUPERMARCHE CASINO' })).check();
+    await page.getByLabel(tr('tagSelectTransaction', { label: 'CB RESTAURANT LE PETIT ZINC' })).check();
+    await expect(bar.locator('.tag-selection-count')).toHaveText(tr('tagSelected', { count: 2 }));
+
+    // The confirmation is accepted (fixtures)
+    await remove.click();
+    await expect(page.locator('.toast')).toHaveText(tr('selectionDeleted', { count: 2 }));
+    await expect(bar).toHaveCount(0);
+    await expect(page.locator('.transaction-item')).toHaveCount(4);
+    await expect(row(page, 'CB SUPERMARCHE CASINO')).toHaveCount(0);
+
+    const { month, year } = currentMonth();
+    const labels = (await (await api.get(`/api/transaction?month=${month}&year=${year}`)).json()).map(t => t.label);
+    expect(labels).not.toContain('CB RESTAURANT LE PETIT ZINC');
+});
+
 test('deletes a transaction from its detail', async ({ adminPage: page, api }) => {
     await row(page, 'CB RESTAURANT LE PETIT ZINC').getByRole('button', { name: new RegExp(tr('transactionDetail')) }).click();
     const modal = page.getByRole('dialog', { name: tr('transactionDetail') });

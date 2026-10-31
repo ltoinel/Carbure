@@ -136,7 +136,8 @@ transactions of the last month still without a category.
   direct debit…), card, originating bank, import date; the category and the checked status can be
   changed there. **Similar transactions** runs a search on the merchant's name
   ("PRLV SEPA EDF MDT/123" searches for "EDF").
-- **Delete** a transaction (from its details, after confirmation): it disappears
+- **Delete** a transaction (from its details, or several at once: **Select**, tick the
+  transactions, **Delete**; after confirmation): it disappears
   for the whole household and is never imported again, neither by synchronization nor by importing
   a statement.
 - **Enter a transaction by hand** (**+** button), for example a cash expense, on a manual

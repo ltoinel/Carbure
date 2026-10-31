@@ -136,7 +136,8 @@ transactions du dernier mois restées sans catégorie.
   prélèvement…), carte, banque d'origine, date d'import ; la catégorie et le pointage s'y
   modifient. **Transactions similaires** y lance la recherche sur le nom du commerçant
   (« PRLV SEPA EDF MDT/123 » cherche « EDF »).
-- **Supprimer** une transaction (depuis son détail, après confirmation) : elle disparaît
+- **Supprimer** une transaction (depuis son détail, ou plusieurs d'un coup : **Sélectionner**,
+  cocher les transactions, **Supprimer** ; après confirmation) : elle disparaît
   pour tout le foyer et n'est plus réimportée, ni par la synchronisation ni par l'import
   d'un relevé.
 - **Saisir une transaction à la main** (bouton **+**), par exemple une dépense en
