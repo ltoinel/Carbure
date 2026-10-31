@@ -253,7 +253,7 @@ utilisateur que s'il y a des insights masqués.
 
 La **cloche** d'une carte règle l'alerte de l'utilisateur sur cet insight : **au-dessus** ou
 **en dessous** d'un montant, comparé à la valeur du mois sans son signe. La carte rappelle
-l'alerte posée et la cloche se remplit ; **Supprimer l'alerte** la retire. Les canaux se
+l'alerte posée et la cloche se remplit ; la corbeille rouge en bas à gauche (**Supprimer l'alerte**) la retire. Les canaux se
 choisissent dans **Mon profil → Notifications** (« Alerte d'un insight », désactivée par
 défaut). Voir [Alertes des insights](fonctionnalites.md#alertes-des-insights).
 

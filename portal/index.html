@@ -3252,8 +3252,10 @@
                     </div>
                 </form>
                 <div class="modal-footer">
-                    <button v-if="insightAlertForm.exists" type="button" class="btn-secondary modal-footer-start" @click="removeInsightAlert" :disabled="savingInsightAlert">
-                        <span class="material-icons" aria-hidden="true">notifications_off</span>{{ t('insightAlertRemove') }}
+                    <!-- Small trash button at the bottom left, as in the detail of a transaction -->
+                    <button v-if="insightAlertForm.exists" type="button" class="btn-danger btn-danger-icon modal-footer-start" @click="removeInsightAlert" :disabled="savingInsightAlert"
+                            :title="t('insightAlertRemove')" :aria-label="t('insightAlertRemove')">
+                        <span class="material-icons" aria-hidden="true">delete</span>
                     </button>
                     <button type="button" class="btn-secondary" @click="closeInsightAlert">
                         <span class="material-icons" aria-hidden="true">close</span>{{ t('cancel') }}

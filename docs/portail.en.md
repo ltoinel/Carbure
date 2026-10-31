@@ -249,7 +249,7 @@ insights are hidden.
 
 The **bell** of a card sets the user's alert on this insight: **above** or **below** an
 amount, compared with the value of the month without its sign. The card reminds the alert
-set and the bell is filled; **Remove the alert** removes it. The channels are chosen in
+set and the bell is filled; the red trash at the bottom left (**Remove the alert**) removes it. The channels are chosen in
 **My profile → Notifications** ("Insight alert", off by default). See
 [Insight alerts](fonctionnalites.md#alertes-des-insights).
 
