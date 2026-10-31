@@ -221,7 +221,7 @@ test('two rules with the same keyword, one with an amount: PAYPAL of 10 € goes
     await modal.getByLabel(tr('ruleAmount')).fill('10,00');
     await pickCategory(modal, 'Restaurant');
     await modal.getByRole('button', { name: tr('save') }).click();
-    await expect(page.locator('.toast')).toHaveText(tr('apiErrors.rule_amount_exists', { amount: '10.00' }));
+    await expect(page.locator('.toast')).toHaveText(tr('apiErrors.rule_amount_exists', { amount: '10' }));
     await modal.getByRole('button', { name: tr('cancel') }).click();
 
     // Opened again: its amount in the field, the transactions it matches
