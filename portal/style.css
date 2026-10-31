@@ -2526,14 +2526,14 @@ button .material-icons {
     text-align: center;
 }
 
+/* Under the search bar of the Transactions tab, on the page background */
 .search-filters {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 6px 8px;
-    padding: 10px 24px;
-    background: var(--background);
-    border-bottom: 1px solid var(--divider);
+    margin: -6px 0 16px;
+    padding: 0 12px;
 }
 
 .search-filter-chip {
@@ -2571,10 +2571,12 @@ button .material-icons {
     font-size: 16px;
 }
 
+/* On the page background (a gradient in some themes): its own surface, like the chips */
 .search-filters-clear {
-    padding: 4px 8px;
-    border: none;
-    background: transparent;
+    padding: 3px 10px;
+    border: 1px solid var(--divider);
+    border-radius: 999px;
+    background: var(--surface);
     color: var(--text-primary);
     font-size: 13px;
     text-decoration: underline;
@@ -2583,8 +2585,10 @@ button .material-icons {
 
 .search-filters-clear:hover,
 .search-filters-clear:focus-visible {
-    background: var(--surface);
+    background: var(--hover-surface);
     color: var(--text-primary);
+    transform: none;
+    box-shadow: none;
 }
 
 .modal-advanced-search input:not([type="radio"]):not([type="checkbox"]) {

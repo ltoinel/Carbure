@@ -100,6 +100,13 @@ test('searches with the criteria of the advanced search, removable one by one', 
     await expect(button).toHaveAccessibleName(tr('advancedSearchActive', { count: 3 }));
     const chips = page.locator('.search-filter-chip-label');
     await expect(chips).toHaveText([tr('advancedSearchExpenses'), tr('advancedSearchAmountMin', { amount: euros(100) }), 'Alimentation']);
+    // Right below the search bar, above the list (#441)
+    const bar = await page.locator('.transaction-search-main').boundingBox();
+    const filters = await page.locator('.search-filters').boundingBox();
+    const list = await page.locator('.transactions-container').boundingBox();
+    expect(filters.y).toBeGreaterThanOrEqual(bar.y + bar.height);
+    expect(filters.y - (bar.y + bar.height)).toBeLessThan(24);
+    expect(filters.y + filters.height).toBeLessThanOrEqual(list.y);
 
     // Without the amount: the restaurant and the supermarket of this month too
     await page.getByRole('button', { name: tr('advancedSearchRemove', { filter: tr('advancedSearchAmountMin', { amount: euros(100) }) }) }).click();
