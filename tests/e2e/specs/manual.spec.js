@@ -60,8 +60,10 @@ test('a user enters an income by hand on the synchronized account, then changes 
     await page.locator('.transactions-toolbar').getByRole('button', { name: tr('manualTransactionTitle') }).click();
     let modal = page.getByRole('dialog', { name: tr('manualTransactionTitle') });
     const account = modal.getByLabel(tr('manualAccount'));
-    await expect(account.locator('option')).toHaveText(['BNP ···0001', 'BANK ···fail']);
-    await expect(account.locator('option:checked')).toHaveText('BNP ···0001');
+    // Synchronized accounts in the order of GET /bank, the first one chosen
+    await expect(account.locator('option')).toHaveText(['BANK ···fail', 'BNP ···0001']);
+    await expect(account.locator('option:checked')).toHaveText('BANK ···fail');
+    await account.selectOption({ label: 'BNP ···0001' });
     await expect(account).toHaveAccessibleDescription(tr('manualSyncedHelp'));
     await modal.getByLabel(tr('manualIncome')).check();
     await modal.getByLabel(tr('manualAmount', { currency: '€' })).fill('30');
