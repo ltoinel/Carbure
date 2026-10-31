@@ -8518,16 +8518,150 @@ button.is-busy:not(.btn-confirm-danger):hover {
     font-size: 14px;
 }
 
-.tag-add-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
+/* Title of the Tags section of a transaction detail, underlined */
+.transaction-detail-tags .detail-section-title {
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--divider);
+}
+
+.tag-none-active {
+    margin: 8px 0 0;
+}
+
+.tag-tab-link {
+    color: var(--primary-color);
+    font-weight: 500;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.tag-tab-link:hover,
+.tag-tab-link:focus-visible {
+    color: var(--primary-dark, var(--primary-color));
+    text-decoration-thickness: 2px;
+}
+
+/* Tag typed with autocompletion (TagInput): the field, then the tags matching it */
+.tag-input {
+    position: relative;
     margin-top: 8px;
 }
 
-.tag-add-row select {
-    flex: 1 1 160px;
+.tag-input-icon {
+    position: absolute;
+    top: 0;
+    left: 12px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    font-size: 18px;
+    color: var(--text-secondary);
+    pointer-events: none;
+}
+
+.tag-input:focus-within .tag-input-icon {
+    color: var(--primary-color);
+}
+
+.tag-input input[type="text"] {
+    width: 100%;
+    height: 40px;
+    margin: 0;
+    padding: 0 12px 0 38px;
+    border: 1px solid var(--divider);
+    border-radius: var(--border-radius-md);
+    background: var(--surface);
+    color: var(--text-primary);
+    font: inherit;
+    font-size: 14px;
+    box-shadow: none;
+    appearance: none;
+}
+
+.tag-input input[type="text"]::placeholder {
+    color: var(--text-secondary);
+    opacity: 1;
+}
+
+.tag-input input[type="text"]:hover:not(:disabled) {
+    border-color: var(--primary-color);
+}
+
+.tag-input input[type="text"]:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 15%, transparent);
+    outline: none;
+}
+
+.tag-input input[type="text"]:disabled {
+    background: var(--background);
+    cursor: not-allowed;
+}
+
+.tag-input-list {
+    position: absolute;
+    z-index: 20;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    max-height: 260px;
+    overflow-y: auto;
+    padding: 4px;
+    background: var(--surface);
+    border: 1px solid var(--divider);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-4);
+}
+
+/* In a modal, the list opens inline so that the modal scrolls instead of clipping it */
+.modal-body .tag-input-list {
+    position: static;
+    margin-top: 4px;
+    box-shadow: var(--shadow-1);
+}
+
+.tag-input-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    border-radius: var(--border-radius-md);
+    color: var(--text-primary);
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.tag-input-option.active {
+    background: color-mix(in srgb, var(--primary-color) 8%, var(--surface));
+}
+
+.tag-input-option.create {
+    color: var(--primary-dark);
+    font-weight: 500;
+}
+
+.tag-input-option .material-icons {
+    font-size: 18px;
+}
+
+.tag-input-name {
     min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Text matching the one typed */
+.tag-input-option mark {
+    background: none;
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+.tag-input-empty {
+    padding: 10px 8px;
+    color: var(--text-secondary);
+    font-size: 13px;
 }
 
 .transaction-select {
@@ -8555,9 +8689,10 @@ button.is-busy:not(.btn-confirm-danger):hover {
     color: var(--text-primary);
 }
 
-.tag-selection-bar select {
-    flex: 0 1 220px;
+.tag-selection-bar .tag-input {
+    flex: 0 1 260px;
     min-width: 0;
+    margin-top: 0;
 }
 
 /* Deletion of the selection: at the end of the bar */

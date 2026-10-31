@@ -191,10 +191,13 @@ taskbar or the home screen.
   amount back. The synchronization keeps the split and the rules do not change it.
 - **Tags**: the tagged transactions show their `#tag` chips below their label.
   - In the **details**, the Tags section lists those of the transaction (the cross removes
-    one) and offers to **add** an active tag.
-  - **Select** (toolbar, when a tag is active) shows a box per transaction and a bar
-    "n selected": choose the tag then **Add the tag**, for all the ticked transactions at
-    once.
+    one); its **Type a tag…** field completes the name typed with the active tags (arrows
+    to move, Enter or a click to add) and offers **Create #name** for a new name. The
+    field is emptied at once, ready for the next tag. Without an active tag, a link leads to
+    the Tags tab.
+  - **Select** (toolbar) shows a box per transaction and a bar "n selected" with the same
+    field: the tag chosen stays shown in it, then **Apply the tag** adds it to all the
+    ticked transactions at once.
   - The **search** `#trip-italy` lists the transactions of this tag, every month.
 - **Import a statement**: the "Import" button opens a window where you drop the file
   downloaded from the online banking of the bank (OFX/QFX, QIF, CSV or CAMT.053, 1 MB at

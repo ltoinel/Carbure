@@ -8,6 +8,7 @@
  */
 
 import CategoryPicker from './components/CategoryPicker.js';
+import TagInput from './components/TagInput.js';
 import SqlEditor from './components/SqlEditor.js';
 import FlowChart from './components/FlowChart.js';
 import { createApiService } from './services/apiService.js';
@@ -89,6 +90,7 @@ const app = createApp({
     // Register imported components
     components: {
         CategoryPicker,
+        TagInput,
         SqlEditor,
         FlowChart
     },

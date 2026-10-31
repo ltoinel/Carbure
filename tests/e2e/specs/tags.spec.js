@@ -28,9 +28,22 @@ test('tags transactions of a project, then shows its summary', async ({ userPage
     await openTab(page, tr('tabTransactions'));
     await row(page, 'CB RESTAURANT LE PETIT ZINC').getByRole('button', { name: new RegExp(tr('transactionDetail')) }).click();
     const detail = page.getByRole('dialog', { name: tr('transactionDetail') });
-    await detail.locator('#detail-tag').selectOption({ label: '#voyage-italie' });
-    await detail.getByRole('button', { name: tr('tagAdd') }).click();
+    // Typed: the matching tags are listed, Enter adds the first one, no button to click
+    const field = detail.getByRole('combobox', { name: tr('tagsOfTransaction') });
+    await field.fill('ital');
+    await expect(detail.getByRole('option').locator('.tag-input-name')).toHaveText(['#voyage-italie', tr('tagCreateNamed', { name: 'ital' })]);
+    await expect(detail.getByRole('option').first().locator('mark')).toHaveText('ital');
+    await field.press('Enter');
     await expect(detail.locator('.tag-chip')).toContainText('#voyage-italie');
+    await expect(field).toHaveValue('');
+    await expect(field).toBeFocused();
+    // A name matching no tag creates it
+    await field.fill('#Resto');
+    await expect(detail.getByRole('option').locator('.tag-input-name')).toHaveText([tr('tagCreateNamed', { name: 'resto' })]);
+    await detail.getByRole('option', { name: tr('tagCreateNamed', { name: 'resto' }) }).click();
+    await expect(detail.locator('.tag-chip .tag-chip-name')).toHaveText(['#voyage-italie', '#resto']);
+    await detail.getByRole('button', { name: tr('tagRemoveOf', { name: 'resto' }) }).click();
+    await expect(detail.locator('.tag-chip .tag-chip-name')).toHaveText(['#voyage-italie']);
     await expect(detail.getByRole('button', { name: tr('tagRemoveOf', { name: 'voyage-italie' }) })).toBeVisible();
     await page.keyboard.press('Escape');
     await expect(row(page, 'CB RESTAURANT LE PETIT ZINC').locator('.tag-chip')).toHaveText('#voyage-italie');
@@ -40,8 +53,21 @@ test('tags transactions of a project, then shows its summary', async ({ userPage
     await page.getByLabel(tr('tagSelectTransaction', { label: 'CB SUPERMARCHE CASINO' })).check();
     await page.getByLabel(tr('tagSelectTransaction', { label: 'CB BOULANGERIE PAUL' })).check();
     await expect(page.locator('.tag-selection-count')).toHaveText(tr('tagSelected', { count: 2 }));
-    await page.locator('#tag-selection').selectOption({ label: '#voyage-italie' });
-    await page.locator('.tag-selection-bar').getByRole('button', { name: tr('tagAdd') }).click();
+    // The tag typed and chosen stays in the field, then "Apply the tag" adds it to the selection
+    const bar = page.locator('.tag-selection-bar');
+    const apply = bar.getByRole('button', { name: tr('tagApply') });
+    await expect(apply).toBeDisabled();
+    const selectionField = page.getByRole('combobox', { name: tr('tagAddToSelection') });
+    await selectionField.fill('voyage');
+    await bar.getByRole('option', { name: '#voyage-italie' }).click();
+    await expect(selectionField).toHaveValue('#voyage-italie');
+    await expect(bar.getByRole('listbox')).toBeHidden();
+    // Changed: no tag chosen anymore
+    await selectionField.fill('#voyage-ital');
+    await expect(apply).toBeDisabled();
+    await selectionField.press('Enter');
+    await expect(selectionField).toHaveValue('#voyage-italie');
+    await apply.click();
     await expect(page.locator('.toast')).toHaveText(tr('tagAddedToSelection', { count: 2, name: 'voyage-italie' }));
     await expect(page.locator('.tag-selection-bar')).toHaveCount(0);
 
@@ -66,13 +92,27 @@ test('an archived tag is no more offered, its summary stays readable', async ({ 
     await expect(page.locator('.tag-list-archived .tag-name')).toHaveText('#ete-2020');
 
     await openTab(page, tr('tabTransactions'));
-    // No active tag: no selection, nothing offered in the detail
-    await expect(page.getByRole('button', { name: tr('tagSelect'), exact: true })).toHaveCount(0);
+    // Not offered in the detail, and its name cannot be taken again
     await row(page, 'CB RESTAURANT LE PETIT ZINC').getByRole('button', { name: new RegExp(tr('transactionDetail')) }).click();
-    await expect(page.getByRole('dialog', { name: tr('transactionDetail') })).toContainText(tr('tagNoneActive'));
+    const detail = page.getByRole('dialog', { name: tr('transactionDetail') });
+    const field = detail.getByRole('combobox', { name: tr('tagsOfTransaction') });
+    await field.fill('ete-2020');
+    await expect(detail.getByRole('option')).toHaveCount(0);
+    await expect(detail.locator('.tag-input-empty')).toHaveText(tr('tagNoMatch'));
+    // Escape closes the list first, then the modal
+    await field.press('Escape');
+    await expect(detail.getByRole('listbox')).toBeHidden();
+    await expect(detail).toBeVisible();
     await page.keyboard.press('Escape');
+    await expect(detail).toBeHidden();
 
-    await openTab(page, tr('tabTags'));
+    // No active tag: a hint, its link opens the Tags tab
+    await row(page, 'CB RESTAURANT LE PETIT ZINC').getByRole('button', { name: new RegExp(tr('transactionDetail')) }).click();
+    await expect(detail.locator('.tag-none-active')).toContainText(tr('tagNoneActiveLink'));
+    await detail.getByRole('link', { name: tr('tagNoneActiveLink') }).click();
+    await expect(detail).toHaveCount(0);
+    await expect(page.locator('.tag-list-archived .tag-name')).toHaveText('#ete-2020');
+
     await page.getByRole('button', { name: tr('tagSummaryOf', { name: 'ete-2020' }) }).click();
     await expect(page.locator('.tag-summary')).toContainText(tr('tagArchived'));
     await expect(page.locator('.tag-summary')).toContainText(tr('tagNoTransaction'));
