@@ -18,7 +18,7 @@ test('adds a manual account, then enters and changes a cash expense', async ({ a
     await expect(manual.getByRole('button', { name: tr('syncAccount') })).toHaveCount(0);
 
     await openTab(page, tr('tabTransactions'));
-    await page.locator('.transactions-toolbar').getByRole('button', { name: tr('manualTransactionButton') }).click();
+    await page.locator('.transactions-toolbar').getByRole('button', { name: tr('manualTransactionTitle') }).click();
     const modal = page.getByRole('dialog', { name: tr('manualTransactionTitle') });
     await expect(modal.getByLabel(tr('manualAccount'))).toHaveValue(/\d+/);
     await modal.getByLabel(tr('manualAmount', { currency: '€' })).fill('12.50');
@@ -56,7 +56,7 @@ test('adds a manual account, then enters and changes a cash expense', async ({ a
 });
 
 test('a user enters an income by hand once an administrator added a manual account', async ({ userPage: page, api }) => {
-    await page.locator('.transactions-toolbar').getByRole('button', { name: tr('manualTransactionButton') }).click();
+    await page.locator('.transactions-toolbar').getByRole('button', { name: tr('manualTransactionTitle') }).click();
     let modal = page.getByRole('dialog', { name: tr('manualTransactionTitle') });
     await expect(modal).toContainText(tr('manualNoAccount'));
     await expect(modal.getByRole('button', { name: tr('save') })).toHaveCount(0);
@@ -64,7 +64,7 @@ test('a user enters an income by hand once an administrator added a manual accou
     await expect(modal).toHaveCount(0);
 
     expect((await api.post('/api/bank/manual', { data: { label: 'Espèces' } })).ok()).toBe(true);
-    await page.locator('.transactions-toolbar').getByRole('button', { name: tr('manualTransactionButton') }).click();
+    await page.locator('.transactions-toolbar').getByRole('button', { name: tr('manualTransactionTitle') }).click();
     modal = page.getByRole('dialog', { name: tr('manualTransactionTitle') });
     await modal.getByLabel(tr('manualIncome')).check();
     await modal.getByLabel(tr('manualAmount', { currency: '€' })).fill('30');

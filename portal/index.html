@@ -646,11 +646,12 @@
                                             :aria-pressed="selectingTransactions ? 'true' : 'false'" :title="t('tagSelectHelp')">
                                         <span class="material-icons" aria-hidden="true">{{ selectingTransactions ? 'close' : 'checklist' }}</span><span class="btn-label">{{ selectingTransactions ? t('tagSelectStop') : t('tagSelect') }}</span>
                                     </button>
-                                    <button type="button" class="btn-secondary btn-manual-add" @click="openManualTransaction" :title="t('manualTransactionTitle')">
-                                        <span class="material-icons" aria-hidden="true">add</span><span class="btn-label">{{ t('manualTransactionButton') }}</span>
-                                    </button>
                                     <button type="button" class="btn-secondary btn-import" @click="openImport" :title="t('importTitle')">
                                         <span class="material-icons" aria-hidden="true">upload_file</span><span class="btn-label">{{ t('importButton') }}</span>
+                                    </button>
+                                    <!-- Round + button, as on the Rules, Categories, Tags and Insights tabs -->
+                                    <button type="button" class="btn-add btn-add-icon" @click="openManualTransaction" :title="t('manualTransactionTitle')" :aria-label="t('manualTransactionTitle')">
+                                        <span class="material-icons" aria-hidden="true">add</span>
                                     </button>
                                 </div>
                             </div>
@@ -1301,9 +1302,8 @@
                                     <p class="rules-help">{{ t('tagsHelp') }}</p>
                                 </div>
                                 <div class="panel-actions">
-                                    <button type="button" class="btn-add" @click="openTagModal()">
+                                    <button type="button" class="btn-add btn-add-icon" @click="openTagModal()" :title="t('tagNew')" :aria-label="t('tagNew')">
                                         <span class="material-icons" aria-hidden="true">add</span>
-                                        {{ t('tagNew') }}
                                     </button>
                                 </div>
                             </div>

@@ -90,7 +90,7 @@ test('the transactions on a phone: search bar, recurring strip, icon buttons, fu
 
     // The buttons of the toolbar as icons, still named
     const toolbar = page.locator('.transactions-toolbar');
-    for (const name of [tr('manualTransactionButton'), tr('importButton')]) {
+    for (const name of [tr('manualTransactionTitle'), tr('importButton')]) {
         const button = toolbar.getByRole('button', { name, exact: true });
         await expect(button).toBeVisible();
         expect((await button.boundingBox()).width).toBeLessThan(60);
