@@ -565,6 +565,7 @@
     "tagSelected_other": "{count} selezionate",
     "tagType": "Digita un tag…",
     "tagAddToSelection": "Aggiungi un tag alla selezione",
+    "tagApply": "Applica il tag",
     "tagCreateNamed": "Crea #{name}",
     "tagNoMatch": "Nessun tag corrispondente",
     "tagCreated": "Tag #{name} creato",

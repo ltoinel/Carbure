@@ -4,7 +4,8 @@
  * Text field choosing a tag by typing it: the tags matching the text are listed (the
  * matching part highlighted), the arrow keys move in the list, Enter or a click chooses
  * at once. A name matching no tag is offered to be created. The field is emptied after
- * each choice, to add another tag.
+ * each choice, to add another tag; with `keep`, it shows the tag chosen instead (applied
+ * by a button of the parent), and changing the text drops the choice (`clear`).
  *
  * @component
  * @example
@@ -73,13 +74,15 @@ export default {
         /** Offer to create a tag from a name matching none */
         creatable: { type: Boolean, default: true },
         /** Field disabled */
-        disabled: { type: Boolean, default: false }
+        disabled: { type: Boolean, default: false },
+        /** Keep the tag chosen in the field (it is applied by the parent) instead of emptying it */
+        keep: { type: Boolean, default: false }
     },
 
-    emits: ['select', 'create'],
+    emits: ['select', 'create', 'clear'],
 
     data() {
-        return { query: '', open: false, active: -1, uid: ++instances };
+        return { query: '', open: false, active: -1, uid: ++instances, picked: null, settingQuery: false };
     },
 
     computed: {
@@ -125,6 +128,14 @@ export default {
     watch: {
         /** While typing, the first option is ready to be chosen with Enter */
         query(value) {
+            if (this.settingQuery) {
+                this.settingQuery = false;
+                return;
+            }
+            if (this.picked !== null && value !== `#${this.picked}`) {
+                this.picked = null;
+                this.$emit('clear');
+            }
             this.open = true;
             this.active = value.trim() && this.options.length ? 0 : -1;
         }
@@ -179,6 +190,7 @@ export default {
 
         /**
          * Chooses a tag, or the creation of one, then empties the field for the next one
+         * (with `keep`, shows the tag chosen)
          * @param {{tag: Object|null, create: string|null}} option - Option
          */
         choose(option) {
@@ -187,7 +199,11 @@ export default {
             } else if (option.create) {
                 this.$emit('create', option.create);
             }
-            this.query = '';
+            const name = option.tag ? option.tag.name : option.create;
+            const query = this.keep ? `#${name}` : '';
+            this.picked = this.keep ? name : null;
+            this.settingQuery = this.query !== query;
+            this.query = query;
             this.$nextTick(() => {
                 this.open = false;
                 this.active = -1;

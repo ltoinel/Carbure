@@ -198,8 +198,8 @@ tâches ou l'écran d'accueil.
     pour se déplacer, Entrée ou clic pour ajouter) et propose **Créer #nom** pour un nom
     nouveau. Le champ se vide aussitôt, prêt pour le tag suivant.
   - **Sélectionner** (barre d'outils) affiche une case par transaction et une barre
-    « n sélectionnées » avec le même champ : le tag choisi s'ajoute à toutes les
-    transactions cochées d'un coup.
+    « n sélectionnées » avec le même champ : le tag choisi y reste affiché, puis
+    **Appliquer le tag** l'ajoute à toutes les transactions cochées d'un coup.
   - La **recherche** `#voyage-italie` liste les transactions de ce tag, tous mois
     confondus.
 - **Importer un relevé** : le bouton « Importer » ouvre une fenêtre où déposer le fichier

@@ -673,10 +673,14 @@
                                         :aria-pressed="allDisplayedSelected ? 'true' : 'false'">
                                     <span class="material-icons" aria-hidden="true">{{ allDisplayedSelected ? 'deselect' : 'select_all' }}</span>{{ allDisplayedSelected ? t('selectionUnselectAll') : t('selectionSelectAll') }}
                                 </button>
+                                <!-- The tag is chosen by typing it, then applied to the selection by its button -->
                                 <label class="visually-hidden" for="tag-selection">{{ t('tagAddToSelection') }}</label>
-                                <tag-input input-id="tag-selection" :tags="activeTags" :all-tags="tags" :t="t" :color-for="categoryColor"
-                                           :disabled="selectedTransactionIds.length === 0"
-                                           @select="tagSelectedTransactions" @create="createSelectionTag"></tag-input>
+                                <tag-input input-id="tag-selection" :tags="activeTags" :all-tags="tags" :t="t" :color-for="categoryColor" keep
+                                           @select="id => selectionTag = id" @create="createSelectionTag" @clear="selectionTag = ''"></tag-input>
+                                <button type="button" class="btn-manual-add selection-apply" @click="tagSelectedTransactions(selectionTag)"
+                                        :disabled="!selectionTag || selectedTransactionIds.length === 0">
+                                    <span class="material-icons" aria-hidden="true">sell</span>{{ t('tagApply') }}
+                                </button>
                                 <button type="button" class="btn-danger selection-delete" @click="deleteSelectedTransactions"
                                         :disabled="deletingSelection || selectedTransactionIds.length === 0">
                                     <span class="material-icons" aria-hidden="true">delete</span>{{ t('selectionDelete') }}

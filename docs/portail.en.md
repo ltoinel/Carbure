@@ -195,7 +195,8 @@ taskbar or the home screen.
     to move, Enter or a click to add) and offers **Create #name** for a new name. The
     field is emptied at once, ready for the next tag.
   - **Select** (toolbar) shows a box per transaction and a bar "n selected" with the same
-    field: the tag chosen is added to all the ticked transactions at once.
+    field: the tag chosen stays shown in it, then **Apply the tag** adds it to all the
+    ticked transactions at once.
   - The **search** `#trip-italy` lists the transactions of this tag, every month.
 - **Import a statement**: the "Import" button opens a window where you drop the file
   downloaded from the online banking of the bank (OFX/QFX, QIF, CSV or CAMT.053, 1 MB at
