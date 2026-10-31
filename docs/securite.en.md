@@ -278,7 +278,8 @@ Only these routes do not require a JWT (a unit test checks it):
   `token=`, `access_token=` and `code=` parameters of URLs (`carbure` format of
   `docker/nginx.conf`): the token of a scheduled task not yet migrated to the header
   does not appear there. A proxy placed in front (NAS reverse proxy) may however
-  log the full URL.
+  log the full URL. The successful calls of `GET /api/health` (Docker healthcheck,
+  monitoring, mobile apps) are not written there; its errors (4xx, 5xx) are.
 - The call stack of an error is logged **without the function arguments** (which
   contain the request parameters: password, token…), and the Docker image
   enables `zend.exception_ignore_args`.
@@ -293,7 +294,9 @@ Only these routes do not require a JWT (a unit test checks it):
   `X-Request-Id` header), the **client IP address**, the user, the method and the path
   (URL tokens masked), the caller, the message and its context. Each request
   ends with a line with its HTTP status and duration (INFO, WARNING for 4xx, ERROR
-  for 5xx). A message cannot fake another entry: its line breaks
+  for 5xx). `GET /health`, polled every few minutes by the healthchecks, writes its call
+  and this line at the `debug` level only (`quiet` option of its route); its errors keep
+  their level. A message cannot fake another entry: its line breaks
   are escaped.
 - **Client address**: behind a trusted proxy (private or local address: the image's nginx,
   the NAS reverse proxy), it is the last public address of
