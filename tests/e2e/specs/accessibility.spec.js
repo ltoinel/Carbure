@@ -489,6 +489,11 @@ test('the tags, their form and a summary are readable', async ({ adminPage: page
     await page.getByRole('button', { name: tr('tagSummaryOf', { name: 'voyage' }) }).click();
     await expect(page.locator('.tag-summary .tag-category').first()).toBeVisible();
     problems.push(...await contrastProblems(page, tr('tagSummaryOf', { name: 'voyage' })));
+    // The tooltip of its chart, opened with the keyboard
+    await page.getByRole('group', { name: tr('tagChartExplore') }).focus();
+    await expect(page.locator('.tag-chart-tooltip')).toBeVisible();
+    problems.push(...await contrastProblems(page, tr('tagChartExplore')));
+    await page.getByRole('group', { name: tr('tagChartExplore') }).blur();
 
     // The chips of the rows and the selection of the list
     await openTab(page, tr('tabTransactions'));
