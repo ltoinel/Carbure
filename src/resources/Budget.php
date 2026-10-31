@@ -200,7 +200,50 @@ final class Budget {
         }
 
         return ['month' => $key, 'source' => $sourceKey, 'copied' => $copied, 'overwrite' => $overwrite];
-    }   
+    }
+
+    /**
+     * Tell whether the budgets of the previous month can be copied to the given month:
+     * the month has no budget defined yet and the previous month has some. A budget at 0
+     * ("sum of the sub-categories") does not count as defined. Read only.
+     *
+     * @param int|string|null $month The target month (current month by default)
+     * @param int|string|null $year  The target year (current year by default)
+     * @return array{month: string, source: string, defined: bool, source_defined: bool, copyable: bool}
+     *               month and source (previous month, Y-m), defined (the month has a budget),
+     *               source_defined (the previous month has one) and copyable (the copy is offered)
+     */
+    #[ApiRoute('/budget/copy', method: 'GET')]
+    public static function copyStatus(int|string|null $month = null, int|string|null $year = null): array
+    {
+        [$targetMonth, $targetYear] = Month::resolve($month, $year);
+        $target = sprintf('%04d-%02d-01', $targetYear, $targetMonth);
+        $source = date('Y-m-01', Month::timestamp("$target -1 month"));
+
+        $defined = self::hasBudget($target);
+        $sourceDefined = self::hasBudget($source);
+
+        return [
+            'month' => substr($target, 0, 7),
+            'source' => substr($source, 0, 7),
+            'defined' => $defined,
+            'source_defined' => $sourceDefined,
+            'copyable' => !$defined && $sourceDefined,
+        ];
+    }
+
+    /**
+     * Tell whether a month has at least one budget defined (an amount other than 0).
+     *
+     * @param string $first First day of the month (Y-m-d)
+     * @return bool True if a budget of the month has an amount
+     */
+    private static function hasBudget(string $first): bool
+    {
+        $to = date('Y-m-d', Month::timestamp("$first +1 month"));
+        $sql = "SELECT 1 FROM budget WHERE date >= ? AND date < ? AND amount <> 0 LIMIT 1";
+        return Db::select($sql, "ss", $first, $to)->num_rows > 0;
+    }
 
 
     /**

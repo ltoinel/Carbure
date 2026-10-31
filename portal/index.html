@@ -795,8 +795,8 @@
                                 <span class="material-icons" aria-hidden="true">tune</span>{{ t('budgetConfigTab') }}
                             </button>
                         </div>
-                        <!-- Copy the budgets of the previous month -->
-                        <button v-if="budgetView === 'budgets'" class="btn-secondary budget-copy-button" @click="openCopyModal">
+                        <!-- Copy the budgets of the previous month: offered when the month has none and the previous one has some -->
+                        <button v-if="budgetView === 'budgets' && budgetCopyOffered" class="btn-secondary budget-copy-button" @click="openCopyModal">
                             <span class="material-icons" aria-hidden="true">content_copy</span>
                             {{ copyButtonLabel }}
                         </button>

@@ -816,6 +816,15 @@ Renvoie les colonnes de `bank_transaction` et `top` (catégorie de premier nivea
 jour le budget de la catégorie pour le mois. Pour une catégorie avec sous-catégories, le
 montant remplace la somme de leurs budgets ; `0` revient à cette somme.
 
+### `GET /budget/copy`
+
+`month`, `year` (mois cible, mois courant par défaut) : indique si la recopie du mois
+précédent est proposée, en lecture seule. Renvoie `month`, `source` (mois précédent,
+`AAAA-MM`), `defined` (le mois cible a au moins un budget), `source_defined` (le mois
+précédent en a un) et `copyable` (`true` quand le mois cible n'a aucun budget et que le
+mois précédent en a). Un budget à `0` (somme des sous-catégories) ne compte pas comme
+défini. Le portail n'affiche le bouton de recopie que si `copyable` vaut `true`.
+
 ### `POST /budget/copy`
 
 `month`, `year` (mois cible, mois courant par défaut), `overwrite` (`false` par défaut) :

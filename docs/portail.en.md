@@ -235,7 +235,10 @@ Two sub-tabs: **Flow** (shown by default) and **Budgets**.
   the amount typed replaces it.
 - **Copy budgets from the previous month**: the button above the summary takes
   the budgets of the previous month (`POST /budget/copy`), either filling in only the
-  categories without a budget or overwriting the month shown.
+  categories without a budget or overwriting the month shown. It appears only when the
+  month shown has no budget and the previous month has some (`GET /budget/copy`); it is
+  checked again when the month changes, after a budget is set, after the copy and when
+  another member of the household changes the budgets.
 
 ## Insights { #insights }
 
