@@ -463,7 +463,7 @@ List of the users with their **profile** (User or Administrator) and their
 **last login**; an account locked after too many failed logins shows
 "Locked until …" and an **Unlock** button. **+** creates a user; the pencil
 edits it (including its profile); the trash deletes it. The **Reset two-factor
-authentication** button (after confirmation) removes the app, the recovery codes and
+authentication** button (after a confirmation recalling its consequences, **Reset** button) removes the app, the recovery codes and
 the trusted browsers of a user who lost their phone. The last administrator cannot
 lose their role, and a user who owns transactions cannot be
 deleted.
