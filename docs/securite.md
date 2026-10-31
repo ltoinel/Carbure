@@ -278,7 +278,9 @@ Seules ces routes ne demandent pas de JWT (un test unitaire le vérifie) :
   paramètres `token=`, `access_token=` et `code=` des URL (format `carbure` de
   `docker/nginx.conf`) : le jeton d'une tâche planifiée pas encore migrée vers l'en-tête
   n'y apparaît pas. Un proxy placé devant (proxy inversé du NAS) peut en revanche
-  journaliser l'URL complète.
+  journaliser l'URL complète. Les appels réussis de `GET /api/health` (healthcheck
+  Docker, supervision, applications mobiles) n'y sont pas écrits ; ses erreurs (4xx,
+  5xx) le sont.
 - La pile d'appels d'une erreur est journalisée **sans les arguments** des fonctions (qui
   contiennent les paramètres de la requête : mot de passe, jeton…), et l'image Docker
   active `zend.exception_ignore_args`.
@@ -293,7 +295,9 @@ Seules ces routes ne demandent pas de JWT (un test unitaire le vérifie) :
   `X-Request-Id` valide), l'**adresse IP du client**, l'utilisateur, la méthode et le chemin
   (jetons de l'URL masqués), l'appelant, le message et son contexte. Chaque requête se
   termine par une ligne avec son statut HTTP et sa durée (INFO, WARNING pour 4xx, ERROR
-  pour 5xx). Un message ne peut pas simuler une autre entrée : ses retours à la ligne
+  pour 5xx). `GET /health`, interrogé toutes les quelques minutes par les healthchecks,
+  n'écrit son appel et cette ligne qu'en niveau `debug` (option `quiet` de sa route) ;
+  ses erreurs gardent leur niveau. Un message ne peut pas simuler une autre entrée : ses retours à la ligne
   sont échappés.
 - **Adresse du client** : derrière un proxy de confiance (adresse privée ou locale : nginx
   de l'image, proxy inversé du NAS), c'est la dernière adresse publique de
