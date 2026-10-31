@@ -170,12 +170,14 @@ taskbar or the home screen.
   label stripped of the operation type (CB, PRLV SEPA, VIR…) and of what follows the
   merchant (card number, date, mandate reference): "PRLV SEPA EDF MDT/123"
   searches for "EDF". The search is then cleared with the cross, like a typed search.
-- **Enter a transaction by hand**: the **Add** button opens a form (manual account,
-  expense or income, amount, date, label, optional category: otherwise the one of the
-  rules). Handy for a cash expense; any user can enter one. The transaction is checked,
-  and stays editable from its details (**Edit** button: date, label, amount). An
-  administrator must first have created a **manual account** in the Accounts tab;
-  otherwise the form says so.
+- **Enter a transaction by hand**: the **Add** button opens a form (account, expense or
+  income, amount, date, label, optional category: otherwise the one of the rules). Handy
+  for a cash expense; any user can enter one. The account is chosen among all the ones of
+  the household: the **manual accounts** first (the first one is offered), then the
+  synchronized ones. On a synchronized account, the form recalls that the bank may later
+  send the same transaction: then delete the duplicate. The transaction is checked, is never
+  overwritten by the synchronization, and stays editable from its details (**Edit** button:
+  date, label, amount).
 - **Split a transaction** across several categories: in its details, the **Split** icon
   button opens a window with one row per part (category and amount, typed without sign: it
   takes the one of the transaction; 10 parts at most). The **rest**, computed again as you

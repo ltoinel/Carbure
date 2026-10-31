@@ -173,11 +173,13 @@ tâches ou l'écran d'accueil.
   commerçant (numéro de carte, date, référence de mandat) : « PRLV SEPA EDF MDT/123 »
   cherche « EDF ». La recherche s'efface ensuite avec la croix, comme une recherche saisie.
 - **Saisir une transaction à la main** : le bouton **Ajouter** ouvre un formulaire
-  (compte manuel, dépense ou revenu, montant, date, libellé, catégorie facultative : sinon
-  celle des règles). Pratique pour une dépense en espèces ; tout utilisateur peut en saisir.
-  La transaction est pointée, et reste modifiable depuis son détail (bouton **Modifier** :
-  date, libellé, montant). Il faut d'abord qu'un administrateur ait créé un **compte
-  manuel** dans l'onglet Comptes ; sinon le formulaire l'explique.
+  (compte, dépense ou revenu, montant, date, libellé, catégorie facultative : sinon celle
+  des règles). Pratique pour une dépense en espèces ; tout utilisateur peut en saisir. Le
+  compte se choisit parmi tous ceux du foyer : les **comptes manuels** d'abord (le premier
+  est proposé), puis les comptes synchronisés. Sur un compte synchronisé, le formulaire
+  rappelle que la banque peut envoyer plus tard la même transaction : supprimer alors le
+  doublon. La transaction est pointée, n'est jamais écrasée par la synchronisation, et reste
+  modifiable depuis son détail (bouton **Modifier** : date, libellé, montant).
 - **Répartir une transaction** sur plusieurs catégories : dans son détail, le bouton
   icône **Répartir** ouvre une fenêtre avec une ligne par part (catégorie et montant, saisi
   sans signe : il prend celui de la transaction ; 10 parts au plus). Le **reste**, recalculé

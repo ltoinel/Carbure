@@ -150,10 +150,12 @@ transactions of the last month still without a category.
 - **Selection mode**: **Select all** ticks every transaction shown (filter and search applied,
   500 at most), then becomes **Unselect all**; the cross at the right of the bar closes the
   selection mode.
-- **Enter a transaction by hand** (**+** button), for example a cash expense, on a manual
-  account: expense or income, amount, label, date, and category (otherwise the one of the
-  rules). Any user can enter one; it counts like the others and stays editable (label,
-  date, amount) from its details.
+- **Enter a transaction by hand** (**+** button), for example a cash expense, on any
+  account: a manual account, or a synchronized one (a transaction the bank does not send
+  yet; if it sends it later, delete the duplicate): expense or income, amount, label, date,
+  and category (otherwise the one of the rules). Any user can enter one; it counts like the
+  others, is never overwritten by the synchronization and stays editable (label, date,
+  amount) from its details.
 - **Split** a transaction across several categories (from its details): a supermarket
   receipt partly food and partly home, a cash withdrawal spent on groceries and transport.
   The first line is the transaction itself (its category, which may change, and the amount

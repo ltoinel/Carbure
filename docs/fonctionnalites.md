@@ -151,9 +151,12 @@ transactions du dernier mois restées sans catégorie.
   recherche appliqués, 500 au plus), puis devient **Tout désélectionner** ; la croix à droite de
   la barre ferme le mode sélection.
 - **Saisir une transaction à la main** (bouton **+**), par exemple une dépense en
-  espèces, sur un compte manuel : dépense ou revenu, montant, libellé, date, et catégorie
-  (sinon celle des règles). Tout utilisateur peut en saisir ; elle est comptée comme les
-  autres et reste modifiable (libellé, date, montant) depuis son détail.
+  espèces, sur n'importe quel compte : un compte manuel, ou un compte synchronisé (une
+  transaction que la banque n'envoie pas encore ; si elle l'envoie ensuite, supprimer le
+  doublon) : dépense ou revenu, montant, libellé, date, et catégorie (sinon celle des
+  règles). Tout utilisateur peut en saisir ; elle est comptée comme les autres, n'est jamais
+  écrasée par la synchronisation et reste modifiable (libellé, date, montant) depuis son
+  détail.
 - **Répartir** une transaction sur plusieurs catégories (depuis son détail) : un ticket de
   supermarché en partie alimentation et en partie maison, un retrait d'espèces dépensé en
   courses et en transport. La première ligne est la transaction elle-même (sa catégorie, qui

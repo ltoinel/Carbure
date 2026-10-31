@@ -1,23 +1,40 @@
 /**
  * Manual Module
  *
- * Transactions entered by hand on a manual account (cash, a bank woob does not
- * support): added from the Transactions tab by any user, changed later (date, label,
- * amount); the manual accounts are added by an administrator in the Accounts tab.
+ * Transactions entered by hand on any account: a manual one (cash, a bank woob does not
+ * support, added by an administrator in the Accounts tab) or a synchronized one (a
+ * transaction the bank does not send yet). Added from the Transactions tab by any user,
+ * changed later (date, label, amount).
  *
  * @module manualModule
  */
 
-/** bank_name of the manual accounts and of their transactions (Bank::MANUAL) */
+/** bank_name of the manual accounts (Bank::MANUAL) */
 export const MANUAL = 'manual';
 
+/** Start of the UUID of a transaction entered by hand (Transaction::MANUAL_UUID) */
+export const MANUAL_UUID = 'manual';
+
 /**
- * Whether a transaction was entered by hand, and can be changed (not a part of a split one)
+ * Whether a transaction was entered by hand, and can be changed (not a part of a split
+ * one): its UUID starts with MANUAL_UUID, or it is on a manual account (entered before)
  * @param {Object} transaction - Transaction
  * @returns {boolean}
  */
 export function isManual(transaction) {
-    return !!transaction && transaction.bank_name === MANUAL && transaction.split_of == null;
+    return !!transaction && transaction.split_of == null
+        && (transaction.bank_name === MANUAL || String(transaction.uuid ?? '').startsWith(MANUAL_UUID));
+}
+
+/**
+ * Accounts a transaction can be entered on: the manual ones first, then the
+ * synchronized ones (each list in its order)
+ * @param {Array<{manual?: boolean}>} accounts - Followed accounts
+ * @returns {Array<Object>}
+ */
+export function entryAccounts(accounts) {
+    const all = accounts || [];
+    return [...all.filter(a => a.manual), ...all.filter(a => !a.manual)];
 }
 
 /**
@@ -65,12 +82,23 @@ export function createManualModule(getApiService) {
                 // Transaction being entered or changed (modal): its id is null for a new one
                 showManualModal: false,
                 manualForm: { ...EMPTY_FORM },
+                // Accounts of the form: the manual ones first
                 manualAccounts: [],
                 savingManual: false
             };
         },
 
         computed: {
+            /**
+             * Whether the account chosen for a new transaction is a synchronized one: the
+             * bank may send the same transaction later
+             * @returns {boolean}
+             */
+            manualAccountSynced() {
+                const account = this.manualAccounts.find(a => a.id === this.manualForm.account);
+                return !!account && !account.manual;
+            },
+
             /**
              * Whether the form can be sent: an account (new one), a date, a label and an amount
              * @returns {boolean}
@@ -86,12 +114,12 @@ export function createManualModule(getApiService) {
             isManual,
 
             /**
-             * Loads the manual accounts of the household
+             * Loads the accounts of the household, the manual ones first
              * @returns {Promise<void>}
              */
             async loadManualAccounts() {
                 try {
-                    this.manualAccounts = (await getApiService().fetchAccounts()).filter(a => a.manual);
+                    this.manualAccounts = entryAccounts(await getApiService().fetchAccounts());
                 } catch (error) {
                     this.manualAccounts = [];
                     this.showToast(this.apiErrorText(error));
@@ -99,7 +127,8 @@ export function createManualModule(getApiService) {
             },
 
             /**
-             * Opens the form of a new transaction: today, on the first manual account
+             * Opens the form of a new transaction: today, on the first manual account (else
+             * the first account)
              * @returns {Promise<void>}
              */
             async openManualTransaction() {
@@ -134,12 +163,6 @@ export function createManualModule(getApiService) {
             /** Closes the form */
             closeManualModal() {
                 this.showManualModal = false;
-            },
-
-            /** Opens the Accounts tab, to add a manual account (administrators) */
-            goToManualAccounts() {
-                this.showManualModal = false;
-                this.setActiveTab('accounts');
             },
 
             /**

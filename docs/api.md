@@ -734,10 +734,13 @@ curl -X PUT https://exemple.fr/api/transaction/date -H "Authorization: Bearer $T
 
 ### `POST /transaction`
 
-Saisit une transaction à la main sur un compte manuel : `account` (`id` du compte), `date`
-(`AAAA-MM-JJ`), `label`, `amount` (négatif pour une dépense) et `category` (facultative :
-sinon celle des règles, sinon aucune). Elle est pointée, de type `8` (dépense), avec
-`bank_name` `manual`. Renvoie la transaction. Erreurs `400` : `account_not_manual`,
+Saisit une transaction à la main sur un compte du foyer, manuel ou synchronisé : `account`
+(`id` du compte, voir `GET /bank`), `date` (`AAAA-MM-JJ`), `label`, `amount` (négatif pour
+une dépense) et `category` (facultative : sinon celle des règles, sinon aucune). Elle est
+pointée, de type `8` (dépense), avec le `bank_name` et l'`account_number` du compte ; son
+`uuid` commence par `manual` (jamais celui d'une banque), ce qui la distingue d'une
+transaction synchronisée : la synchronisation ne l'écrase pas, mais si la banque envoie plus
+tard la même transaction, elle s'ajoute en doublon. Renvoie la transaction. Erreurs `400` :
 `transaction_date_invalid`, `transaction_label_invalid`, `transaction_amount_invalid` ;
 `404` si le compte ou la catégorie n'existe pas.
 
@@ -748,7 +751,8 @@ curl -X POST https://exemple.fr/api/transaction -H "Authorization: Bearer $TOKEN
 
 ### `PUT /transaction`
 
-Modifie une transaction saisie à la main : `id` et les valeurs à changer parmi `date`,
+Modifie une transaction saisie à la main (sur un compte manuel, ou `uuid` commençant par
+`manual`) : `id` et les valeurs à changer parmi `date`,
 `label` et `amount`. `400 transaction_not_manual` pour une transaction d'une banque ou une
 part de répartition, `400 transaction_split_amount` pour le montant d'une transaction
 répartie (annuler d'abord la répartition). Renvoie la transaction.

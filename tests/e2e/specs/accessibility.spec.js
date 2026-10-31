@@ -224,17 +224,11 @@ test('the menus, modals and the synchronization log are readable', async ({ admi
     await page.keyboard.press('Escape');
     await expect(split).toHaveCount(0);
 
-    // A transaction entered by hand: no manual account yet, then the form
+    // A transaction entered by hand: without manual account, on the synchronized one (with its help)
     await page.locator('.transactions-toolbar').getByRole('button', { name: tr('manualTransactionTitle') }).click();
     const manual = page.getByRole('dialog', { name: tr('manualTransactionTitle') });
-    await expect(manual).toContainText(tr('manualNoAccountAdmin'));
+    await expect(manual.getByText(tr('manualSyncedHelp'))).toBeVisible();
     problems.push(...await contrastProblems(page, tr('manualTransactionTitle')));
-    await page.keyboard.press('Escape');
-    await expect(manual).toHaveCount(0);
-    expect((await api.post('/api/bank/manual', { data: { label: 'Espèces' } })).ok()).toBe(true);
-    await page.locator('.transactions-toolbar').getByRole('button', { name: tr('manualTransactionTitle') }).click();
-    await expect(manual.getByLabel(tr('manualLabel'))).toBeVisible();
-    problems.push(...await contrastProblems(page, tr('manualTransactionTitle') + ' (form)'));
     await page.keyboard.press('Escape');
     await expect(manual).toHaveCount(0);
 
