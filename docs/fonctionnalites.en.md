@@ -130,8 +130,8 @@ transactions of the last month still without a category.
   with the total of the transactions found. The **advanced search** (button inside the
   field) adds criteria:
   expenses or incomes, smallest and largest amount (without sign), period, categories (with
-  their sub-categories) and accounts. Each criterion is shown under the toolbar and removed in
-  one click.
+  their sub-categories) and accounts. Each criterion is shown right below the search bar and
+  removed in one click.
 - **Details**: amount, full label, date and actual date, type (card, transfer,
   direct debit…), card, originating bank, import date; the category and the checked status can be
   changed there. **Similar transactions** runs a search on the merchant's name
