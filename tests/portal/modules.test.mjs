@@ -89,6 +89,18 @@ test('copySource: the month before the selected one, named in the button', () =>
     assert.equal(budget.computed.copySourceName.call({ ...january, copySource: { month: 12, year: 2025 } }), 'décembre');
 });
 
+test('budgetCopyOffered: only when the status of the selected month says so', () => {
+    const offered = (copyStatus, selectedMonth = 3, selectedYear = 2026) =>
+        createBudgetModule(() => ({ state: { copyStatus } }), () => null).computed.budgetCopyOffered.call({ selectedMonth, selectedYear });
+
+    assert.equal(offered({ month: '2026-03', copyable: true }), true);
+    assert.equal(offered({ month: '2026-03', copyable: false }), false);
+    // Unknown, or the status of another month (the answer not arrived yet)
+    assert.equal(offered(null), false);
+    assert.equal(offered({ month: '2026-02', copyable: true }), false);
+    assert.equal(offered({ month: '2026-12', copyable: true }, '12', '2026'), true);
+});
+
 test('categoryColor: color of the category, the primary color by default', () => {
     assert.equal(budget.methods.categoryColor({ color: 'teal' }), '#30b0c7');
     assert.equal(budget.methods.categoryColor({ color: '' }), 'var(--primary-color)');

@@ -337,7 +337,8 @@ A budget is an **amount per category and per month**.
   users.
 - **Copy from the previous month**: the button above the summary copies the budgets
   of the previous month, either filling in only the categories without a budget or overwriting
-  the displayed month.
+  the displayed month. It is offered only when the displayed month has no budget yet and
+  the previous month has some (a budget at 0, sum of the subcategories, does not count).
 
 ## Money flow of the month { #flux-du-mois }
 

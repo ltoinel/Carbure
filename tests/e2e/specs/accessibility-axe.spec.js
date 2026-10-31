@@ -1,7 +1,7 @@
 // Accessibility beyond the contrasts (see accessibility.spec.js): the WCAG 2.2 A/AA rules
 // of axe-core on every screen, the reflow at 320 CSS px (1.4.10), the zoom at 200 %
 // (1.4.4) and the text spacing (1.4.12)
-const { test, expect, tr, openTab, clickMainTab, trustWoobRepository, chooseLanguage, asDemoInstance } = require('../fixtures');
+const { test, expect, tr, openTab, offerBudgetCopy, clickMainTab, trustWoobRepository, chooseLanguage, asDemoInstance } = require('../fixtures');
 const { axeViolations, reflowProblems, clippedTexts, TEXT_SPACING, WCAG_TAGS } = require('../axe');
 const { AxeBuilder } = require('@axe-core/playwright');
 
@@ -130,6 +130,8 @@ test('axe: the menus and the modals', async ({ adminPage: page, api }) => {
     await page.locator('.search-filters').getByRole('button', { name: tr('clearSearch') }).click();
     await expect(page.locator('.search-filters')).toHaveCount(0);
 
+    // Offered when the month has no budget and the previous month has some
+    await offerBudgetCopy(api);
     await openTab(page, tr('tabBudget'));
     await page.getByRole('tab', { name: tr('budgetConfigTab') }).click();
     await page.locator('.budget-copy-button').click();
