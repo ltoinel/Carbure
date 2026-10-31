@@ -1039,30 +1039,35 @@
                             <div class="insights-grid">
                             <div v-for="insight in insights" :key="insight.id" class="insight-card" :class="'insight-' + insight.color"
                                  :style="insightColorValues[insight.color] ? { '--insight-color': insightColorValues[insight.color] } : {}">
-                                <div class="insight-icon" aria-hidden="true">
-                                    <span class="material-icons" aria-hidden="true">{{ insight.icon || getInsightIcon(insight.name) }}</span>
-                                </div>
-                                <div class="insight-content">
-                                    <div class="insight-label">{{ getInsightName(insight.name) }}</div>
-                                    <div class="insight-value" :class="{ 'negative': insight.amount < 0 }">
-                                        {{ formatAmount(Math.abs(insight.amount)) }} {{ currencySymbol }}
+                                <div class="insight-main">
+                                    <div class="insight-icon" aria-hidden="true">
+                                        <span class="material-icons" aria-hidden="true">{{ insight.icon || getInsightIcon(insight.name) }}</span>
                                     </div>
-                                    <div v-if="insightAlerts[insight.id]" class="insight-alert-state">
-                                        <span class="material-icons" aria-hidden="true">notifications_active</span><span class="insight-alert-text">{{ insightAlertText(insight) }}</span>
+                                    <div class="insight-content">
+                                        <div class="insight-label">{{ getInsightName(insight.name) }}</div>
+                                        <div class="insight-value" :class="{ 'negative': insight.amount < 0 }">
+                                            {{ formatAmount(Math.abs(insight.amount)) }} {{ currencySymbol }}
+                                        </div>
+                                        <div v-if="insightAlerts[insight.id]" class="insight-alert-state">
+                                            <span class="material-icons" aria-hidden="true">notifications_active</span><span class="insight-alert-text">{{ insightAlertText(insight) }}</span>
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="insight-actions">
-                                    <button v-if="isAdmin" class="btn-icon" @click="openInsightModal(insight)" :title="t('editInsight')" :aria-label="t('editInsight') + ' ' + getInsightName(insight.name)">
-                                        <span class="material-icons" aria-hidden="true">edit</span>
-                                    </button>
-                                    <button :id="'insight-alert-button-' + insight.id" class="btn-icon" @click="openInsightAlert(insight)"
-                                            :title="t('insightAlertTitle')" :aria-label="t('insightAlertOf', { name: getInsightName(insight.name) })">
-                                        <span class="material-icons" aria-hidden="true">{{ insightAlerts[insight.id] ? 'notifications_active' : 'notifications_none' }}</span>
-                                    </button>
-                                    <button class="btn-icon" @click="setInsightEnabled(insight, false)" :disabled="togglingInsight === insight.id"
-                                            :title="t('hideInsight')" :aria-label="t('hideInsightOf', { name: getInsightName(insight.name) })">
-                                        <span class="material-icons" aria-hidden="true">visibility_off</span>
-                                    </button>
+                                <!-- The actions at the bottom of every card, at the same height in a row -->
+                                <div class="insight-footer">
+                                    <div class="insight-actions">
+                                        <button v-if="isAdmin" class="btn-icon" @click="openInsightModal(insight)" :title="t('editInsight')" :aria-label="t('editInsight') + ' ' + getInsightName(insight.name)">
+                                            <span class="material-icons" aria-hidden="true">edit</span>
+                                        </button>
+                                        <button :id="'insight-alert-button-' + insight.id" class="btn-icon" @click="openInsightAlert(insight)"
+                                                :title="t('insightAlertTitle')" :aria-label="t('insightAlertOf', { name: getInsightName(insight.name) })">
+                                            <span class="material-icons" aria-hidden="true">{{ insightAlerts[insight.id] ? 'notifications_active' : 'notifications_none' }}</span>
+                                        </button>
+                                        <button class="btn-icon" @click="setInsightEnabled(insight, false)" :disabled="togglingInsight === insight.id"
+                                                :title="t('hideInsight')" :aria-label="t('hideInsightOf', { name: getInsightName(insight.name) })">
+                                            <span class="material-icons" aria-hidden="true">visibility_off</span>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
