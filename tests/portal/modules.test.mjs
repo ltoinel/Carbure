@@ -389,6 +389,44 @@ test('accounts: closing the modal stops woob waiting for the approval of the ban
     assert.equal(context.showAddAccountsModal, false);
 });
 
+test('accounts: the + of the synchronized accounts goes to the banks already connected', async () => {
+    const listed = [];
+    const context = await accountsContext({ discoverBankAccounts: async backend => { listed.push(backend); return [{ bankId: `1@${backend}`, followed: false }]; } });
+    let connecting = 0;
+    context.openConnectModal = () => connecting++;
+
+    // No bank connected: its connection
+    context.bankBackends = [];
+    context.openAddAccountsPicker();
+    assert.equal(connecting, 1);
+    assert.equal(context.showAddAccountsModal, false);
+
+    // One bank: straight to its accounts
+    context.bankBackends = [{ name: 'bnp', module: 'bnp' }];
+    await context.openAddAccountsPicker();
+    assert.deepEqual(listed, ['bnp']);
+    assert.equal(context.addAccountsPicking, false);
+    context.closeAddAccounts();
+
+    // Several: the bank is chosen first, nothing listed before
+    context.bankBackends = [{ name: 'bnp', module: 'bnp' }, { name: 'cic_pro', module: 'cic' }];
+    context.openAddAccountsPicker();
+    assert.equal(context.showAddAccountsModal, true);
+    assert.equal(context.addAccountsPicking, true);
+    assert.equal(context.addAccountsBackend, '');
+    assert.deepEqual(listed, ['bnp']);
+    await context.chooseAddAccountsBackend('cic_pro');
+    assert.equal(context.addAccountsBackend, 'cic_pro');
+    assert.deepEqual(context.discoveredAccounts, [{ bankId: '1@cic_pro', followed: false }]);
+    assert.equal(context.addAccountsPicking, true);
+    // Back to no bank: nothing shown
+    context.chooseAddAccountsBackend('');
+    assert.equal(context.addAccountsBackend, '');
+    assert.deepEqual(context.discoveredAccounts, []);
+    context.closeAddAccounts();
+    assert.equal(context.addAccountsPicking, false);
+});
+
 test('accounts: renaming a connected bank updates it in the list', async () => {
     const { createAccountsModule } = await import('../../portal/modules/accountsModule.js');
     const calls = [];

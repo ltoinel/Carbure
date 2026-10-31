@@ -344,14 +344,22 @@ protected.
 
 ## Accounts (administrators) { #comptes-administrateurs }
 
-The page is organized by bank: each **connected bank** (header with its name and
+The page has two blocks: **Synchronized accounts** (with woob) and **Manual accounts**. The
+synchronization, the update of the bank modules and **Connect a bank** only concern the
+first one.
+
+The synchronized accounts are organized by bank: each **connected bank** (header with its name and
 its actions) shows right below it, indented, the **followed accounts** that come
 from it; a bank without a followed account says so ("No followed account: add accounts of this bank."). Accounts of a bank that is no longer connected in woob,
 or imported from a file, are grouped at the end under **Other accounts**.
 
-The **manual accounts** have their own section, below the banks: an account never
+The round **+** button of the synchronized accounts adds accounts of a **bank already
+connected**: you choose the bank (straight to its accounts when there is only one, to the
+connection of a bank when there is none), then tick its accounts to follow.
+
+The **manual accounts** have their own block: an account never
 synchronized (cash, a bank woob does not support), whose transactions are entered by hand
-in the Transactions tab. **Add a manual account** asks for a name ("Cash") and, optionally,
+in the Transactions tab. Its round **+** button (**Add a manual account**) asks for a name ("Cash") and, optionally,
 a number (for example the IBAN without spaces). It is renamed and deleted like the other
 accounts; it has no synchronization button.
 

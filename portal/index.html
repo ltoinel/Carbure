@@ -1531,10 +1531,11 @@
                 <!-- Accounts Tab: followed accounts and synchronization -->
                 <div v-else-if="activeTab === 'accounts'" key="accounts" class="tab-panel">
                     <div class="trends-view">
-                        <section class="trends-card">
+                        <!-- Accounts synchronized with woob: sync, update of the modules, connection of a bank -->
+                        <section class="trends-card accounts-synced" aria-labelledby="accounts-synced-title">
                             <div class="panel-header page-header">
                                 <div>
-                                    <h2>{{ t('accountsTitle') }}</h2>
+                                    <h2 id="accounts-synced-title">{{ t('syncedAccountsTitle') }}</h2>
                                     <p class="rules-help">{{ t('accountsHelp') }}</p>
                                 </div>
                                 <div class="panel-actions">
@@ -1548,10 +1549,15 @@
                                         <span class="material-icons" :class="{ spin: woobUpdate.running }" aria-hidden="true">system_update_alt</span>
                                         {{ t('woobUpdateButton') }}
                                     </button>
-                                    <!-- Step 1 of the addition of accounts: a labeled entry point -->
-                                    <button type="button" class="btn-add" @click="openConnectModal()">
+                                    <!-- Step 1 of the addition of accounts: a new bank connection -->
+                                    <button type="button" class="btn-secondary connect-bank-button" @click="openConnectModal()">
                                         <span class="material-icons" aria-hidden="true">add_link</span>
                                         {{ t('connectBankTitle') }}
+                                    </button>
+                                    <!-- Round + button: accounts of a bank already connected -->
+                                    <button type="button" class="btn-add btn-add-icon" @click="openAddAccountsPicker()"
+                                            :title="t('addAccountsFromBank')" :aria-label="t('addAccountsFromBank')">
+                                        <span class="material-icons" aria-hidden="true">add</span>
                                     </button>
                                 </div>
                             </div>
@@ -1559,7 +1565,6 @@
                             <!-- The banks connected in woob (one per login), each with its followed accounts
                                  below it; the accounts of no connected bank (removed connection, imported
                                  file) in a last group -->
-                            <h3 class="accounts-section-title">{{ t('connectedBanksTitle') }}</h3>
                             <div v-if="bankGroups.length === 0" class="transactions-hint">{{ t('noConnectedBank') }}</div>
                             <ul v-else class="bank-groups">
                                 <li v-for="g in bankGroups" :key="g.key" class="bank-group">
@@ -1618,29 +1623,6 @@
                                         </li>
                                     </ul>
                                     <p v-else class="bank-group-empty">{{ t('noFollowedAccountInBank') }}</p>
-                                </li>
-                            </ul>
-
-                            <!-- Accounts whose transactions are entered by hand: cash, a bank woob does not support -->
-                            <div class="accounts-section-header">
-                                <h3 class="accounts-section-title">{{ t('manualAccountsTitle') }}</h3>
-                                <button type="button" class="btn-secondary manual-account-add" @click="openManualAccountModal()">
-                                    <span class="material-icons" aria-hidden="true">account_balance_wallet</span>
-                                    {{ t('manualAccountAdd') }}
-                                </button>
-                            </div>
-                            <p class="rules-help">{{ t('manualAccountsHelp') }}</p>
-                            <ul v-if="manualBankAccounts.length" class="accounts-list manual-accounts" :aria-label="t('manualAccountsTitle')">
-                                <li v-for="a in manualBankAccounts" :key="a.id" class="account-item">
-                                    <span class="material-icons account-icon" aria-hidden="true">account_balance_wallet</span>
-                                    <div class="account-details">
-                                        <div class="account-name">{{ accountName(a) }}</div>
-                                        <code class="device-token">{{ a.account_number }}</code>
-                                    </div>
-                                    <div class="device-actions">
-                                        <button class="btn-icon" @click="openAccountModal(a)" :title="t('editAccount')" :aria-label="t('editAccount')"><span class="material-icons" aria-hidden="true">edit</span></button>
-                                        <button class="btn-icon btn-icon-delete" @click="removeAccount(a)" :title="t('deleteAccount')" :aria-label="t('deleteAccount')"><span class="material-icons" aria-hidden="true">delete</span></button>
-                                    </div>
                                 </li>
                             </ul>
                         </section>
@@ -1722,6 +1704,36 @@
                                     {{ t('woobUpdateButton') }}
                                 </button>
                             </div>
+                        </section>
+
+                        <!-- Accounts whose transactions are entered by hand: cash, a bank woob does not support -->
+                        <section class="trends-card accounts-manual" aria-labelledby="accounts-manual-title">
+                            <div class="panel-header page-header">
+                                <div>
+                                    <h2 id="accounts-manual-title">{{ t('manualAccountsTitle') }}</h2>
+                                    <p class="rules-help">{{ t('manualAccountsHelp') }}</p>
+                                </div>
+                                <div class="panel-actions">
+                                    <button type="button" class="btn-add btn-add-icon" @click="openManualAccountModal()"
+                                            :title="t('manualAccountAdd')" :aria-label="t('manualAccountAdd')">
+                                        <span class="material-icons" aria-hidden="true">add</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <div v-if="manualBankAccounts.length === 0" class="transactions-hint">{{ t('manualAccountsEmpty') }}</div>
+                            <ul v-else class="accounts-list manual-accounts" :aria-label="t('manualAccountsTitle')">
+                                <li v-for="a in manualBankAccounts" :key="a.id" class="account-item">
+                                    <span class="material-icons account-icon" aria-hidden="true">account_balance_wallet</span>
+                                    <div class="account-details">
+                                        <div class="account-name">{{ accountName(a) }}</div>
+                                        <code class="device-token">{{ a.account_number }}</code>
+                                    </div>
+                                    <div class="device-actions">
+                                        <button class="btn-icon" @click="openAccountModal(a)" :title="t('editAccount')" :aria-label="t('editAccount')"><span class="material-icons" aria-hidden="true">edit</span></button>
+                                        <button class="btn-icon btn-icon-delete" @click="removeAccount(a)" :title="t('deleteAccount')" :aria-label="t('deleteAccount')"><span class="material-icons" aria-hidden="true">delete</span></button>
+                                    </div>
+                                </li>
+                            </ul>
                         </section>
                     </div>
                 </div>
@@ -3601,14 +3613,23 @@
             <div class="modal modal-account" role="dialog" aria-modal="true" aria-labelledby="modal-title-add-accounts">
                 <div class="modal-header">
                     <span class="material-icons" aria-hidden="true">playlist_add</span>
-                    <h3 id="modal-title-add-accounts">{{ t('addAccountsTitle', { bank: backendName(findBackend(addAccountsBackend)) }) }}</h3>
+                    <h3 id="modal-title-add-accounts">{{ addAccountsBackend ? t('addAccountsTitle', { bank: backendName(findBackend(addAccountsBackend)) }) : t('addAccountsFromBank') }}</h3>
                     <button class="modal-close" @click="closeAddAccounts" :aria-label="t('close')">
                         <span class="material-icons" aria-hidden="true">close</span>
                     </button>
                 </div>
                 <div class="modal-body">
-                    <p class="rules-help">{{ t('addAccountsHelp') }}</p>
-                    <template v-if="discovering">
+                    <!-- Opened from the + of the synchronized accounts: one of the banks already connected -->
+                    <div v-if="addAccountsPicking" class="form-group">
+                        <label for="add-accounts-bank">{{ t('addAccountsBank') }}</label>
+                        <select id="add-accounts-bank" :value="addAccountsBackend" @change="chooseAddAccountsBackend($event.target.value)" :disabled="followingAccounts">
+                            <option value="">{{ t('addAccountsChooseBank') }}</option>
+                            <option v-for="b in bankBackends" :key="b.name" :value="b.name">{{ backendName(b) }}</option>
+                        </select>
+                    </div>
+                    <p v-if="addAccountsBackend" class="rules-help">{{ t('addAccountsHelp') }}</p>
+                    <template v-if="!addAccountsBackend"></template>
+                    <template v-else-if="discovering">
                         <div class="transactions-hint" role="status">
                             <span class="material-icons spin inline-icon" aria-hidden="true">sync</span>{{ t('discovering') }}
                         </div>
