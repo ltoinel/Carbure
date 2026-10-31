@@ -1,9 +1,10 @@
 /**
  * Split Module
  *
- * Splits a transaction across several categories: each part becomes a transaction of
- * its own (split_of = the id of the transaction), the transaction keeps the rest of the
- * amount of the bank in its category.
+ * Splits a transaction across several categories. The modal allocates the whole amount of
+ * the bank: its first line is the transaction itself (its category and the amount it
+ * keeps), each other line a part that becomes a transaction of its own (split_of = the id
+ * of the transaction). Nothing may be left to allocate, nor more than the amount.
  *
  * @module splitModule
  */
@@ -63,7 +64,8 @@ export function createSplitModule(getApiService) {
     return {
         data() {
             return {
-                // Transaction being split (modal), its parts [{category, amount}] typed without sign
+                // Transaction being split (modal) and its lines [{category, amount}] typed without
+                // sign: the first one is the transaction itself, the others its parts
                 splitTransaction: null,
                 splitParts: [],
                 savingSplit: false
@@ -80,7 +82,7 @@ export function createSplitModule(getApiService) {
             },
 
             /**
-             * Rest left to the transaction being split
+             * Amount left to allocate (0 once the lines add up to the amount of the bank)
              * @returns {number}
              */
             splitRest() {
@@ -88,24 +90,40 @@ export function createSplitModule(getApiService) {
             },
 
             /**
-             * Whether no part can be added
-             * @returns {boolean}
+             * Amount left to allocate as the lines are typed, without the sign of the
+             * transaction (negative once the amount is exceeded)
+             * @returns {number}
              */
-            splitFull() {
-                return this.splitParts.length >= MAX_SPLIT_PARTS;
+            splitToAllocate() {
+                return (toCents(this.splitBankAmount) < 0 ? -this.splitRest : this.splitRest) || 0;
             },
 
             /**
-             * Whether the parts can be saved: each one has a category and an amount, and
-             * the transaction keeps a rest of its sign
+             * Whether the lines allocate more than the amount of the bank
+             * @returns {boolean}
+             */
+            splitExceeded() {
+                const rest = splitRemainder(this.splitBankAmount, this.splitParts);
+                return rest !== 0 && (rest < 0) !== (toCents(this.splitBankAmount) < 0);
+            },
+
+            /**
+             * Whether no part can be added (the first line is the transaction, not a part)
+             * @returns {boolean}
+             */
+            splitFull() {
+                return this.splitParts.length > MAX_SPLIT_PARTS;
+            },
+
+            /**
+             * Whether the lines can be saved: the transaction and at least one part, each
+             * one with a category and an amount, adding up to the whole amount of the bank
              * @returns {boolean}
              */
             splitValid() {
-                const bank = toCents(this.splitBankAmount);
-                const rest = splitRemainder(this.splitBankAmount, this.splitParts);
-                return this.splitParts.length > 0
+                return this.splitParts.length > 1
                     && this.splitParts.every(p => p.category !== '' && p.category !== null && toCents(p.amount) > 0)
-                    && rest !== 0 && (rest < 0) === (bank < 0);
+                    && splitRemainder(this.splitBankAmount, this.splitParts) === 0;
             }
         },
 
@@ -142,9 +160,12 @@ export function createSplitModule(getApiService) {
                     return;
                 }
                 const parts = this.transactionParts(transaction);
+                const category = transaction.category === null || transaction.category === undefined ? '' : Number(transaction.category);
+                // Not split yet: the transaction and an empty part, all its amount to allocate
                 this.splitParts = parts.length
-                    ? parts.map(p => ({ category: Number(p.category), amount: Math.abs(Number(p.amount)).toFixed(2) }))
-                    : [{ category: '', amount: '' }];
+                    ? [{ category, amount: Math.abs(Number(transaction.amount)).toFixed(2) },
+                        ...parts.map(p => ({ category: Number(p.category), amount: Math.abs(Number(p.amount)).toFixed(2) }))]
+                    : [{ category, amount: '' }, { category: '', amount: '' }];
                 this.transactionDetail = null;
                 this.splitTransaction = transaction;
                 this.$nextTick?.(() => document.querySelector('.modal-split .split-part input')?.focus());
@@ -152,17 +173,19 @@ export function createSplitModule(getApiService) {
 
             /** Adds an empty part */
             addSplitPart() {
-                if (this.splitParts.length < MAX_SPLIT_PARTS) {
+                if (!this.splitFull) {
                     this.splitParts.push({ category: '', amount: '' });
                 }
             },
 
             /**
-             * Removes a part
-             * @param {number} index - Index of the part
+             * Removes a part (never the first line: the transaction itself)
+             * @param {number} index - Index of the line
              */
             removeSplitPart(index) {
-                this.splitParts.splice(index, 1);
+                if (index > 0) {
+                    this.splitParts.splice(index, 1);
+                }
             },
 
             /** Closes the split modal */
@@ -171,16 +194,24 @@ export function createSplitModule(getApiService) {
             },
 
             /**
-             * Saves the parts of the transaction being split
+             * Saves the split: the parts (the transaction keeps the rest of the amount of the
+             * bank), then the category of the transaction if it changed
              * @returns {Promise<void>}
              */
             async saveSplit() {
+                if (!this.splitValid) {
+                    return;
+                }
                 const sign = toCents(this.splitBankAmount) < 0 ? -1 : 1;
-                const parts = this.splitParts.map(p => ({
+                const [main, ...lines] = this.splitParts;
+                const parts = lines.map(p => ({
                     category: Number(p.category),
                     amount: sign * Math.abs(toCents(p.amount)) / 100
                 }));
-                await this.sendSplit(parts, 'splitSaved');
+                const category = Number(main.category);
+                const recategorize = Number(this.splitTransaction.category) !== category || this.splitTransaction.category === null;
+                await this.sendSplit(parts, 'splitSaved',
+                    recategorize ? id => getApiService().setTransactionCategory(id, category) : null);
             },
 
             /**
@@ -195,12 +226,14 @@ export function createSplitModule(getApiService) {
              * Sends the parts of the transaction being split, then reloads the transactions
              * @param {Array<{category: number, amount: number}>} parts - Parts, with their sign
              * @param {string} message - Key of the text shown once done
+             * @param {?Function} [then] - Called with the id of the transaction once split
              * @returns {Promise<void>}
              */
-            async sendSplit(parts, message) {
+            async sendSplit(parts, message, then = null) {
                 this.savingSplit = true;
                 try {
                     await getApiService().splitTransaction(this.splitTransaction.id, parts);
+                    await then?.(this.splitTransaction.id);
                     this.splitTransaction = null;
                     this.showToast(this.t(message));
                     if (this.isSearching) {

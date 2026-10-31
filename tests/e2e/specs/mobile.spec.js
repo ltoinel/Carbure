@@ -60,19 +60,23 @@ test('a user without administration finds the AI agents and the logout in the me
     await expect(page.getByRole('button', { name: tr('loginButton') })).toBeVisible();
 });
 
-test('the transactions on a phone: figures in one strip, icon buttons, full labels (#384, #389)', async ({ adminPage: page, api }) => {
+test('the transactions on a phone: search bar, recurring strip, icon buttons, full labels (#384, #389, #413)', async ({ adminPage: page, api }) => {
     // Every transaction tagged: the chips of the recurring ones under their badge
     const tag = await (await api.post('/api/tag', { data: { name: 'voyage', color: 'green', start_date: '2020-01-01' } })).json();
     const ids = (await (await api.get('/api/transaction')).json()).map(t => t.id);
     await api.put('/api/transaction/tags', { data: { ids, add: [tag.id] } });
     await page.reload();
 
-    // The three figures of the month side by side, compact
-    const cards = page.locator('.stat-card');
-    await expect(cards).toHaveCount(3);
-    const tops = await cards.evaluateAll(list => list.map(card => Math.round(card.getBoundingClientRect().top)));
-    expect(new Set(tops).size).toBe(1);
-    expect((await cards.first().boundingBox()).height).toBeLessThan(56);
+    // The search bar over the whole width, the strip of the recurring ones compact (#413)
+    const viewport = page.viewportSize();
+    const search = await page.locator('.transaction-search-main').boundingBox();
+    expect(search.width).toBeGreaterThan(viewport.width * 0.85);
+    const strip = page.getByRole('region', { name: tr('recurringSummary') });
+    expect((await strip.boundingBox()).height).toBeLessThan(140);
+    expect(await strip.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
+    const calendar = strip.getByRole('button', { name: tr('recurringCalendarButton'), exact: true });
+    await expect(calendar).toBeVisible();
+    expect((await calendar.boundingBox()).width).toBeLessThan(60);
 
     // One scroll, the page's: the list does not scroll inside it
     const list = page.locator('.transactions-list');
@@ -86,10 +90,18 @@ test('the transactions on a phone: figures in one strip, icon buttons, full labe
 
     // The buttons of the toolbar as icons, still named
     const toolbar = page.locator('.transactions-toolbar');
-    for (const name of [tr('manualTransactionButton'), tr('importButton'), tr('recurringCalendarButton')]) {
+    for (const name of [tr('manualTransactionTitle'), tr('importButton')]) {
         const button = toolbar.getByRole('button', { name, exact: true });
         await expect(button).toBeVisible();
         expect((await button.boundingBox()).width).toBeLessThan(60);
+    }
+
+    // The round + on the line of the title, on the right, over no other button (#419)
+    const add = await toolbar.getByRole('button', { name: tr('manualTransactionTitle'), exact: true }).boundingBox();
+    const title = await page.locator('.transactions-header h2').boundingBox();
+    expect(Math.abs((add.y + add.height / 2) - (title.y + title.height / 2))).toBeLessThan(4);
+    for (const box of await toolbar.locator(':scope > *:not(.btn-add-icon)').evaluateAll(list => list.map(e => e.getBoundingClientRect().toJSON()))) {
+        expect(box.bottom <= add.y || box.top >= add.y + add.height || box.right <= add.x || box.left >= add.x + add.width).toBe(true);
     }
 
     // A long label is shown whole (two lines at most), the amount next to it

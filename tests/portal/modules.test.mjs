@@ -113,7 +113,7 @@ test('categoryName and isUncategorized', () => {
     assert.equal(context.isUncategorized({ category: 2 }), false);
 });
 
-test('displayedTransactions, stats and totals', () => {
+test('displayedTransactions and totals', () => {
     const list = [
         { id: 1, amount: '3200.00', pointed: '1' },
         { id: 2, amount: '-82.40', pointed: '0' },
@@ -124,10 +124,6 @@ test('displayedTransactions, stats and totals', () => {
     assert.deepEqual(displayed.map(t => t.id), [2]);
     assert.equal(transactions.computed.displayedTotal.call({ displayedTransactions: displayed }), -82.4);
     assert.equal(transactions.computed.uncheckedCount.call(context), 1);
-
-    const stats = transactions.computed.stats.call(context);
-    assert.equal(stats.income, 3200);
-    assert.equal(Math.round(stats.expense * 100) / 100, -1032.4);
 });
 
 test('recurring transactions: ids, filter and expected series', () => {
@@ -152,6 +148,10 @@ test('recurring transactions: ids, filter and expected series', () => {
     assert.deepEqual(transactions.computed.displayedTransactions.call({ ...context, transactionFilter: 'unchecked' }).map(t => t.id), [3]);
     // Not applied to the search results (other months)
     assert.equal(transactions.computed.displayedTransactions.call({ ...context, isSearching: true }).length, 3);
+
+    // Net total of the month: the received ones, plus the expected ones at their usual amount
+    const recurringCalendar = { received: { count: 2, total: 2250 }, expected: { count: 1, total: -13.49 } };
+    assert.equal(transactions.computed.recurringTotal.call({ recurringCalendar }), 2236.51);
 });
 
 test('similarLabelQuery: the merchant, without the kind of operation nor the references', () => {
@@ -1339,4 +1339,58 @@ test('a refused change of the MCP server shows its switch again as it was', asyn
     assert.equal(input.checked, false);
     assert.equal(context.switchingMcp, false);
     assert.equal(toasts.at(-1), 'Forbidden - Administrator only');
+});
+
+test('deleteSelectedTransactions deletes the parts first, keeps the selection of the ones not deleted', async () => {
+    const deleted = [];
+    let failOn = null;
+    const module = createTransactionModule(() => ({
+        deleteTransaction: async id => {
+            if (id === failOn) {
+                throw new Error('Transaction not found');
+            }
+            deleted.push(id);
+        },
+    }));
+    const context = {
+        ...module.data(),
+        transactions: [
+            { id: 1, amount: '-62.40', split_of: null },
+            { id: 9, amount: '-20.00', split_of: 1 },
+            { id: 2, amount: '3200.00', split_of: null },
+        ],
+        searchResults: [], isSearching: false, selectedMonth: 10, selectedYear: 2026,
+        selectingTransactions: true, selectedTransactionIds: [1, 9],
+        toasts: [], reloads: 0,
+        t: (key, params) => `${key} ${JSON.stringify(params ?? {})}`,
+        showToast(text) { this.toasts.push(text); },
+        apiErrorText: error => error.message,
+        loadPeriods() {},
+        loadTransactions() { this.reloads++; },
+    };
+
+    // Not confirmed: nothing deleted
+    globalThis.confirm = () => false;
+    await module.methods.deleteSelectedTransactions.call(context);
+    assert.deepEqual(deleted, []);
+
+    // The part before its transaction, then the selection ends
+    globalThis.confirm = () => true;
+    await module.methods.deleteSelectedTransactions.call(context);
+    assert.deepEqual(deleted, [9, 1]);
+    assert.deepEqual(context.toasts, ['selectionDeleted {"count":2}']);
+    assert.equal(context.selectingTransactions, false);
+    assert.equal(context.reloads, 1);
+
+    // A refusal: the ones deleted stay so, the others stay selected
+    context.selectingTransactions = true;
+    context.selectedTransactionIds = [2, 5];
+    failOn = 5;
+    await module.methods.deleteSelectedTransactions.call(context);
+    assert.deepEqual(context.selectedTransactionIds, [5]);
+    assert.equal(context.selectingTransactions, true);
+    assert.equal(context.toasts.at(-1), 'Transaction not found');
+    assert.equal(context.reloads, 2);
+    assert.equal(context.deletingSelection, false);
+    delete globalThis.confirm;
 });

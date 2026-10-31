@@ -69,67 +69,104 @@ test('the amount of the bank adds the parts back', () => {
     assert.equal(context.transactionBankAmount(context.transactions[1]), 3200);
 });
 
-test('openSplit starts from the parts of the transaction, also from one of its parts', () => {
+test('openSplit starts from the transaction and its parts, also from one of its parts', () => {
     const context = splitContext();
     context.transactionDetail = context.transactions[2];
     context.openSplit();
 
     assert.equal(context.transactionDetail, null);
     assert.equal(context.splitTransaction.id, 1);
-    assert.deepEqual(context.splitParts, [{ category: 3, amount: '20.00' }]);
+    // First line: the transaction itself, with what it keeps
+    assert.deepEqual(context.splitParts, [{ category: 2, amount: '62.40' }, { category: 3, amount: '20.00' }]);
     assert.equal(context.splitBankAmount, -82.4);
-    assert.equal(context.splitRest, -62.4);
+    assert.equal(context.splitRest, 0);
     assert.equal(context.splitValid, true);
 
-    // Not split yet: one empty part
+    // Not split yet: the transaction (its category) and an empty part, all its amount to allocate
     context.transactionDetail = context.transactions[1];
     context.openSplit();
-    assert.deepEqual(context.splitParts, [{ category: '', amount: '' }]);
+    assert.deepEqual(context.splitParts, [{ category: 5, amount: '' }, { category: '', amount: '' }]);
+    assert.equal(context.splitRest, 3200);
     assert.equal(context.splitValid, false);
 });
 
-test('the parts are valid only with a category, an amount and a rest of the sign of the transaction', () => {
+test('the lines are valid only once they allocate the whole amount, each with a category and an amount', () => {
     const context = splitContext();
     context.splitTransaction = context.transactions[0];
-    context.splitParts = [{ category: 1, amount: '82.40' }];
+    // Something left to allocate
+    context.splitParts = [{ category: 2, amount: '60' }, { category: 3, amount: '20' }];
+    assert.equal(context.splitRest, -2.4);
+    assert.equal(context.splitExceeded, false);
+    assert.equal(context.splitToAllocate, 2.4);
     assert.equal(context.splitValid, false);
-    context.splitParts = [{ category: '', amount: '10' }];
-    assert.equal(context.splitValid, false);
-    context.splitParts = [{ category: 0, amount: '10' }];
+    // The whole amount
+    context.splitParts = [{ category: 2, amount: '62,40' }, { category: 0, amount: '20' }];
+    assert.equal(context.splitRest, 0);
     assert.equal(context.splitValid, true);
+    // More than the amount
+    context.splitParts = [{ category: 2, amount: '70' }, { category: 3, amount: '20' }];
+    assert.equal(context.splitExceeded, true);
+    assert.equal(context.splitToAllocate, -7.6);
+    assert.equal(context.splitValid, false);
+    // A line without category or amount, or the transaction alone
+    context.splitParts = [{ category: '', amount: '62.40' }, { category: 3, amount: '20' }];
+    assert.equal(context.splitValid, false);
+    context.splitParts = [{ category: 2, amount: '82.40' }, { category: 3, amount: '0' }];
+    assert.equal(context.splitValid, false);
+    context.splitParts = [{ category: 2, amount: '82.40' }];
+    assert.equal(context.splitValid, false);
 
-    context.splitParts = [];
+    // The transaction and at most MAX_SPLIT_PARTS parts; its own line is never removed
     for (let i = 0; i < MAX_SPLIT_PARTS + 2; i++) {
         context.addSplitPart();
     }
-    assert.equal(context.splitParts.length, MAX_SPLIT_PARTS);
+    assert.equal(context.splitParts.length, MAX_SPLIT_PARTS + 1);
     assert.equal(context.splitFull, true);
     context.removeSplitPart(0);
+    assert.equal(context.splitParts.length, MAX_SPLIT_PARTS + 1);
+    context.removeSplitPart(1);
     assert.equal(context.splitFull, false);
 });
 
 test('saveSplit sends the parts with the sign of the transaction, then reloads', async () => {
     const sent = [];
-    const context = splitContext({ splitTransaction: async (id, parts) => { sent.push([id, parts]); return []; } });
+    const categorized = [];
+    const context = splitContext({
+        splitTransaction: async (id, parts) => { sent.push([id, parts]); return []; },
+        setTransactionCategory: async (id, category) => { categorized.push([id, category]); },
+    });
     context.splitTransaction = context.transactions[0];
-    context.splitParts = [{ category: 3, amount: '20' }, { category: '1', amount: '5,5' }];
+    context.splitParts = [{ category: 2, amount: '56.90' }, { category: 3, amount: '20' }, { category: '1', amount: '5,5' }];
 
     await context.saveSplit();
     assert.deepEqual(sent, [[1, [{ category: 3, amount: -20 }, { category: 1, amount: -5.5 }]]]);
+    // Same category for the transaction: not changed
+    assert.deepEqual(categorized, []);
     assert.equal(context.splitTransaction, null);
     assert.deepEqual(context.toasts, ['splitSaved']);
     assert.equal(context.reloads, 1);
 
+    // Another category on its own line: the transaction is categorized once split
     context.splitTransaction = context.transactions[0];
+    context.splitParts = [{ category: 4, amount: '62.40' }, { category: 3, amount: '20' }];
+    await context.saveSplit();
+    assert.deepEqual(categorized, [[1, 4]]);
+
+    // Nothing sent while the whole amount is not allocated
+    context.splitTransaction = context.transactions[0];
+    context.splitParts = [{ category: 2, amount: '10' }, { category: 3, amount: '20' }];
+    await context.saveSplit();
+    assert.equal(sent.length, 2);
+
     await context.cancelSplit();
-    assert.deepEqual(sent[1], [1, []]);
-    assert.deepEqual(context.toasts, ['splitSaved', 'splitCancelled']);
+    assert.deepEqual(sent[2], [1, []]);
+    assert.deepEqual(context.toasts, ['splitSaved', 'splitSaved', 'splitCancelled']);
 });
 
 test('a refused split keeps the modal open and shows the error', async () => {
     const context = splitContext({ splitTransaction: async () => { throw new Error('The parts must leave a rest'); } });
     context.splitTransaction = context.transactions[0];
-    context.splitParts = [{ category: 3, amount: '20' }];
+    context.splitParts = [{ category: 2, amount: '62.40' }, { category: 3, amount: '20' }];
 
     await context.saveSplit();
     assert.equal(context.splitTransaction.id, 1);

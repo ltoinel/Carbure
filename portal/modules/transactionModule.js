@@ -112,6 +112,9 @@ export function createTransactionModule(getApiService) {
                 // 'all' or 'unchecked'
                 transactionFilter: 'all',
 
+                // Selected transactions being deleted
+                deletingSelection: false,
+
                 // Recurring series of the month (salary, rent, subscriptions...) and the
                 // filter that shows only their transactions
                 recurring: [],
@@ -195,6 +198,16 @@ export function createTransactionModule(getApiService) {
             },
 
             /**
+             * Net amount of the recurring series of the month: received, plus the usual
+             * amount of those still expected
+             * @returns {number}
+             */
+            recurringTotal() {
+                const { received, expected } = this.recurringCalendar;
+                return Math.round((received.total + expected.total) * 100) / 100;
+            },
+
+            /**
              * Short names of the days of the week, Monday first
              * @returns {Array<string>}
              */
@@ -228,26 +241,6 @@ export function createTransactionModule(getApiService) {
              */
             displayedTotal() {
                 return this.displayedTransactions.reduce((sum, t) => sum + parseFloat(t.amount), 0);
-            },
-
-            /**
-             * Calculates income/expense statistics from transactions
-             * @returns {{income: number, expense: number, balance: number}}
-             */
-            stats() {
-                const income = this.transactions
-                    .filter(t => t.amount > 0)
-                    .reduce((sum, t) => sum + parseFloat(t.amount), 0);
-                
-                const expense = this.transactions
-                    .filter(t => t.amount < 0)
-                    .reduce((sum, t) => sum + parseFloat(t.amount), 0);
-                
-                return {
-                    income,
-                    expense,
-                    balance: income + expense
-                };
             }
         },
 
@@ -524,6 +517,44 @@ export function createTransactionModule(getApiService) {
                     this.showToast(this.apiErrorText(error));
                 } finally {
                     this.savingTransaction = false;
+                }
+            },
+
+            /**
+             * Deletes the selected transactions, after a confirmation: the parts of a split
+             * transaction first (their amount goes back to it), then the others; the
+             * selection ends and the list, the totals and the periods are reloaded
+             * @returns {Promise<void>}
+             */
+            async deleteSelectedTransactions() {
+                const ids = this.selectedTransactionIds.map(Number);
+                if (!ids.length || !confirm(this.t('confirmDeleteSelection', { count: ids.length }))) {
+                    return;
+                }
+                const list = this.isSearching ? this.searchResults : this.transactions;
+                const isPart = id => list.some(t => Number(t.id) === id && t.split_of != null);
+                const ordered = [...ids.filter(isPart), ...ids.filter(id => !isPart(id))];
+                const deleted = [];
+                this.deletingSelection = true;
+                try {
+                    for (const id of ordered) {
+                        await getApiService().deleteTransaction(id);
+                        deleted.push(id);
+                    }
+                    this.showToast(this.t('selectionDeleted', { count: deleted.length }));
+                    this.selectingTransactions = false;
+                    this.selectedTransactionIds = [];
+                } catch (error) {
+                    // The ones already deleted stay so: the selection keeps the others
+                    this.selectedTransactionIds = ids.filter(id => !deleted.includes(id));
+                    this.showToast(this.apiErrorText(error));
+                } finally {
+                    this.deletingSelection = false;
+                    if (deleted.length) {
+                        this.searchResults = this.searchResults.filter(t => !deleted.includes(Number(t.id)));
+                        this.loadPeriods();
+                        this.loadTransactions(this.selectedMonth, this.selectedYear);
+                    }
                 }
             },
 

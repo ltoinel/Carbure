@@ -4,9 +4,6 @@ const { test, expect, tr, openTab, pickCategory, euros, currentMonth } = require
 /** Row of a transaction, by its label */
 const row = (page, label) => page.locator('.transaction-item').filter({ hasText: label });
 
-/** Expenses of the month, as shown at the top of the Transactions tab */
-const expenses = page => page.locator('.stat-card').filter({ hasText: tr('expenseLabel') }).locator('.stat-value');
-
 test('adds a manual account, then enters and changes a cash expense', async ({ adminPage: page, api }) => {
     await openTab(page, tr('tabAccounts'));
     await page.getByRole('button', { name: tr('manualAccountAdd') }).click();
@@ -21,7 +18,7 @@ test('adds a manual account, then enters and changes a cash expense', async ({ a
     await expect(manual.getByRole('button', { name: tr('syncAccount') })).toHaveCount(0);
 
     await openTab(page, tr('tabTransactions'));
-    await page.locator('.transactions-toolbar').getByRole('button', { name: tr('manualTransactionButton') }).click();
+    await page.locator('.transactions-toolbar').getByRole('button', { name: tr('manualTransactionTitle') }).click();
     const modal = page.getByRole('dialog', { name: tr('manualTransactionTitle') });
     await expect(modal.getByLabel(tr('manualAccount'))).toHaveValue(/\d+/);
     await modal.getByLabel(tr('manualAmount', { currency: '€' })).fill('12.50');
@@ -34,7 +31,6 @@ test('adds a manual account, then enters and changes a cash expense', async ({ a
     const added = row(page, 'MARCHÉ DU DIMANCHE');
     await expect(added.locator('.transaction-amount')).toHaveText(euros(-12.5));
     await expect(added.locator('.category-chip')).toHaveText('Alimentation');
-    await expect(expenses(page)).toHaveText(euros(1596.7));
 
     // Changed from its detail (once the message is gone: it covers the buttons of the modal)
     await expect(page.locator('.toast')).toHaveCount(0);
@@ -60,7 +56,7 @@ test('adds a manual account, then enters and changes a cash expense', async ({ a
 });
 
 test('a user enters an income by hand once an administrator added a manual account', async ({ userPage: page, api }) => {
-    await page.locator('.transactions-toolbar').getByRole('button', { name: tr('manualTransactionButton') }).click();
+    await page.locator('.transactions-toolbar').getByRole('button', { name: tr('manualTransactionTitle') }).click();
     let modal = page.getByRole('dialog', { name: tr('manualTransactionTitle') });
     await expect(modal).toContainText(tr('manualNoAccount'));
     await expect(modal.getByRole('button', { name: tr('save') })).toHaveCount(0);
@@ -68,7 +64,7 @@ test('a user enters an income by hand once an administrator added a manual accou
     await expect(modal).toHaveCount(0);
 
     expect((await api.post('/api/bank/manual', { data: { label: 'Espèces' } })).ok()).toBe(true);
-    await page.locator('.transactions-toolbar').getByRole('button', { name: tr('manualTransactionButton') }).click();
+    await page.locator('.transactions-toolbar').getByRole('button', { name: tr('manualTransactionTitle') }).click();
     modal = page.getByRole('dialog', { name: tr('manualTransactionTitle') });
     await modal.getByLabel(tr('manualIncome')).check();
     await modal.getByLabel(tr('manualAmount', { currency: '€' })).fill('30');

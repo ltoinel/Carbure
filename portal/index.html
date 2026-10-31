@@ -592,55 +592,48 @@
                     </div>
 
                     <template v-else-if="transactions.length > 0 || isSearching">
-                        <div class="stats" v-if="!isSearching">
-                            <div class="stat-card">
-                                <div class="stat-icon income">
-                                    <span class="material-icons" aria-hidden="true">arrow_downward</span>
-                                </div>
-                                <div class="stat-info">
-                                    <div class="stat-label">{{ t('incomeLabel') }}</div>
-                                    <div class="stat-value">{{ formatAmount(stats.income) }} {{ currencySymbol }}</div>
-                                </div>
-                            </div>
-
-                            <div class="stat-card">
-                                <div class="stat-icon expense">
-                                    <span class="material-icons" aria-hidden="true">arrow_upward</span>
-                                </div>
-                                <div class="stat-info">
-                                    <div class="stat-label">{{ t('expenseLabel') }}</div>
-                                    <div class="stat-value">{{ formatAmount(Math.abs(stats.expense)) }} {{ currencySymbol }}</div>
-                                </div>
-                            </div>
-
-                            <div class="stat-card">
-                                <div class="stat-icon total">
-                                    <span class="material-icons" aria-hidden="true">account_balance_wallet</span>
-                                </div>
-                                <div class="stat-info">
-                                    <div class="stat-label">{{ t('balanceLabel') }}</div>
-                                    <div class="stat-value">{{ formatAmount(stats.balance) }} {{ currencySymbol }}</div>
-                                </div>
-                            </div>
+                        <!-- Search by label, the advanced search inside the field -->
+                        <div class="transaction-search transaction-search-main" role="search">
+                            <span class="material-icons" aria-hidden="true">search</span>
+                            <input type="search" v-model="searchQuery" @input="onSearchInput"
+                                   :placeholder="t('searchPlaceholder')" :aria-label="t('searchPlaceholder')" />
+                            <button v-if="searchQuery" type="button" class="transaction-search-clear" @click="clearSearch" :title="t('clearSearch')" :aria-label="t('clearSearch')">
+                                <span class="material-icons" aria-hidden="true">close</span>
+                            </button>
+                            <button type="button" class="btn-advanced-search" :class="{ active: searchFilterCount > 0 }" @click="openAdvancedSearch"
+                                    :title="t('advancedSearch')" :aria-label="searchFilterCount ? t('advancedSearchActive', { count: searchFilterCount }) : t('advancedSearch')">
+                                <span class="material-icons" aria-hidden="true">tune</span>
+                                <span v-if="searchFilterCount" class="advanced-search-count" aria-hidden="true">{{ searchFilterCount }}</span>
+                            </button>
                         </div>
+
+                        <!-- Recurring series of the month: their number, their total, the filter and the calendar -->
+                        <section v-if="!isSearching && recurring.length > 0" class="recurring-strip" :aria-label="t('recurringSummary')">
+                            <span class="recurring-strip-icon" aria-hidden="true"><span class="material-icons">autorenew</span></span>
+                            <div class="recurring-strip-info">
+                                <span class="recurring-strip-title">{{ t('recurringCount', { count: recurring.length }) }}</span>
+                                <span class="recurring-strip-detail">
+                                    {{ t('recurringCalendarReceived', { count: recurringCalendar.received.count }) }}<template v-if="recurringCalendar.expected.count > 0"> · {{ t(isCurrentMonth ? 'recurringCalendarExpected' : 'recurringCalendarMissing', { count: recurringCalendar.expected.count }) }}</template>
+                                </span>
+                            </div>
+                            <div class="recurring-strip-total">
+                                <span class="recurring-strip-total-label">{{ t('recurringTotal') }}</span>
+                                <strong :class="recurringTotal >= 0 ? 'positive' : 'negative'">{{ formatAmount(recurringTotal) }} {{ currencySymbol }}</strong>
+                            </div>
+                            <label class="toggle-switch toggle-recurring" :class="{ on: recurringOnly }">
+                                <input type="checkbox" role="switch" v-model="recurringOnly" />
+                                <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
+                                <span class="toggle-label">{{ t('recurringOnly') }}</span>
+                            </label>
+                            <button type="button" class="btn-secondary btn-recurring-calendar" @click="openRecurringCalendar" :title="t('recurringCalendarHelp')">
+                                <span class="material-icons" aria-hidden="true">calendar_month</span><span class="btn-label">{{ t('recurringCalendarButton') }}</span>
+                            </button>
+                        </section>
 
                         <div class="transactions-container">
                             <div class="transactions-header">
                                 <h2>{{ isSearching ? t('searchResultsTitle') : t('transactionsTitle') }}</h2>
                                 <div class="transactions-toolbar">
-                                    <div class="transaction-search">
-                                        <span class="material-icons" aria-hidden="true">search</span>
-                                        <input type="search" v-model="searchQuery" @input="onSearchInput"
-                                               :placeholder="t('searchPlaceholder')" :aria-label="t('searchPlaceholder')" />
-                                        <button v-if="searchQuery" class="transaction-search-clear" @click="clearSearch" :title="t('clearSearch')" :aria-label="t('clearSearch')">
-                                            <span class="material-icons" aria-hidden="true">close</span>
-                                        </button>
-                                    </div>
-                                    <button type="button" class="btn-secondary btn-advanced-search" :class="{ active: searchFilterCount > 0 }" @click="openAdvancedSearch"
-                                            :title="t('advancedSearch')" :aria-label="searchFilterCount ? t('advancedSearchActive', { count: searchFilterCount }) : t('advancedSearch')">
-                                        <span class="material-icons" aria-hidden="true">tune</span>
-                                        <span v-if="searchFilterCount" class="advanced-search-count" aria-hidden="true">{{ searchFilterCount }}</span>
-                                    </button>
                                     <div class="transaction-count">{{ t('transactionCount', { count: isSearching ? searchResults.length : transactions.length }) }}</div>
                                     <label class="toggle-switch toggle-unchecked" :class="{ on: transactionFilter === 'unchecked' }">
                                         <input type="checkbox" role="switch"
@@ -649,37 +642,35 @@
                                         <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
                                         <span class="toggle-label">{{ t('uncheckedCount', { count: (isSearching ? searchResults : transactions).filter(t => !Number(t.pointed)).length }) }}</span>
                                     </label>
-                                    <label v-if="!isSearching && recurring.length > 0" class="toggle-switch toggle-recurring" :class="{ on: recurringOnly }">
-                                        <input type="checkbox" role="switch" v-model="recurringOnly" />
-                                        <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
-                                        <span class="toggle-label">{{ t('recurringCount', { count: recurring.length }) }}</span>
-                                    </label>
-                                    <button v-if="!isSearching && recurring.length > 0" type="button" class="btn-secondary btn-recurring-calendar"
-                                            @click="openRecurringCalendar" :title="t('recurringCalendarHelp')" :aria-label="t('recurringCalendarButton')">
-                                        <span class="material-icons" aria-hidden="true">calendar_month</span>
-                                    </button>
-                                    <button v-if="activeTags.length" type="button" class="btn-secondary btn-manual-add btn-select" @click="toggleTransactionSelection"
+                                    <button type="button" class="btn-secondary btn-manual-add btn-select" @click="toggleTransactionSelection"
                                             :aria-pressed="selectingTransactions ? 'true' : 'false'" :title="t('tagSelectHelp')">
                                         <span class="material-icons" aria-hidden="true">{{ selectingTransactions ? 'close' : 'checklist' }}</span><span class="btn-label">{{ selectingTransactions ? t('tagSelectStop') : t('tagSelect') }}</span>
-                                    </button>
-                                    <button type="button" class="btn-secondary btn-manual-add" @click="openManualTransaction" :title="t('manualTransactionTitle')">
-                                        <span class="material-icons" aria-hidden="true">add</span><span class="btn-label">{{ t('manualTransactionButton') }}</span>
                                     </button>
                                     <button type="button" class="btn-secondary btn-import" @click="openImport" :title="t('importTitle')">
                                         <span class="material-icons" aria-hidden="true">upload_file</span><span class="btn-label">{{ t('importButton') }}</span>
                                     </button>
+                                    <!-- Round + button, as on the Rules, Categories, Tags and Insights tabs -->
+                                    <button type="button" class="btn-add btn-add-icon" @click="openManualTransaction" :title="t('manualTransactionTitle')" :aria-label="t('manualTransactionTitle')">
+                                        <span class="material-icons" aria-hidden="true">add</span>
+                                    </button>
                                 </div>
                             </div>
-                            <!-- Selection of transactions: one tag added to all of them -->
+                            <!-- Selection of transactions: one tag added to all of them, or all of them deleted -->
                             <div v-if="selectingTransactions" class="tag-selection-bar" role="region" :aria-label="t('tagSelect')">
                                 <span class="tag-selection-count" aria-live="polite">{{ t('tagSelected', { count: selectedTransactionIds.length }) }}</span>
-                                <label class="visually-hidden" for="tag-selection">{{ t('tagChoose') }}</label>
-                                <select id="tag-selection" v-model="selectionTag">
-                                    <option value="">{{ t('tagChoose') }}</option>
-                                    <option v-for="tag in activeTags" :key="tag.id" :value="tag.id">#{{ tag.name }}</option>
-                                </select>
-                                <button type="button" class="btn-manual-add" @click="tagSelectedTransactions" :disabled="!selectionTag || selectedTransactionIds.length === 0">
-                                    <span class="material-icons" aria-hidden="true">sell</span>{{ t('tagAdd') }}
+                                <template v-if="activeTags.length">
+                                    <label class="visually-hidden" for="tag-selection">{{ t('tagChoose') }}</label>
+                                    <select id="tag-selection" v-model="selectionTag">
+                                        <option value="">{{ t('tagChoose') }}</option>
+                                        <option v-for="tag in activeTags" :key="tag.id" :value="tag.id">#{{ tag.name }}</option>
+                                    </select>
+                                    <button type="button" class="btn-manual-add" @click="tagSelectedTransactions" :disabled="!selectionTag || selectedTransactionIds.length === 0">
+                                        <span class="material-icons" aria-hidden="true">sell</span>{{ t('tagAdd') }}
+                                    </button>
+                                </template>
+                                <button type="button" class="btn-danger selection-delete" @click="deleteSelectedTransactions"
+                                        :disabled="deletingSelection || selectedTransactionIds.length === 0">
+                                    <span class="material-icons" aria-hidden="true">delete</span>{{ t('selectionDelete') }}
                                 </button>
                             </div>
                             <!-- Criteria of the advanced search, each one removable -->
@@ -1039,30 +1030,35 @@
                             <div class="insights-grid">
                             <div v-for="insight in insights" :key="insight.id" class="insight-card" :class="'insight-' + insight.color"
                                  :style="insightColorValues[insight.color] ? { '--insight-color': insightColorValues[insight.color] } : {}">
-                                <div class="insight-icon" aria-hidden="true">
-                                    <span class="material-icons" aria-hidden="true">{{ insight.icon || getInsightIcon(insight.name) }}</span>
-                                </div>
-                                <div class="insight-content">
-                                    <div class="insight-label">{{ getInsightName(insight.name) }}</div>
-                                    <div class="insight-value" :class="{ 'negative': insight.amount < 0 }">
-                                        {{ formatAmount(Math.abs(insight.amount)) }} {{ currencySymbol }}
+                                <div class="insight-main">
+                                    <div class="insight-icon" aria-hidden="true">
+                                        <span class="material-icons" aria-hidden="true">{{ insight.icon || getInsightIcon(insight.name) }}</span>
                                     </div>
-                                    <div v-if="insightAlerts[insight.id]" class="insight-alert-state">
-                                        <span class="material-icons" aria-hidden="true">notifications_active</span><span class="insight-alert-text">{{ insightAlertText(insight) }}</span>
+                                    <div class="insight-content">
+                                        <div class="insight-label">{{ getInsightName(insight.name) }}</div>
+                                        <div class="insight-value" :class="{ 'negative': insight.amount < 0 }">
+                                            {{ formatAmount(Math.abs(insight.amount)) }} {{ currencySymbol }}
+                                        </div>
+                                        <div v-if="insightAlerts[insight.id]" class="insight-alert-state">
+                                            <span class="material-icons" aria-hidden="true">notifications_active</span><span class="insight-alert-text">{{ insightAlertText(insight) }}</span>
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="insight-actions">
-                                    <button v-if="isAdmin" class="btn-icon" @click="openInsightModal(insight)" :title="t('editInsight')" :aria-label="t('editInsight') + ' ' + getInsightName(insight.name)">
-                                        <span class="material-icons" aria-hidden="true">edit</span>
-                                    </button>
-                                    <button :id="'insight-alert-button-' + insight.id" class="btn-icon" @click="openInsightAlert(insight)"
-                                            :title="t('insightAlertTitle')" :aria-label="t('insightAlertOf', { name: getInsightName(insight.name) })">
-                                        <span class="material-icons" aria-hidden="true">{{ insightAlerts[insight.id] ? 'notifications_active' : 'notifications_none' }}</span>
-                                    </button>
-                                    <button class="btn-icon" @click="setInsightEnabled(insight, false)" :disabled="togglingInsight === insight.id"
-                                            :title="t('hideInsight')" :aria-label="t('hideInsightOf', { name: getInsightName(insight.name) })">
-                                        <span class="material-icons" aria-hidden="true">visibility_off</span>
-                                    </button>
+                                <!-- The actions at the bottom of every card, at the same height in a row -->
+                                <div class="insight-footer">
+                                    <div class="insight-actions">
+                                        <button v-if="isAdmin" class="btn-icon" @click="openInsightModal(insight)" :title="t('editInsight')" :aria-label="t('editInsight') + ' ' + getInsightName(insight.name)">
+                                            <span class="material-icons" aria-hidden="true">edit</span>
+                                        </button>
+                                        <button :id="'insight-alert-button-' + insight.id" class="btn-icon" @click="openInsightAlert(insight)"
+                                                :title="t('insightAlertTitle')" :aria-label="t('insightAlertOf', { name: getInsightName(insight.name) })">
+                                            <span class="material-icons" aria-hidden="true">{{ insightAlerts[insight.id] ? 'notifications_active' : 'notifications_none' }}</span>
+                                        </button>
+                                        <button class="btn-icon" @click="setInsightEnabled(insight, false)" :disabled="togglingInsight === insight.id"
+                                                :title="t('hideInsight')" :aria-label="t('hideInsightOf', { name: getInsightName(insight.name) })">
+                                            <span class="material-icons" aria-hidden="true">visibility_off</span>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1312,9 +1308,8 @@
                                     <p class="rules-help">{{ t('tagsHelp') }}</p>
                                 </div>
                                 <div class="panel-actions">
-                                    <button type="button" class="btn-add" @click="openTagModal()">
+                                    <button type="button" class="btn-add btn-add-icon" @click="openTagModal()" :title="t('tagNew')" :aria-label="t('tagNew')">
                                         <span class="material-icons" aria-hidden="true">add</span>
-                                        {{ t('tagNew') }}
                                     </button>
                                 </div>
                             </div>
@@ -3053,19 +3048,26 @@
                                              :placeholder="t('chooseCategory')" :icon-for="categoryIcon" :color-for="categoryColor"></category-picker>
                             <input type="number" step="0.01" min="0" inputmode="decimal" v-model="part.amount"
                                    :aria-label="t('splitPartAmount', { number: index + 1 })" @keydown.enter="splitValid && saveSplit()" />
-                            <button type="button" class="btn-icon split-remove" @click="removeSplitPart(index)"
+                            <!-- The first line is the transaction itself: it cannot be removed -->
+                            <button v-if="index > 0" type="button" class="btn-icon split-remove" @click="removeSplitPart(index)"
                                     :title="t('splitRemovePart')" :aria-label="t('splitRemovePart')">
                                 <span class="material-icons" aria-hidden="true">remove_circle_outline</span>
                             </button>
+                            <span v-else class="split-remove-placeholder" aria-hidden="true"></span>
                         </li>
                     </ul>
                     <button type="button" class="btn-secondary split-add" @click="addSplitPart" :disabled="splitFull">
                         <span class="material-icons" aria-hidden="true">add</span>
                         {{ t('splitAddPart') }}
                     </button>
-                    <p class="split-rest" aria-live="polite">
-                        <span>{{ t('splitRest', { category: categoryName(splitTransaction) || t('uncategorized') }) }}</span>
-                        <strong :class="splitRest >= 0 ? 'positive' : 'negative'">{{ formatAmount(splitRest) }} {{ currencySymbol }}</strong>
+                    <p class="split-rest" :class="{ 'split-rest-done': splitRest === 0, 'split-rest-exceeded': splitExceeded }" aria-live="polite">
+                        <span>{{ t('splitToAllocate') }}</span>
+                        <strong>{{ formatAmount(splitToAllocate) }} {{ currencySymbol }}</strong>
+                    </p>
+                    <p v-if="!splitValid" id="split-hint" class="split-hint" :class="{ 'split-hint-error': splitExceeded }">
+                        <span class="material-icons" aria-hidden="true">{{ splitExceeded ? 'error_outline' : 'info_outline' }}</span>
+                        <span class="split-hint-text">{{ splitExceeded ? t('splitExceeded', { amount: formatAmount(Math.abs(splitRest)) + ' ' + currencySymbol })
+                            : splitRest === 0 ? t('splitHintIncomplete') : t('splitHintAllocate') }}</span>
                     </p>
                 </div>
                 <div class="modal-footer">
@@ -3078,7 +3080,7 @@
                         <span class="material-icons" aria-hidden="true">cancel</span>
                         {{ t('cancel') }}
                     </button>
-                    <button @click="saveSplit" :disabled="savingSplit || !splitValid">
+                    <button @click="saveSplit" :disabled="savingSplit || !splitValid" :aria-describedby="splitValid ? null : 'split-hint'">
                         <span class="material-icons" aria-hidden="true">check_circle</span>
                         {{ t('save') }}
                     </button>
