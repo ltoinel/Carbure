@@ -3076,8 +3076,8 @@
                     </p>
                     <p v-if="!splitValid" id="split-hint" class="split-hint" :class="{ 'split-hint-error': splitExceeded }">
                         <span class="material-icons" aria-hidden="true">{{ splitExceeded ? 'error_outline' : 'info_outline' }}</span>
-                        {{ splitExceeded ? t('splitExceeded', { amount: formatAmount(Math.abs(splitRest)) + ' ' + currencySymbol })
-                            : splitRest === 0 ? t('splitHintIncomplete') : t('splitHintAllocate') }}
+                        <span class="split-hint-text">{{ splitExceeded ? t('splitExceeded', { amount: formatAmount(Math.abs(splitRest)) + ' ' + currencySymbol })
+                            : splitRest === 0 ? t('splitHintIncomplete') : t('splitHintAllocate') }}</span>
                     </p>
                 </div>
                 <div class="modal-footer">

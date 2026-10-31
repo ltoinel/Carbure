@@ -207,14 +207,14 @@ test('splits a transaction across several categories, then cancels the split', a
     await expect(rest).toContainText(tr('splitToAllocate'));
     await expect(rest.locator('strong')).toHaveText(euros(82.4));
     await expect(save).toBeDisabled();
-    await expect(modal.locator('.split-hint')).toHaveText(tr('splitHintAllocate'));
+    await expect(modal.locator('.split-hint-text')).toHaveText(tr('splitHintAllocate'));
 
     const part = lines.nth(1);
     await pickCategory(part, 'Restaurant');
     await part.getByLabel(tr('splitPartAmount', { number: 2 })).fill('20');
     // More than the amount: refused, by how much
     await lines.first().getByLabel(tr('splitPartAmount', { number: 1 })).fill('70');
-    await expect(modal.locator('.split-hint')).toHaveText(tr('splitExceeded', { amount: euros(7.6) }));
+    await expect(modal.locator('.split-hint-text')).toHaveText(tr('splitExceeded', { amount: euros(7.6) }));
     await expect(save).toBeDisabled();
     // The whole amount: saved
     await lines.first().getByLabel(tr('splitPartAmount', { number: 1 })).fill('62.40');
