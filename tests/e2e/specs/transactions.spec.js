@@ -261,7 +261,11 @@ test('splits a transaction across several categories, then cancels the split', a
     await page.getByRole('dialog', { name: tr('transactionDetail') }).getByRole('button', { name: tr('splitButton') }).click();
     await expect(modal.getByLabel(tr('splitPartAmount', { number: 1 }))).toHaveValue('62.40');
     await expect(modal.getByLabel(tr('splitPartAmount', { number: 2 }))).toHaveValue('20.00');
-    await modal.getByRole('button', { name: tr('splitCancel') }).click();
+    // The small red trash button at the bottom left, as in a transaction detail
+    const remove = modal.getByRole('button', { name: tr('splitCancel') });
+    await expect(remove).toHaveClass(/btn-danger-icon/);
+    await expect(remove.locator('.material-icons')).toHaveText('delete');
+    await remove.click();
     await expect(page.locator('.toast')).toHaveText(tr('splitCancelled'));
     await expect(rows).toHaveCount(1);
     await expect(rows.locator('.transaction-amount')).toHaveText(euros(-82.4));

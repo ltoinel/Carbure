@@ -495,7 +495,7 @@
     "splitHintAllocate": "Asigne todo el importe de la transacción para guardar.",
     "splitHintIncomplete": "Elija una categoría y un importe para cada línea.",
     "splitExceeded": "Las líneas superan el importe de la transacción en {amount}.",
-    "splitCancel": "Anular la división",
+    "splitCancel": "Eliminar la división",
     "splitSaved": "Transacción dividida",
     "splitCancelled": "División anulada",
     "splitPartBadge": "Parte",
