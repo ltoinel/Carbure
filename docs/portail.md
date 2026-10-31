@@ -462,7 +462,7 @@ Liste des utilisateurs avec leur **profil** (Utilisateur ou Administrateur) et l
 **dernière connexion** ; un compte bloqué après trop d'échecs de connexion affiche
 « Bloqué jusqu'au … » et un bouton **Débloquer**. **+** crée un utilisateur ; le crayon le
 modifie (dont son profil) ; la corbeille le supprime. Le bouton **Réinitialiser la double
-authentification** (après confirmation) supprime l'application, les codes de secours et
+authentification** (après une confirmation qui en rappelle les conséquences, bouton **Réinitialiser**) supprime l'application, les codes de secours et
 les navigateurs de confiance d'un utilisateur qui a perdu son téléphone. Le dernier administrateur ne peut
 pas perdre son rôle, et un utilisateur propriétaire de transactions ne peut pas être
 supprimé.

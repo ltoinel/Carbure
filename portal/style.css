@@ -7804,8 +7804,75 @@ button.recurring-calendar-entry:hover {
 }
 
 /* ===== Confirmation modal (askConfirm) ===== */
+/* Icon of the title in a round badge: red tint for a destructive action */
+.modal-confirm .confirm-icon {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--primary-color) 12%, var(--surface));
+}
+
+.modal-confirm .confirm-icon .material-icons {
+    font-size: 22px;
+    color: var(--primary-color);
+}
+
+.modal-confirm.is-danger .confirm-icon {
+    background: var(--error-light);
+}
+
+/* --error-color on --error-light: at least 4.5:1 in both themes (accessibility spec) */
+.modal-confirm.is-danger .confirm-icon .material-icons {
+    color: var(--error-color);
+}
+
+.modal-confirm .modal-body {
+    gap: 14px;
+    padding: 20px;
+}
+
+.modal-confirm .confirm-message {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.5;
+    color: var(--text-primary);
+}
+
+/* Consequence of the action: warning callout (as .woob-warning), its text in the
+   main color for the contrast in both themes */
+.modal-confirm .confirm-warning {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin: 0;
+    padding: 12px 14px;
+    border-radius: var(--border-radius-md);
+    border-left: 4px solid var(--warning-color);
+    background: var(--warning-light);
+    color: var(--text-primary);
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.modal-confirm .confirm-warning .material-icons {
+    flex: none;
+    font-size: 20px;
+    color: var(--warning-color);
+}
+
 .modal-confirm .confirm-error {
     margin: 0;
+}
+
+/* Cancel and the action side by side, the action last */
+.modal-confirm .modal-footer {
+    align-items: center;
+    gap: 10px;
+    padding: 14px 20px;
 }
 
 /* Destructive confirmation: red, another shade on hover (label readable on both,
