@@ -106,7 +106,13 @@ test('an archived tag is no more offered, its summary stays readable', async ({ 
     await page.keyboard.press('Escape');
     await expect(detail).toBeHidden();
 
-    await openTab(page, tr('tabTags'));
+    // No active tag: a hint, its link opens the Tags tab
+    await row(page, 'CB RESTAURANT LE PETIT ZINC').getByRole('button', { name: new RegExp(tr('transactionDetail')) }).click();
+    await expect(detail.locator('.tag-none-active')).toContainText(tr('tagNoneActiveLink'));
+    await detail.getByRole('link', { name: tr('tagNoneActiveLink') }).click();
+    await expect(detail).toHaveCount(0);
+    await expect(page.locator('.tag-list-archived .tag-name')).toHaveText('#ete-2020');
+
     await page.getByRole('button', { name: tr('tagSummaryOf', { name: 'ete-2020' }) }).click();
     await expect(page.locator('.tag-summary')).toContainText(tr('tagArchived'));
     await expect(page.locator('.tag-summary')).toContainText(tr('tagNoTransaction'));

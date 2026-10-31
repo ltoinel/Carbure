@@ -196,7 +196,8 @@ tâches ou l'écran d'accueil.
   - Dans le **détail**, la section Tags liste ceux de la transaction (la croix en retire
     un) ; son champ **Saisir un tag…** complète le nom tapé avec les tags actifs (flèches
     pour se déplacer, Entrée ou clic pour ajouter) et propose **Créer #nom** pour un nom
-    nouveau. Le champ se vide aussitôt, prêt pour le tag suivant.
+    nouveau. Le champ se vide aussitôt, prêt pour le tag suivant. Sans tag actif, un lien
+    mène à l'onglet Tags.
   - **Sélectionner** (barre d'outils) affiche une case par transaction et une barre
     « n sélectionnées » avec le même champ : le tag choisi y reste affiché, puis
     **Appliquer le tag** l'ajoute à toutes les transactions cochées d'un coup.

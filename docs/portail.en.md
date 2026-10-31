@@ -193,7 +193,8 @@ taskbar or the home screen.
   - In the **details**, the Tags section lists those of the transaction (the cross removes
     one); its **Type a tag…** field completes the name typed with the active tags (arrows
     to move, Enter or a click to add) and offers **Create #name** for a new name. The
-    field is emptied at once, ready for the next tag.
+    field is emptied at once, ready for the next tag. Without an active tag, a link leads to
+    the Tags tab.
   - **Select** (toolbar) shows a box per transaction and a bar "n selected" with the same
     field: the tag chosen stays shown in it, then **Apply the tag** adds it to all the
     ticked transactions at once.

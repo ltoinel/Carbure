@@ -579,6 +579,8 @@
     "selectionDeleted_other": "{count} transactions supprimées",
     "tagSelectTransaction": "Sélectionner {label}",
     "tagsOfTransaction": "Tags",
+    "tagNoneActive": "Aucun tag actif : saisissez un nom ci-dessus pour le créer, ou {link}.",
+    "tagNoneActiveLink": "créez-en un dans l'onglet Tags",
     "tagRemoveOf": "Retirer #{name}",
     "tagSaved": "Tag enregistré",
     "tagDeleted": "Tag supprimé",
