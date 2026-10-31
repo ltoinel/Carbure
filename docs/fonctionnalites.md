@@ -145,9 +145,12 @@ transactions du dernier mois restées sans catégorie.
   autres et reste modifiable (libellé, date, montant) depuis son détail.
 - **Répartir** une transaction sur plusieurs catégories (depuis son détail) : un ticket de
   supermarché en partie alimentation et en partie maison, un retrait d'espèces dépensé en
-  courses et en transport. Chaque part (catégorie et montant, 10 au plus) devient une
-  transaction affichée juste sous la transaction d'origine, qui garde le reste dans sa
-  catégorie et rappelle le montant de la banque. Le total reste celui de la banque : budgets,
+  courses et en transport. La première ligne est la transaction elle-même (sa catégorie, qui
+  peut changer, et le montant qu'elle garde), les suivantes ses parts (catégorie et montant,
+  10 au plus) ; tout le montant doit être ventilé, sans le dépasser : **Enregistrer** n'est
+  possible qu'une fois le **reste à ventiler** à 0, et la fenêtre dit sinon ce qui manque.
+  Chaque part devient une transaction affichée juste sous la transaction d'origine, qui
+  rappelle le montant de la banque. Le total reste celui de la banque : budgets,
   tendances, flux et insights comptent chaque part dans sa catégorie. La synchronisation
   conserve la répartition, les règles ne la modifient pas, et pointer la transaction pointe
   ses parts. Supprimer une part rend son montant à la transaction ; **Annuler la
