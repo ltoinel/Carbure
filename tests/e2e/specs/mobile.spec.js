@@ -96,6 +96,14 @@ test('the transactions on a phone: search bar, recurring strip, icon buttons, fu
         expect((await button.boundingBox()).width).toBeLessThan(60);
     }
 
+    // The round + on the line of the title, on the right, over no other button (#419)
+    const add = await toolbar.getByRole('button', { name: tr('manualTransactionTitle'), exact: true }).boundingBox();
+    const title = await page.locator('.transactions-header h2').boundingBox();
+    expect(Math.abs((add.y + add.height / 2) - (title.y + title.height / 2))).toBeLessThan(4);
+    for (const box of await toolbar.locator('> *:not(.btn-add-icon)').evaluateAll(list => list.map(e => e.getBoundingClientRect().toJSON()))) {
+        expect(box.bottom <= add.y || box.top >= add.y + add.height || box.right <= add.x || box.left >= add.x + add.width).toBe(true);
+    }
+
     // A long label is shown whole (two lines at most), the amount next to it
     const row = page.locator('.transaction-item').filter({ hasText: 'CB RESTAURANT LE PETIT ZINC' });
     const label = row.locator('.transaction-label');

@@ -8685,6 +8685,25 @@ button.is-busy:not(.btn-confirm-danger):hover {
         justify-content: center;
     }
 
+    /* The round + on the line of the title, on the right, as on the other tabs */
+    .transactions-header {
+        position: relative;
+    }
+
+    /* The line of the title as high as the + button: the toolbar starts under both */
+    .transactions-header h2 {
+        display: flex;
+        align-items: center;
+        min-height: 48px;
+        padding-right: 56px;
+    }
+
+    .transactions-toolbar .btn-add-icon {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+    }
+
     /* One scroll, the page's: the list does not scroll inside it */
     .transactions-list {
         max-height: none;
