@@ -302,6 +302,37 @@ test('deletes the selected transactions (#421)', async ({ adminPage: page, api }
     expect(labels).not.toContain('CB RESTAURANT LE PETIT ZINC');
 });
 
+test('selects all the transactions shown, then closes the selection (#430)', async ({ adminPage: page }) => {
+    await page.getByRole('button', { name: tr('tagSelect'), exact: true }).click();
+    const bar = page.getByRole('region', { name: tr('tagSelect') });
+    const all = bar.getByRole('button', { name: tr('selectionSelectAll') });
+
+    await all.click();
+    await expect(bar.locator('.tag-selection-count')).toHaveText(tr('tagSelected', { count: 6 }));
+    await expect(page.locator('.transaction-select:checked')).toHaveCount(6);
+    // Once all are ticked, the same button unticks them
+    const none = bar.getByRole('button', { name: tr('selectionUnselectAll') });
+    await expect(none).toHaveAttribute('aria-pressed', 'true');
+    await none.click();
+    await expect(bar.locator('.tag-selection-count')).toHaveText(tr('tagSelected', { count: 0 }));
+    await expect(page.locator('.transaction-select:checked')).toHaveCount(0);
+
+    // Only the ones shown: the filter of the unchecked transactions applied
+    await page.locator('.toggle-unchecked').click();
+    await expect(page.locator('.transaction-item')).toHaveCount(3);
+    await bar.getByRole('button', { name: tr('selectionSelectAll') }).click();
+    await expect(bar.locator('.tag-selection-count')).toHaveText(tr('tagSelected', { count: 3 }));
+
+    // The close button is the last one of the bar, at its far right
+    const close = bar.getByRole('button', { name: tr('selectionClose') });
+    await expect(bar.getByRole('button').last()).toHaveAccessibleName(tr('selectionClose'));
+    const [barBox, closeBox] = [await bar.boundingBox(), await close.boundingBox()];
+    expect(barBox.x + barBox.width - (closeBox.x + closeBox.width)).toBeLessThan(40);
+    await close.click();
+    await expect(bar).toHaveCount(0);
+    await expect(page.locator('.transaction-select')).toHaveCount(0);
+});
+
 test('deletes a transaction from its detail', async ({ adminPage: page, api }) => {
     await row(page, 'CB RESTAURANT LE PETIT ZINC').getByRole('button', { name: new RegExp(tr('transactionDetail')) }).click();
     const modal = page.getByRole('dialog', { name: tr('transactionDetail') });

@@ -140,6 +140,9 @@ transactions du dernier mois restées sans catégorie.
   cocher les transactions, **Supprimer** ; après confirmation) : elle disparaît
   pour tout le foyer et n'est plus réimportée, ni par la synchronisation ni par l'import
   d'un relevé.
+- **Mode sélection** : **Tout sélectionner** coche toutes les transactions affichées (filtre et
+  recherche appliqués, 500 au plus), puis devient **Tout désélectionner** ; la croix à droite de
+  la barre ferme le mode sélection.
 - **Saisir une transaction à la main** (bouton **+**), par exemple une dépense en
   espèces, sur un compte manuel : dépense ou revenu, montant, libellé, date, et catégorie
   (sinon celle des règles). Tout utilisateur peut en saisir ; elle est comptée comme les
