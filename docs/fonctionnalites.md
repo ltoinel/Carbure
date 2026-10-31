@@ -249,8 +249,10 @@ catégories : chaque transaction garde la sienne, les budgets et les tendances n
   fin facultative). Pendant sa période il est **actif** et proposé à la saisie ; après sa fin
   il est **archivé** : il n'est plus proposé, son bilan reste consultable.
 - **Étiqueter à la main** : depuis le détail d'une transaction, ou sur une **sélection** de la
-  liste (**Sélectionner**, cocher les transactions, choisir le tag, **Ajouter le tag**). Une
-  transaction peut porter plusieurs tags ; aucune règle automatique.
+  liste (**Sélectionner**, cocher les transactions). On **saisit** le tag : les tags actifs
+  correspondants s'affichent, Entrée ou un clic l'ajoute aussitôt ; un nom nouveau propose de
+  **créer** le tag (dès aujourd'hui, couleur par défaut). Une transaction peut porter
+  plusieurs tags ; aucune règle automatique.
 - **Bilan d'un tag** : son coût net (remboursements déduits), la répartition par catégorie,
   l'évolution jour par jour (avec le tableau des valeurs) et ses transactions.
 - **Recherche** `#voyage-italie` dans Transactions : les transactions du tag, tous mois
