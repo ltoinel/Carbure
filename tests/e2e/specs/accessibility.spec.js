@@ -495,7 +495,9 @@ test('the tags, their form and a summary are readable', async ({ adminPage: page
     await page.getByRole('button', { name: tr('tagSelect'), exact: true }).click();
     await expect(page.locator('.tag-selection-bar')).toBeVisible();
     problems.push(...await contrastProblems(page, tr('tagSelect')));
-    await page.getByRole('button', { name: tr('tagSelect'), exact: true }).click();
+    // Out of the selection: the button of the toolbar is "Done" while selecting
+    await page.getByRole('button', { name: tr('tagSelectStop'), exact: true }).click();
+    await expect(page.locator('.tag-selection-bar')).toHaveCount(0);
 
     // The tag field of a transaction detail, its list open: a tag highlighted, a creation offered
     await page.locator('.transaction-item:not(:has(.tag-chip))').first().getByRole('button', { name: new RegExp(tr('transactionDetail')) }).click();
