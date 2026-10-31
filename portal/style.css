@@ -5713,7 +5713,8 @@ a.footer-brand:hover {
     cursor: pointer;
 }
 
-.btn-danger.btn-danger-icon {
+.btn-danger.btn-danger-icon,
+.btn-square-icon {
     justify-content: center;
     width: 44px;
     padding: 0;

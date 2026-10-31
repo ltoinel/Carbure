@@ -35,7 +35,15 @@ test('adds a manual account, then enters and changes a cash expense', async ({ a
     // Changed from its detail (once the message is gone: it covers the buttons of the modal)
     await expect(page.locator('.toast')).toHaveCount(0);
     await added.getByRole('button', { name: new RegExp(tr('transactionDetail')) }).click();
-    await page.getByRole('dialog', { name: tr('transactionDetail') }).getByRole('button', { name: tr('manualTransactionEdit') }).click();
+    // The edit button: the pencil only (named by its label), the size of the trash next to it
+    const manualDetail = page.getByRole('dialog', { name: tr('transactionDetail') });
+    const editButton = manualDetail.getByRole('button', { name: tr('manualTransactionEdit') });
+    await expect(editButton).toHaveAttribute('title', tr('manualTransactionEdit'));
+    expect((await editButton.innerText()).replace('edit', '').trim()).toBe('');
+    const editBox = await editButton.boundingBox();
+    const deleteBox = await manualDetail.getByRole('button', { name: tr('deleteTransaction') }).boundingBox();
+    expect([Math.round(editBox.width), Math.round(editBox.height)]).toEqual([Math.round(deleteBox.width), Math.round(deleteBox.height)]);
+    await editButton.click();
     const edit = page.getByRole('dialog', { name: tr('manualTransactionEditTitle') });
     await expect(edit.getByLabel(tr('manualAmount', { currency: '€' }))).toHaveValue('12.50');
     await edit.getByLabel(tr('manualAmount', { currency: '€' })).fill('15');

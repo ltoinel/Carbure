@@ -176,7 +176,7 @@ taskbar or the home screen.
   the household: the **manual accounts** first (the first one is offered), then the
   synchronized ones. On a synchronized account, the form recalls that the bank may later
   send the same transaction: then delete the duplicate. The transaction is checked, is never
-  overwritten by the synchronization, and stays editable from its details (**Edit** button:
+  overwritten by the synchronization, and stays editable from its details (pencil **Edit** button, next to the trash:
   date, label, amount).
 - **Split a transaction** across several categories: in its details, the **Split** icon
   button opens a window with one row per part (category and amount, typed without sign: it

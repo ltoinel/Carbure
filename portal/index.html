@@ -2935,9 +2935,9 @@
                             :title="t('deleteTransaction')" :aria-label="t('deleteTransaction')">
                         <span class="material-icons" aria-hidden="true">delete</span>
                     </button>
-                    <button v-if="isManual(transactionDetail)" type="button" class="btn-secondary" @click="editManualTransaction(transactionDetail)" :disabled="savingTransaction">
+                    <button v-if="isManual(transactionDetail)" type="button" class="btn-secondary btn-icon-only btn-square-icon" @click="editManualTransaction(transactionDetail)" :disabled="savingTransaction"
+                            :title="t('manualTransactionEdit')" :aria-label="t('manualTransactionEdit')">
                         <span class="material-icons" aria-hidden="true">edit</span>
-                        {{ t('manualTransactionEdit') }}
                     </button>
                     <button type="button" class="btn-secondary btn-icon-only" @click="openSplit" :disabled="savingTransaction" :title="t('splitHelp')" :aria-label="t('splitButton')">
                         <span class="material-icons" aria-hidden="true">call_split</span>
