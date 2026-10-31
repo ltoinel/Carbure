@@ -139,7 +139,7 @@ transactions du dernier mois restées sans catégorie.
 - **Supprimer** une transaction (depuis son détail, après confirmation) : elle disparaît
   pour tout le foyer et n'est plus réimportée, ni par la synchronisation ni par l'import
   d'un relevé.
-- **Saisir une transaction à la main** (bouton **Ajouter**), par exemple une dépense en
+- **Saisir une transaction à la main** (bouton **+**), par exemple une dépense en
   espèces, sur un compte manuel : dépense ou revenu, montant, libellé, date, et catégorie
   (sinon celle des règles). Tout utilisateur peut en saisir ; elle est comptée comme les
   autres et reste modifiable (libellé, date, montant) depuis son détail.
