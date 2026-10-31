@@ -179,7 +179,7 @@ tâches ou l'écran d'accueil.
   est proposé), puis les comptes synchronisés. Sur un compte synchronisé, le formulaire
   rappelle que la banque peut envoyer plus tard la même transaction : supprimer alors le
   doublon. La transaction est pointée, n'est jamais écrasée par la synchronisation, et reste
-  modifiable depuis son détail (bouton **Modifier** : date, libellé, montant).
+  modifiable depuis son détail (bouton crayon **Modifier**, à côté de la poubelle : date, libellé, montant).
 - **Répartir une transaction** sur plusieurs catégories : dans son détail, le bouton
   icône **Répartir** ouvre une fenêtre avec une ligne par part (catégorie et montant, saisi
   sans signe : il prend celui de la transaction ; 10 parts au plus). Le **reste**, recalculé
