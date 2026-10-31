@@ -309,11 +309,22 @@ Every user of the household creates and uses the tags.
   After its end, it is **archived**: no longer offered, but still in the list with its
   summary.
 - **Summary** (a click on a tag):
-  - the **net cost** of the project (refunds deducted) and the number of transactions;
-  - one bar **per category**, in the color of the category, largest expenses first;
-  - the **running cost day by day** line (the value of each day on hover), with the
-    **table of the values** below it;
-  - the list of its **transactions**, with their usual category.
+  - the header: the tag in its color, its **status** (active or archived), its **period**
+    (start – end, or "running") and the **Edit the tag** and **Show in Transactions**
+    buttons;
+  - four key figures: the **net cost** of the project (refunds deducted) and its number of
+    transactions, the **expenses** (with the total of the **refunds**), the cost
+    **per day** over the period (until today while it runs) and the **largest expense**;
+  - the **running cost day by day** chart, in steps from zero, with its axes (amounts,
+    dates): the value of a day shows on hover, or with the keyboard once the chart is
+    selected (left and right arrows, Home, End); the **table of the values** stays below
+    the chart;
+  - one bar **per category**, with the icon and the color of the category, its amount, its
+    number of transactions and its **share** of the total, largest amounts first;
+  - the list of its **transactions**, as in the Transactions tab, with their usual
+    category;
+  - on a wide screen, the chart and the categories are side by side; on a phone, one
+    under the other.
 - **Show in Transactions** opens the Transactions tab on the `#name` search of the tag.
 - The parts of a split transaction get its tags, then are tagged apart: only the
   restaurant part of a receipt can belong to the trip.

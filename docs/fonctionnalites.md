@@ -268,8 +268,10 @@ catégories : chaque transaction garde la sienne, les budgets et les tendances n
   s'ajoute aussitôt ; sur une sélection, **Appliquer le tag** l'ajoute aux transactions
   cochées. Une transaction peut porter
   plusieurs tags ; aucune règle automatique.
-- **Bilan d'un tag** : son coût net (remboursements déduits), la répartition par catégorie,
-  l'évolution jour par jour (avec le tableau des valeurs) et ses transactions.
+- **Bilan d'un tag** : son coût net (remboursements déduits), ses dépenses et
+  remboursements, son coût par jour et sa plus grosse dépense, la courbe du coût cumulé
+  jour par jour (au survol ou au clavier, avec le tableau des valeurs), la répartition par
+  catégorie (montant et part) et ses transactions.
 - **Recherche** `#voyage-italie` dans Transactions : les transactions du tag, tous mois
   confondus. Les parts d'une transaction répartie reprennent ses tags, puis s'étiquettent à part.
 - Les tables `tag` et `transaction_tag` sont lisibles par les [insights](insights.md).

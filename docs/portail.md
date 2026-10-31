@@ -313,12 +313,23 @@ ne changent pas. Tous les utilisateurs du foyer créent et utilisent les tags.
   des transactions et la sélection. Après sa fin, il est **archivé** : il n'est plus
   proposé, mais reste dans la liste avec son bilan.
 - **Bilan** (un clic sur un tag) :
-  - le **coût net** du projet (remboursements déduits) et le nombre de transactions ;
-  - une barre **par catégorie**, à la couleur de la catégorie, les plus grosses dépenses
-    d'abord ;
-  - la courbe du **coût cumulé jour par jour** (la valeur de chaque jour au survol), avec
-    le **tableau des valeurs** sous la courbe ;
-  - la liste de ses **transactions**, avec leur catégorie habituelle.
+  - l'en-tête : le tag à sa couleur, son **statut** (actif ou archivé), sa **période**
+    (début – fin, ou « en cours ») et les boutons **Modifier le tag** et
+    **Voir dans Transactions** ;
+  - quatre chiffres clés : le **coût net** du projet (remboursements déduits) et son nombre
+    de transactions, les **dépenses** (avec le total des **remboursements**), le coût
+    **par jour** sur la période (jusqu'à aujourd'hui tant qu'elle court) et la
+    **plus grosse dépense** ;
+  - la courbe du **coût cumulé jour par jour**, en marches depuis zéro, avec ses axes
+    (montants, dates) : la valeur d'un jour s'affiche au survol, ou au clavier une fois
+    la courbe sélectionnée (flèches gauche et droite, Début, Fin) ; le
+    **tableau des valeurs** reste sous la courbe ;
+  - une barre **par catégorie**, avec l'icône et la couleur de la catégorie, son montant,
+    son nombre de transactions et sa **part** du total, les plus gros montants d'abord ;
+  - la liste de ses **transactions**, comme dans l'onglet Transactions, avec leur
+    catégorie habituelle ;
+  - sur un écran large, la courbe et les catégories sont côte à côte ; sur un téléphone,
+    l'une sous l'autre.
 - **Voir dans Transactions** ouvre l'onglet Transactions sur la recherche `#nom` du tag.
 - Les parts d'une transaction répartie reprennent ses tags, puis s'étiquettent à part :
   seule la part du restaurant d'un ticket peut appartenir au voyage.
