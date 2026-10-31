@@ -7,8 +7,9 @@ icon: material/nas
 # Tutorial: Carbure on a Synology NAS
 
 This tutorial installs Carbure on a Synology NAS (DSM 7.2 or later) with **Container
-Manager**, using the NAS's **MariaDB 10** database. Everything is done from the DSM
-interface and the browser, without a single command. Allow about fifteen minutes.
+Manager**, using the NAS's **MariaDB 10** database (installed as a DSM package).
+Two methods are provided: the **docker-compose Project method (recommended, 3 clicks)**
+and the **manual method** (detailed step by step).
 
 !!! info "What you need"
     - A NAS compatible with Container Manager (most "+" and recent models, with an
@@ -17,7 +18,14 @@ interface and the browser, without a single command. Allow about fifteen minutes
     - The IP address of your NAS on the local network (for example `192.168.1.10`), shown
       in **Control Panel → Network → Network Interface**.
 
-## 1. Install the packages { #1-installer-les-paquets }
+---
+
+## Recommended method: docker-compose Project (3 clicks)
+
+This method uses a pre-configured `docker-compose.yml` file. It avoids manual container
+creation and entering environment variables one by one.
+
+### 1. Install required packages
 
 In **Package Center**, install:
 
@@ -25,7 +33,7 @@ In **Package Center**, install:
 - **Container Manager**: to run Carbure;
 - **phpMyAdmin**: to create the Carbure database (it also installs Web Station).
 
-## 2. Prepare MariaDB 10 { #2-preparer-mariadb-10 }
+### 2. Prepare MariaDB 10
 
 Open the **MariaDB 10** application:
 
@@ -34,7 +42,94 @@ Open the **MariaDB 10** application:
 3. If not already done, set the password of the MariaDB `root` user
    (**Change MariaDB password** button).
 
-## 3. Create the Carbure database and user { #3-creer-la-base-et-lutilisateur-de-carbure }
+### 3. Create the Carbure database and user
+
+Open **phpMyAdmin** (from the DSM main menu), log in with `root` and the MariaDB
+password, then:
+
+1. **User accounts** tab → **Add user account**.
+2. **User name**: `carbure`.
+3. **Host name**: choose **Use text field** and enter `172.17.%`:
+   Carbure connects from its container, on the NAS's Docker network (`bridge`), and
+   this account cannot be used from another machine. If the wizard cannot connect
+   (step 6), check the subnet in **Container Manager** → **Network** → `bridge`, or use
+   **Any host** (`%`).
+4. **Password**: choose a strong one and **write it down**.
+5. Check **Create database with same name and grant all privileges**.
+6. Click **Go** at the bottom of the page.
+
+You now have a `carbure` database and a `carbure` user. Carbure will create its tables
+itself in the final step.
+
+### 4. Deploy Carbure via a Container Manager Project
+
+1. **Download** the two files from the GitHub repository:
+   - [`docker-compose.synology.yml`](https://raw.githubusercontent.com/ltoinel/Carbure/main/docker/docker-compose.synology.yml)
+   - [`.env.synology.example`](https://raw.githubusercontent.com/ltoinel/Carbure/main/docker/.env.synology.example)
+
+2. With **File Station**, create a `carbure` folder in the `docker` shared folder
+   (created by Container Manager), then place the two downloaded files there.
+
+3. Rename `.env.synology.example` to `.env.synology` and edit it with your values:
+   ```ini
+   DB_HOST=192.168.1.10        # NAS IP on the local network
+   DB_PORT=3307                # MariaDB 10 port (step 2)
+   DB_NAME=carbure
+   DB_USER=carbure
+   DB_PASSWORD=your_strong_password
+   PORT=8080                   # Published port (change if already in use)
+   SYNC_INTERVAL=86400         # Daily sync (seconds)
+   ```
+
+4. Open **Container Manager** → **Project** → **Create** → **Create from docker-compose**:
+   - **Project name**: `carbure`
+   - **docker-compose file path**: browse and select `docker/carbure/docker-compose.synology.yml`
+   - Click **Next**, then **Done**.
+
+5. The project appears in the list. Select it → **Action** → **Start**.
+
+Container Manager downloads the `ltoinel/carbure:latest` image, creates the container with
+the `bridge` network, the `./data:/data` volume, and the environment variables from the
+`.env.synology` file. The `data/` folder is created automatically.
+
+### 5. Install Carbure from the browser
+
+Open `http://192.168.1.10:8080/` (the address of your NAS): the **setup wizard** is
+displayed.
+
+1. **Database**: the fields are **pre-filled** from the environment variables.
+   Verify and click **Continue**.
+2. **Installation**: Carbure says it is going to create its tables. Choose the username
+   and password of the **administrator account** (at least 8 characters). Leave the
+   **Getting started** options checked to get ready-to-use categories, rules and insights
+   (editable later), then **Install**.
+3. **Done**: log in with this account.
+
+---
+
+## Manual method (detailed step by step)
+
+<details>
+<summary>Click to show the complete manual method</summary>
+
+### 1. Install the packages { #1-installer-les-paquets }
+
+In **Package Center**, install:
+
+- **MariaDB 10**: the database;
+- **Container Manager**: to run Carbure;
+- **phpMyAdmin**: to create the Carbure database (it also installs Web Station).
+
+### 2. Prepare MariaDB 10 { #2-preparer-mariadb-10 }
+
+Open the **MariaDB 10** application:
+
+1. Note the **port** shown (**3307** by default on Synology).
+2. Check **Enable TCP/IP connection**, then **Apply**.
+3. If not already done, set the password of the MariaDB `root` user
+   (**Change MariaDB password** button).
+
+### 3. Create the Carbure database and user { #3-creer-la-base-et-lutilisateur-de-carbure }
 
 Open **phpMyAdmin** (from the DSM main menu), log in with `root` and the MariaDB
 password, then:
@@ -53,7 +148,7 @@ password, then:
 You now have a `carbure` database and a `carbure` user. Carbure will create its tables
 itself in step 6.
 
-## 4. Download the Carbure image { #4-telecharger-limage-carbure }
+### 4. Download the Carbure image { #4-telecharger-limage-carbure }
 
 The image is published on [Docker Hub](https://hub.docker.com/r/ltoinel/carbure): you can
 find it directly from DSM.
@@ -63,7 +158,7 @@ find it directly from DSM.
 3. Click **Download**, choose the `latest` tag (or a version, for example `1.0.0`), then
    **Apply**. The image appears in **Image** once downloaded.
 
-## 5. Start the Carbure container { #5-lancer-le-conteneur-carbure }
+### 5. Start the Carbure container { #5-lancer-le-conteneur-carbure }
 
 1. With **File Station**, create a `carbure` folder in the `docker` shared folder
    (created by Container Manager), then a `data` subfolder: `docker/carbure/data`.
@@ -87,7 +182,7 @@ The database settings do not go into the container: you enter them in the setup 
     If port `8080` is already taken on your NAS, choose another **Local Port**, for
     example `8095`, and use that port from then on.
 
-## 6. Install Carbure from the browser { #6-installer-carbure-depuis-le-navigateur }
+### 6. Install Carbure from the browser { #6-installer-carbure-depuis-le-navigateur }
 
 Open `http://192.168.1.10:8080/` (the address of your NAS): the **setup wizard** is
 displayed.
@@ -109,6 +204,10 @@ If the wizard shows a database connection error, check the IP address, the port,
 Carbure settings (log level and retention, woob, mobile push notifications, SMTP server
 for emails…) can then be viewed and changed in the portal, under the **Administration →
 Settings** tab, without opening any file on the NAS: see [Configuration](configuration.md).
+
+</details>
+
+---
 
 ## 7. Add your bank accounts { #7-ajouter-vos-comptes-bancaires }
 

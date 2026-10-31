@@ -1,0 +1,29 @@
+# Carbure sur Synology avec MariaDB 10 (paquet DSM, externe)
+# Usage : Container Manager → Projet → Créer depuis docker-compose → Sélectionner ce fichier
+# Le dossier du projet = dossier contenant ce fichier (ex: docker/carbure/)
+# Crée le sous-dossier data/ automatiquement au premier démarrage.
+#
+# Prérequis :
+# - MariaDB 10 installé depuis le Centre de paquets (TCP/IP activé, port noté, ex: 3307)
+# - Base et user carbure créés dans phpMyAdmin (hôte 172.17.% ou %)
+# - Remplir les variables dans .env.synology (copier depuis .env.synology.example)
+
+services:
+  carbure:
+    image: ltoinel/carbure:latest
+    container_name: carbure
+    network_mode: bridge
+    ports:
+      - "${PORT:-8080}:80"
+    environment:
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT:-3307}
+      DB_NAME: ${DB_NAME:-carbure}
+      DB_USER: ${DB_USER:-carbure}
+      DB_PASSWORD: ${DB_PASSWORD}
+      LANGUAGE: ${LANGUAGE:-fr}
+      CARBURE_PORT: ${PORT:-8080}
+      SYNC_INTERVAL: ${SYNC_INTERVAL:-86400}
+    volumes:
+      - ./data:/data
+    restart: unless-stopped
