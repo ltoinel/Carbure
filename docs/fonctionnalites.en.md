@@ -121,14 +121,14 @@ transactions of the last month still without a category.
 
 - **List of the selected month**, most recent first: icon and color of the category
   (or of the transaction type if it is not categorized), label, date, category and amount.
-- **Income, expenses and balance** of the month at the top of the page.
 - **Checking off**: each transaction is "checked" or not, in one click. Unchecked
   transactions are in bold; a toggle shows only those, with their count. Categorizing
   a transaction also marks it as checked. The number of transactions to review
   is shown in the notifications and in the iPhone app badge.
 - **Month picker** in the header, limited to months that have transactions.
-- **Search** across all months, from two characters, with the total of the
-  transactions found. The **advanced search** (button next to the field) adds criteria:
+- **Search** across all months, from the bar at the top of the page, from two characters,
+  with the total of the transactions found. The **advanced search** (button inside the
+  field) adds criteria:
   expenses or incomes, smallest and largest amount (without sign), period, categories (with
   their sub-categories) and accounts. Each criterion is shown under the toolbar and removed in
   one click.
@@ -140,14 +140,17 @@ transactions of the last month still without a category.
   transactions, **Delete**; after confirmation): it disappears
   for the whole household and is never imported again, neither by synchronization nor by importing
   a statement.
-- **Enter a transaction by hand** (**Add** button), for example a cash expense, on a manual
+- **Enter a transaction by hand** (**+** button), for example a cash expense, on a manual
   account: expense or income, amount, label, date, and category (otherwise the one of the
   rules). Any user can enter one; it counts like the others and stays editable (label,
   date, amount) from its details.
 - **Split** a transaction across several categories (from its details): a supermarket
   receipt partly food and partly home, a cash withdrawal spent on groceries and transport.
-  Each part (category and amount, 10 at most) becomes a transaction shown right below the
-  original one, which keeps the rest in its category and shows the bank amount. The total
+  The first line is the transaction itself (its category, which may change, and the amount
+  it keeps), the next ones its parts (category and amount, 10 at most); the whole amount must
+  be allocated, without exceeding it: **Save** is possible only once the **amount left to
+  allocate** is 0, and the window says what is missing otherwise. Each part becomes a
+  transaction shown right below the original one, which shows the bank amount. The total
   stays the bank's one: budgets, trends, flow and insights count each part in its category.
   Synchronization keeps the split, rules do not change it, and checking the transaction
   checks its parts. Deleting a part gives its amount back to the transaction; **Cancel the
@@ -216,7 +219,10 @@ Carbure **automatically detects** the transactions that come back every month: s
 subscriptions, bills, reimbursements…
 
 - **"Monthly" badge** on these transactions in the list of the month.
-- A **toggle** shows only those, and lists the ones **expected this month** that have
+- A **strip** under the search bar sums them up: their number, how many were received and
+  expected, and the **month total** (net: incomes minus expenses, the ones still expected
+  counted at their usual amount).
+- In this strip, a **toggle** shows only those, and lists the ones **expected this month** that have
   not arrived yet, with their usual day and amount ("≈" if it varies); for a
   past month, the ones that were **missed** ("Missing this month"). Handy to check that
   the salary came in or that a direct debit was not forgotten.

@@ -94,7 +94,7 @@ test('axe: the menus and the modals', async ({ adminPage: page, api }) => {
     const detail = page.getByRole('dialog', { name: tr('transactionDetail') });
     await expect(detail).toBeVisible();
     problems.push(...await axeViolations(page, tr('transactionDetail')));
-    // Split of the transaction, with the rest left to it
+    // Split of the transaction, with the amount left to allocate and why it cannot be saved yet
     await detail.getByRole('button', { name: tr('splitButton') }).click();
     const split = page.getByRole('dialog', { name: tr('splitTitle') });
     await expect(split).toBeVisible();
@@ -104,21 +104,21 @@ test('axe: the menus and the modals', async ({ adminPage: page, api }) => {
     await expect(split).toHaveCount(0);
 
     // A transaction entered by hand: no manual account yet, then the form
-    await page.locator('.transactions-toolbar').getByRole('button', { name: tr('manualTransactionButton') }).click();
+    await page.locator('.transactions-toolbar').getByRole('button', { name: tr('manualTransactionTitle') }).click();
     const manual = page.getByRole('dialog', { name: tr('manualTransactionTitle') });
     await expect(manual).toContainText(tr('manualNoAccountAdmin'));
     problems.push(...await axeViolations(page, tr('manualTransactionTitle')));
     await page.keyboard.press('Escape');
     await expect(manual).toHaveCount(0);
     expect((await api.post('/api/bank/manual', { data: { label: 'Espèces' } })).ok()).toBe(true);
-    await page.locator('.transactions-toolbar').getByRole('button', { name: tr('manualTransactionButton') }).click();
+    await page.locator('.transactions-toolbar').getByRole('button', { name: tr('manualTransactionTitle') }).click();
     await expect(manual.getByLabel(tr('manualLabel'))).toBeVisible();
     problems.push(...await axeViolations(page, tr('manualTransactionTitle') + ' (form)'));
     await page.keyboard.press('Escape');
     await expect(manual).toHaveCount(0);
 
     // Advanced search: its modal (categories and accounts), then the chips of its criteria
-    await page.locator('.transactions-toolbar').getByRole('button', { name: tr('advancedSearch') }).click();
+    await page.locator('.transaction-search-main').getByRole('button', { name: tr('advancedSearch') }).click();
     const advanced = page.getByRole('dialog', { name: tr('advancedSearch') });
     await expect(advanced.getByRole('group', { name: tr('advancedSearchAccounts') })).toBeVisible();
     await advanced.getByRole('radio', { name: tr('advancedSearchExpenses') }).check();

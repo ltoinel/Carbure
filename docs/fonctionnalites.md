@@ -121,14 +121,14 @@ transactions du dernier mois restées sans catégorie.
 
 - **Liste du mois** choisi, la plus récente en premier : icône et couleur de la catégorie
   (ou du type d'opération si elle n'est pas catégorisée), libellé, date, catégorie et montant.
-- **Revenus, dépenses et solde** du mois en tête de page.
 - **Pointage** : chaque transaction est « vérifiée » ou non, en un clic. Les transactions non
   vérifiées sont en gras ; un interrupteur n'affiche qu'elles, avec leur nombre. Catégoriser
   une transaction la marque aussi comme vérifiée. Le nombre de transactions à vérifier est
   repris par les notifications et le badge de l'app iPhone.
 - **Choix du mois** dans l'en-tête, limité aux mois qui ont des transactions.
-- **Recherche** sur tous les mois, à partir de deux caractères, avec le total des
-  transactions trouvées. La **recherche avancée** (bouton à côté du champ) y ajoute des
+- **Recherche** sur tous les mois, depuis la barre en tête de page, à partir de deux
+  caractères, avec le total des transactions trouvées. La **recherche avancée** (bouton dans
+  le champ) y ajoute des
   critères : dépenses ou revenus, montant minimal et maximal (sans signe), période,
   catégories (avec leurs sous-catégories) et comptes. Chaque critère s'affiche sous la barre
   d'outils et se retire d'un clic.
@@ -140,15 +140,18 @@ transactions du dernier mois restées sans catégorie.
   cocher les transactions, **Supprimer** ; après confirmation) : elle disparaît
   pour tout le foyer et n'est plus réimportée, ni par la synchronisation ni par l'import
   d'un relevé.
-- **Saisir une transaction à la main** (bouton **Ajouter**), par exemple une dépense en
+- **Saisir une transaction à la main** (bouton **+**), par exemple une dépense en
   espèces, sur un compte manuel : dépense ou revenu, montant, libellé, date, et catégorie
   (sinon celle des règles). Tout utilisateur peut en saisir ; elle est comptée comme les
   autres et reste modifiable (libellé, date, montant) depuis son détail.
 - **Répartir** une transaction sur plusieurs catégories (depuis son détail) : un ticket de
   supermarché en partie alimentation et en partie maison, un retrait d'espèces dépensé en
-  courses et en transport. Chaque part (catégorie et montant, 10 au plus) devient une
-  transaction affichée juste sous la transaction d'origine, qui garde le reste dans sa
-  catégorie et rappelle le montant de la banque. Le total reste celui de la banque : budgets,
+  courses et en transport. La première ligne est la transaction elle-même (sa catégorie, qui
+  peut changer, et le montant qu'elle garde), les suivantes ses parts (catégorie et montant,
+  10 au plus) ; tout le montant doit être ventilé, sans le dépasser : **Enregistrer** n'est
+  possible qu'une fois le **reste à ventiler** à 0, et la fenêtre dit sinon ce qui manque.
+  Chaque part devient une transaction affichée juste sous la transaction d'origine, qui
+  rappelle le montant de la banque. Le total reste celui de la banque : budgets,
   tendances, flux et insights comptent chaque part dans sa catégorie. La synchronisation
   conserve la répartition, les règles ne la modifient pas, et pointer la transaction pointe
   ses parts. Supprimer une part rend son montant à la transaction ; **Annuler la
@@ -217,7 +220,10 @@ Carbure **repère tout seul** les opérations qui reviennent chaque mois : salai
 abonnements, factures, remboursements…
 
 - **Badge « Mensuelle »** sur ces transactions dans la liste du mois.
-- Un **interrupteur** n'affiche qu'elles, et liste celles **attendues ce mois-ci** qui ne sont
+- Un **bandeau** sous la barre de recherche les résume : leur nombre, combien sont reçues et
+  attendues, et le **total du mois** (net : revenus moins dépenses, celles encore attendues
+  comptées à leur montant habituel).
+- Dans ce bandeau, un **interrupteur** n'affiche qu'elles, et liste celles **attendues ce mois-ci** qui ne sont
   pas encore arrivées, avec leur jour habituel et leur montant (« ≈ » s'il varie) ; pour un
   mois passé, celles qui ont **manqué** (« Absentes ce mois-ci »). Pratique pour vérifier que
   le salaire est tombé ou qu'un prélèvement n'a pas été oublié.

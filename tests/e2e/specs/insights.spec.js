@@ -116,6 +116,22 @@ test('sets an alert on an insight, changes it, then removes it', async ({ userPa
     await expect(bell).toBeFocused();
     await expect(expenses.locator('.insight-alert-text')).toHaveText(tr('insightAlert_above', { amount: euros(2000) }));
 
+    // Aligned (#415): the amount and the alert on one line each, the actions inside the card,
+    // at the bottom of the cards of the same row
+    for (const selector of ['.insight-value', '.insight-alert-text']) {
+        const box = await expenses.locator(selector).boundingBox();
+        expect(box.height).toBeLessThan(32);
+    }
+    const cardBox = await expenses.boundingBox();
+    const actionsBox = await expenses.locator('.insight-actions').boundingBox();
+    expect(actionsBox.x + actionsBox.width).toBeLessThanOrEqual(cardBox.x + cardBox.width);
+    const footers = await page.locator('.insight-footer').evaluateAll(list => list.map(footer => {
+        const card = footer.closest('.insight-card').getBoundingClientRect();
+        return { row: Math.round(card.top), bottom: Math.round(footer.getBoundingClientRect().bottom) };
+    }));
+    const row = footers.filter(footer => footer.row === footers[0].row);
+    expect(new Set(row.map(footer => footer.bottom)).size).toBe(1);
+
     // Kept after a reload, then changed to below
     await page.reload();
     await openTab(page, tr('tabInsights'));
