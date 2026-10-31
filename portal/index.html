@@ -1314,21 +1314,38 @@
                                 </div>
                             </div>
                             <div v-if="loadingTags && tags.length === 0" class="transactions-hint">{{ t('tagsLoading') }}</div>
-                            <div v-else-if="tags.length === 0" class="transactions-hint">{{ t('tagsEmpty') }}</div>
+                            <div v-else-if="tags.length === 0" class="tags-empty">
+                                <span class="tags-empty-icon" aria-hidden="true"><span class="material-icons">sell</span></span>
+                                <p class="tags-empty-title">{{ t('tagsEmpty') }}</p>
+                                <p class="rules-help">{{ t('tagsEmptyHelp') }}</p>
+                            </div>
                             <template v-for="group in [{ key: 'active', title: t('tagsActive'), list: tags.filter(g => g.active) }, { key: 'archived', title: t('tagsArchived'), list: archivedTags }]" :key="group.key">
                                 <template v-if="group.list.length">
-                                    <h3 class="accounts-section-title">{{ group.title }}</h3>
+                                    <h3 class="accounts-section-title tag-list-title">{{ group.title }}<span class="tag-list-count">{{ group.list.length }}</span></h3>
+                                    <!-- A card per tag: its color as an accent, the time gone of its period, its cost -->
                                     <ul class="tag-list" :class="'tag-list-' + group.key" :aria-label="group.title">
-                                        <li v-for="tag in group.list" :key="tag.id" class="tag-item">
+                                        <li v-for="tag in group.list" :key="tag.id" class="tag-item" :class="{ 'tag-item-archived': !tag.active }" :style="{ '--tag-color': categoryColor(tag) }">
                                             <button type="button" class="tag-open" @click="openTagSummary(tag)" :aria-label="t('tagSummaryOf', { name: tag.name })">
-                                                <span class="tag-dot" :style="{ background: categoryColor(tag) }" aria-hidden="true"></span>
-                                                <span class="tag-name">#{{ tag.name }}</span>
-                                                <span class="tag-period">{{ formatDate(tag.start_date) }} – {{ tag.end_date ? formatDate(tag.end_date) : t('tagRunning') }}</span>
-                                                <span class="tag-count">{{ t('transactionCount', { count: tag.count }) }}</span>
-                                                <strong class="tag-total" :class="tag.total >= 0 ? 'positive' : 'negative'">{{ formatAmount(tag.total) }} {{ currencySymbol }}</strong>
+                                                <span class="tag-open-head">
+                                                    <span class="tag-dot" aria-hidden="true"></span>
+                                                    <span class="tag-name">#{{ tag.name }}</span>
+                                                    <span v-if="!tag.active" class="tag-status tag-status-archived">
+                                                        <span class="material-icons" aria-hidden="true">inventory_2</span>{{ t('tagArchived') }}
+                                                    </span>
+                                                </span>
+                                                <span class="tag-period">
+                                                    <span class="material-icons" aria-hidden="true">date_range</span>{{ formatDate(tag.start_date) }} – {{ tag.end_date ? formatDate(tag.end_date) : t('tagRunning') }}
+                                                </span>
+                                                <span v-if="tagProgress(tag) !== null" class="tag-progress" aria-hidden="true">
+                                                    <span :style="{ width: tagProgress(tag) + '%' }"></span>
+                                                </span>
+                                                <span class="tag-open-foot">
+                                                    <span class="tag-count">{{ t('transactionCount', { count: tag.count }) }}</span>
+                                                    <strong class="tag-total" :class="tag.total >= 0 ? 'positive' : 'negative'">{{ formatAmount(tag.total) }} {{ currencySymbol }}</strong>
+                                                </span>
                                             </button>
-                                            <div class="device-actions">
-                                                <button class="btn-icon" @click="openTagModal(tag)" :title="t('tagEdit')" :aria-label="t('tagEditOf', { name: tag.name })"><span class="material-icons" aria-hidden="true">edit</span></button>
+                                            <div class="device-actions tag-item-actions">
+                                                <button class="btn-icon btn-icon-edit" @click="openTagModal(tag)" :title="t('tagEdit')" :aria-label="t('tagEditOf', { name: tag.name })"><span class="material-icons" aria-hidden="true">edit</span></button>
                                                 <button class="btn-icon btn-icon-delete" @click="removeTag(tag)" :title="t('tagDelete')" :aria-label="t('tagDeleteOf', { name: tag.name })"><span class="material-icons" aria-hidden="true">delete</span></button>
                                             </div>
                                         </li>
@@ -1337,80 +1354,165 @@
                             </template>
                         </section>
 
-                        <!-- Summary of a tag: net cost, by category, day by day, its transactions -->
+                        <!-- Summary of a tag: its header, its figures, its running cost, by category, its transactions -->
                         <section v-else class="trends-card tag-summary">
-                            <div class="panel-header page-header">
-                                <div>
+                            <div class="panel-header page-header tag-summary-header">
+                                <div class="tag-summary-identity">
                                     <button type="button" class="btn-secondary tag-back" @click="closeTagSummary">
                                         <span class="material-icons" aria-hidden="true">arrow_back</span>{{ t('tagsBack') }}
                                     </button>
                                     <h3 tabindex="-1" class="tag-summary-title">
                                         <span class="tag-dot" :style="{ background: categoryColor(tagSummary.tag) }" aria-hidden="true"></span>#{{ tagSummary.tag.name }}
                                     </h3>
-                                    <p class="rules-help">
-                                        {{ formatDate(tagSummary.tag.start_date) }} – {{ tagSummary.tag.end_date ? formatDate(tagSummary.tag.end_date) : t('tagRunning') }}
-                                        · {{ tagSummary.tag.active ? t('tagActive') : t('tagArchived') }}
-                                    </p>
+                                    <div class="tag-summary-meta">
+                                        <span class="tag-status" :class="tagSummary.tag.active ? 'tag-status-active' : 'tag-status-archived'">
+                                            <span class="material-icons" aria-hidden="true">{{ tagSummary.tag.active ? 'play_circle' : 'inventory_2' }}</span>{{ tagSummary.tag.active ? t('tagActive') : t('tagArchived') }}
+                                        </span>
+                                        <span class="tag-summary-period">
+                                            <span class="material-icons" aria-hidden="true">date_range</span>{{ formatDate(tagSummary.tag.start_date) }} – {{ tagSummary.tag.end_date ? formatDate(tagSummary.tag.end_date) : t('tagRunning') }}
+                                        </span>
+                                    </div>
                                 </div>
-                                <div class="panel-actions">
+                                <div class="panel-actions tag-summary-actions">
+                                    <button type="button" class="btn-secondary" @click="openTagModal(tagSummary.tag)">
+                                        <span class="material-icons" aria-hidden="true">edit</span>{{ t('tagEdit') }}
+                                    </button>
                                     <button type="button" class="btn-secondary" @click="showTagTransactions(tagSummary.tag)">
-                                        <span class="material-icons" aria-hidden="true">receipt</span>{{ t('tagShowTransactions') }}
+                                        <span class="material-icons" aria-hidden="true">receipt_long</span>{{ t('tagShowTransactions') }}
                                     </button>
                                 </div>
                             </div>
-                            <div class="tag-summary-total">
-                                <span>{{ t('tagTotal') }}</span>
-                                <strong :class="tagSummary.total >= 0 ? 'positive' : 'negative'">{{ formatAmount(tagSummary.total) }} {{ currencySymbol }}</strong>
-                                <span class="tag-count">{{ t('transactionCount', { count: tagSummary.count }) }}</span>
+
+                            <!-- Figures: net cost, expenses and refunds, cost per day, largest expense -->
+                            <div class="tag-kpis">
+                                <div class="tag-kpi tag-summary-total">
+                                    <div class="summary-label">{{ t('tagTotal') }}</div>
+                                    <strong class="summary-value" :class="tagSummary.total >= 0 ? 'positive' : 'negative'">{{ formatAmount(tagSummary.total) }} {{ currencySymbol }}</strong>
+                                    <div class="trends-stat-sub">{{ t('transactionCount', { count: tagSummary.count }) }}</div>
+                                </div>
+                                <template v-if="tagSummary.count">
+                                    <div class="tag-kpi tag-kpi-expenses">
+                                        <div class="summary-label">{{ t('tagExpenses') }}</div>
+                                        <div class="summary-value">{{ formatAmount(tagSummaryFigures.expenses) }} {{ currencySymbol }}</div>
+                                        <div class="trends-stat-sub">{{ t('tagRefunds', { amount: formatAmount(tagSummaryFigures.refunds) + ' ' + currencySymbol }) }}</div>
+                                    </div>
+                                    <div v-if="tagSummaryFigures.perDay !== null" class="tag-kpi tag-kpi-day">
+                                        <div class="summary-label">{{ t('tagPerDay') }}</div>
+                                        <div class="summary-value">{{ formatAmount(tagSummaryFigures.perDay) }} {{ currencySymbol }}</div>
+                                        <div class="trends-stat-sub">{{ t('tagOverDays', { count: tagSummaryFigures.days }) }}</div>
+                                    </div>
+                                    <div v-if="tagSummaryFigures.largest" class="tag-kpi tag-kpi-largest">
+                                        <div class="summary-label">{{ t('tagLargestExpense') }}</div>
+                                        <div class="summary-value">{{ formatAmount(tagSummaryFigures.largest.amount) }} {{ currencySymbol }}</div>
+                                        <div class="trends-stat-sub tag-kpi-label" :title="tagSummaryFigures.largest.label">{{ tagSummaryFigures.largest.label }}</div>
+                                    </div>
+                                </template>
                             </div>
 
                             <template v-if="tagSummary.count">
-                                <h4 class="tag-summary-heading">{{ t('tagByCategory') }}</h4>
-                                <ul class="tag-categories">
-                                    <li v-for="c in tagSummary.categories" :key="c.category" class="tag-category"
-                                        :title="(categoryOf(c.category).name || t('uncategorized')) + ' : ' + formatAmount(c.total) + ' ' + currencySymbol">
-                                        <span class="tag-category-name">{{ categoryOf(c.category).name || t('uncategorized') }}</span>
-                                        <span class="tag-category-bar" aria-hidden="true">
-                                            <span :style="{ width: Math.max(2, Math.abs(c.total) / tagSummaryMax * 100) + '%', background: categoryColor(categoryOf(c.category)) }"></span>
-                                        </span>
-                                        <span class="tag-category-amount">{{ formatAmount(c.total) }} {{ currencySymbol }}</span>
-                                    </li>
-                                </ul>
+                                <div class="tag-summary-grid">
+                                    <!-- Running cost: steps from zero; a crosshair and a tooltip on hover and with the arrow keys -->
+                                    <section class="tag-panel tag-panel-chart">
+                                        <h4 class="tag-summary-heading">{{ t('tagByDay') }}</h4>
+                                        <figure class="tag-chart">
+                                            <div class="tag-chart-frame" :ref="observeTagChart" tabindex="0" role="group" :aria-label="t('tagChartExplore')"
+                                                 @keydown="moveTagChart" @focus="focusTagChart" @blur="tagChartActive = null">
+                                                <svg :viewBox="'0 0 ' + tagChartWidth + ' ' + tagChartHeight" :height="tagChartHeight" role="img"
+                                                     :aria-label="t('tagChartLabel', { name: tagSummary.tag.name })"
+                                                     @pointermove="hoverTagChart" @pointerleave="tagChartActive = null">
+                                                    <defs>
+                                                        <linearGradient id="tag-chart-fill" gradientUnits="userSpaceOnUse" x1="0" x2="0" :y1="tagSummaryChart.extreme" :y2="tagSummaryChart.zero">
+                                                            <stop offset="0" class="tag-chart-fill-far" />
+                                                            <stop offset="1" class="tag-chart-fill-near" />
+                                                        </linearGradient>
+                                                    </defs>
+                                                    <g class="tag-chart-grid">
+                                                        <template v-for="tick in tagSummaryChart.ticks" :key="tick.value">
+                                                            <line :x1="tagSummaryChart.plot.left" :x2="tagSummaryChart.plot.right" :y1="tick.y" :y2="tick.y" />
+                                                            <text :x="tagSummaryChart.plot.left - 8" :y="tick.y + 4" text-anchor="end">{{ formatCompact(tick.value) }}</text>
+                                                        </template>
+                                                    </g>
+                                                    <path class="tag-chart-area" :d="tagSummaryChart.area" fill="url(#tag-chart-fill)" />
+                                                    <line class="tag-chart-zero" :x1="tagSummaryChart.plot.left" :x2="tagSummaryChart.plot.right" :y1="tagSummaryChart.zero" :y2="tagSummaryChart.zero" />
+                                                    <path class="tag-chart-line" :d="tagSummaryChart.line" />
+                                                    <text v-for="label in tagSummaryChart.labels" :key="label.date" class="tag-chart-axis"
+                                                          :x="label.x" :y="tagSummaryChart.plot.bottom + 20" :text-anchor="label.anchor">{{ formatShortDay(label.date) }}</text>
+                                                    <line v-if="tagChartPoint" class="tag-chart-cursor" :x1="tagChartPoint.x" :x2="tagChartPoint.x"
+                                                          :y1="tagSummaryChart.plot.top" :y2="tagSummaryChart.plot.bottom" />
+                                                    <template v-if="tagSummaryChart.points.length <= 60">
+                                                        <circle v-for="p in tagSummaryChart.points" :key="p.date" class="tag-chart-dot" :cx="p.x" :cy="p.y" r="4" />
+                                                    </template>
+                                                    <circle v-if="tagChartPoint" class="tag-chart-dot tag-chart-dot-active" :cx="tagChartPoint.x" :cy="tagChartPoint.y" r="6" />
+                                                </svg>
+                                                <div v-if="tagChartPoint" class="tag-chart-tooltip" aria-hidden="true"
+                                                     :style="tagChartPoint.x > tagChartWidth / 2 ? { right: (tagChartWidth - tagChartPoint.x + 12) + 'px' } : { left: (tagChartPoint.x + 12) + 'px' }">
+                                                    <strong>{{ formatDate(tagChartPoint.date) }}</strong>
+                                                    <div>{{ t('tagCumulative') }}<span>{{ formatAmount(tagChartPoint.cumulative) }} {{ currencySymbol }}</span></div>
+                                                    <div class="tag-chart-tooltip-day">{{ t('tagDayTotal') }}<span>{{ formatAmount(tagChartPoint.total) }} {{ currencySymbol }}</span></div>
+                                                </div>
+                                            </div>
+                                            <p class="visually-hidden" aria-live="polite">
+                                                <template v-if="tagChartPoint">{{ formatDate(tagChartPoint.date) }} : {{ t('tagCumulative') }} {{ formatAmount(tagChartPoint.cumulative) }} {{ currencySymbol }}, {{ t('tagDayTotal') }} {{ formatAmount(tagChartPoint.total) }} {{ currencySymbol }}</template>
+                                            </p>
+                                            <details class="tag-chart-table">
+                                                <summary>{{ t('tagChartTable') }}</summary>
+                                                <table class="insight-table">
+                                                    <thead><tr><th scope="col">{{ t('transactionDate') }}</th><th scope="col">{{ t('tagDayTotal') }}</th><th scope="col">{{ t('tagCumulative') }}</th></tr></thead>
+                                                    <tbody>
+                                                        <tr v-for="d in tagSummary.days" :key="d.date">
+                                                            <td>{{ formatDate(d.date) }}</td>
+                                                            <td>{{ formatAmount(d.total) }} {{ currencySymbol }}</td>
+                                                            <td>{{ formatAmount(d.cumulative) }} {{ currencySymbol }}</td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                            </details>
+                                        </figure>
+                                    </section>
 
-                                <h4 class="tag-summary-heading">{{ t('tagByDay') }}</h4>
-                                <figure class="tag-chart">
-                                    <svg viewBox="-8 -8 616 176" role="img" :aria-label="t('tagChartLabel', { name: tagSummary.tag.name })" preserveAspectRatio="none">
-                                        <line x1="0" x2="600" :y1="tagSummaryChart.zero" :y2="tagSummaryChart.zero" class="tag-chart-zero" />
-                                        <path :d="tagSummaryChart.path" class="tag-chart-line" vector-effect="non-scaling-stroke" />
-                                        <g v-for="p in tagSummaryChart.points" :key="p.date" class="tag-chart-point">
-                                            <circle :cx="p.x" :cy="p.y" r="12" class="tag-chart-hit"><title>{{ formatDate(p.date) }} : {{ formatAmount(p.cumulative) }} {{ currencySymbol }}</title></circle>
-                                            <circle :cx="p.x" :cy="p.y" r="4" class="tag-chart-dot" vector-effect="non-scaling-stroke" />
-                                        </g>
-                                    </svg>
-                                    <details class="tag-chart-table">
-                                        <summary>{{ t('tagChartTable') }}</summary>
-                                        <table class="insight-table">
-                                            <thead><tr><th scope="col">{{ t('transactionDate') }}</th><th scope="col">{{ t('tagDayTotal') }}</th><th scope="col">{{ t('tagCumulative') }}</th></tr></thead>
-                                            <tbody>
-                                                <tr v-for="d in tagSummary.days" :key="d.date">
-                                                    <td>{{ formatDate(d.date) }}</td>
-                                                    <td>{{ formatAmount(d.total) }} {{ currencySymbol }}</td>
-                                                    <td>{{ formatAmount(d.cumulative) }} {{ currencySymbol }}</td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
-                                    </details>
-                                </figure>
+                                    <!-- By category: its icon and color, its amount and its share, largest first -->
+                                    <section class="tag-panel tag-panel-categories">
+                                        <h4 class="tag-summary-heading">{{ t('tagByCategory') }}</h4>
+                                        <ul class="tag-categories">
+                                            <li v-for="c in tagSummaryCategories" :key="c.category" class="tag-category">
+                                                <span class="tag-category-icon" :style="categoryBadgeStyle(categoryOf(c.category))">
+                                                    <span class="material-icons" aria-hidden="true">{{ categoryOf(c.category).name ? categoryIcon(categoryOf(c.category)) : 'help_outline' }}</span>
+                                                </span>
+                                                <div class="tag-category-body">
+                                                    <div class="tag-category-line">
+                                                        <span class="tag-category-name">{{ categoryOf(c.category).name || t('uncategorized') }}</span>
+                                                        <span class="tag-category-amount" :class="{ positive: c.total > 0 }">{{ formatAmount(c.total) }} {{ currencySymbol }}</span>
+                                                    </div>
+                                                    <div class="tag-category-bar" aria-hidden="true" :style="{ '--bar-color': categoryColor(categoryOf(c.category)) }">
+                                                        <span :style="{ width: c.width + '%' }"></span>
+                                                    </div>
+                                                    <div class="tag-category-sub">
+                                                        <span>{{ t('transactionCount', { count: c.count }) }}</span>
+                                                        <span class="tag-category-share">{{ formatShare(c.share) }}</span>
+                                                    </div>
+                                                </div>
+                                            </li>
+                                        </ul>
+                                    </section>
+                                </div>
 
-                                <h4 class="tag-summary-heading">{{ t('tagTransactions') }}</h4>
-                                <ul class="tag-transactions">
-                                    <li v-for="item in tagSummary.transactions" :key="item.id" class="tag-transaction">
-                                        <span class="tag-transaction-date">{{ formatDate(item.date) }}</span>
-                                        <span class="tag-transaction-label">{{ item.label }}</span>
-                                        <span class="category-chip">{{ categoryOf(item.category).name || t('uncategorized') }}</span>
-                                        <span class="tag-transaction-amount" :class="item.amount >= 0 ? 'positive' : 'negative'">{{ formatAmount(item.amount) }} {{ currencySymbol }}</span>
-                                    </li>
-                                </ul>
+                                <!-- Its transactions, as in the Transactions tab: icon of the category, label, date, category, amount -->
+                                <section class="tag-panel tag-panel-transactions">
+                                    <h4 class="tag-summary-heading">{{ t('tagTransactions') }}</h4>
+                                    <ul class="tag-transactions">
+                                        <li v-for="item in tagSummary.transactions" :key="item.id" class="tag-transaction">
+                                            <span class="transaction-icon tag-transaction-icon" :class="transactionCategory(item) ? '' : 'type-' + item.type" :style="transactionIconStyle(item)">
+                                                <span class="material-icons" aria-hidden="true">{{ transactionIcon(item) }}</span>
+                                            </span>
+                                            <span class="tag-transaction-main">
+                                                <span class="tag-transaction-label">{{ item.label }}</span>
+                                                <span class="tag-transaction-date">{{ formatDate(item.date) }}</span>
+                                            </span>
+                                            <span class="category-chip">{{ categoryOf(item.category).name || t('uncategorized') }}</span>
+                                            <span class="tag-transaction-amount" :class="item.amount >= 0 ? 'positive' : 'negative'">{{ formatAmount(item.amount) }} {{ currencySymbol }}</span>
+                                        </li>
+                                    </ul>
+                                </section>
                             </template>
                             <p v-else class="transactions-hint">{{ t('tagNoTransaction') }}</p>
                         </section>
