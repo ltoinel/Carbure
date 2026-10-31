@@ -41,9 +41,9 @@ test('tags transactions of a project, then shows its summary', async ({ userPage
     await field.fill('#Resto');
     await expect(detail.getByRole('option').locator('.tag-input-name')).toHaveText([tr('tagCreateNamed', { name: 'resto' })]);
     await detail.getByRole('option', { name: tr('tagCreateNamed', { name: 'resto' }) }).click();
-    await expect(detail.locator('.tag-chip')).toHaveText(['#voyage-italie', '#resto']);
+    await expect(detail.locator('.tag-chip .tag-chip-name')).toHaveText(['#voyage-italie', '#resto']);
     await detail.getByRole('button', { name: tr('tagRemoveOf', { name: 'resto' }) }).click();
-    await expect(detail.locator('.tag-chip')).toHaveText(['#voyage-italie']);
+    await expect(detail.locator('.tag-chip .tag-chip-name')).toHaveText(['#voyage-italie']);
     await expect(detail.getByRole('button', { name: tr('tagRemoveOf', { name: 'voyage-italie' }) })).toBeVisible();
     await page.keyboard.press('Escape');
     await expect(row(page, 'CB RESTAURANT LE PETIT ZINC').locator('.tag-chip')).toHaveText('#voyage-italie');

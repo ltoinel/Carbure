@@ -8636,7 +8636,7 @@ button.is-busy:not(.btn-confirm-danger):hover {
 }
 
 .tag-input-option.create {
-    color: var(--primary-color);
+    color: var(--primary-dark);
     font-weight: 500;
 }
 
