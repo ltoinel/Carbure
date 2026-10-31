@@ -2571,10 +2571,12 @@ button .material-icons {
     font-size: 16px;
 }
 
+/* On the page background (a gradient in some themes): its own surface, like the chips */
 .search-filters-clear {
-    padding: 4px 8px;
-    border: none;
-    background: transparent;
+    padding: 3px 10px;
+    border: 1px solid var(--divider);
+    border-radius: 999px;
+    background: var(--surface);
     color: var(--text-primary);
     font-size: 13px;
     text-decoration: underline;
@@ -2583,8 +2585,10 @@ button .material-icons {
 
 .search-filters-clear:hover,
 .search-filters-clear:focus-visible {
-    background: var(--surface);
+    background: var(--hover-surface);
     color: var(--text-primary);
+    transform: none;
+    box-shadow: none;
 }
 
 .modal-advanced-search input:not([type="radio"]):not([type="checkbox"]) {
