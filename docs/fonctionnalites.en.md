@@ -140,6 +140,9 @@ transactions of the last month still without a category.
   transactions, **Delete**; after confirmation): it disappears
   for the whole household and is never imported again, neither by synchronization nor by importing
   a statement.
+- **Selection mode**: **Select all** ticks every transaction shown (filter and search applied,
+  500 at most), then becomes **Unselect all**; the cross at the right of the bar closes the
+  selection mode.
 - **Enter a transaction by hand** (**+** button), for example a cash expense, on a manual
   account: expense or income, amount, label, date, and category (otherwise the one of the
   rules). Any user can enter one; it counts like the others and stays editable (label,

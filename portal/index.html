@@ -658,6 +658,10 @@
                             <!-- Selection of transactions: one tag added to all of them, or all of them deleted -->
                             <div v-if="selectingTransactions" class="tag-selection-bar" role="region" :aria-label="t('tagSelect')">
                                 <span class="tag-selection-count" aria-live="polite">{{ t('tagSelected', { count: selectedTransactionIds.length }) }}</span>
+                                <button type="button" class="btn-secondary selection-all" @click="toggleSelectAll" :disabled="displayedTransactions.length === 0"
+                                        :aria-pressed="allDisplayedSelected ? 'true' : 'false'">
+                                    <span class="material-icons" aria-hidden="true">{{ allDisplayedSelected ? 'deselect' : 'select_all' }}</span>{{ allDisplayedSelected ? t('selectionUnselectAll') : t('selectionSelectAll') }}
+                                </button>
                                 <template v-if="activeTags.length">
                                     <label class="visually-hidden" for="tag-selection">{{ t('tagChoose') }}</label>
                                     <select id="tag-selection" v-model="selectionTag">
@@ -671,6 +675,9 @@
                                 <button type="button" class="btn-danger selection-delete" @click="deleteSelectedTransactions"
                                         :disabled="deletingSelection || selectedTransactionIds.length === 0">
                                     <span class="material-icons" aria-hidden="true">delete</span>{{ t('selectionDelete') }}
+                                </button>
+                                <button type="button" class="selection-close" @click="toggleTransactionSelection" :title="t('selectionClose')" :aria-label="t('selectionClose')">
+                                    <span class="material-icons" aria-hidden="true">close</span>
                                 </button>
                             </div>
                             <!-- Criteria of the advanced search, each one removable -->
