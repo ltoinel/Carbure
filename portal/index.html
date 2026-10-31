@@ -607,6 +607,17 @@
                             </button>
                         </div>
 
+                        <!-- Criteria of the advanced search, each one removable, right below the search bar -->
+                        <div v-if="searchFilterCount" class="search-filters" role="group" :aria-label="t('advancedSearchFilters')">
+                            <span v-for="chip in searchFilterChips" :key="chip.key + (chip.value ?? '')" class="search-filter-chip">
+                                <span class="search-filter-chip-label">{{ chip.label }}</span>
+                                <button type="button" @click="removeSearchFilter(chip)" :title="t('advancedSearchRemove', { filter: chip.label })" :aria-label="t('advancedSearchRemove', { filter: chip.label })">
+                                    <span class="material-icons" aria-hidden="true">close</span>
+                                </button>
+                            </span>
+                            <button type="button" class="search-filters-clear" @click="clearSearch">{{ t('clearSearch') }}</button>
+                        </div>
+
                         <!-- Recurring series of the month: their number, their total, the filter and the calendar -->
                         <section v-if="!isSearching && recurring.length > 0" class="recurring-strip" :aria-label="t('recurringSummary')">
                             <span class="recurring-strip-icon" aria-hidden="true"><span class="material-icons">autorenew</span></span>
@@ -672,16 +683,6 @@
                                         :disabled="deletingSelection || selectedTransactionIds.length === 0">
                                     <span class="material-icons" aria-hidden="true">delete</span>{{ t('selectionDelete') }}
                                 </button>
-                            </div>
-                            <!-- Criteria of the advanced search, each one removable -->
-                            <div v-if="searchFilterCount" class="search-filters" role="group" :aria-label="t('advancedSearchFilters')">
-                                <span v-for="chip in searchFilterChips" :key="chip.key + (chip.value ?? '')" class="search-filter-chip">
-                                    <span class="search-filter-chip-label">{{ chip.label }}</span>
-                                    <button type="button" @click="removeSearchFilter(chip)" :title="t('advancedSearchRemove', { filter: chip.label })" :aria-label="t('advancedSearchRemove', { filter: chip.label })">
-                                        <span class="material-icons" aria-hidden="true">close</span>
-                                    </button>
-                                </span>
-                                <button type="button" class="search-filters-clear" @click="clearSearch">{{ t('clearSearch') }}</button>
                             </div>
                             <div v-if="isSearching && !searching && displayedTransactions.length > 0" class="search-total">
                                 <span>{{ t('searchTotal', { count: displayedTransactions.length }) }}</span>
