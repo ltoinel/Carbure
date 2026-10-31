@@ -596,6 +596,7 @@
     "advancedSearchFrom": "From",
     "advancedSearchTo": "To",
     "advancedSearchCategories": "Categories",
+    "advancedSearchAddCategory": "Add a category",
     "advancedSearchCategoriesHelp": "A category includes its sub-categories.",
     "advancedSearchAccounts": "Accounts",
     "advancedSearchReset": "Reset",

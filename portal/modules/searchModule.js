@@ -51,27 +51,6 @@ export function searchParams(query, filters = EMPTY_FILTERS) {
 }
 
 /**
- * Categories offered by the modal: each top-level one followed by its sub-categories,
- * the default category first
- * @param {Array} categories - Categories {id, name, parent_category}
- * @param {string} locale - Locale of the sort
- * @returns {Array<{id: number, name: string, child: boolean}>}
- */
-export function categoryOptions(categories, locale) {
-    const byName = (a, b) => a.name.localeCompare(b.name, locale);
-    const isTop = c => Number(c.parent_category) === 0 || Number(c.id) === 0;
-    const tops = (categories || []).filter(isTop)
-        .sort((a, b) => Number(a.id) === 0 ? -1 : Number(b.id) === 0 ? 1 : byName(a, b));
-    return tops.flatMap(top => [
-        { id: Number(top.id), name: top.name, child: false },
-        ...(Number(top.id) === 0 ? [] : categories
-            .filter(c => !isTop(c) && Number(c.parent_category) === Number(top.id))
-            .sort(byName)
-            .map(c => ({ id: Number(c.id), name: c.name, child: true })))
-    ]);
-}
-
-/**
  * Creates the search module mixin for Vue components
  * @param {Function} getApiService - Function that returns the API service instance
  * @returns {Object} Vue mixin
@@ -98,11 +77,21 @@ export function createSearchModule(getApiService) {
             },
 
             /**
-             * Categories offered by the modal
-             * @returns {Array<{id: number, name: string, child: boolean}>}
+             * Categories chosen in the modal, in the order they were added
+             * @returns {Array<Object>}
              */
-            searchCategoryOptions() {
-                return categoryOptions(this.ruleCategories, this.intlLocale);
+            searchDraftCategories() {
+                const byId = new Map((this.ruleCategories || []).map(c => [Number(c.id), c]));
+                return (this.searchDraft?.categories || []).map(id => byId.get(Number(id))).filter(Boolean);
+            },
+
+            /**
+             * Categories the list of the modal offers: the ones not chosen yet
+             * @returns {Array<Object>}
+             */
+            searchCategoryChoices() {
+                const chosen = new Set((this.searchDraft?.categories || []).map(Number));
+                return (this.ruleCategories || []).filter(c => !chosen.has(Number(c.id)));
             },
 
             /**
@@ -206,6 +195,27 @@ export function createSearchModule(getApiService) {
              */
             closeAdvancedSearch() {
                 this.searchDraft = null;
+            },
+
+            /**
+             * Adds a category to the criteria of the modal (chosen in the list of the portal)
+             * @param {number} id - Category id
+             */
+            addSearchCategory(id) {
+                const category = Number(id);
+                if (this.searchDraft && !this.searchDraft.categories.map(Number).includes(category)) {
+                    this.searchDraft.categories = [...this.searchDraft.categories, category];
+                }
+            },
+
+            /**
+             * Removes a category from the criteria of the modal
+             * @param {number} id - Category id
+             */
+            removeSearchCategory(id) {
+                if (this.searchDraft) {
+                    this.searchDraft.categories = this.searchDraft.categories.filter(c => Number(c) !== Number(id));
+                }
             },
 
             /**

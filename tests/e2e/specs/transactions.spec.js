@@ -76,7 +76,21 @@ test('searches with the criteria of the advanced search, removable one by one', 
     // Expenses of 100 or more in Alimentation and its sub-categories, of every month
     await modal.getByRole('radio', { name: tr('advancedSearchExpenses') }).check();
     await modal.getByLabel(tr('advancedSearchMin', { currency: '€' })).fill('100');
-    await modal.getByRole('checkbox', { name: 'Alimentation' }).check();
+    // Chosen in the list of the portal (#423): a chip with its icon, no more offered in the list
+    const categories = modal.getByRole('group', { name: tr('advancedSearchCategories') });
+    await pickCategory(categories, 'Restaurant');
+    await pickCategory(categories, 'Alimentation');
+    const chosen = categories.locator('.advanced-search-category-name');
+    await expect(chosen).toHaveText(['Restaurant', 'Alimentation']);
+    await expect(categories.locator('.advanced-search-category').first().locator('.category-badge .material-icons')).toHaveText('local_dining');
+    await categories.getByRole('button', { name: tr('advancedSearchRemove', { filter: 'Restaurant' }) }).click();
+    await expect(chosen).toHaveText(['Alimentation']);
+    await categories.locator('.category-picker-button').click();
+    const option = name => categories.locator('.category-picker-option')
+        .filter({ has: page.locator('.category-picker-name', { hasText: new RegExp(`^\\s*${name}\\s*$`) }) });
+    await expect(option('Logement')).toHaveCount(1);
+    await expect(option('Alimentation')).toHaveCount(0);
+    await page.keyboard.press('Escape');
     await modal.getByRole('button', { name: tr('advancedSearchApply') }).click();
 
     await expect(modal).toHaveCount(0);
@@ -94,7 +108,7 @@ test('searches with the criteria of the advanced search, removable one by one', 
 
     // The modal starts from the search shown; a text narrows it
     await button.click();
-    await expect(modal.getByRole('checkbox', { name: 'Alimentation' })).toBeChecked();
+    await expect(modal.locator('.advanced-search-category-name')).toHaveText(['Alimentation']);
     await modal.getByLabel(tr('advancedSearchLabel')).fill('casino');
     await modal.getByRole('button', { name: tr('advancedSearchApply') }).click();
     await expect(page.getByRole('searchbox', { name: tr('searchPlaceholder') })).toHaveValue('casino');

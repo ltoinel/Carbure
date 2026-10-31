@@ -2,7 +2,7 @@
 import { mockFetch, json } from './setup.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createSearchModule, categoryOptions, filterCount, searchParams, EMPTY_FILTERS } from '../../portal/modules/searchModule.js';
+import { createSearchModule, filterCount, searchParams, EMPTY_FILTERS } from '../../portal/modules/searchModule.js';
 import { createTransactionModule } from '../../portal/modules/transactionModule.js';
 import { createApiService } from '../../portal/services/apiService.js';
 
@@ -57,10 +57,25 @@ test('searchParams: the text from 2 characters, the criteria set, a comma as dec
     assert.deepEqual(searchParams('edf'), { query: 'edf' });
 });
 
-test('categoryOptions: the default one first, each parent followed by its sub-categories', () => {
-    assert.deepEqual(categoryOptions(CATEGORIES, 'fr').map(o => `${o.child ? '  ' : ''}${o.name}`),
-        ['Aucune', 'Alimentation', '  Restaurant', '  Supermarché', 'Logement']);
-    assert.deepEqual(categoryOptions(undefined, 'fr'), []);
+test('the categories of the modal: chosen in the list, shown in their order, removed one by one', () => {
+    const context = searchContext();
+    context.ruleCategories = CATEGORIES;
+    context.searchDraft = { query: '', ...EMPTY_FILTERS, categories: [], accounts: [] };
+    assert.equal(context.searchCategoryChoices.length, 5);
+
+    context.addSearchCategory(3);
+    context.addSearchCategory('1');
+    context.addSearchCategory(3);
+    assert.deepEqual(context.searchDraft.categories, [3, 1]);
+    assert.deepEqual(context.searchDraftCategories.map(c => c.name), ['Restaurant', 'Alimentation']);
+    // The chosen ones are no more offered
+    assert.deepEqual(context.searchCategoryChoices.map(c => c.id), [0, 2, 4]);
+
+    context.removeSearchCategory('3');
+    assert.deepEqual(context.searchDraft.categories, [1]);
+    // The default category (uncategorized) can be searched too
+    context.addSearchCategory(0);
+    assert.deepEqual(context.searchDraftCategories.map(c => c.name), ['Alimentation', 'Aucune']);
 });
 
 test('isSearching: from 2 characters, or with a criterion and no text', () => {
