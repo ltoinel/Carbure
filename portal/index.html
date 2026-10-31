@@ -592,55 +592,48 @@
                     </div>
 
                     <template v-else-if="transactions.length > 0 || isSearching">
-                        <div class="stats" v-if="!isSearching">
-                            <div class="stat-card">
-                                <div class="stat-icon income">
-                                    <span class="material-icons" aria-hidden="true">arrow_downward</span>
-                                </div>
-                                <div class="stat-info">
-                                    <div class="stat-label">{{ t('incomeLabel') }}</div>
-                                    <div class="stat-value">{{ formatAmount(stats.income) }} {{ currencySymbol }}</div>
-                                </div>
-                            </div>
-
-                            <div class="stat-card">
-                                <div class="stat-icon expense">
-                                    <span class="material-icons" aria-hidden="true">arrow_upward</span>
-                                </div>
-                                <div class="stat-info">
-                                    <div class="stat-label">{{ t('expenseLabel') }}</div>
-                                    <div class="stat-value">{{ formatAmount(Math.abs(stats.expense)) }} {{ currencySymbol }}</div>
-                                </div>
-                            </div>
-
-                            <div class="stat-card">
-                                <div class="stat-icon total">
-                                    <span class="material-icons" aria-hidden="true">account_balance_wallet</span>
-                                </div>
-                                <div class="stat-info">
-                                    <div class="stat-label">{{ t('balanceLabel') }}</div>
-                                    <div class="stat-value">{{ formatAmount(stats.balance) }} {{ currencySymbol }}</div>
-                                </div>
-                            </div>
+                        <!-- Search by label, the advanced search inside the field -->
+                        <div class="transaction-search transaction-search-main" role="search">
+                            <span class="material-icons" aria-hidden="true">search</span>
+                            <input type="search" v-model="searchQuery" @input="onSearchInput"
+                                   :placeholder="t('searchPlaceholder')" :aria-label="t('searchPlaceholder')" />
+                            <button v-if="searchQuery" type="button" class="transaction-search-clear" @click="clearSearch" :title="t('clearSearch')" :aria-label="t('clearSearch')">
+                                <span class="material-icons" aria-hidden="true">close</span>
+                            </button>
+                            <button type="button" class="btn-advanced-search" :class="{ active: searchFilterCount > 0 }" @click="openAdvancedSearch"
+                                    :title="t('advancedSearch')" :aria-label="searchFilterCount ? t('advancedSearchActive', { count: searchFilterCount }) : t('advancedSearch')">
+                                <span class="material-icons" aria-hidden="true">tune</span>
+                                <span v-if="searchFilterCount" class="advanced-search-count" aria-hidden="true">{{ searchFilterCount }}</span>
+                            </button>
                         </div>
+
+                        <!-- Recurring series of the month: their number, their total, the filter and the calendar -->
+                        <section v-if="!isSearching && recurring.length > 0" class="recurring-strip" :aria-label="t('recurringSummary')">
+                            <span class="recurring-strip-icon" aria-hidden="true"><span class="material-icons">autorenew</span></span>
+                            <div class="recurring-strip-info">
+                                <span class="recurring-strip-title">{{ t('recurringCount', { count: recurring.length }) }}</span>
+                                <span class="recurring-strip-detail">
+                                    {{ t('recurringCalendarReceived', { count: recurringCalendar.received.count }) }}<template v-if="recurringCalendar.expected.count > 0"> · {{ t(isCurrentMonth ? 'recurringCalendarExpected' : 'recurringCalendarMissing', { count: recurringCalendar.expected.count }) }}</template>
+                                </span>
+                            </div>
+                            <div class="recurring-strip-total">
+                                <span class="recurring-strip-total-label">{{ t('recurringTotal') }}</span>
+                                <strong :class="recurringTotal >= 0 ? 'positive' : 'negative'">{{ formatAmount(recurringTotal) }} {{ currencySymbol }}</strong>
+                            </div>
+                            <label class="toggle-switch toggle-recurring" :class="{ on: recurringOnly }">
+                                <input type="checkbox" role="switch" v-model="recurringOnly" />
+                                <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
+                                <span class="toggle-label">{{ t('recurringOnly') }}</span>
+                            </label>
+                            <button type="button" class="btn-secondary btn-recurring-calendar" @click="openRecurringCalendar" :title="t('recurringCalendarHelp')">
+                                <span class="material-icons" aria-hidden="true">calendar_month</span><span class="btn-label">{{ t('recurringCalendarButton') }}</span>
+                            </button>
+                        </section>
 
                         <div class="transactions-container">
                             <div class="transactions-header">
                                 <h2>{{ isSearching ? t('searchResultsTitle') : t('transactionsTitle') }}</h2>
                                 <div class="transactions-toolbar">
-                                    <div class="transaction-search">
-                                        <span class="material-icons" aria-hidden="true">search</span>
-                                        <input type="search" v-model="searchQuery" @input="onSearchInput"
-                                               :placeholder="t('searchPlaceholder')" :aria-label="t('searchPlaceholder')" />
-                                        <button v-if="searchQuery" class="transaction-search-clear" @click="clearSearch" :title="t('clearSearch')" :aria-label="t('clearSearch')">
-                                            <span class="material-icons" aria-hidden="true">close</span>
-                                        </button>
-                                    </div>
-                                    <button type="button" class="btn-secondary btn-advanced-search" :class="{ active: searchFilterCount > 0 }" @click="openAdvancedSearch"
-                                            :title="t('advancedSearch')" :aria-label="searchFilterCount ? t('advancedSearchActive', { count: searchFilterCount }) : t('advancedSearch')">
-                                        <span class="material-icons" aria-hidden="true">tune</span>
-                                        <span v-if="searchFilterCount" class="advanced-search-count" aria-hidden="true">{{ searchFilterCount }}</span>
-                                    </button>
                                     <div class="transaction-count">{{ t('transactionCount', { count: isSearching ? searchResults.length : transactions.length }) }}</div>
                                     <label class="toggle-switch toggle-unchecked" :class="{ on: transactionFilter === 'unchecked' }">
                                         <input type="checkbox" role="switch"
@@ -649,15 +642,6 @@
                                         <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
                                         <span class="toggle-label">{{ t('uncheckedCount', { count: (isSearching ? searchResults : transactions).filter(t => !Number(t.pointed)).length }) }}</span>
                                     </label>
-                                    <label v-if="!isSearching && recurring.length > 0" class="toggle-switch toggle-recurring" :class="{ on: recurringOnly }">
-                                        <input type="checkbox" role="switch" v-model="recurringOnly" />
-                                        <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
-                                        <span class="toggle-label">{{ t('recurringCount', { count: recurring.length }) }}</span>
-                                    </label>
-                                    <button v-if="!isSearching && recurring.length > 0" type="button" class="btn-secondary btn-recurring-calendar"
-                                            @click="openRecurringCalendar" :title="t('recurringCalendarHelp')" :aria-label="t('recurringCalendarButton')">
-                                        <span class="material-icons" aria-hidden="true">calendar_month</span>
-                                    </button>
                                     <button v-if="activeTags.length" type="button" class="btn-secondary btn-manual-add btn-select" @click="toggleTransactionSelection"
                                             :aria-pressed="selectingTransactions ? 'true' : 'false'" :title="t('tagSelectHelp')">
                                         <span class="material-icons" aria-hidden="true">{{ selectingTransactions ? 'close' : 'checklist' }}</span><span class="btn-label">{{ selectingTransactions ? t('tagSelectStop') : t('tagSelect') }}</span>

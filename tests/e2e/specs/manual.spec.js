@@ -4,9 +4,6 @@ const { test, expect, tr, openTab, pickCategory, euros, currentMonth } = require
 /** Row of a transaction, by its label */
 const row = (page, label) => page.locator('.transaction-item').filter({ hasText: label });
 
-/** Expenses of the month, as shown at the top of the Transactions tab */
-const expenses = page => page.locator('.stat-card').filter({ hasText: tr('expenseLabel') }).locator('.stat-value');
-
 test('adds a manual account, then enters and changes a cash expense', async ({ adminPage: page, api }) => {
     await openTab(page, tr('tabAccounts'));
     await page.getByRole('button', { name: tr('manualAccountAdd') }).click();
@@ -34,7 +31,6 @@ test('adds a manual account, then enters and changes a cash expense', async ({ a
     const added = row(page, 'MARCHÉ DU DIMANCHE');
     await expect(added.locator('.transaction-amount')).toHaveText(euros(-12.5));
     await expect(added.locator('.category-chip')).toHaveText('Alimentation');
-    await expect(expenses(page)).toHaveText(euros(1596.7));
 
     // Changed from its detail (once the message is gone: it covers the buttons of the modal)
     await expect(page.locator('.toast')).toHaveCount(0);

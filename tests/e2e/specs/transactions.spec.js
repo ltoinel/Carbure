@@ -5,14 +5,15 @@ const path = require('path');
 /** Row of a transaction, by its label */
 const row = (page, label) => page.locator('.transaction-item').filter({ hasText: label });
 
-test('lists the transactions of the month with their totals', async ({ adminPage: page }) => {
+test('lists the transactions of the month under the search bar (#413)', async ({ adminPage: page }) => {
     await expect(page.locator('.transaction-item')).toHaveCount(6);
     await expect(page.locator('.transaction-count')).toHaveText(tr('transactionCount', { count: 6 }));
 
-    const stats = page.locator('.stat-card');
-    await expect(stats.filter({ hasText: tr('incomeLabel') }).locator('.stat-value')).toHaveText(euros(3200));
-    await expect(stats.filter({ hasText: tr('expenseLabel') }).locator('.stat-value')).toHaveText(euros(1584.2));
-    await expect(stats.filter({ hasText: tr('balanceLabel') }).locator('.stat-value')).toHaveText(euros(1615.8));
+    // No figures of the month above the list: the search bar in their place, with its advanced search
+    await expect(page.locator('.stat-card')).toHaveCount(0);
+    const search = page.getByRole('search');
+    await expect(search.getByRole('searchbox', { name: tr('searchPlaceholder') })).toBeVisible();
+    await expect(search.getByRole('button', { name: tr('advancedSearch') })).toBeVisible();
 
     await expect(row(page, 'CB SUPERMARCHE CASINO').locator('.transaction-amount')).toHaveText(euros(-82.4));
     await expect(row(page, 'CB SUPERMARCHE CASINO').locator('.category-chip')).toHaveText('Supermarché');
@@ -67,7 +68,7 @@ test('searches the transactions of every month by label', async ({ adminPage: pa
 });
 
 test('searches with the criteria of the advanced search, removable one by one', async ({ adminPage: page }) => {
-    const button = page.locator('.transactions-toolbar').getByRole('button', { name: tr('advancedSearch') });
+    const button = page.locator('.transaction-search-main').getByRole('button', { name: tr('advancedSearch') });
     await button.click();
     const modal = page.getByRole('dialog', { name: tr('advancedSearch') });
     await expect(modal.getByLabel(tr('advancedSearchLabel'))).toBeFocused();
@@ -326,9 +327,14 @@ test('closes the detail modal with Escape', async ({ adminPage: page }) => {
 });
 
 test('shows the recurring transactions of the month', async ({ adminPage: page }) => {
-    // Salary and rent: in each of the 3 months of the data set
-    const toggle = page.locator('.toggle-recurring');
-    await expect(toggle).toContainText(tr('recurringCount', { count: 2 }));
+    // Salary and rent: in each of the 3 months of the data set, summed up in their strip
+    const strip = page.getByRole('region', { name: tr('recurringSummary') });
+    await expect(strip.locator('.recurring-strip-title')).toHaveText(tr('recurringCount', { count: 2 }));
+    await expect(strip.locator('.recurring-strip-detail')).toHaveText(tr('recurringCalendarReceived', { count: 2 }));
+    await expect(strip.locator('.recurring-strip-total strong')).toHaveText(euros(2250));
+    await expect(strip.locator('.recurring-strip-total strong')).toHaveClass(/positive/);
+    const toggle = strip.locator('.toggle-recurring');
+    await expect(toggle).toContainText(tr('recurringOnly'));
     await expect(row(page, 'PRLV LOYER AGENCE').locator('.recurring-badge')).toBeVisible();
     await expect(row(page, 'CB SUPERMARCHE CASINO').locator('.recurring-badge')).toHaveCount(0);
 
@@ -342,7 +348,7 @@ test('shows the recurring transactions of the month', async ({ adminPage: page }
 });
 
 test('shows the recurring transactions of the month in a calendar', async ({ adminPage: page }) => {
-    await page.getByRole('button', { name: tr('recurringCalendarButton') }).click();
+    await page.getByRole('region', { name: tr('recurringSummary') }).getByRole('button', { name: tr('recurringCalendarButton') }).click();
     const modal = page.locator('.modal-recurring-calendar');
     await expect(modal).toBeVisible();
 

@@ -121,14 +121,14 @@ transactions of the last month still without a category.
 
 - **List of the selected month**, most recent first: icon and color of the category
   (or of the transaction type if it is not categorized), label, date, category and amount.
-- **Income, expenses and balance** of the month at the top of the page.
 - **Checking off**: each transaction is "checked" or not, in one click. Unchecked
   transactions are in bold; a toggle shows only those, with their count. Categorizing
   a transaction also marks it as checked. The number of transactions to review
   is shown in the notifications and in the iPhone app badge.
 - **Month picker** in the header, limited to months that have transactions.
-- **Search** across all months, from two characters, with the total of the
-  transactions found. The **advanced search** (button next to the field) adds criteria:
+- **Search** across all months, from the bar at the top of the page, from two characters,
+  with the total of the transactions found. The **advanced search** (button inside the
+  field) adds criteria:
   expenses or incomes, smallest and largest amount (without sign), period, categories (with
   their sub-categories) and accounts. Each criterion is shown under the toolbar and removed in
   one click.
@@ -218,7 +218,10 @@ Carbure **automatically detects** the transactions that come back every month: s
 subscriptions, bills, reimbursements…
 
 - **"Monthly" badge** on these transactions in the list of the month.
-- A **toggle** shows only those, and lists the ones **expected this month** that have
+- A **strip** under the search bar sums them up: their number, how many were received and
+  expected, and the **month total** (net: incomes minus expenses, the ones still expected
+  counted at their usual amount).
+- In this strip, a **toggle** shows only those, and lists the ones **expected this month** that have
   not arrived yet, with their usual day and amount ("≈" if it varies); for a
   past month, the ones that were **missed** ("Missing this month"). Handy to check that
   the salary came in or that a direct debit was not forgotten.

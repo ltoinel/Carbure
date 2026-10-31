@@ -121,14 +121,14 @@ transactions du dernier mois restées sans catégorie.
 
 - **Liste du mois** choisi, la plus récente en premier : icône et couleur de la catégorie
   (ou du type d'opération si elle n'est pas catégorisée), libellé, date, catégorie et montant.
-- **Revenus, dépenses et solde** du mois en tête de page.
 - **Pointage** : chaque transaction est « vérifiée » ou non, en un clic. Les transactions non
   vérifiées sont en gras ; un interrupteur n'affiche qu'elles, avec leur nombre. Catégoriser
   une transaction la marque aussi comme vérifiée. Le nombre de transactions à vérifier est
   repris par les notifications et le badge de l'app iPhone.
 - **Choix du mois** dans l'en-tête, limité aux mois qui ont des transactions.
-- **Recherche** sur tous les mois, à partir de deux caractères, avec le total des
-  transactions trouvées. La **recherche avancée** (bouton à côté du champ) y ajoute des
+- **Recherche** sur tous les mois, depuis la barre en tête de page, à partir de deux
+  caractères, avec le total des transactions trouvées. La **recherche avancée** (bouton dans
+  le champ) y ajoute des
   critères : dépenses ou revenus, montant minimal et maximal (sans signe), période,
   catégories (avec leurs sous-catégories) et comptes. Chaque critère s'affiche sous la barre
   d'outils et se retire d'un clic.
@@ -219,7 +219,10 @@ Carbure **repère tout seul** les opérations qui reviennent chaque mois : salai
 abonnements, factures, remboursements…
 
 - **Badge « Mensuelle »** sur ces transactions dans la liste du mois.
-- Un **interrupteur** n'affiche qu'elles, et liste celles **attendues ce mois-ci** qui ne sont
+- Un **bandeau** sous la barre de recherche les résume : leur nombre, combien sont reçues et
+  attendues, et le **total du mois** (net : revenus moins dépenses, celles encore attendues
+  comptées à leur montant habituel).
+- Dans ce bandeau, un **interrupteur** n'affiche qu'elles, et liste celles **attendues ce mois-ci** qui ne sont
   pas encore arrivées, avec leur jour habituel et leur montant (« ≈ » s'il varie) ; pour un
   mois passé, celles qui ont **manqué** (« Absentes ce mois-ci »). Pratique pour vérifier que
   le salaire est tombé ou qu'un prélèvement n'a pas été oublié.
