@@ -57,6 +57,11 @@ final class Transaction {
      *  by hand), never overwritten by the rules */
     const SOURCE_MANUAL = 'manual';
 
+    /** Start of the UUID of a transaction entered by hand: never one of a bank (an md5, in
+     *  hexadecimal), so that it is still told apart on a synchronized account, which a
+     *  synchronization never overwrites (it merges on the UUID only) */
+    const MANUAL_UUID = 'manual';
+
     /** Whether the migration 2026-11-02_category_source is applied (read once per request) */
     private static ?bool $sourceReady = null;
 
@@ -1158,17 +1163,18 @@ final class Transaction {
     }
 
     /**
-     * Enter a transaction by hand on a manual account (cash, a bank woob does not support):
-     * checked, of the category given or else of the rules. It stays editable (PUT /transaction).
+     * Enter a transaction by hand on an account: a manual one (cash, a bank woob does not
+     * support) or a synchronized one (a transaction the bank does not send yet; a duplicate
+     * is possible when it does). Checked, of the category given or else of the rules, it
+     * stays editable (PUT /transaction) and is never overwritten by a synchronization.
      *
-     * @param int|string      $account  The id of a manual account
+     * @param int|string      $account  The id of an account of the household
      * @param string          $date     Its date (YYYY-MM-DD)
      * @param string          $label    Its label
      * @param int|float|string $amount  Its amount: negative for an expense
      * @param int|string|null $category Its category (optional: the rules, else none)
      * @return array<string, mixed> The transaction
-     * @throws Error If the account is not a manual one, a value is invalid (400) or the account
-     *               or the category does not exist (404)
+     * @throws Error If a value is invalid (400) or the account or the category does not exist (404)
      */
     #[ApiRoute('/transaction', method: 'POST', changes: ['transactions'])]
     public static function createManual(int|string $account, string $date, string $label, int|float|string $amount,
@@ -1178,16 +1184,13 @@ final class Transaction {
         if (!$bank) {
             throw new ApiError("Account not found", 404, 'account_not_found');
         }
-        if ($bank['bank_name'] !== Bank::MANUAL) {
-            throw new ApiError("Transactions are entered by hand on a manual account only", 400, 'account_not_manual');
-        }
         $fields = self::manualFields($date, $label, $amount);
         $chosen = $category !== null && $category !== '';
         $category = $chosen ? self::existingCategory($category) : (Category::find($fields['label']) ?? 0);
         $source = $chosen ? self::SOURCE_MANUAL : ($category !== 0 ? self::SOURCE_RULE : null);
 
-        $id = self::insertRow(['split_of' => null, 'uuid' => md5('manual#' . random_bytes(16)), 'rdate' => $fields['date'],
-            'type' => 8, 'category' => $category, 'category_source' => $source, 'card' => '', 'bank_name' => Bank::MANUAL,
+        $id = self::insertRow(['split_of' => null, 'uuid' => self::manualUuid(), 'rdate' => $fields['date'],
+            'type' => 8, 'category' => $category, 'category_source' => $source, 'card' => '', 'bank_name' => $bank['bank_name'],
             'account_number' => $bank['account_number'], 'pointed' => 1, 'user' => (int)Jwt::getUserIdFromToken()] + $fields);
         if (substr($fields['date'], 0, 7) === date('Y-m')) {
             BudgetAlert::check();
@@ -1212,7 +1215,7 @@ final class Transaction {
                                   int|float|string|null $amount = null): array
     {
         $transaction = self::manualRow($id);
-        if ($transaction['bank_name'] !== Bank::MANUAL || $transaction['split_of'] !== null) {
+        if (!self::enteredByHand($transaction)) {
             throw new ApiError("Only a transaction entered by hand can be changed", 400, 'transaction_not_manual');
         }
         $fields = self::manualFields($date ?? $transaction['date'], $label ?? stripslashes($transaction['label']),
@@ -1227,6 +1230,29 @@ final class Transaction {
         Db::execute("UPDATE bank_transaction SET date = ?, rdate = ?, label = ? WHERE split_of = ?", "sssi",
             $fields['date'], $fields['date'], $fields['label'], $id);
         return Tag::withTags([self::manualRow($id)])[0];
+    }
+
+    /**
+     * A new UUID of a transaction entered by hand: MANUAL_UUID then random hexadecimal digits.
+     *
+     * @return string 32 characters
+     */
+    private static function manualUuid(): string
+    {
+        return self::MANUAL_UUID . substr(md5(random_bytes(16)), strlen(self::MANUAL_UUID));
+    }
+
+    /**
+     * Whether a transaction was entered by hand (not a part of a split one): its UUID starts
+     * with MANUAL_UUID, or it is on a manual account (entered before MANUAL_UUID).
+     *
+     * @param array<string, mixed> $transaction Its row
+     * @return bool
+     */
+    public static function enteredByHand(array $transaction): bool
+    {
+        return $transaction['split_of'] === null && ($transaction['bank_name'] === Bank::MANUAL
+            || str_starts_with((string)$transaction['uuid'], self::MANUAL_UUID));
     }
 
     /**
