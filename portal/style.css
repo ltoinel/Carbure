@@ -8517,8 +8517,52 @@ button.is-busy:not(.btn-confirm-danger):hover {
     border-radius: 20px;
 }
 
-.tag-selection-bar .selection-delete .material-icons {
+.tag-selection-bar .selection-delete .material-icons,
+.tag-selection-bar .selection-all .material-icons {
     font-size: 18px;
+}
+
+.tag-selection-bar .selection-all {
+    padding: 6px 14px;
+    font-size: 14px;
+    text-transform: none;
+    letter-spacing: normal;
+    border-radius: 20px;
+    color: var(--text-primary);
+    border: 1px solid var(--divider);
+    background: var(--surface);
+}
+
+.tag-selection-bar .selection-all:hover:not(:disabled),
+.tag-selection-bar .selection-all:focus-visible {
+    background: var(--hover-surface);
+    color: var(--text-primary);
+    transform: none;
+    box-shadow: none;
+}
+
+/* Leaves the selection mode: the last button of the bar, at the far right */
+.tag-selection-bar .selection-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--text-secondary);
+    box-shadow: none;
+    cursor: pointer;
+}
+
+.tag-selection-bar .selection-close:hover,
+.tag-selection-bar .selection-close:focus-visible {
+    background: var(--hover-surface);
+    color: var(--text-primary);
+    transform: none;
+    box-shadow: none;
 }
 
 .tag-list,

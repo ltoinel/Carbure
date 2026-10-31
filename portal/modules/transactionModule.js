@@ -8,6 +8,7 @@
  */
 
 import { withSplitParts } from './splitModule.js';
+import { MAX_TAG_SELECTION } from './tagsModule.js';
 import { EMPTY_FILTERS, searchParams } from './searchModule.js';
 
 // What a bank adds around the merchant: kind of operation first, references after
@@ -171,6 +172,16 @@ export function createTransactionModule(getApiService) {
                     list = list.filter(t => !Number(t.pointed));
                 }
                 return withSplitParts(list);
+            },
+
+            /**
+             * Whether every transaction shown is selected (as many as the selection holds)
+             * @returns {boolean}
+             */
+            allDisplayedSelected() {
+                const shown = this.displayedTransactions.map(t => Number(t.id));
+                const selected = new Set(this.selectedTransactionIds.map(Number));
+                return shown.length > 0 && shown.slice(0, MAX_TAG_SELECTION).every(id => selected.has(id));
             },
 
             /**
@@ -518,6 +529,16 @@ export function createTransactionModule(getApiService) {
                 } finally {
                     this.savingTransaction = false;
                 }
+            },
+
+            /**
+             * Selects every transaction shown (the filter and the search applied, up to the
+             * selection limit), or none when they all are
+             */
+            toggleSelectAll() {
+                this.selectedTransactionIds = this.allDisplayedSelected
+                    ? []
+                    : this.displayedTransactions.map(t => Number(t.id)).slice(0, MAX_TAG_SELECTION);
             },
 
             /**

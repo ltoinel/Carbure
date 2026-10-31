@@ -1394,3 +1394,55 @@ test('deleteSelectedTransactions deletes the parts first, keeps the selection of
     assert.equal(context.deletingSelection, false);
     delete globalThis.confirm;
 });
+
+test('toggleSelectAll selects the transactions shown, then none', () => {
+    const module = createTransactionModule(() => ({}));
+    const context = {
+        ...module.data(),
+        transactions: [
+            { id: 1, amount: '-10', pointed: 1, split_of: null },
+            { id: 2, amount: '-20', pointed: 0, split_of: null },
+            { id: 3, amount: '-30', pointed: 0, split_of: null },
+        ],
+        searchResults: [], isSearching: false, recurringOnly: false, transactionFilter: 'all',
+        selectedTransactionIds: [2],
+    };
+    Object.assign(context, module.methods);
+    for (const name of ['displayedTransactions', 'allDisplayedSelected']) {
+        Object.defineProperty(context, name, { get: () => module.computed[name].call(context) });
+    }
+
+    assert.equal(context.allDisplayedSelected, false);
+    context.toggleSelectAll();
+    assert.deepEqual(context.selectedTransactionIds, [1, 2, 3]);
+    assert.equal(context.allDisplayedSelected, true);
+    context.toggleSelectAll();
+    assert.deepEqual(context.selectedTransactionIds, []);
+
+    // Only the transactions shown: the filter applied
+    context.transactionFilter = 'unchecked';
+    context.toggleSelectAll();
+    assert.deepEqual(context.selectedTransactionIds, [2, 3]);
+    assert.equal(context.allDisplayedSelected, true);
+
+    // Nothing shown: nothing to select
+    context.transactions = [];
+    assert.equal(context.allDisplayedSelected, false);
+});
+
+test('toggleSelectAll stops at the selection limit', () => {
+    const module = createTransactionModule(() => ({}));
+    const context = {
+        ...module.data(),
+        transactions: Array.from({ length: 520 }, (_, i) => ({ id: i + 1, amount: '-1', pointed: 1, split_of: null })),
+        searchResults: [], isSearching: false, recurringOnly: false, transactionFilter: 'all',
+        selectedTransactionIds: [],
+    };
+    Object.assign(context, module.methods);
+    for (const name of ['displayedTransactions', 'allDisplayedSelected']) {
+        Object.defineProperty(context, name, { get: () => module.computed[name].call(context) });
+    }
+    context.toggleSelectAll();
+    assert.equal(context.selectedTransactionIds.length, 500);
+    assert.equal(context.allDisplayedSelected, true);
+});
