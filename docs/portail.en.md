@@ -180,8 +180,8 @@ taskbar or the home screen.
   €20 in Restaurant. Each part is shown right below its transaction, indented, with the
   **Part** badge; the transaction shows the bank **total**. The total of the month does not
   change, and each part counts in its category (budgets, trends, flow, insights). Opening
-  **Split** again (from the transaction or one of its parts) changes the parts; **Cancel
-  the split** gives the whole amount back to the transaction; deleting a part gives its
+  **Split** again (from the transaction or one of its parts) changes the parts; the red trash at
+  the bottom left (**Delete the split**) gives the whole amount back to the transaction; deleting a part gives its
   amount back. The synchronization keeps the split and the rules do not change it.
 - **Tags**: the tagged transactions show their `#tag` chips below their label.
   - In the **details**, the Tags section lists those of the transaction (the cross removes

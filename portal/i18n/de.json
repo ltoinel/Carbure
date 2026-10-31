@@ -495,7 +495,7 @@
     "splitHintAllocate": "Verteilen Sie den gesamten Betrag der Buchung, um zu speichern.",
     "splitHintIncomplete": "Wählen Sie für jede Zeile eine Kategorie und einen Betrag.",
     "splitExceeded": "Die Zeilen überschreiten den Betrag der Buchung um {amount}.",
-    "splitCancel": "Aufteilung aufheben",
+    "splitCancel": "Aufteilung löschen",
     "splitSaved": "Transaktion aufgeteilt",
     "splitCancelled": "Aufteilung aufgehoben",
     "splitPartBadge": "Teil",

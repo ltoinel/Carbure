@@ -3081,10 +3081,10 @@
                     </p>
                 </div>
                 <div class="modal-footer">
-                    <button v-if="transactionParts(splitTransaction).length" type="button" class="btn-danger modal-footer-start"
-                            @click="cancelSplit" :disabled="savingSplit">
-                        <span class="material-icons" aria-hidden="true">undo</span>
-                        {{ t('splitCancel') }}
+                    <!-- Small trash button at the bottom left, as in the detail of a transaction -->
+                    <button v-if="transactionParts(splitTransaction).length" type="button" class="btn-danger btn-danger-icon modal-footer-start"
+                            @click="cancelSplit" :disabled="savingSplit" :title="t('splitCancel')" :aria-label="t('splitCancel')">
+                        <span class="material-icons" aria-hidden="true">delete</span>
                     </button>
                     <button class="btn-secondary" @click="closeSplit">
                         <span class="material-icons" aria-hidden="true">cancel</span>
