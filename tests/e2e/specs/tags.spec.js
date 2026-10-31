@@ -59,6 +59,40 @@ test('tags transactions of a project, then shows its summary', async ({ userPage
     await expect(summary.getByRole('img', { name: tr('tagChartLabel', { name: 'voyage-italie' }) })).toBeVisible();
     // The category of the transactions did not change
     await expect(summary.locator('.tag-transaction').filter({ hasText: 'CB RESTAURANT LE PETIT ZINC' }).locator('.category-chip')).toHaveText('Restaurant');
+
+    // Its header: status, period, actions
+    await expect(summary.locator('.tag-status')).toHaveText(tr('tagActive'));
+    await expect(summary.locator('.tag-summary-period')).toContainText(tr('tagRunning'));
+    await expect(summary.getByRole('button', { name: tr('tagEdit') })).toBeVisible();
+
+    // Its figures: expenses and refunds, cost per day (started today), largest expense
+    await expect(summary.locator('.tag-kpi-expenses .summary-value')).toHaveText(euros(-134.2));
+    await expect(summary.locator('.tag-kpi-expenses')).toContainText(tr('tagRefunds', { amount: euros(0) }));
+    await expect(summary.locator('.tag-kpi-day .summary-value')).toHaveText(euros(-134.2));
+    await expect(summary.locator('.tag-kpi-day')).toContainText(tr('tagOverDays', { count: 1 }));
+    await expect(summary.locator('.tag-kpi-largest .summary-value')).toHaveText(euros(-82.4));
+    await expect(summary.locator('.tag-kpi-largest')).toContainText('CB SUPERMARCHE CASINO');
+
+    // By category: the largest amount first, with its share
+    const share = percent => new Intl.NumberFormat('fr', { style: 'percent', maximumFractionDigits: 0 }).format(percent / 100);
+    await expect(summary.locator('.tag-category-name')).toHaveText(['Supermarché', 'Restaurant', tr('uncategorized')]);
+    await expect(summary.locator('.tag-category-share')).toHaveText([share(61), share(34), share(5)]);
+
+    // The running cost with the keyboard: from the last day, Home goes to the first one
+    const chart = summary.getByRole('group', { name: tr('tagChartExplore') });
+    await chart.focus();
+    const tooltip = summary.locator('.tag-chart-tooltip');
+    await expect(tooltip).toContainText(`${tr('tagCumulative')}${euros(-134.2)}`);
+    await page.keyboard.press('Home');
+    await expect(tooltip).toContainText(`${tr('tagCumulative')}${euros(-82.4)}`);
+    await page.keyboard.press('ArrowRight');
+    await expect(tooltip).toContainText(`${tr('tagDayTotal')}${euros(-45)}`);
+    // And with the pointer: the day nearest to it
+    await chart.blur();
+    await expect(tooltip).toHaveCount(0);
+    const box = await chart.locator('svg').boundingBox();
+    await page.mouse.move(box.x + box.width - 14, box.y + box.height / 2);
+    await expect(tooltip).toContainText(`${tr('tagCumulative')}${euros(-134.2)}`);
 });
 
 test('an archived tag is no more offered, its summary stays readable', async ({ userPage: page, api }) => {
