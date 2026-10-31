@@ -813,6 +813,15 @@ Returns the columns of `bank_transaction` and `top` (top-level category).
 updates the category's budget for the month. For a category with subcategories, the
 amount replaces the sum of their budgets; `0` reverts to that sum.
 
+### `GET /budget/copy` { #get-budgetcopy }
+
+`month`, `year` (target month, current month by default): tells whether copying the
+previous month is offered, read only. Returns `month`, `source` (previous month,
+`YYYY-MM`), `defined` (the target month has at least one budget), `source_defined` (the
+previous month has one) and `copyable` (`true` when the target month has no budget and
+the previous month has some). A budget at `0` (sum of the subcategories) does not count
+as defined. The portal shows the copy button only when `copyable` is `true`.
+
 ### `POST /budget/copy` { #post-budgetcopy }
 
 `month`, `year` (target month, current month by default), `overwrite` (`false` by default):

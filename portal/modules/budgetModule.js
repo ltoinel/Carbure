@@ -153,6 +153,18 @@ export function createBudgetModule(getBudgetStore, getApiService) {
             },
 
             /**
+             * The copy of the previous month is offered: the selected month has no budget
+             * defined and the previous month has some (hidden while unknown)
+             * @returns {boolean}
+             */
+            budgetCopyOffered() {
+                const status = getBudgetStore()?.state?.copyStatus;
+                const month = Number(this.selectedMonth) || new Date().getMonth() + 1;
+                const year = Number(this.selectedYear) || new Date().getFullYear();
+                return status?.copyable === true && status.month === `${year}-${String(month).padStart(2, '0')}`;
+            },
+
+            /**
              * Label of the copy button, with the name of the source month
              * @returns {string}
              */

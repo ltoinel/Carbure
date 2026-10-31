@@ -101,6 +101,7 @@ class ApiResolverTest extends TestCase
         'GET /bank/woob' => 'admin',
         'GET /bank/woob/update' => 'admin',
         'GET /budget' => 'user',
+        'GET /budget/copy' => 'user',
         'GET /budget/flow' => 'user',
         'GET /budget/flow/transactions' => 'user',
         'GET /budget/insights' => 'user',

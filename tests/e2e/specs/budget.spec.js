@@ -1,5 +1,5 @@
 // Budget tab: money flow, budgets by category, sub-categories, editing a budget
-const { test, expect, tr, openTab, euros, currentMonth } = require('../fixtures');
+const { test, expect, tr, openTab, euros, currentMonth, offerBudgetCopy } = require('../fixtures');
 
 /**
  * Checks the amounts of a budget card: spent / budget
@@ -191,31 +191,76 @@ test('refuses an invalid amount', async ({ adminPage: page }) => {
     await expect(modal).toHaveCount(0);
 });
 
+/**
+ * Waits for the answer telling whether the copy of the previous month is offered
+ * @param {import('@playwright/test').Page} page
+ * @returns {Promise<import('@playwright/test').Response>}
+ */
+const copyStatus = page => page.waitForResponse(response => response.url().includes('/api/budget/copy?'));
+
+/** Name of a month inside a sentence ("octobre") */
+const monthName = month => tr(`months.${month}`).toLowerCase();
+
+/**
+ * Lets the page notice the changes made through the API (back to the foreground)
+ * @param {import('@playwright/test').Page} page
+ */
+const backToPage = page => page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+
+test('offers the copy of the previous month only when the month has no budget and the previous one has some', async ({ adminPage: page, api }) => {
+    // The current month has its budgets (seed.php): not offered
+    let status = copyStatus(page);
+    await openBudgets(page);
+    expect((await (await status).json()).copyable).toBe(false);
+    await expect(page.locator('.budget-copy-button')).toHaveCount(0);
+
+    // The previous month has none, nor the month before it: not offered either
+    status = copyStatus(page);
+    await page.getByRole('button', { name: tr('periodPrevious'), exact: true }).click();
+    expect(await (await status).json()).toMatchObject({ defined: false, source_defined: false, copyable: false });
+    await expect(page.locator('.budget-copy-button')).toHaveCount(0);
+
+    // Another member sets a budget the month before: offered without reloading the page
+    const before = currentMonth(2);
+    expect((await api.post('/api/budget', { data: { category: 4, amount: 900, ...before } })).ok()).toBeTruthy();
+    await backToPage(page);
+    const copyButton = page.getByRole('button', { name: tr('budgetCopyButton', { month: monthName(before.month) }), exact: true });
+    await copyButton.click();
+    await page.getByRole('dialog', { name: tr('budgetCopyTitle') }).getByRole('button', { name: tr('budgetCopyConfirm') }).click();
+    await expect(page.locator('.toast')).toHaveText(tr('budgetCopiedToast', { count: 1 }));
+    await expectAmounts(card(page, 'Logement'), 950, `/ ${euros(900)}`);
+
+    // Once copied, the month has its budget: no longer offered
+    await expect(page.locator('.budget-copy-button')).toHaveCount(0);
+});
+
 test('copies the budgets of the previous month, completing or overwriting', async ({ adminPage: page, api }) => {
     const prev = currentMonth(1);
-    const prevName = tr(`months.${prev.month}`).toLowerCase();
-    const copyButton = () => page.getByRole('button', { name: tr('budgetCopyButton', { month: prevName }), exact: true });
+    const copyButton = () => page.getByRole('button', { name: tr('budgetCopyButton', { month: monthName(prev.month) }), exact: true });
 
-    // The previous month differs from the current one (Supermarché 300, Restaurant 100),
-    // and Salaire has no budget yet
-    for (const [category, amount] of [[2, 321], [3, 123], [5, 2000]]) {
-        const response = await api.post('/api/budget', { data: { category, amount, month: prev.month, year: prev.year } });
-        expect(response.ok()).toBeTruthy();
-    }
+    // The current month only has budgets at 0 (sum of the sub-categories: not defined);
+    // the previous month has Supermarché 321, Restaurant 123 and Salaire 2000
+    await offerBudgetCopy(api, [[2, 321], [3, 123], [5, 2000]]);
 
     await openBudgets(page);
     await copyButton().click();
     let modal = page.getByRole('dialog', { name: tr('budgetCopyTitle') });
-    await expect(modal).toContainText(tr('budgetCopyHelp', { month: prevName }));
-    // Completing only, by default: only Salaire is copied
+    await expect(modal).toContainText(tr('budgetCopyHelp', { month: monthName(prev.month) }));
+    // Completing only, by default: only Salaire is copied (the others are set, at 0)
     await expect(modal.getByRole('radio', { name: tr('budgetCopyMissing') })).toBeChecked();
     await modal.getByRole('button', { name: tr('budgetCopyConfirm') }).click();
 
     await expect(page.locator('.toast')).toHaveText(tr('budgetCopiedToast', { count: 1 }));
     await expect(page.locator('.budget-section-incomes')).toContainText('Salaire');
-    expect(Number((await apiBudget(api, 'Supermarché', 1)).budget)).toBe(300);
+    expect(Number((await apiBudget(api, 'Supermarché', 1)).budget)).toBe(0);
+    // The month has a budget now: no longer offered
+    await expect(copyButton()).toHaveCount(0);
 
-    // Overwriting: the budgets of the previous month replace the current ones
+    // Salaire put back to 0 by another member: offered again; overwriting, the budgets
+    // of the previous month replace the current ones
+    const { month, year } = currentMonth();
+    expect((await api.post('/api/budget', { data: { category: 5, amount: 0, month, year } })).ok()).toBeTruthy();
+    await backToPage(page);
     await copyButton().click();
     modal = page.getByRole('dialog', { name: tr('budgetCopyTitle') });
     await modal.getByRole('radio', { name: tr('budgetCopyOverwrite') }).check();

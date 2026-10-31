@@ -1315,6 +1315,18 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
             body: JSON.stringify({ month, year, overwrite })
         }, 'Failed to copy the budgets');
     }
+
+    /**
+     * Tells whether the copy of the budgets of the previous month is offered for a month:
+     * the month has no budget defined and the previous month has some (GET /budget/copy)
+     * @param {number} month - Target month (1-12)
+     * @param {number} year - Target year
+     * @returns {Promise<Object>} {month, source, defined, source_defined, copyable}
+     * @throws {Error} If request fails
+     */
+    async function fetchBudgetCopyStatus(month, year) {
+        return request(`${baseUrl}/budget/copy?month=${encodeURIComponent(month)}&year=${encodeURIComponent(year)}`, {}, 'Failed to fetch the budget copy status');
+    }
     
     /**
      * Fetches insights data for a given month and year
@@ -1470,6 +1482,7 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
         approveOAuth,
         updateBudget,
         copyBudgets,
+        fetchBudgetCopyStatus,
         fetchInsights,
         fetchUsers,
         fetchMe,
