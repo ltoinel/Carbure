@@ -161,7 +161,11 @@ tâches ou l'écran d'accueil.
 - **Détail d'une transaction** : un clic (ou Entrée) sur le libellé ouvre une fenêtre avec
   le montant, le libellé complet, les dates, le type, la carte, la banque (compte synchronisé
   ou relevé importé) et la date d'import ; la
-  catégorie s'y change avec le sélecteur visuel et la transaction s'y pointe. Le bouton
+  catégorie s'y change avec le sélecteur visuel et la transaction s'y pointe. Le champ
+  **Date comptée** change le mois où la transaction compte, synchronisée ou non (la date
+  réelle de la banque reste affichée et ne change pas) : à l'enregistrement, la liste, les
+  totaux et les mois proposés sont rechargés, la transaction passe dans son nouveau mois et
+  les synchronisations suivantes gardent cette date. Le bouton
   corbeille supprime la transaction, après confirmation : elle n'est plus réimportée, ni par
   la synchronisation ni par l'import d'un relevé (marquée « Supprimée » dans l'aperçu).
   Le bouton **Transactions similaires** ferme la fenêtre et lance la recherche avec le

@@ -96,7 +96,8 @@ Pour chaque compte suivi :
    distinguées par leur rang.
 4. **Mois de rattachement** : un **virement reçu daté du 25 ou après** est rattaché au
    **1er du mois suivant** (un salaire versé le 28 compte pour le mois qu'il finance) ; la
-   date réelle reste visible dans le détail de la transaction. Le jour se règle dans
+   date réelle reste visible dans le détail de la transaction, où la date comptée peut aussi
+   être changée à la main (elle n'est plus modifiée par les synchronisations suivantes). Le jour se règle dans
    **Administration → Paramètres** (`next_month_day`, de 1 à 31, 0 pour ne jamais déplacer
    un virement, voir [Configuration](configuration.md#global)).
 5. **Notifications** : voir [Notifications](#notifications).
@@ -136,6 +137,12 @@ transactions du dernier mois restées sans catégorie.
   prélèvement…), carte, banque d'origine, date d'import ; la catégorie et le pointage s'y
   modifient. **Transactions similaires** y lance la recherche sur le nom du commerçant
   (« PRLV SEPA EDF MDT/123 » cherche « EDF »).
+- **Changer la date comptée** d'une transaction, synchronisée ou non (depuis son détail,
+  champ **Date comptée**) : elle passe au mois précédent ou suivant pour les totaux, les
+  budgets et les tendances (une facture payée le 1er qui concerne le mois d'avant, un
+  salaire arrivé en avance). La date réelle de la banque ne change pas et reste affichée :
+  la synchronisation et l'import d'un relevé reconnaissent la transaction et gardent la
+  date choisie. Les parts d'une transaction répartie suivent sa date.
 - **Supprimer** une transaction (depuis son détail, ou plusieurs d'un coup : **Sélectionner**,
   cocher les transactions, **Supprimer** ; après confirmation) : elle disparaît
   pour tout le foyer et n'est plus réimportée, ni par la synchronisation ni par l'import

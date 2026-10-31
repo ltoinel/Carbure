@@ -1008,6 +1008,50 @@ final class Transaction {
     }
 
     /**
+     * Change the date a transaction is counted on (its month, for the totals and the
+     * budgets), synchronized or not: the real date of the bank (rdate) and the UUID are
+     * kept, so that a synchronization or an import merges it again without changing this
+     * date (they never update the date of a known transaction). The parts of a split
+     * transaction follow it: the date of a part is the one of its transaction.
+     *
+     * @param int|string $id   The id of the transaction (or of a part of it)
+     * @param string     $date The new date (YYYY-MM-DD)
+     * @return array<string, mixed> The transaction of the id given
+     * @throws Error If it does not exist (404) or the date is invalid (400)
+     */
+    #[ApiRoute('/transaction/date', method: 'PUT', changes: ['transactions'])]
+    public static function updateDate(int|string $id, string $date): array
+    {
+        self::checkDate($date);
+        $transaction = self::manualRow($id);
+        $parent = $transaction['split_of'] ?? $transaction['id'];
+
+        Db::execute("UPDATE bank_transaction SET date = ? WHERE id = ? OR split_of = ?", "sii", $date, $parent, $parent);
+        // Moved into the current month: a budget may be exceeded now
+        $current = date('Y-m');
+        if (substr($date, 0, 7) === $current && substr((string)$transaction['date'], 0, 7) !== $current) {
+            BudgetAlert::check();
+            InsightAlert::check();
+        }
+        return Tag::withTags([self::manualRow($id)])[0];
+    }
+
+    /**
+     * Check a date sent by a user.
+     *
+     * @param string $date The date (YYYY-MM-DD, a real day)
+     * @return void
+     * @throws Error If it is invalid (400)
+     */
+    private static function checkDate(string $date): void
+    {
+        $parsed = DateTime::createFromFormat('!Y-m-d', $date);
+        if ($parsed === false || $parsed->format('Y-m-d') !== $date) {
+            throw new ApiError("Invalid date (YYYY-MM-DD)", 400, 'transaction_date_invalid');
+        }
+    }
+
+    /**
      * Split a transaction across several categories: each part becomes a transaction of
      * its own (same date, label and account, split_of = the id of the transaction), and the
      * transaction keeps the rest of the amount of the bank, in its category. The parts sent

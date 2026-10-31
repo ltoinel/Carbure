@@ -128,6 +128,11 @@ keeps track of what was done).
       ("iOS 26.0") and `app_version` ("1.2") in the `device` object of `POST /user/login`
       and `POST /user/login/mfa` (optional: unknown when absent).
 
+- [ ] **iOS and Android apps** (#427): offer to change the date a transaction is counted
+      on from its detail (`PUT /transaction/date` with `id`, `date`; the real date `rdate`
+      stays the one of the bank). No migration: the synchronization never updates the
+      `date` of a known transaction.
+
 - [ ] **Production**: test the connection of Claude to the MCP server from claude.ai
       (Settings → Connectors → Add custom connector). The Docker image applies the OAuth
       migration at startup and routes `/.well-known/oauth-*`; set `public_url`

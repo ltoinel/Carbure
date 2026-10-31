@@ -1,5 +1,6 @@
 <?php
 
+use Carbure\Lib\ApiError;
 use Carbure\Lib\Config;
 use Carbure\Resources\Transaction;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -79,6 +80,19 @@ class TransactionTest extends TestCase
         $first = $uuids(Transaction::prepareAll([$north, $south]));
         $this->assertCount(2, array_unique($first));
         $this->assertEquals($first, $uuids(Transaction::prepareAll([$south, $north])));
+    }
+
+    public function testTheDateCountedOnMustBeARealDay()
+    {
+        // Checked before the transaction is read
+        foreach (['2026-02-30', '2026-13-01', '2026-9-30', '30/09/2026', '2026-09-30 12:00', ''] as $date) {
+            try {
+                Transaction::updateDate(1, $date);
+                $this->fail("$date accepted");
+            } catch (ApiError $e) {
+                $this->assertSame([400, 'transaction_date_invalid'], [$e->getCode(), $e->getErrorCode()], $date);
+            }
+        }
     }
 
     public function testSalaryAtEndOfMonthMovesToNextMonth()

@@ -696,6 +696,20 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
     }
 
     /**
+     * Changes the date a transaction is counted on (its month); the real date of the
+     * bank is kept, the parts of a split transaction follow it
+     * @param {number} id - Transaction id
+     * @param {string} date - New date (YYYY-MM-DD)
+     * @returns {Promise<Object>} The transaction saved
+     */
+    async function setTransactionDate(id, date) {
+        return request(`${baseUrl}/transaction/date`, {
+            method: 'PUT',
+            body: JSON.stringify({ id, date })
+        }, 'Failed to change the date of the transaction');
+    }
+
+    /**
      * Enters a transaction by hand on a manual account
      * @param {{account: number, date: string, label: string, amount: number, category?: number}} transaction - The transaction
      * @returns {Promise<Object>} The transaction saved
@@ -1546,6 +1560,7 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
         updateCategory,
         deleteCategory,
         setTransactionCategory,
+        setTransactionDate,
         splitTransaction,
         createTransaction,
         updateTransaction,
