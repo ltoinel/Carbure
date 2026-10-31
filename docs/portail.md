@@ -183,8 +183,8 @@ tâches ou l'écran d'accueil.
   transaction, en retrait, avec le badge **Part** ; la transaction rappelle le **total**
   de la banque. Le total du mois ne change pas, et chaque part compte dans sa catégorie
   (budgets, tendances, flux, insights). Rouvrir **Répartir** (depuis la transaction ou une
-  de ses parts) modifie les parts ; **Annuler la répartition** rend tout le montant à la
-  transaction ; supprimer une part lui rend son montant. La synchronisation conserve la
+  de ses parts) modifie les parts ; la corbeille rouge en bas à gauche (**Supprimer la
+  répartition**) rend tout le montant à la transaction ; supprimer une part lui rend son montant. La synchronisation conserve la
   répartition et les règles ne la modifient pas.
 - **Tags** : les transactions étiquetées portent leurs puces `#tag` sous leur libellé.
   - Dans le **détail**, la section Tags liste ceux de la transaction (la croix en retire

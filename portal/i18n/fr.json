@@ -495,7 +495,7 @@
     "splitHintAllocate": "Ventilez tout le montant de la transaction pour enregistrer.",
     "splitHintIncomplete": "Choisissez une catégorie et un montant pour chaque ligne.",
     "splitExceeded": "Le total des lignes dépasse le montant de la transaction de {amount}.",
-    "splitCancel": "Annuler la répartition",
+    "splitCancel": "Supprimer la répartition",
     "splitSaved": "Transaction répartie",
     "splitCancelled": "Répartition annulée",
     "splitPartBadge": "Part",

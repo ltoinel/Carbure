@@ -495,7 +495,7 @@
     "splitHintAllocate": "Ripartisci tutto l'importo della transazione per salvare.",
     "splitHintIncomplete": "Scegli una categoria e un importo per ogni riga.",
     "splitExceeded": "Le righe superano l'importo della transazione di {amount}.",
-    "splitCancel": "Annulla la ripartizione",
+    "splitCancel": "Elimina la ripartizione",
     "splitSaved": "Transazione ripartita",
     "splitCancelled": "Ripartizione annullata",
     "splitPartBadge": "Parte",
