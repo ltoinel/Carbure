@@ -34,6 +34,23 @@ export function tagStatus(tag, today) {
 }
 
 /**
+ * Share of the period of a tag already gone, for the bar of its card: none without an end
+ * date or once archived
+ * @param {{start_date: string, end_date: string|null, active: boolean}} tag - Tag
+ * @param {string} today - Today (YYYY-MM-DD)
+ * @returns {number|null} Percent, 0 to 100
+ */
+export function tagProgress(tag, today) {
+    if (!tag.end_date || !tag.active) {
+        return null;
+    }
+    const day = 86400000;
+    const length = Math.round((dayTime(tag.end_date) - dayTime(tag.start_date)) / day) + 1;
+    const gone = Math.round((dayTime(today) - dayTime(tag.start_date)) / day) + 1;
+    return Math.min(100, Math.max(0, Math.round(gone / Math.max(1, length) * 100)));
+}
+
+/**
  * Tags to add and to remove to go from a list of tags to another one
  * @param {Array<number>} before - Ids of the tags before
  * @param {Array<number>} after - Ids of the tags wanted
@@ -330,6 +347,15 @@ export function createTagsModule(getApiService) {
                 } finally {
                     this.loadingTags = false;
                 }
+            },
+
+            /**
+             * Share of the period of a tag already gone (bar of its card), null without one
+             * @param {Object} tag - Tag
+             * @returns {number|null}
+             */
+            tagProgress(tag) {
+                return tagProgress(tag, isoDay(new Date()));
             },
 
             /**

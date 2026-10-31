@@ -527,6 +527,7 @@
     "tagNew": "Nova etiqueta",
     "tagsLoading": "A carregar as etiquetas…",
     "tagsEmpty": "Ainda não há etiquetas.",
+    "tagsEmptyHelp": "Crie um com o botão + para acompanhar o custo de uma viagem, de obras…",
     "tagsActive": "Ativas",
     "tagsArchived": "Arquivadas",
     "tagSummaryOf": "Balanço de #{name}",

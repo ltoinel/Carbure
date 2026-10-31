@@ -527,6 +527,7 @@
     "tagNew": "Nouveau tag",
     "tagsLoading": "Chargement des tags…",
     "tagsEmpty": "Aucun tag pour l'instant.",
+    "tagsEmptyHelp": "Créez-en un avec le bouton + pour suivre le coût d'un voyage, de travaux…",
     "tagsActive": "Actifs",
     "tagsArchived": "Archivés",
     "tagSummaryOf": "Bilan de #{name}",

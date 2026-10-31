@@ -527,6 +527,7 @@
     "tagNew": "Neuer Tag",
     "tagsLoading": "Tags werden geladen…",
     "tagsEmpty": "Noch kein Tag.",
+    "tagsEmptyHelp": "Legen Sie mit der Schaltfläche + einen an, um die Kosten einer Reise, von Bauarbeiten… zu verfolgen",
     "tagsActive": "Aktiv",
     "tagsArchived": "Archiviert",
     "tagSummaryOf": "Übersicht von #{name}",

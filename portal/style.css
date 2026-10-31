@@ -8467,43 +8467,206 @@ button.is-busy:not(.btn-confirm-danger):hover {
     padding: 0;
 }
 
-.tag-item {
+/* ----- List of the tags: a card per tag ----- */
+.tag-list-title {
     display: flex;
     align-items: center;
     gap: 8px;
-    border-bottom: 1px solid var(--divider);
+    margin: 4px 0 12px;
+}
+
+.tag-list ~ .tag-list-title {
+    margin-top: 28px;
+}
+
+.tag-list-count {
+    min-width: 22px;
+    padding: 1px 8px;
+    border-radius: 999px;
+    background: var(--background);
+    border: 1px solid var(--divider);
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 500;
+    text-align: center;
+}
+
+.tag-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+    gap: 12px;
+}
+
+/* The color of the tag as an accent on the left edge; the actions in the top right corner */
+.tag-item {
+    position: relative;
+    display: flex;
+    min-width: 0;
+    border: 1px solid var(--divider);
+    border-left: 4px solid var(--tag-color, var(--primary-color));
+    border-radius: var(--border-radius-lg);
+    background: var(--surface);
+    overflow: hidden;
+    transition: box-shadow var(--transition-fast), transform var(--transition-fast);
+}
+
+.tag-item:hover,
+.tag-item:focus-within {
+    box-shadow: var(--shadow-2);
 }
 
 .tag-open {
     flex: 1;
     min-width: 0;
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    grid-template-areas: "dot name total" "dot period count";
-    align-items: center;
-    gap: 2px 10px;
-    padding: 12px 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 8px;
+    padding: 14px 16px;
     border: none;
+    border-radius: 0;
     background: transparent;
     color: var(--text-primary);
     text-align: left;
     text-transform: none;
     letter-spacing: normal;
     font: inherit;
+    box-shadow: none;
     cursor: pointer;
 }
 
 .tag-open:hover,
 .tag-open:focus-visible {
     background: var(--background);
+    transform: none;
 }
 
-.tag-open .tag-dot { grid-area: dot; }
-.tag-name { grid-area: name; font-weight: 600; overflow-wrap: anywhere; }
-.tag-period { grid-area: period; color: var(--text-secondary); font-size: 13px; }
+.tag-open:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: -2px;
+}
+
+/* Room for the two actions */
+.tag-open-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 8px;
+    padding-right: 76px;
+    min-width: 0;
+}
+
+.tag-item .tag-dot {
+    background: var(--tag-color, var(--primary-color));
+}
+
+.tag-name {
+    min-width: 0;
+    font-size: 16px;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.tag-period {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+
+.tag-period .material-icons {
+    font-size: 16px;
+}
+
+/* Time gone of the period: the color of the tag on a tint of it */
+.tag-progress {
+    display: block;
+    height: 4px;
+    border-radius: 2px;
+    background: color-mix(in srgb, var(--tag-color, var(--primary-color)) 18%, transparent);
+    overflow: hidden;
+}
+
+.tag-progress span {
+    display: block;
+    height: 100%;
+    border-radius: 2px;
+    background: var(--tag-color, var(--primary-color));
+}
+
+.tag-open-foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+    margin-top: auto;
+    padding-top: 8px;
+    border-top: 1px solid var(--divider);
+}
+
 .tag-count { color: var(--text-secondary); font-size: 13px; }
-.tag-open .tag-count { grid-area: count; justify-self: end; }
-.tag-total { grid-area: total; justify-self: end; white-space: nowrap; }
+
+.tag-total {
+    font-size: 18px;
+    font-weight: 600;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.tag-item-actions {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+}
+
+.tag-item-actions .btn-icon {
+    box-shadow: none;
+}
+
+/* An archived tag: same contrasts, a quieter accent */
+.tag-item-archived {
+    border-left-style: dashed;
+}
+
+/* Empty list: an icon, the message and how to start */
+.tags-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 32px 16px 24px;
+    text-align: center;
+}
+
+.tags-empty-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    margin-bottom: 6px;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--primary-color) 12%, transparent);
+    color: var(--primary-color);
+}
+
+.tags-empty-icon .material-icons {
+    font-size: 28px;
+}
+
+.tags-empty-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.tags-empty .rules-help {
+    max-width: 420px;
+    margin: 0;
+}
 
 .tag-total.positive {
     color: var(--success-color);

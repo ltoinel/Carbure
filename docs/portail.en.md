@@ -288,9 +288,12 @@ A **tag** follows the whole cost of a project (a trip, works, a wedding…) with
 the categories: each transaction keeps its own, the budgets and the trends do not change.
 Every user of the household creates and uses the tags.
 
-- **List**: the **active** tags, then the **archived** ones, each with its color, its
-  period, its number of transactions and its net cost. The pencil and trash buttons edit
-  or delete it (its transactions only lose this tag).
+- **List**: the **active** tags, then the **archived** ones (with their number), one card
+  per tag: its color on the edge, its name, its period, a bar of the time gone for an
+  active tag with an end date, the **Archived** mention otherwise, its number of
+  transactions and its net cost. A click on the card opens its summary; the pencil and
+  trash buttons edit or delete it (its transactions only lose this tag). Without any tag,
+  the list explains how to create one.
 - **New tag**: a name (`trip-italy`: letters, digits, `-` or `_`, 40 at most, the `#` is
   added when shown), a color, a start date and an optional end date. During its period, the
   tag is **active**: it is offered in the details of the transactions and the selection.
