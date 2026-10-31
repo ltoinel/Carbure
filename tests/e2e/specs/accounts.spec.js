@@ -178,8 +178,10 @@ test('two blocks: the synchronized accounts with their actions, the manual ones 
     await expect(manual.locator('.account-item')).toHaveCount(0);
     await expect(manual.locator('.transactions-hint')).toHaveText(tr('manualAccountsEmpty'));
 
-    // Sync, update of the woob modules and connection of a bank: only for the synchronized accounts
-    for (const name of [tr('syncAllAccounts'), tr('woobUpdateButton'), tr('connectBankTitle')]) {
+    // Sync, update of the woob modules and addition of a bank or accounts: only for the
+    // synchronized accounts, the + replacing the button connecting a bank (#456)
+    await expect(page.getByRole('button', { name: tr('connectBankTitle') })).toHaveCount(0);
+    for (const name of [tr('syncAllAccounts'), tr('woobUpdateButton'), tr('addAccountsFromBank')]) {
         await expect(synced.getByRole('button', { name })).toBeVisible();
         await expect(manual.getByRole('button', { name })).toHaveCount(0);
     }
@@ -189,8 +191,10 @@ test('two blocks: the synchronized accounts with their actions, the manual ones 
     await synced.getByRole('button', { name: tr('addAccountsFromBank') }).click();
     const modal = page.getByRole('dialog', { name: tr('addAccountsFromBank') });
     const bank = modal.getByLabel(tr('addAccountsBank'));
-    await expect(bank.locator('option')).toHaveCount(3);
+    // The banks connected, then a new one last
+    await expect(bank.locator('option')).toHaveCount(4);
     await expect(bank.locator('option').nth(1)).toHaveText('BNP Paribas (bnp)');
+    await expect(bank.locator('option').last()).toHaveText(tr('connectNewBank'));
     await expect(modal.getByRole('checkbox')).toHaveCount(0);
     await bank.selectOption('bnp');
     const bnp = page.getByRole('dialog', { name: tr('addAccountsTitle', { bank: 'BNP Paribas (bnp)' }) });
@@ -283,10 +287,17 @@ test('stops following an account', async ({ adminPage: page }) => {
     await expect(page.locator('.accounts-list .account-item')).toHaveCount(1);
 });
 
-/** Opens the modal connecting a bank and chooses its woob module */
-async function connectModal(page, module) {
+/**
+ * Opens the modal connecting a bank, from the + of the synchronized accounts (the last
+ * choice of its bank list, straight to it when no bank is connected), and chooses its
+ * woob module
+ */
+async function connectModal(page, module, { banks = true } = {}) {
     await openTab(page, tr('tabAccounts'));
-    await page.getByRole('button', { name: tr('connectBankTitle') }).click();
+    await page.getByRole('button', { name: tr('addAccountsFromBank') }).click();
+    if (banks) {
+        await page.getByRole('dialog', { name: tr('addAccountsFromBank') }).getByLabel(tr('addAccountsBank')).selectOption({ label: tr('connectNewBank') });
+    }
     const modal = page.getByRole('dialog', { name: tr('connectBankTitle') });
     await modal.getByLabel(new RegExp(tr('connectBankModule'))).selectOption(module);
     return modal;
@@ -295,7 +306,7 @@ async function connectModal(page, module) {
 test('the first bank connection tells that the synchronization depends on woob', async ({ adminPage: page }) => {
     // No bank connected yet: the warning, with the fixes proposed to woob
     await page.route('**/api/bank/backends', route => route.fulfill({ json: [] }));
-    const modal = await connectModal(page, 'bnp');
+    const modal = await connectModal(page, 'bnp', { banks: false });
     const warning = modal.getByRole('note');
     await expect(warning).toContainText(tr('woobWarning'));
     await expect(warning.getByRole('link', { name: tr('woobWarningLink') })).toHaveAttribute('href', 'https://gitlab.com/woob/woob/-/merge_requests');
@@ -348,7 +359,8 @@ test('connects a new bank, then follows two of its accounts at once', async ({ a
 
 test('connects a second login of a bank already connected', async ({ adminPage: page }) => {
     await openTab(page, tr('tabAccounts'));
-    await page.getByRole('button', { name: tr('connectBankTitle') }).click();
+    await page.getByRole('button', { name: tr('addAccountsFromBank') }).click();
+    await page.getByRole('dialog', { name: tr('addAccountsFromBank') }).getByLabel(tr('addAccountsBank')).selectOption({ label: tr('connectNewBank') });
     const modal = page.getByRole('dialog', { name: tr('connectBankTitle') });
 
     // BNP is connected (backend bnp): it stays offered for another login, given a readable

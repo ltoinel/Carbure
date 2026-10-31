@@ -166,7 +166,8 @@ test('axe: the menus and the modals', async ({ adminPage: page, api }) => {
     // Connecting a bank: its module installed once the woob repository is trusted
     trustWoobRepository();
     await openTab(page, tr('tabAccounts'));
-    await page.getByRole('button', { name: tr('connectBankTitle') }).click();
+    await page.getByRole('button', { name: tr('addAccountsFromBank') }).click();
+    await page.getByRole('dialog', { name: tr('addAccountsFromBank') }).getByLabel(tr('addAccountsBank')).selectOption({ label: tr('connectNewBank') });
     const connect = page.getByRole('dialog', { name: tr('connectBankTitle') });
     await connect.getByLabel(new RegExp(tr('connectBankModule'))).selectOption('boursorama');
     await expect(connect.locator('fieldset.bank-setup input').first()).toBeVisible();

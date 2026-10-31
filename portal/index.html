@@ -1657,12 +1657,7 @@
                                         <span class="material-icons" :class="{ spin: woobUpdate.running }" aria-hidden="true">system_update_alt</span>
                                         {{ t('woobUpdateButton') }}
                                     </button>
-                                    <!-- Step 1 of the addition of accounts: a new bank connection -->
-                                    <button type="button" class="btn-secondary connect-bank-button" @click="openConnectModal()">
-                                        <span class="material-icons" aria-hidden="true">add_link</span>
-                                        {{ t('connectBankTitle') }}
-                                    </button>
-                                    <!-- Round + button: accounts of a bank already connected -->
+                                    <!-- Round + button: accounts of a bank already connected, or a new bank -->
                                     <button type="button" class="btn-add btn-add-icon" @click="openAddAccountsPicker()"
                                             :title="t('addAccountsFromBank')" :aria-label="t('addAccountsFromBank')">
                                         <span class="material-icons" aria-hidden="true">add</span>
@@ -3731,12 +3726,14 @@
                     </button>
                 </div>
                 <div class="modal-body">
-                    <!-- Opened from the + of the synchronized accounts: one of the banks already connected -->
+                    <!-- Opened from the + of the synchronized accounts: one of the banks already connected, or a new one -->
                     <div v-if="addAccountsPicking" class="form-group">
                         <label for="add-accounts-bank">{{ t('addAccountsBank') }}</label>
                         <select id="add-accounts-bank" :value="addAccountsBackend" @change="chooseAddAccountsBackend($event.target.value)" :disabled="followingAccounts">
                             <option value="">{{ t('addAccountsChooseBank') }}</option>
                             <option v-for="b in bankBackends" :key="b.name" :value="b.name">{{ backendName(b) }}</option>
+                            <!-- Connection of a new bank (another login of a connected one too) -->
+                            <option value="+new">{{ t('connectNewBank') }}</option>
                         </select>
                     </div>
                     <p v-if="addAccountsBackend" class="rules-help">{{ t('addAccountsHelp') }}</p>

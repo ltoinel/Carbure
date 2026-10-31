@@ -286,7 +286,8 @@ test('the menus, modals and the synchronization log are readable', async ({ admi
     // Connecting a bank (its settings asked, its module installed once the woob repository
     // is trusted), then the accounts woob lists for one
     trustWoobRepository();
-    await page.getByRole('button', { name: tr('connectBankTitle') }).click();
+    await page.getByRole('button', { name: tr('addAccountsFromBank') }).click();
+    await page.getByRole('dialog', { name: tr('addAccountsFromBank') }).getByLabel(tr('addAccountsBank')).selectOption({ label: tr('connectNewBank') });
     const connect = page.getByRole('dialog', { name: tr('connectBankTitle') });
     await connect.getByLabel(new RegExp(tr('connectBankModule'))).selectOption('boursorama');
     await expect(connect.locator('fieldset.bank-setup input').first()).toBeVisible();
