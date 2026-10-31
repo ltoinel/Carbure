@@ -8285,6 +8285,20 @@ button.is-busy:not(.btn-confirm-danger):hover {
     min-width: 0;
 }
 
+/* Deletion of the selection: at the end of the bar */
+.tag-selection-bar .selection-delete {
+    margin-left: auto;
+    padding: 6px 14px;
+    font-size: 14px;
+    text-transform: none;
+    letter-spacing: normal;
+    border-radius: 20px;
+}
+
+.tag-selection-bar .selection-delete .material-icons {
+    font-size: 18px;
+}
+
 .tag-list,
 .tag-categories,
 .tag-transactions {

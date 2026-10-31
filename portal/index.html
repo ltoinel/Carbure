@@ -658,7 +658,7 @@
                                             @click="openRecurringCalendar" :title="t('recurringCalendarHelp')" :aria-label="t('recurringCalendarButton')">
                                         <span class="material-icons" aria-hidden="true">calendar_month</span>
                                     </button>
-                                    <button v-if="activeTags.length" type="button" class="btn-secondary btn-manual-add btn-select" @click="toggleTransactionSelection"
+                                    <button type="button" class="btn-secondary btn-manual-add btn-select" @click="toggleTransactionSelection"
                                             :aria-pressed="selectingTransactions ? 'true' : 'false'" :title="t('tagSelectHelp')">
                                         <span class="material-icons" aria-hidden="true">{{ selectingTransactions ? 'close' : 'checklist' }}</span><span class="btn-label">{{ selectingTransactions ? t('tagSelectStop') : t('tagSelect') }}</span>
                                     </button>
@@ -670,16 +670,22 @@
                                     </button>
                                 </div>
                             </div>
-                            <!-- Selection of transactions: one tag added to all of them -->
+                            <!-- Selection of transactions: one tag added to all of them, or all of them deleted -->
                             <div v-if="selectingTransactions" class="tag-selection-bar" role="region" :aria-label="t('tagSelect')">
                                 <span class="tag-selection-count" aria-live="polite">{{ t('tagSelected', { count: selectedTransactionIds.length }) }}</span>
-                                <label class="visually-hidden" for="tag-selection">{{ t('tagChoose') }}</label>
-                                <select id="tag-selection" v-model="selectionTag">
-                                    <option value="">{{ t('tagChoose') }}</option>
-                                    <option v-for="tag in activeTags" :key="tag.id" :value="tag.id">#{{ tag.name }}</option>
-                                </select>
-                                <button type="button" class="btn-manual-add" @click="tagSelectedTransactions" :disabled="!selectionTag || selectedTransactionIds.length === 0">
-                                    <span class="material-icons" aria-hidden="true">sell</span>{{ t('tagAdd') }}
+                                <template v-if="activeTags.length">
+                                    <label class="visually-hidden" for="tag-selection">{{ t('tagChoose') }}</label>
+                                    <select id="tag-selection" v-model="selectionTag">
+                                        <option value="">{{ t('tagChoose') }}</option>
+                                        <option v-for="tag in activeTags" :key="tag.id" :value="tag.id">#{{ tag.name }}</option>
+                                    </select>
+                                    <button type="button" class="btn-manual-add" @click="tagSelectedTransactions" :disabled="!selectionTag || selectedTransactionIds.length === 0">
+                                        <span class="material-icons" aria-hidden="true">sell</span>{{ t('tagAdd') }}
+                                    </button>
+                                </template>
+                                <button type="button" class="btn-danger selection-delete" @click="deleteSelectedTransactions"
+                                        :disabled="deletingSelection || selectedTransactionIds.length === 0">
+                                    <span class="material-icons" aria-hidden="true">delete</span>{{ t('selectionDelete') }}
                                 </button>
                             </div>
                             <!-- Criteria of the advanced search, each one removable -->
