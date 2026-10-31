@@ -96,7 +96,8 @@ For each followed account:
    told apart by their rank.
 4. **Month of attribution**: a **received transfer dated on the 25th or later** is attributed
    to the **1st of the following month** (a salary paid on the 28th counts for the month it
-   funds); the actual date remains visible in the transaction details. The day is set in
+   funds); the actual date remains visible in the transaction details, where the date it is
+   counted on can also be changed by hand (the next synchronizations no longer change it). The day is set in
    **Administration → Settings** (`next_month_day`, 1 to 31, 0 to never move a transfer, see
    [Configuration](configuration.md#global)).
 5. **Notifications**: see [Notifications](#notifications).
@@ -136,6 +137,12 @@ transactions of the last month still without a category.
   direct debit…), card, originating bank, import date; the category and the checked status can be
   changed there. **Similar transactions** runs a search on the merchant's name
   ("PRLV SEPA EDF MDT/123" searches for "EDF").
+- **Change the date a transaction is counted on**, synchronized or not (from its details,
+  **Counted on** field): it moves to the previous or the next month for the totals, the
+  budgets and the trends (a bill paid on the 1st that belongs to the month before, a salary
+  received early). The real date of the bank does not change and stays shown: the
+  synchronization and a statement import recognize the transaction and keep the chosen date.
+  The parts of a split transaction follow its date.
 - **Delete** a transaction (from its details, or several at once: **Select**, tick the
   transactions, **Delete**; after confirmation): it disappears
   for the whole household and is never imported again, neither by synchronization nor by importing

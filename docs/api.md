@@ -96,7 +96,7 @@ premier plan ; ensuite, l'en-tête de chaque réponse suffit (voir ci-dessous).
 
 | Type | Incrémenté par |
 |---|---|
-| `transactions` | synchronisation (transaction nouvelle ou modifiée, catégorie trouvée), `POST /transaction/import`, `POST /transaction`, `PUT /transaction`, `PUT /transaction/category`, `PUT /transaction/pointed`, `PUT /transaction/split`, `PUT /transaction/tags`, `DELETE /tag`, `DELETE /transaction`, règles appliquées à l'historique, `DELETE /category` |
+| `transactions` | synchronisation (transaction nouvelle ou modifiée, catégorie trouvée), `POST /transaction/import`, `POST /transaction`, `PUT /transaction`, `PUT /transaction/category`, `PUT /transaction/date`, `PUT /transaction/pointed`, `PUT /transaction/split`, `PUT /transaction/tags`, `DELETE /tag`, `DELETE /transaction`, règles appliquées à l'historique, `DELETE /category` |
 | `accounts` | synchronisation (compte en erreur, réparé ou autre erreur), `POST`/`PUT`/`DELETE /bank`, `/bank/backend` |
 | `categories` | `POST`/`PUT`/`DELETE /category`, `/category/keyword`, `PUT /category/keyword/settings` |
 | `budgets` | `POST /budget`, `POST /budget/copy`, `DELETE /category` |
@@ -716,6 +716,20 @@ les règles ne la changent plus.
 ```bash
 curl -X PUT https://exemple.fr/api/transaction/pointed -H "Authorization: Bearer $TOKEN" \
   -H 'Content-Type: application/json' -d '{"id":42,"pointed":false}'
+```
+
+### `PUT /transaction/date`
+
+`id`, `date` (`AAAA-MM-JJ`) : change la date à laquelle la transaction est comptée (son
+mois, pour les totaux et les budgets), synchronisée ou non. La date réelle de la banque
+(`rdate`) et l'UUID ne changent pas : la synchronisation et l'import la reconnaissent et
+gardent la date choisie. Les parts d'une transaction répartie suivent sa date (l'`id` d'une
+part déplace sa transaction avec toutes ses parts). Renvoie la transaction de l'`id`.
+`400 transaction_date_invalid`, `404 transaction_not_found`.
+
+```bash
+curl -X PUT https://exemple.fr/api/transaction/date -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' -d '{"id":42,"date":"2026-09-30"}'
 ```
 
 ### `POST /transaction`

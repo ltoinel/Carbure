@@ -21,6 +21,8 @@
     "transactionDetail": "Transaction detail",
     "transactionDate": "Date",
     "transactionRealDate": "Real date",
+    "transactionCountedOn": "Counted on",
+    "transactionCountedOnHelp": "The month it counts in (totals, budgets). The real date of the bank does not change, the synchronization keeps this choice.",
     "transactionType": "Type",
     "transactionCard": "Card",
     "transactionBank": "Bank",
