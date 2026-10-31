@@ -572,6 +572,8 @@
     "selectionDeleted_other": "{count} Buchungen gelöscht",
     "tagSelectTransaction": "{label} auswählen",
     "tagsOfTransaction": "Tags",
+    "tagNoneActive": "Kein aktiver Tag: Geben Sie oben einen Namen ein, um ihn zu erstellen, oder {link}.",
+    "tagNoneActiveLink": "erstellen Sie einen im Tab Tags",
     "tagRemoveOf": "#{name} entfernen",
     "tagSaved": "Tag gespeichert",
     "tagDeleted": "Tag gelöscht",

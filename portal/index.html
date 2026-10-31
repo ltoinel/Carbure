@@ -2794,7 +2794,7 @@
                         {{ t('transactionChecked') }}
                     </label>
                     <div class="form-group transaction-detail-tags">
-                        <label for="detail-tag">{{ t('tagsOfTransaction') }}</label>
+                        <label for="detail-tag" class="detail-section-title">{{ t('tagsOfTransaction') }}</label>
                         <ul v-if="transactionTags(transactionDetail).length" class="transaction-tags">
                             <li v-for="tag in transactionTags(transactionDetail)" :key="tag.id" class="tag-chip">
                                 <span class="tag-dot" :style="{ background: categoryColor(tag) }" aria-hidden="true"></span><span class="tag-chip-name">#{{ tag.name }}</span>
@@ -2805,6 +2805,10 @@
                         </ul>
                         <tag-input input-id="detail-tag" :tags="tagsToOffer(transactionDetail)" :all-tags="tags" :t="t" :color-for="categoryColor"
                                    @select="id => addDetailTag(transactionDetail, id)" @create="name => createDetailTag(transactionDetail, name)"></tag-input>
+                        <!-- No active tag yet: typed in the field, or created in the Tags tab -->
+                        <p v-if="!activeTags.length" class="rules-help tag-none-active">
+                            <template v-for="(part, i) in t('tagNoneActive', { link: '{link}' }).split('{link}')" :key="i"><a v-if="i > 0" href="#" class="tag-tab-link" @click.prevent="goToTagsTab">{{ t('tagNoneActiveLink') }}</a>{{ part }}</template>
+                        </p>
                     </div>
                 </div>
                 <div class="modal-footer">

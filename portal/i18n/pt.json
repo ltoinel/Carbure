@@ -572,6 +572,8 @@
     "selectionDeleted_other": "{count} transações eliminadas",
     "tagSelectTransaction": "Selecionar {label}",
     "tagsOfTransaction": "Etiquetas",
+    "tagNoneActive": "Nenhuma etiqueta ativa: escreva um nome acima para a criar, ou {link}.",
+    "tagNoneActiveLink": "crie uma no separador Etiquetas",
     "tagRemoveOf": "Remover #{name}",
     "tagSaved": "Etiqueta guardada",
     "tagDeleted": "Etiqueta eliminada",

@@ -251,6 +251,12 @@ export function createTagsModule(getApiService) {
                 }
             },
 
+            /** Closes the detail of a transaction and opens the Tags tab (link of its tags) */
+            goToTagsTab() {
+                this.transactionDetail = null;
+                this.setActiveTab('tags');
+            },
+
             /**
              * Opens the summary of a tag
              * @param {Object} tag - Tag
