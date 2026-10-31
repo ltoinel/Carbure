@@ -100,10 +100,7 @@ export function createTagsModule(getApiService) {
                 tagSummary: null,
                 // Selection of transactions of the list, to tag them at once
                 selectingTransactions: false,
-                selectedTransactionIds: [],
-                selectionTag: '',
-                // Tag chosen to add in the detail of a transaction
-                detailTagToAdd: ''
+                selectedTransactionIds: []
             };
         },
 
@@ -312,16 +309,46 @@ export function createTagsModule(getApiService) {
             },
 
             /**
-             * Adds the tag chosen in the detail of a transaction
+             * Creates a tag typed in a tag field: starting today, with the default color
+             * @param {string} name - Name of the tag
+             * @returns {Promise<Object|null>} The tag, or null when it could not be created
+             */
+            async createTypedTag(name) {
+                try {
+                    const tag = await getApiService().createTag({ name: tagName(name), color: EMPTY_TAG.color, start_date: isoDay(new Date()) });
+                    this.tags = [...this.tags, tag];
+                    this.showToast(this.t('tagCreated', { name: tag.name }));
+                    return tag;
+                } catch (error) {
+                    this.showToast(this.apiErrorText(error));
+                    return null;
+                }
+            },
+
+            /**
+             * Adds a tag chosen in the detail of a transaction
              * @param {Object} transaction - Transaction
+             * @param {number} id - Tag id
              * @returns {Promise<void>}
              */
-            async addDetailTag(transaction) {
-                if (this.detailTagToAdd === '') {
+            async addDetailTag(transaction, id) {
+                if (!id || (transaction.tags || []).map(Number).includes(Number(id))) {
                     return;
                 }
-                await this.setTransactionTags(transaction, [...(transaction.tags || []), Number(this.detailTagToAdd)]);
-                this.detailTagToAdd = '';
+                await this.setTransactionTags(transaction, [...(transaction.tags || []), Number(id)]);
+            },
+
+            /**
+             * Creates a tag typed in the detail of a transaction, then adds it
+             * @param {Object} transaction - Transaction
+             * @param {string} name - Name of the tag
+             * @returns {Promise<void>}
+             */
+            async createDetailTag(transaction, name) {
+                const tag = await this.createTypedTag(name);
+                if (tag) {
+                    await this.addDetailTag(transaction, Number(tag.id));
+                }
             },
 
             /**
@@ -338,7 +365,6 @@ export function createTagsModule(getApiService) {
             toggleTransactionSelection() {
                 this.selectingTransactions = !this.selectingTransactions;
                 this.selectedTransactionIds = [];
-                this.selectionTag = '';
             },
 
             /**
@@ -353,11 +379,12 @@ export function createTagsModule(getApiService) {
             },
 
             /**
-             * Adds the tag chosen to the selected transactions, then ends the selection
+             * Adds a tag to the selected transactions, then ends the selection
+             * @param {number} id - Tag id
              * @returns {Promise<void>}
              */
-            async tagSelectedTransactions() {
-                const tag = Number(this.selectionTag);
+            async tagSelectedTransactions(id) {
+                const tag = Number(id);
                 const ids = this.selectedTransactionIds;
                 if (!tag || !ids.length) {
                     return;
@@ -371,10 +398,24 @@ export function createTagsModule(getApiService) {
                     this.showToast(this.t('tagAddedToSelection', { count: ids.length, name: this.tagsById.get(tag)?.name || '' }));
                     this.selectingTransactions = false;
                     this.selectedTransactionIds = [];
-                    this.selectionTag = '';
                     this.loadTags();
                 } catch (error) {
                     this.showToast(this.apiErrorText(error));
+                }
+            },
+
+            /**
+             * Creates a tag typed in the selection bar, then adds it to the selected transactions
+             * @param {string} name - Name of the tag
+             * @returns {Promise<void>}
+             */
+            async createSelectionTag(name) {
+                if (!this.selectedTransactionIds.length) {
+                    return;
+                }
+                const tag = await this.createTypedTag(name);
+                if (tag) {
+                    await this.tagSelectedTransactions(Number(tag.id));
                 }
             }
         }
