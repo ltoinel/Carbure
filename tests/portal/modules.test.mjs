@@ -472,6 +472,13 @@ test('confirm: answered by the buttons, the action kept running and its error sh
     // Cancelled
     let asked = context.askConfirm({ title: 'T', message: 'M', confirmLabel: 'OK' });
     assert.equal(context.confirmDialog.message, 'M');
+    assert.equal(context.confirmDialog.warning, null);
+    context.cancelConfirm();
+    assert.equal(await asked, false);
+
+    // With a warning: shown apart from the question
+    asked = context.askConfirm({ title: 'T', message: 'M', warning: 'W', confirmLabel: 'OK' });
+    assert.equal(context.confirmDialog.warning, 'W');
     context.cancelConfirm();
     assert.equal(await asked, false);
     assert.equal(context.confirmDialog, null);

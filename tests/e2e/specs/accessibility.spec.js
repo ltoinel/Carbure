@@ -459,6 +459,18 @@ test('the registration of an app in the profile is readable', async ({ userPage:
     expect(await contrastProblems(page, tr('mfaSetupButton'))).toEqual([]);
 });
 
+test('the confirmation resetting the two-factor authentication of a user is readable', async ({ adminPage: page }) => {
+    await openTab(page, tr('tabUsers'));
+    await page.getByRole('button', { name: `${tr('mfaReset')} marie` }).click();
+    const dialog = page.getByRole('dialog', { name: tr('mfaReset') });
+    await expect(dialog.locator('#confirm-dialog-warning')).toHaveText(tr('mfaResetWarning'));
+    const problems = await contrastProblems(page, tr('mfaReset'));
+    await dialog.getByRole('button', { name: tr('cancel') }).click();
+    await expect(dialog).toHaveCount(0);
+
+    expect(problems).toEqual([]);
+});
+
 test('the tags, their form and a summary are readable', async ({ adminPage: page, api }) => {
     // An active tag with transactions, an archived one
     const tag = await (await api.post('/api/tag', { data: { name: 'voyage', color: 'green', start_date: '2026-01-01' } })).json();
