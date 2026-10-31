@@ -107,6 +107,19 @@ class BackupTest extends DatabaseTestCase
         $this->assertSame(0, $this->rowCount('budget'));
     }
 
+    public function testRulesKeepTheirAmount()
+    {
+        Db::query("INSERT INTO bank_transaction_category_keyword (keyword, category, amount) VALUES ('PAYPAL', 1, 10.00), ('PAYPAL', 3, NULL)");
+        $rules = $this->export('rules')['datasets']['rules'];
+        $this->assertSame([null, null, null, 10.0, null], array_column($rules, 'amount'));
+
+        Backup::import(['rules' => $rules]);
+        $this->assertSame(['10.00'], array_column(Db::select("SELECT amount FROM bank_transaction_category_keyword WHERE amount IS NOT NULL", "")->fetch_all(MYSQLI_ASSOC), 'amount'));
+        // An older backup, without amount: any amount
+        Backup::import(['rules' => [['id' => 9, 'keyword' => 'BOULANGERIE', 'category' => 1, 'notify' => false]]]);
+        $this->assertNull(Db::queryOne("SELECT amount FROM bank_transaction_category_keyword WHERE id = 9", "")['amount']);
+    }
+
     public function testUsersAreMatchedByUsername()
     {
         $transaction = $this->export('transactions')['datasets']['transactions'][0];

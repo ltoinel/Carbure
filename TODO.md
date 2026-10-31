@@ -74,6 +74,16 @@ keeps track of what was done).
       (table `insight_alert`) is applied at container start. Before it, `GET /insight/alert`
       is empty, `PUT /insight/alert` answers 409 and nothing alerts.
 
+- [ ] **Deployment of the amount of the rules (#462)**: the migration `2026-11-05_rule_amount`
+      (columns `bank_transaction_category_keyword.amount` and generated `amount_key`, unique
+      key on `keyword` + `amount_key`) is applied at container start; the existing rules
+      keep any amount. Before it, the rules work as before, `amount` is `null` and a rule
+      with an amount is refused (409 `rule_amount_migration`).
+
+- [ ] **Mobile apps — amount of the rules (#462)**: `GET /category/keyword` returns `amount`
+      (`null`: any amount); show it next to the keyword and offer it in the rule form
+      (optional `amount` of `POST`/`PUT /category/keyword`; a `PUT` without it keeps it).
+
 - [ ] **Mobile apps — insight alerts (#387)**: a bell on each insight card to set the alert
       (`GET`/`PUT`/`DELETE /insight/alert`), and the kind `insight` in the notification
       preferences (`GET`/`PUT /user/notifications`, already returned by the server).

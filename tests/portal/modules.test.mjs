@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createBudgetModule } from '../../portal/modules/budgetModule.js';
 import { createTransactionModule, recurringCalendar, similarLabelQuery } from '../../portal/modules/transactionModule.js';
-import { createRulesModule } from '../../portal/modules/rulesModule.js';
+import { createRulesModule, ruleAmountText } from '../../portal/modules/rulesModule.js';
 import { agentConfigurations, createAgentsModule } from '../../portal/modules/agentsModule.js';
 import { createRequire } from 'node:module';
 
@@ -1507,4 +1507,36 @@ test('toggleSelectAll stops at the selection limit', () => {
     context.toggleSelectAll();
     assert.equal(context.selectedTransactionIds.length, 500);
     assert.equal(context.allDisplayedSelected, true);
+});
+
+test('rules: the optional amount, shown with 2 decimals, sent with the rule and read by the screen readers', async () => {
+    assert.equal(ruleAmountText(null), '');
+    assert.equal(ruleAmountText(undefined), '');
+    assert.equal(ruleAmountText(10), '10.00');
+    assert.equal(ruleAmountText('9.5'), '9.50');
+
+    const sent = [];
+    const api = {
+        createRule: async (...args) => { sent.push(['create', ...args]); return { applied: 1 }; },
+        updateRule: async (...args) => { sent.push(['update', ...args]); return { applied: 0 }; },
+        fetchRules: async () => [],
+        countRule: async () => ({ matching: 1, categorized: 1 }),
+    };
+    const module = createRulesModule(() => api);
+    const context = {
+        ...module.data(), ...module.methods, apiErrorText, t: key => key, showToast: () => {}, $nextTick: () => {},
+        formatAmount: amount => Number(amount).toFixed(2).replace('.', ','), currencySymbol: '€',
+    };
+    assert.equal(context.ruleLabel({ keyword: 'PAYPAL', amount: null }), 'PAYPAL');
+    assert.equal(context.ruleLabel({ keyword: 'PAYPAL', amount: 10 }), 'PAYPAL · 10,00 €');
+
+    context.openRuleModal({ id: 4, keyword: 'PAYPAL', category: 3, notify: 0, amount: 10 });
+    assert.equal(context.newRule.amount, '10.00');
+    await context.addRule();
+    assert.deepEqual(sent.at(-1), ['update', 4, 'PAYPAL', 3, false, '10.00']);
+
+    context.openRuleModal({ keyword: 'PAYPAL', category: 1 });
+    assert.equal(context.newRule.amount, '');
+    await context.addRule();
+    assert.deepEqual(sent.at(-1), ['create', 'PAYPAL', 1, false, '']);
 });

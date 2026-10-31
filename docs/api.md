@@ -1000,12 +1000,19 @@ transactions passent en catégorie 0 et les budgets et règles de la catégorie 
 
 ### `GET /category/keyword`
 
-Règles de catégorisation automatique : `id`, `keyword`, `category`, `category_name`.
+Règles de catégorisation automatique : `id`, `keyword`, `category`, `category_name`,
+`notify`, `amount` (montant en valeur absolue, `null` : tous les montants).
 
 ### `POST /category/keyword` — administrateur
 
 `keyword` (1 à 60 caractères, enregistré en majuscules), `category` : ajoute une règle.
-Erreurs : 400 mot-clé vide, 404 catégorie inconnue, 409 mot-clé déjà existant.
+`amount` (facultatif, `"10"`, `"10,50"`, `-10`…) : la règle ne reconnaît que les transactions
+de ce montant en valeur absolue, au centime près (une dépense de -10,00 comme un revenu
+de 10,00), et l'emporte sur les règles sans montant ; vide ou absent : tous les montants.
+La réponse contient `amount` (`"10.00"` ou `null`).
+Erreurs : 400 mot-clé vide ou montant invalide (`rule_amount_invalid`), 404 catégorie
+inconnue, 409 mot-clé déjà existant sans montant (`keyword_exists`) ou avec ce montant
+(`rule_amount_exists`).
 
 ```bash
 curl -X POST https://exemple.fr/api/category/keyword -H "Authorization: Bearer $TOKEN" \
@@ -1014,14 +1021,17 @@ curl -X POST https://exemple.fr/api/category/keyword -H "Authorization: Bearer $
 
 ### `PUT /category/keyword` — administrateur
 
-`id`, `keyword`, `category`, `notify` : modifie une règle (`409` si le mot-clé existe déjà).
+`id`, `keyword`, `category`, `notify`, `amount` : modifie une règle (`409` si une règle a
+déjà ce mot-clé et ce montant). `amount` absent ou `null` : le montant de la règle est
+conservé (les applications qui ne l'envoient pas ne l'effacent pas) ; `""` : tous les montants.
 `POST /category/keyword` accepte aussi `notify` : chaque nouvelle transaction synchronisée
 qui contient le mot-clé envoie alors une notification à tous les utilisateurs du foyer.
 
 ### `GET /category/keyword/count?id=` — administrateur
 
-Nombre de transactions dont le libellé contient le mot-clé (`matching`), dont celles déjà
-dans la catégorie de la règle (`categorized`).
+Nombre de transactions reconnues par la règle (`matching` : libellé contenant le mot-clé,
+de son montant si elle en a un, sans celles d'une règle avec un montant sinon), dont celles
+déjà dans la catégorie de la règle (`categorized`).
 
 ### `DELETE /category/keyword` — administrateur
 
