@@ -100,7 +100,7 @@ test('the transactions on a phone: search bar, recurring strip, icon buttons, fu
     const add = await toolbar.getByRole('button', { name: tr('manualTransactionTitle'), exact: true }).boundingBox();
     const title = await page.locator('.transactions-header h2').boundingBox();
     expect(Math.abs((add.y + add.height / 2) - (title.y + title.height / 2))).toBeLessThan(4);
-    for (const box of await toolbar.locator('> *:not(.btn-add-icon)').evaluateAll(list => list.map(e => e.getBoundingClientRect().toJSON()))) {
+    for (const box of await toolbar.locator(':scope > *:not(.btn-add-icon)').evaluateAll(list => list.map(e => e.getBoundingClientRect().toJSON()))) {
         expect(box.bottom <= add.y || box.top >= add.y + add.height || box.right <= add.x || box.left >= add.x + add.width).toBe(true);
     }
 
