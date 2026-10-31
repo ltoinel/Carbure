@@ -717,11 +717,14 @@ curl -X PUT https://exemple.fr/api/transaction/pointed -H "Authorization: Bearer
 
 ### `POST /transaction` { #post-transaction }
 
-Enters a transaction by hand on a manual account: `account` (`id` of the account), `date`
-(`YYYY-MM-DD`), `label`, `amount` (negative for an expense) and `category` (optional:
-otherwise the one of the rules, otherwise none). It is checked, of type `8` (expense), with
-`bank_name` `manual`. Returns the transaction. `400` errors: `account_not_manual`,
-`transaction_date_invalid`, `transaction_label_invalid`, `transaction_amount_invalid`;
+Enters a transaction by hand on an account of the household, manual or synchronized:
+`account` (`id` of the account, see `GET /bank`), `date` (`YYYY-MM-DD`), `label`, `amount`
+(negative for an expense) and `category` (optional: otherwise the one of the rules,
+otherwise none). It is checked, of type `8` (expense), with the `bank_name` and the
+`account_number` of the account; its `uuid` starts with `manual` (never a bank's one), which
+tells it apart from a synchronized transaction: the synchronization does not overwrite it,
+but if the bank later sends the same transaction, it is added as a duplicate. Returns the
+transaction. `400` errors: `transaction_date_invalid`, `transaction_label_invalid`, `transaction_amount_invalid`;
 `404` if the account or the category does not exist.
 
 ```bash
@@ -731,7 +734,8 @@ curl -X POST https://exemple.fr/api/transaction -H "Authorization: Bearer $TOKEN
 
 ### `PUT /transaction` { #put-transaction }
 
-Changes a transaction entered by hand: `id` and the values to change among `date`, `label`
+Changes a transaction entered by hand (on a manual account, or `uuid` starting with
+`manual`): `id` and the values to change among `date`, `label`
 and `amount`. `400 transaction_not_manual` for a transaction of a bank or a part of a split
 one, `400 transaction_split_amount` for the amount of a split transaction (cancel the split
 first). Returns the transaction.
