@@ -168,6 +168,7 @@ CREATE TABLE `budget` (
   `category` tinyint(3) unsigned NOT NULL,
   `amount` decimal(10,2) NOT NULL,
   `date` date NOT NULL,
+  `note` varchar(200) DEFAULT NULL COMMENT 'Reminder of what the budget covers (NULL: none)',
   PRIMARY KEY (`id`),
   UNIQUE KEY `category` (`category`,`date`),
   CONSTRAINT `fk_budget_category` FOREIGN KEY (`category`) REFERENCES `bank_transaction_category` (`id`)
@@ -426,7 +427,8 @@ INSERT IGNORE INTO `schema_migrations` (`version`) VALUES
 ('2026-11-02_category_source'),
 ('2026-11-03_insight_alert'),
 ('2026-11-04_insight_largest_expense'),
-('2026-11-05_rule_amount');
+('2026-11-05_rule_amount'),
+('2026-11-06_budget_note');
 
 SET FOREIGN_KEY_CHECKS = 1;
 COMMIT;

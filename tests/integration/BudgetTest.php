@@ -1,5 +1,6 @@
 <?php
 
+use Carbure\Lib\ApiError;
 use Carbure\Lib\Db;
 use Carbure\Resources\Budget;
 
@@ -38,6 +39,85 @@ class BudgetTest extends DatabaseTestCase
         $budget = $this->byName(Budget::get());
         $this->assertEquals(300, $budget['Alimentation']['budget']);
         $this->assertEquals(1000, $budget['Salaire']['budget']);
+    }
+
+    public function testNoteOfABudget()
+    {
+        // Saved trimmed with the amount, returned with the budget of the month (#468)
+        Budget::create(3, 120, date('n'), date('Y'), '  Électricité + gaz  ');
+        $budget = $this->byName(Budget::get());
+        $this->assertEquals(120, $budget['Énergie']['budget']);
+        $this->assertSame('Électricité + gaz', $budget['Énergie']['note']);
+        $this->assertNull($budget['Alimentation']['note']);
+
+        // Not sent (mobile apps): kept; "" removes it
+        Budget::create(3, 150, date('n'), date('Y'));
+        $this->assertSame('Électricité + gaz', $this->byName(Budget::get())['Énergie']['note']);
+        Budget::create(3, 150, date('n'), date('Y'), '   ');
+        $budget = $this->byName(Budget::get());
+        $this->assertNull($budget['Énergie']['note']);
+        $this->assertEquals(150, $budget['Énergie']['budget']);
+    }
+
+    public function testNoteOfABudgetTooLong()
+    {
+        Budget::create(3, 100, date('n'), date('Y'), str_repeat('é', 200));
+        $this->assertSame(200, mb_strlen($this->byName(Budget::get())['Énergie']['note']));
+        try {
+            Budget::create(3, 100, date('n'), date('Y'), str_repeat('é', 201));
+            $this->fail('A note of 201 characters was saved');
+        } catch (ApiError $e) {
+            $this->assertSame(400, $e->getCode());
+            $this->assertSame('budget_note_length', $e->getErrorCode());
+        }
+    }
+
+    public function testCopyKeepsTheNotes()
+    {
+        $previous = strtotime(date('Y-m-01') . ' -1 month');
+        $current = strtotime(date('Y-m-01'));
+        Db::query("DELETE FROM budget");
+        Budget::create(1, 200, date('n', $previous), date('Y', $previous), 'Courses + cantine');
+        Budget::create(3, 100, date('n', $previous), date('Y', $previous));
+        Budget::create(1, 250, date('n', $current), date('Y', $current), 'Ce mois-ci');
+
+        // Completing: the budget already set keeps its own note
+        Budget::copy(date('n', $current), date('Y', $current));
+        $budget = $this->byName(Budget::get(date('n', $current), date('Y', $current)));
+        $this->assertSame('Ce mois-ci', $budget['Alimentation']['note']);
+        $this->assertNull($budget['Énergie']['note']);
+
+        // Overwriting: the note of the previous month comes with its amount
+        Budget::copy(date('n', $current), date('Y', $current), true);
+        $budget = $this->byName(Budget::get(date('n', $current), date('Y', $current)));
+        $this->assertEquals(200, $budget['Alimentation']['budget']);
+        $this->assertSame('Courses + cantine', $budget['Alimentation']['note']);
+    }
+
+    public function testBeforeTheMigrationTheBudgetsHaveNoNote()
+    {
+        Db::query("ALTER TABLE budget DROP COLUMN note");
+        $ready = new ReflectionProperty(Budget::class, 'noteReady');
+        $ready->setValue(null, null);
+        try {
+            // Read without note, set without note ("" accepted: nothing to remove), copied
+            $this->assertNull($this->byName(Budget::get())['Énergie']['note']);
+            Budget::create(3, 120, date('n'), date('Y'));
+            Budget::create(3, 130, date('n'), date('Y'), '');
+            $this->assertEquals(130, $this->byName(Budget::get())['Énergie']['budget']);
+            $next = strtotime(date('Y-m-01') . ' +1 month');
+            $this->assertGreaterThan(0, Budget::copy(date('n', $next), date('Y', $next))['copied']);
+            try {
+                Budget::create(3, 140, date('n'), date('Y'), 'Électricité');
+                $this->fail('Note accepted before the migration');
+            } catch (ApiError $e) {
+                $this->assertSame(409, $e->getCode());
+                $this->assertSame('budget_note_migration', $e->getErrorCode());
+            }
+        } finally {
+            Db::query("ALTER TABLE budget ADD COLUMN note varchar(200) DEFAULT NULL AFTER date");
+            $ready->setValue(null, null);
+        }
     }
 
     public function testParentBudgetOverridesTheSumOfItsChildren()

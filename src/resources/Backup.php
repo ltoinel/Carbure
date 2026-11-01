@@ -193,8 +193,9 @@ final class Backup {
      * The columns of a dataset in the database: without the ones of a pending migration,
      * enabled of the insights (2026-11-01_insight_enabled: exported as null, imported
      * shown), category_source of the transactions (2026-11-02_category_source: exported
-     * as null, not imported) and amount of the rules (2026-11-05_rule_amount: exported as
-     * null, not imported).
+     * as null, not imported), amount of the rules (2026-11-05_rule_amount: exported as
+     * null, not imported) and note of the budgets (2026-11-06_budget_note: exported as null, not
+     * imported).
      *
      * @param string $name The dataset
      * @return list<string> The columns
@@ -206,6 +207,7 @@ final class Backup {
             'insights' => Insight::ready() ? [] : ['enabled'],
             'transactions' => Transaction::categorySourceReady() ? [] : ['category_source'],
             'rules' => Category::amountReady() ? [] : ['amount'],
+            'budgets' => Budget::noteReady() ? [] : ['note'],
             default => [],
         };
         return array_values(array_diff($columns, $pending));

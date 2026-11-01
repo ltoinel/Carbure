@@ -960,6 +960,11 @@
                                             <span class="spent" :class="{ positive: group.key === 'incomes' }">{{ formatAmount(item.consummed) }} {{ currencySymbol }}</span>
                                             <span class="of" v-if="Number(item.budget) > 0">/ {{ formatAmount(item.budget) }} {{ currencySymbol }}</span>
                                         </div>
+
+                                        <p v-if="item.note" class="budget-card-note" :title="item.note">
+                                            <span class="material-icons" aria-hidden="true">sticky_note_2</span>
+                                            <span class="visually-hidden">{{ t('budgetNoteLabel') }}: </span>{{ item.note }}
+                                        </p>
                                     </article>
                                 </div>
                             </section>
@@ -3980,6 +3985,9 @@
                         <input id="budget-edit-amount" type="number" step="0.01" min="0" v-model="budgetNewValue" @keydown.enter="submitBudgetEdit" />
                     </template>
                     <p v-if="Number(budgetToEdit.children) > 0" class="rules-help">{{ t('budgetChildrenHelp') }}</p>
+                    <label for="budget-edit-note">{{ t('budgetNoteLabel') }}</label>
+                    <textarea id="budget-edit-note" class="budget-edit-note" rows="2" maxlength="200" v-model="budgetNote"
+                              :placeholder="t('budgetNotePlaceholder')"></textarea>
                 </div>
                 <div class="modal-footer">
                     <button class="btn-secondary" @click="closeBudgetModal">

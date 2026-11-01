@@ -252,10 +252,11 @@ export function createBudgetStore(apiService) {
      * @param {number} month - Month
      * @param {number} year - Year
      * @param {number} newAmount - New budget amount
+     * @param {string} [note] - Reminder of what the budget covers ('' removes it)
      * @returns {Promise<void>}
      */
-    async function updateBudget(budgetId, month, year, newAmount) {
-        await apiService.updateBudget(budgetId, month, year, newAmount);
+    async function updateBudget(budgetId, month, year, newAmount, note) {
+        await apiService.updateBudget(budgetId, month, year, newAmount, note);
         // Reload the budgets (a parent depends on its sub-categories), staying on the displayed level
         const stack = state.breadcrumbStack.slice();
         await loadRootBudgets(month, year);

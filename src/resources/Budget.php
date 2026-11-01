@@ -11,6 +11,7 @@
 
 namespace Carbure\Resources;
 
+use Carbure\Lib\ApiError;
 use Carbure\Lib\ApiRoute;
 use Carbure\Lib\Config;
 use Carbure\Lib\Db;
@@ -28,8 +29,8 @@ final class Budget {
      * @param int|string|null $month    The month to get the budget
      * @param int|string|null $year     The year to get the budget
      * @param int|string|null $category The parent category id
-     * @return list<array<string, mixed>> The list of budget items; besides budget, consummed and progress:
-     *               budget_mode ('own' or 'children': sum of the sub-categories),
+     * @return list<array<string, mixed>> The list of budget items; besides budget, note (of the
+     *               budget of the month, null if none), consummed and progress: budget_mode ('own' or 'children': sum of the sub-categories),
      *               children (number of sub-categories) and children_budget (their sum)
      */
     #[ApiRoute('/budget', method: 'GET')]
@@ -49,7 +50,7 @@ final class Budget {
         $budgets = self::budgets($from, $to);
 
         // Categories of the requested level with their budget of the month
-        $sql = "SELECT c.id, c.name, c.type, c.icon, c.color, IFNULL(b.amount, 0) AS budget
+        $sql = "SELECT c.id, c.name, c.type, c.icon, c.color, IFNULL(b.amount, 0) AS budget, " . self::noteColumn('b') . "
                 FROM bank_transaction_category c
                 LEFT JOIN budget b ON b.category = c.id AND b.date >= ? AND b.date < ?
                 WHERE c.parent_category = ?";
@@ -151,6 +152,35 @@ final class Budget {
         return $children > 0 && $amount == 0 ? 'children' : 'own';
     }
 
+    /** Longest note of a budget, in characters */
+    public const NOTE_LENGTH = 200;
+
+    /** Cache of noteReady() */
+    private static ?bool $noteReady = null;
+
+    /**
+     * Whether the budgets have their note (migration 2026-11-06_budget_note). Read once
+     * per request.
+     *
+     * @return bool
+     */
+    public static function noteReady(): bool
+    {
+        return self::$noteReady ??= Db::queryOne("SELECT 1 FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'budget' AND COLUMN_NAME = 'note'", "") !== null;
+    }
+
+    /**
+     * SQL of the note of a budget in a SELECT: NULL before the migration 2026-11-06_budget_note.
+     *
+     * @param string $alias Alias of the table budget
+     * @return string "<alias>.note" or "NULL AS note"
+     */
+    private static function noteColumn(string $alias): string
+    {
+        return self::noteReady() ? "$alias.note" : "NULL AS note";
+    }
+
     /**
      * Set the budget for a category. For a category with sub-categories, the amount
      * overrides the sum of their budgets; 0 goes back to that sum.
@@ -159,25 +189,57 @@ final class Budget {
      * @param int|float|string $amount   The amount of the budget (a number or a numeric string)
      * @param int|string|null  $month    The month of the budget
      * @param int|string|null  $year     The year of the budget
+     * @param string|null      $note     Reminder of what the budget covers (200 characters at
+     *                                   most); "" removes it, null (not sent) keeps the current one
      * @return bool True on success
+     * @throws Error If the note is too long (400), or sent before the migration 2026-11-06_budget_note (409)
      */
     #[ApiRoute('/budget', method: 'POST', changes: ['budgets'])]
-    public static function create(int $category, int|float|string $amount, int|string|null $month = null, int|string|null $year = null): bool
+    public static function create(int $category, int|float|string $amount, int|string|null $month = null, int|string|null $year = null,
+        ?string $note = null): bool
     {
         // Insert or update the budget for the given category and month
         $date = Month::first($month, $year);
-        $sql = "INSERT INTO budget (date, amount, category) VALUES (?, ?, ?)
-            ON DUPLICATE KEY UPDATE amount=?";
+        if ($note !== null && !self::noteReady()) {
+            if (trim($note) !== '') {
+                throw new ApiError("The note of the budgets needs the pending database migrations", 409, 'budget_note_migration');
+            }
+            $note = null;
+        }
+        if ($note === null) {
+            Db::execute("INSERT INTO budget (date, amount, category) VALUES (?, ?, ?)
+                ON DUPLICATE KEY UPDATE amount=?", "sdid", $date, $amount, $category, $amount);
+            return true;
+        }
 
-        Db::execute($sql, "sdid", $date, $amount, $category, $amount);
+        $note = self::note($note);
+        Db::execute("INSERT INTO budget (date, amount, category, note) VALUES (?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE amount=?, note=?", "sdisds", $date, $amount, $category, $note, $amount, $note);
 
         return true;
     }
 
     /**
+     * A note of a budget as stored: trimmed, null when empty.
+     *
+     * @param string $note The note sent
+     * @return string|null The note, null for none
+     * @throws Error If it is longer than NOTE_LENGTH characters (400)
+     */
+    private static function note(string $note): ?string
+    {
+        $note = trim($note);
+        if (mb_strlen($note) > self::NOTE_LENGTH) {
+            throw new ApiError("The note of a budget has " . self::NOTE_LENGTH . " characters at most", 400, 'budget_note_length',
+                ['max' => self::NOTE_LENGTH]);
+        }
+        return $note === '' ? null : $note;
+    }
+
+    /**
      * Copy the budgets of the previous month to the given month.
      *
-     * Rows at 0 are copied as is (they mean "sum of the sub-categories").
+     * Rows at 0 are copied as is (they mean "sum of the sub-categories"), with their note.
      * Without overwrite, only the categories without a budget in the target
      * month are copied; with overwrite, every budget of the source month
      * replaces the one of the target month.
@@ -197,7 +259,7 @@ final class Budget {
         $source = date('Y-m-d', Month::timestamp("$target -1 month"));
         [$from, $to] = Month::range(date('n', Month::timestamp($source)), date('Y', Month::timestamp($source)));
 
-        $rows = Db::select("SELECT category, amount FROM budget WHERE date >= ? AND date < ?",
+        $rows = Db::select("SELECT category, amount, " . self::noteColumn('budget') . " FROM budget WHERE date >= ? AND date < ?",
             "ss", $from, $to)->fetch_all(MYSQLI_ASSOC);
 
         $key = sprintf('%04d-%02d', $targetYear, $targetMonth);
@@ -211,13 +273,26 @@ final class Budget {
         foreach ($rows as $row) {
             $amount = (float)$row['amount'];
             $category = (int)$row['category'];
+            $note = $row['note'];
+            if (!self::noteReady()) {
+                // Before the migration 2026-11-06_budget_note: the amounts only
+                if ($overwrite) {
+                    Db::execute("INSERT INTO budget (date, amount, category) VALUES (?, ?, ?)
+                        ON DUPLICATE KEY UPDATE amount=?", "sdid", $target, $amount, $category, $amount);
+                    $copied++;
+                } else {
+                    $copied += Db::execute("INSERT IGNORE INTO budget (date, amount, category) VALUES (?, ?, ?)",
+                        "sdi", $target, $amount, $category)->affected_rows > 0 ? 1 : 0;
+                }
+                continue;
+            }
             if ($overwrite) {
-                Db::execute("INSERT INTO budget (date, amount, category) VALUES (?, ?, ?)
-                    ON DUPLICATE KEY UPDATE amount=?", "sdid", $target, $amount, $category, $amount);
+                Db::execute("INSERT INTO budget (date, amount, category, note) VALUES (?, ?, ?, ?)
+                    ON DUPLICATE KEY UPDATE amount=?, note=?", "sdisds", $target, $amount, $category, $note, $amount, $note);
                 $copied++;
             } else {
-                $stmt = Db::execute("INSERT IGNORE INTO budget (date, amount, category) VALUES (?, ?, ?)",
-                    "sdi", $target, $amount, $category);
+                $stmt = Db::execute("INSERT IGNORE INTO budget (date, amount, category, note) VALUES (?, ?, ?, ?)",
+                    "sdis", $target, $amount, $category, $note);
                 $copied += $stmt->affected_rows > 0 ? 1 : 0;
             }
         }

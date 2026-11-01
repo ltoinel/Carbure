@@ -791,7 +791,8 @@ curl -X DELETE "https://exemple.fr/api/transaction?id=42" -H "Authorization: Bea
 ### `GET /budget` { #get-budget }
 
 `month`, `year`, `category` (parent category, `0` = root). For each category:
-`id`, `name`, `type`, `icon`, `color`, `budget`, `consummed` (transactions of the category and its
+`id`, `name`, `type`, `icon`, `color`, `budget`, `note` (note of the budget of the month, `null`
+without one), `consummed` (transactions of the category and its
 subcategories, in the direction of its type: net spending of a `DEBIT` category, net income
 of a `CREDIT` category, never negative — a refund larger than the spending of the month gives
 0; absolute value for `HORS-BUDGET`), `progress` (%), `children`
@@ -831,7 +832,10 @@ Returns the columns of `bank_transaction` and `top` (top-level category).
 
 `category`, `amount` (required), `month`, `year` (current month by default): creates or
 updates the category's budget for the month. For a category with subcategories, the
-amount replaces the sum of their budgets; `0` reverts to that sum.
+amount replaces the sum of their budgets; `0` reverts to that sum. `note` (optional):
+reminder of what the budget covers, 200 characters at most (`400`, `budget_note_length`
+beyond), leading and trailing spaces removed; `""` removes it, and without `note` (mobile
+apps) the existing note is kept.
 
 ### `GET /budget/copy` { #get-budgetcopy }
 
@@ -847,7 +851,8 @@ as defined. The portal shows the copy button only when `copyable` is `true`.
 `month`, `year` (target month, current month by default), `overwrite` (`false` by default):
 copies the previous month's budgets to the target month. Without `overwrite`, only the
 categories with no budget in the target month are copied; with `overwrite`, all the
-previous month's budgets replace those of the target month. Returns `month`, `source` (previous
+previous month's budgets replace those of the target month. The notes are copied with their
+budget. Returns `month`, `source` (previous
 month, `YYYY-MM`), `copied` (budgets written) and `overwrite`.
 
 ### `GET /budget/trends` { #get-budgettrends }

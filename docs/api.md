@@ -794,7 +794,8 @@ curl -X DELETE "https://exemple.fr/api/transaction?id=42" -H "Authorization: Bea
 ### `GET /budget`
 
 `month`, `year`, `category` (catégorie parente, `0` = racine). Pour chaque catégorie :
-`id`, `name`, `type`, `icon`, `color`, `budget`, `consummed` (transactions de la catégorie et de ses
+`id`, `name`, `type`, `icon`, `color`, `budget`, `note` (note du budget du mois, `null` sans
+note), `consummed` (transactions de la catégorie et de ses
 sous-catégories, dans le sens de son type : dépense nette d'une catégorie `DEBIT`, revenu
 net d'une catégorie `CREDIT`, jamais négatif — un remboursement plus grand que les dépenses
 du mois donne 0 ; valeur absolue pour `HORS-BUDGET`), `progress` (%), `children`
@@ -834,7 +835,10 @@ Renvoie les colonnes de `bank_transaction` et `top` (catégorie de premier nivea
 
 `category`, `amount` (requis), `month`, `year` (mois courant par défaut) : crée ou met à
 jour le budget de la catégorie pour le mois. Pour une catégorie avec sous-catégories, le
-montant remplace la somme de leurs budgets ; `0` revient à cette somme.
+montant remplace la somme de leurs budgets ; `0` revient à cette somme. `note` (facultatif) :
+pense-bête de ce que couvre le budget, 200 caractères au plus (`400`,
+`budget_note_length` au-delà), espaces de début et de fin retirés ; `""` la supprime, et
+sans `note` (applications mobiles) la note existante est conservée.
 
 ### `GET /budget/copy`
 
@@ -850,7 +854,8 @@ défini. Le portail n'affiche le bouton de recopie que si `copyable` vaut `true`
 `month`, `year` (mois cible, mois courant par défaut), `overwrite` (`false` par défaut) :
 recopie les budgets du mois précédent vers le mois cible. Sans `overwrite`, seules les
 catégories sans budget dans le mois cible sont recopiées ; avec `overwrite`, tous les
-budgets du mois précédent remplacent ceux du mois cible. Renvoie `month`, `source` (mois
+budgets du mois précédent remplacent ceux du mois cible. Les notes sont recopiées avec leur
+budget. Renvoie `month`, `source` (mois
 précédent, `AAAA-MM`), `copied` (budgets écrits) et `overwrite`.
 
 ### `GET /budget/trends`

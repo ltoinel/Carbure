@@ -60,6 +60,7 @@ export function createBudgetModule(getBudgetStore, getApiService) {
                 budgetToEdit: null,
                 // Edit modal: amount, and for a parent category the sum of its sub-categories
                 budgetNewValue: '',
+                budgetNote: '',
                 budgetUseChildren: false,
                 savingBudget: false,
                 // Copy of the previous month: modal, missing (default) or all, ongoing request
@@ -361,6 +362,7 @@ export function createBudgetModule(getBudgetStore, getApiService) {
                 this.budgetToEdit = item;
                 this.budgetUseChildren = item.budget_mode === 'children';
                 this.budgetNewValue = this.budgetUseChildren ? '' : (Number(item.budget) || '');
+                this.budgetNote = item.note || '';
                 this.showBudgetModal = true;
                 this.$nextTick(() => document.getElementById('budget-edit-amount')?.focus());
             },
@@ -378,7 +380,7 @@ export function createBudgetModule(getBudgetStore, getApiService) {
                 }
                 this.savingBudget = true;
                 try {
-                    await this.handleBudgetSave(amount, this.selectedMonth, this.selectedYear);
+                    await this.handleBudgetSave(amount, this.selectedMonth, this.selectedYear, this.budgetNote.trim());
                 } finally {
                     this.savingBudget = false;
                 }
@@ -441,9 +443,10 @@ export function createBudgetModule(getBudgetStore, getApiService) {
              * @param {number} newValue - New budget amount
              * @param {number} month - Month (1-12)
              * @param {number} year - Year
+             * @param {string} [note] - Reminder of what the budget covers ('' removes it)
              * @returns {Promise<void>}
              */
-            async handleBudgetSave(newValue, month, year) {
+            async handleBudgetSave(newValue, month, year, note) {
                 const store = getBudgetStore();
                 if (!store) {
                     console.error('Budget store not initialized');
@@ -455,7 +458,8 @@ export function createBudgetModule(getBudgetStore, getApiService) {
                         this.budgetToEdit.id,
                         month,
                         year,
-                        newValue
+                        newValue,
+                        note
                     );
 
                     this.showToast(this.t('budgetUpdatedToast'));

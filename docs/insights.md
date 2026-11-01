@@ -76,7 +76,7 @@ Les tables utiles (voir [Modèle de données](modele-donnees.md)) :
 |---|---|
 | `bank_transaction` | `date` (date de débit, celle du mois affiché), `rdate` (date réelle de l'opération : jour d'un paiement par carte), `type`, `label`, `category`, `amount` (négatif = débit), `pointed` (1 = vérifiée), `bank_name`, `account_number`, `split_of` (une part d'une transaction répartie : l'id de la transaction d'origine, sinon `NULL`) |
 | `bank_transaction_category` | `id`, `name`, `parent_category` (0 = catégorie principale), `type` : `DEBIT`, `CREDIT` ou `HORS-BUDGET` |
-| `budget` | `category`, `amount` (montant positif prévu), `date` (premier jour du mois) |
+| `budget` | `category`, `amount` (montant positif prévu), `date` (premier jour du mois), `note` |
 | `bank_account` | `bank_name`, `account_number`, `label` (nom donné au compte) |
 | `tag` | `id`, `name` (sans le `#`), `start_date`, `end_date` |
 | `transaction_tag` | `transaction_id` (`bank_transaction.id`), `tag_id` (`tag.id`) |
