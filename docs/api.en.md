@@ -99,7 +99,7 @@ is enough (see below).
 | `accounts` | synchronization (account in error, repaired or another error), `POST`/`PUT`/`DELETE /bank`, `/bank/backend` |
 | `categories` | `POST`/`PUT`/`DELETE /category`, `/category/keyword`, `PUT /category/keyword/settings` |
 | `budgets` | `POST /budget`, `POST /budget/copy`, `DELETE /category` |
-| `insights` | `POST`/`PUT`/`DELETE /insight`, `PUT /insight/enabled` |
+| `insights` | `POST`/`PUT`/`DELETE /insight`, `PUT /insight/enabled`, `PUT /insight/order` |
 | `settings` | `PUT /system/config` |
 | `tags` | `POST`/`PUT`/`DELETE /tag` |
 
@@ -935,6 +935,18 @@ The hidden insights, offered by the **+** button of the Insights screen:
 `id`, `enabled` (boolean, `true` by default): shows or hides an insight for the whole
 household (any user). Returns `{"id", "enabled"}`; `404` (`insight_not_found`) if the
 insight is unknown.
+
+### `PUT /insight/order` { #put-insightorder }
+
+`ids` (list of insight ids): order of the cards of the Insights screen for the whole
+household (any user), chosen by drag and drop in the portal. The insights listed take the
+places 1, 2, 3… in this order; the others (hidden, or created meanwhile) go after them, in
+their order. Returns the ids of the shown insights, in their order. `400`
+(`insight_order_invalid`) if an id is not a positive integer or is repeated, `404`
+(`insight_not_found`) if an insight is unknown, `409` (`insight_migration_pending`) before
+the migration `2026-11-07_insight_position`. `GET /budget/insights`, `GET /insight` and
+`GET /insight/disabled` follow this order (by id as long as no order is chosen); a new
+insight goes last.
 
 ### `GET /insight/alert` { #get-insightalert }
 

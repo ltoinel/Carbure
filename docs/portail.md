@@ -265,6 +265,14 @@ principaux. Le bouton **+** ouvre la liste des insights masqués, chacun affich�
 foyer, et un insight masqué n'est plus calculé. Le bouton **+** n'apparaît pour un
 utilisateur que s'il y a des insights masqués.
 
+Les cartes se **réorganisent par glisser-déposer** sur une grille aimantée : la poignée
+(**⋮⋮**, en bas de chaque carte) se glisse à la souris, au stylet ou au doigt ; la carte se
+soulève et se cale dans la case sous le pointeur, les autres glissent pour lui faire place.
+Au clavier, la poignée déplace sa carte avec les **flèches** (case précédente ou suivante),
+**Début** et **Fin** ; sa nouvelle place est annoncée aux lecteurs d'écran. L'ordre est
+enregistré au lâcher, pour tout le foyer (`PUT /insight/order`) ; un nouvel insight se
+place à la fin.
+
 La **cloche** d'une carte règle l'alerte de l'utilisateur sur cet insight : **au-dessus** ou
 **en dessous** d'un montant, comparé à la valeur du mois sans son signe. La carte rappelle
 l'alerte posée et la cloche se remplit ; la corbeille rouge en bas à gauche (**Supprimer l'alerte**) la retire. Les canaux se

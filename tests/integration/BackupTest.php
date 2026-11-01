@@ -277,8 +277,8 @@ class BackupTest extends DatabaseTestCase
     {
         $insight = ['id' => 7, 'name' => ' Courses ', 'color' => 'blue', 'icon' => '', 'sql' => ' SELECT SUM(amount) AS amount FROM bank_transaction; '];
         Backup::import(['insights' => [$insight]]);
-        $this->assertSame(['id' => 7, 'name' => 'Courses', 'color' => 'blue', 'icon' => null, 'sql' => 'SELECT SUM(amount) AS amount FROM bank_transaction', 'enabled' => true],
-            $this->export('insights')['datasets']['insights'][0]);
+        $this->assertSame(['id' => 7, 'name' => 'Courses', 'color' => 'blue', 'icon' => null, 'sql' => 'SELECT SUM(amount) AS amount FROM bank_transaction', 'enabled' => true,
+            'position' => 0], $this->export('insights')['datasets']['insights'][0]);
 
         // A disabled insight stays disabled; one of an older backup (no enabled) is enabled
         Backup::import(['insights' => [['enabled' => false] + $insight, ['id' => 8] + $insight]]);

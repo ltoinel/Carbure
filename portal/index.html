@@ -1038,8 +1038,14 @@
                                 </div>
                             </div>
                             <div v-if="insights.length === 0" class="transactions-hint">{{ t('noInsightsMessage') }}</div>
-                            <div class="insights-grid">
-                            <div v-for="insight in insights" :key="insight.id" class="insight-card" :class="'insight-' + insight.color"
+                            <!-- Cards ordered by drag and drop on a magnetic grid (#467): the card dragged by its
+                                 handle snaps to the cell under the pointer, the others slide aside; the arrow keys
+                                 move it from the handle -->
+                            <p id="insight-move-help" class="visually-hidden">{{ t('insightMoveHelp') }}</p>
+                            <p class="visually-hidden" aria-live="polite">{{ insightOrderAnnouncement }}</p>
+                            <transition-group name="insight-move" tag="div" class="insights-grid" :class="{ 'insights-sorting': draggingInsight !== null }">
+                            <div v-for="insight in insights" :key="insight.id" class="insight-card" :data-insight-id="insight.id"
+                                 :class="['insight-' + insight.color, { dragging: draggingInsight === insight.id }]"
                                  :style="insightColorValues[insight.color] ? { '--insight-color': insightColorValues[insight.color] } : {}">
                                 <div class="insight-main">
                                     <div class="insight-icon" aria-hidden="true">
@@ -1058,6 +1064,12 @@
                                 <!-- The actions at the bottom of every card, at the same height in a row -->
                                 <div class="insight-footer">
                                     <div class="insight-actions">
+                                        <button v-if="insights.length > 1" class="btn-icon insight-drag" type="button"
+                                                @pointerdown="startInsightDrag($event, insight)" @keydown="moveInsightByKey($event, insight)"
+                                                :title="t('insightMove')" :aria-label="t('insightMoveOf', { name: getInsightName(insight.name) })"
+                                                aria-describedby="insight-move-help">
+                                            <span class="material-icons" aria-hidden="true">drag_indicator</span>
+                                        </button>
                                         <button v-if="isAdmin" class="btn-icon" @click="openInsightModal(insight)" :title="t('editInsight')" :aria-label="t('editInsight') + ' ' + getInsightName(insight.name)">
                                             <span class="material-icons" aria-hidden="true">edit</span>
                                         </button>
@@ -1072,7 +1084,7 @@
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                            </transition-group>
                         </div>
                     </div>
 

@@ -668,7 +668,7 @@ final class Budget {
         $insights = Insight::enabled();
         foreach ($insights as &$insight) {
             $insight["amount"] = Insight::amount($insight["sql"], $month, $year) ?? 0;
-            unset($insight["sql"], $insight["enabled"]);
+            unset($insight["sql"], $insight["enabled"], $insight["position"]);
         }
 
         return $insights;

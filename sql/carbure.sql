@@ -184,6 +184,7 @@ CREATE TABLE `budget_insight` (
   `icon` varchar(50) DEFAULT NULL COMMENT 'Material icon (default: chosen from the name)',
   `sql` varchar(500) NOT NULL,
   `enabled` tinyint(1) NOT NULL DEFAULT 1 COMMENT 'Shown in the Insights tab (0: offered by its + button)',
+  `position` smallint(5) unsigned NOT NULL DEFAULT 0 COMMENT 'Place in the Insights tab (sorted by position, then id)',
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -428,7 +429,8 @@ INSERT IGNORE INTO `schema_migrations` (`version`) VALUES
 ('2026-11-03_insight_alert'),
 ('2026-11-04_insight_largest_expense'),
 ('2026-11-05_rule_amount'),
-('2026-11-06_budget_note');
+('2026-11-06_budget_note'),
+('2026-11-07_insight_position');
 
 SET FOREIGN_KEY_CHECKS = 1;
 COMMIT;

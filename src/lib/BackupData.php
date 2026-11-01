@@ -78,7 +78,9 @@ final class BackupData {
             'key' => 'id',
             'columns' => ['id' => 'int:4294967295', 'name' => 'name:20', 'color' => 'name:20', 'icon' => '?string:50', 'sql' => 'name:500',
                 // Added with the migration 2026-11-01_insight_enabled: enabled in an older backup
-                'enabled' => 'bool:1'],
+                'enabled' => 'bool:1',
+                // Added with the migration 2026-11-07_insight_position: sorted by id in an older backup
+                'position' => 'int:65535:0'],
         ],
         // Added with the migration 2026-11-03_insight_alert: the alerts of each user
         'insight_alerts' => [
@@ -282,6 +284,24 @@ final class BackupData {
     }
 
     /**
+     * Check an integer of an imported file, or give the default of its column when it is
+     * missing (column added after the backup).
+     *
+     * @param mixed  $value    The value
+     * @param string $argument "<max>" or "<max>:<default>"
+     * @return int The integer
+     * @throws InvalidArgumentException If invalid
+     */
+    private static function integerOrDefault(mixed $value, string $argument): int
+    {
+        [$max, $default] = array_pad(explode(':', $argument, 2), 2, '');
+        if ($value === null && $default !== '') {
+            return (int)$default;
+        }
+        return self::integer($value, (int)$max);
+    }
+
+    /**
      * Check of a value of each type: function (value, argument of the type).
      *
      * @return array<string, Closure> The checks by kind of type
@@ -289,7 +309,8 @@ final class BackupData {
     private static function checks(): array
     {
         return [
-            'int' => fn(mixed $value, string $max): int => self::integer($value, (int)$max),
+            // int:<max>[:<default>] = the default is the value of a column missing from an older backup
+            'int' => fn(mixed $value, string $argument): int => self::integerOrDefault($value, $argument),
             'string' => fn(mixed $value, string $max): string => self::text($value, (int)$max, 0),
             'name' => fn(mixed $value, string $max): string => self::text($value, (int)$max, 1),
             'enum' => fn(mixed $value, string $choices): string => self::choice($value, explode('|', $choices)),

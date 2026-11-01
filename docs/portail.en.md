@@ -261,6 +261,14 @@ the **crossed-out eye** icon of a card hides it. The choice applies to the whole
 and a hidden insight is no longer computed. A user sees the **+** button only when some
 insights are hidden.
 
+The cards are **reorganized by drag and drop** on a magnetic grid: the handle (**⋮⋮**, at
+the bottom of each card) is dragged with the mouse, a pen or a finger; the card is lifted
+and snaps to the cell under the pointer, the others slide to make room for it. With the
+keyboard, the handle moves its card with the **arrow keys** (previous or next cell),
+**Home** and **End**; its new place is announced to screen readers. The order is saved
+when the card is dropped, for the whole household (`PUT /insight/order`); a new insight
+goes last.
+
 The **bell** of a card sets the user's alert on this insight: **above** or **below** an
 amount, compared with the value of the month without its sign. The card reminds the alert
 set and the bell is filled; the red trash at the bottom left (**Remove the alert**) removes it. The channels are chosen in

@@ -78,6 +78,15 @@ keeps track of what was done).
       in the budget editor (`POST /budget` with `note`, `""` to remove it; without `note`
       the current one is kept).
 
+- [ ] **Deployment of the order of the insights (#467)**: the migration
+      `2026-11-07_insight_position` (column `budget_insight.position`) is applied at container
+      start; the insights keep their order (by id) until the household orders them. Before it,
+      `PUT /insight/order` answers 409 (`insight_migration_pending`).
+
+- [ ] **Mobile apps — order of the insights (#467)**: `GET /budget/insights` already returns
+      the cards in the order chosen in the portal; offer to reorder them
+      (`PUT /insight/order` with the ids in their new order).
+
 - [ ] **Deployment of the insight alerts (#387)**: the migration `2026-11-03_insight_alert`
       (table `insight_alert`) is applied at container start. Before it, `GET /insight/alert`
       is empty, `PUT /insight/alert` answers 409 and nothing alerts.

@@ -420,3 +420,22 @@ test('axe: the note of a budget, on its card and in the budget editor (#468)', a
     problems.push(...await axeViolations(page, `${tr('budgetEditTitle')} (${tr('budgetNoteLabel')})`));
     expect(problems).toEqual([]);
 });
+
+test('axe: the cards of the insights with their move handles, one of them dragged (#467)', async ({ adminPage: page, api }) => {
+    const sql = 'SELECT SUM(amount) AS amount FROM bank_transaction WHERE MONTH(date) = {month} AND YEAR(date) = {year}';
+    await api.post('/api/insight', { data: { name: 'Revenus', color: 'green', sql } });
+    const problems = [];
+
+    await openTab(page, tr('tabInsights'));
+    await expect(page.getByRole('button', { name: tr('insightMoveOf', { name: 'Dépenses' }) })).toBeVisible();
+    problems.push(...await axeViolations(page, tr('insightMove')));
+
+    const box = await page.locator('.insight-card .insight-drag').first().boundingBox();
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width / 2 + 5, box.y + box.height / 2 + 5);
+    await expect(page.locator('.insight-card.dragging')).toHaveCount(1);
+    problems.push(...await axeViolations(page, `${tr('insightMove')} (dragging)`));
+    await page.mouse.up();
+    expect(problems).toEqual([]);
+});
