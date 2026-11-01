@@ -60,8 +60,8 @@ La carte affiche **toujours la valeur absolue du montant, avec deux décimales e
 - un **pourcentage** ou un **nombre** (de transactions, de mois…) s'affiche aussi avec `€` :
   un taux d'épargne de 32,5 % apparaît « 32,50 € ». Les recettes concernées l'indiquent
   dans leur nom (`%`, « Nb ») pour lever l'ambiguïté ;
-- le **signe** n'apparaît que par la couleur : une dépense (montant négatif) est rouge, une
-  rentrée ou un écart favorable ne l'est pas. Les recettes suivent la convention des
+- un montant négatif s'affiche avec son **signe** (« -1 584,20 € ») et en rouge, une
+  rentrée ou un écart favorable sans signe ni rouge. Les recettes suivent la convention des
   transactions : **négatif = argent qui sort** ;
 - une requête qui ne renvoie rien (`NULL`, par exemple aucune transaction ce mois-là) ou qui
   échoue affiche **0,00 €** ;
