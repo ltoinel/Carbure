@@ -307,12 +307,18 @@ la création, la modification et la suppression d'une catégorie aux autres util
 Une règle associe un **mot-clé** à une catégorie : toute transaction dont le libellé
 **contient** ce mot-clé reçoit la catégorie (« CARREFOUR » → Supermarché).
 
-- Le mot-clé est enregistré en majuscules, comme les libellés ; il est unique.
-- Quand plusieurs mots-clés se trouvent dans un même libellé, **la règle créée en premier**
-  l'emporte.
+- Le mot-clé est enregistré en majuscules, comme les libellés.
+- **Montant (facultatif)** : une règle avec un montant ne s'applique qu'aux transactions de
+  ce montant, **en valeur absolue et au centime près** (« 10 » reconnaît une dépense de
+  -10,00 € comme un revenu de 10,00 €). Deux règles peuvent ainsi partager un mot-clé :
+  « PAYPAL » → Shopping et « PAYPAL · 10,00 € » → Spotify. Un mot-clé n'a qu'une règle
+  sans montant, et qu'une règle par montant.
+- Quand plusieurs règles reconnaissent une transaction, **une règle avec un montant
+  l'emporte** sur les règles sans montant ; sinon, **la règle créée en premier** l'emporte.
 - **Créer ou modifier une règle l'applique tout de suite à tout l'historique**, transactions
   déjà catégorisées comprises ; la fenêtre de la règle indique combien de transactions
-  contiennent le mot-clé et combien sont déjà dans la catégorie.
+  elle reconnaît et combien sont déjà dans la catégorie. Une règle sans montant laisse les
+  transactions reconnues par une règle avec un montant.
 - **Une catégorie choisie à la main n'est jamais écrasée par une règle** : Carbure retient
   l'origine de la catégorie de chaque transaction (règle ou choix à la main depuis le
   portail, les applications mobiles, une répartition ou une saisie à la main). Les

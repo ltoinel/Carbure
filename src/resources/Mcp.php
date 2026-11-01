@@ -345,7 +345,7 @@ final class Mcp {
             [
                 'name' => 'list_rules',
                 'title' => 'Categorization rules',
-                'description' => 'Automatic categorization rules: a transaction whose label contains the keyword gets the category.',
+                'description' => 'Automatic categorization rules: a transaction whose label contains the keyword (and whose absolute amount equals the amount of the rule, when it has one) gets the category.',
                 'inputSchema' => ['type' => 'object', 'properties' => new stdClass()],
                 'annotations' => $readOnly,
             ],
@@ -448,7 +448,8 @@ final class Mcp {
                 return Budget::getTrends($int('months', 12), $int('offset', 0));
 
             case 'list_rules':
-                return array_map(fn($rule) => ['keyword' => $rule['keyword'], 'category' => $rule['category_name'] ?? $rule['category'] ?? null],
+                return array_map(fn($rule) => ['keyword' => $rule['keyword'], 'category' => $rule['category_name'] ?? $rule['category'] ?? null,
+                    'amount' => $rule['amount'] ?? null],
                     Category::getKeywords());
         }
         return self::runInsightTool($name, $arguments);

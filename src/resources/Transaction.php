@@ -420,7 +420,7 @@ final class Transaction {
         Db::execute("UPDATE bank_transaction SET label = ?, card = ? WHERE split_of = ?", "ssi",
             $row['label'], $row['card'], $unlabeled['id']);
         Changes::touch('transactions');
-        $category = (int)$unlabeled['category'] === 0 ? Category::find($row['label']) : null;
+        $category = (int)$unlabeled['category'] === 0 ? Category::find($row['label'], null, $row['amount']) : null;
         if ($category !== null) {
             self::setCategory((int)$unlabeled['id'], $category, self::SOURCE_RULE);
         }
@@ -613,7 +613,7 @@ final class Transaction {
         $categorized = 0;
         $keywords = Category::loadKeywords();
         foreach ($created as $transaction) {
-            $category = Category::find($transaction['label'], $keywords);
+            $category = Category::find($transaction['label'], $keywords, $transaction['amount']);
             if ($category !== null) {
                 Db::execute("UPDATE bank_transaction SET category = ?" . self::sourceSql(self::SOURCE_RULE)
                     . " WHERE uuid = ? AND category = 0", "is", $category, $transaction['uuid']);
@@ -947,7 +947,7 @@ final class Transaction {
             $label = (string)$row["label"];
 
             // Get the category
-            $category = Category::find($label, $keywords);
+            $category = Category::find($label, $keywords, $row['amount']);
 
             // A category has been found we update the transaction
             if ($category !== null) {
@@ -1186,7 +1186,7 @@ final class Transaction {
         }
         $fields = self::manualFields($date, $label, $amount);
         $chosen = $category !== null && $category !== '';
-        $category = $chosen ? self::existingCategory($category) : (Category::find($fields['label']) ?? 0);
+        $category = $chosen ? self::existingCategory($category) : (Category::find($fields['label'], null, $fields['amount']) ?? 0);
         $source = $chosen ? self::SOURCE_MANUAL : ($category !== 0 ? self::SOURCE_RULE : null);
 
         $id = self::insertRow(['split_of' => null, 'uuid' => self::manualUuid(), 'rdate' => $fields['date'],

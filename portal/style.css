@@ -9599,3 +9599,9 @@ button.is-busy:not(.btn-confirm-danger):hover {
 .split-summary > span:last-child {
     white-space: nowrap;
 }
+
+/* Amount of a rule on its chip ("PAYPAL · 10,00 €"): same color as the keyword (contrast) */
+.rule-amount {
+    margin-left: 4px;
+    font-variant-numeric: tabular-nums;
+}

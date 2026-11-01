@@ -157,8 +157,9 @@ erDiagram
     }
     bank_transaction_category_keyword {
         int id PK
-        varchar keyword UK
+        varchar keyword UK "unique avec amount"
         tinyint category FK
+        decimal amount "valeur absolue, NULL : tous les montants"
         tinyint notify "notification au foyer"
     }
     budget {

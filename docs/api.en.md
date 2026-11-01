@@ -997,12 +997,19 @@ transactions move to category 0 and the category's budgets and rules are deleted
 
 ### `GET /category/keyword` { #get-categorykeyword }
 
-Automatic categorization rules: `id`, `keyword`, `category`, `category_name`.
+Automatic categorization rules: `id`, `keyword`, `category`, `category_name`,
+`notify`, `amount` (amount in absolute value, `null`: any amount).
 
 ### `POST /category/keyword` — administrator { #post-categorykeyword-administrateur }
 
 `keyword` (1 to 60 characters, saved in uppercase), `category`: adds a rule.
-Errors: 400 empty keyword, 404 unknown category, 409 keyword already exists.
+`amount` (optional, `"10"`, `"10,50"`, `-10`…): the rule only matches the transactions of
+this amount in absolute value, to the cent (an expense of -10.00 as well as an income of
+10.00), and wins over the rules without amount; empty or missing: any amount.
+The response contains `amount` (`"10.00"` or `null`).
+Errors: 400 empty keyword or invalid amount (`rule_amount_invalid`), 404 unknown category,
+409 keyword already existing without amount (`keyword_exists`) or with this amount
+(`rule_amount_exists`).
 
 ```bash
 curl -X POST https://exemple.fr/api/category/keyword -H "Authorization: Bearer $TOKEN" \
@@ -1011,14 +1018,17 @@ curl -X POST https://exemple.fr/api/category/keyword -H "Authorization: Bearer $
 
 ### `PUT /category/keyword` — administrator { #put-categorykeyword-administrateur }
 
-`id`, `keyword`, `category`, `notify`: updates a rule (`409` if the keyword already exists).
+`id`, `keyword`, `category`, `notify`, `amount`: updates a rule (`409` if a rule already has
+this keyword and this amount). `amount` missing or `null`: the amount of the rule is kept
+(the apps that do not send it do not clear it); `""`: any amount.
 `POST /category/keyword` also accepts `notify`: each new synchronized transaction
 that contains the keyword then sends a notification to every user of the household.
 
 ### `GET /category/keyword/count?id=` — administrator { #get-categorykeywordcountid-administrateur }
 
-Number of transactions whose label contains the keyword (`matching`), including those already
-in the rule's category (`categorized`).
+Number of transactions matched by the rule (`matching`: label containing the keyword, of its
+amount if it has one, otherwise without those of a rule with an amount), including those
+already in the rule's category (`categorized`).
 
 ### `DELETE /category/keyword` — administrator { #delete-categorykeyword-administrateur }
 

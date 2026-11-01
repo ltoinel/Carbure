@@ -151,9 +151,11 @@ CREATE TABLE `bank_transaction_category_keyword` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `keyword` varchar(60) NOT NULL,
   `category` tinyint(3) unsigned NOT NULL,
+  `amount` decimal(10,2) DEFAULT NULL COMMENT 'Absolute amount of the transactions matched (NULL: any amount)',
   `notify` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Push to the household when a new transaction matches',
+  `amount_key` decimal(10,2) AS (IFNULL(`amount`, 0)) PERSISTENT COMMENT 'Amount of the rule for its unique key (0: any amount)',
   PRIMARY KEY (`id`),
-  UNIQUE KEY `keyword` (`keyword`),
+  UNIQUE KEY `keyword` (`keyword`, `amount_key`),
   KEY `keyword_category` (`category`),
   CONSTRAINT `fk_keyword_category` FOREIGN KEY (`category`) REFERENCES `bank_transaction_category` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -423,7 +425,8 @@ INSERT IGNORE INTO `schema_migrations` (`version`) VALUES
 ('2026-11-01_insight_enabled'),
 ('2026-11-02_category_source'),
 ('2026-11-03_insight_alert'),
-('2026-11-04_insight_largest_expense');
+('2026-11-04_insight_largest_expense'),
+('2026-11-05_rule_amount');
 
 SET FOREIGN_KEY_CHECKS = 1;
 COMMIT;

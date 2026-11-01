@@ -303,12 +303,18 @@ the creation, modification and deletion of a category to other users
 A rule associates a **keyword** with a category: any transaction whose label
 **contains** this keyword receives the category ("CARREFOUR" → Supermarket).
 
-- The keyword is stored in uppercase, like the labels; it is unique.
-- When several keywords appear in the same label, **the rule created first**
-  wins.
+- The keyword is stored in uppercase, like the labels.
+- **Amount (optional)**: a rule with an amount only applies to the transactions of this
+  amount, **in absolute value and to the cent** ("10" matches an expense of -10.00 as well
+  as an income of 10.00). Two rules can thus share a keyword: "PAYPAL" → Shopping and
+  "PAYPAL · 10.00" → Spotify. A keyword has only one rule without amount, and one rule
+  per amount.
+- When several rules match a transaction, **a rule with an amount wins** over the rules
+  without amount; otherwise **the rule created first** wins.
 - **Creating or editing a rule applies it immediately to the whole history**, including
   transactions already categorized; the rule's dialog shows how many
-  transactions contain the keyword and how many are already in the category.
+  transactions it matches and how many are already in the category. A rule without
+  amount leaves the transactions matched by a rule with an amount.
 - **A category chosen by hand is never overwritten by a rule**: Carbure remembers the
   origin of the category of each transaction (a rule, or a choice by hand from the portal,
   the mobile apps, a split or a transaction entered by hand). The categories set before

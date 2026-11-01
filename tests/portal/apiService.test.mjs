@@ -300,3 +300,15 @@ test('rule settings: read with GET, keep_categorized changed with PUT /category/
     assert.equal(calls[1].options.method, 'PUT');
     assert.deepEqual(JSON.parse(calls[1].options.body), { keep_categorized: true });
 });
+
+test('rules: the optional amount sent with the rule, empty for any amount', async () => {
+    const calls = mockFetch(() => json({ id: 1 }));
+    const api = createApiService(BASE, 't');
+    await api.createRule('PAYPAL', '3', false, ' 10,50 ');
+    assert.deepEqual(JSON.parse(calls[0].options.body), { keyword: 'PAYPAL', category: 3, notify: false, amount: '10,50' });
+    await api.createRule('PAYPAL', 1);
+    assert.deepEqual(JSON.parse(calls[1].options.body), { keyword: 'PAYPAL', category: 1, notify: false, amount: '' });
+    await api.updateRule(1, 'PAYPAL', 3, true, null);
+    assert.equal(calls[2].options.method, 'PUT');
+    assert.deepEqual(JSON.parse(calls[2].options.body), { id: 1, keyword: 'PAYPAL', category: 3, notify: true, amount: '' });
+});

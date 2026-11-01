@@ -1086,7 +1086,7 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
 
     /**
      * Fetches the automatic categorization rules
-     * @returns {Promise<Array>} Array of {id, keyword, category, category_name}
+     * @returns {Promise<Array>} Array of {id, keyword, category, category_name, notify, amount (null: any amount)}
      */
     async function fetchRules() {
         const data = await request(`${baseUrl}/category/keyword`, {}, 'Failed to fetch rules');
@@ -1098,12 +1098,13 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
      * @param {string} keyword - Text to find in the labels
      * @param {number} category - Category to set
      * @param {boolean} notify - Notify the household when a new transaction matches
+     * @param {string|number|null} [amount] - Only the transactions of this amount, in absolute value (empty: any amount)
      * @returns {Promise<Object>} Created rule
      */
-    async function createRule(keyword, category, notify = false) {
+    async function createRule(keyword, category, notify = false, amount = '') {
         return request(`${baseUrl}/category/keyword`, {
             method: 'POST',
-            body: JSON.stringify({ keyword, category: Number(category), notify: !!notify })
+            body: JSON.stringify({ keyword, category: Number(category), notify: !!notify, amount: ruleAmount(amount) })
         }, 'Failed to create rule');
     }
 
@@ -1113,13 +1114,23 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
      * @param {string} keyword - Text to find in the labels
      * @param {number} category - Category to set
      * @param {boolean} notify - Notify the household when a new transaction matches
+     * @param {string|number|null} [amount] - Only the transactions of this amount, in absolute value (empty: any amount)
      * @returns {Promise<Object>} The rule
      */
-    async function updateRule(id, keyword, category, notify) {
+    async function updateRule(id, keyword, category, notify, amount = '') {
         return request(`${baseUrl}/category/keyword`, {
             method: 'PUT',
-            body: JSON.stringify({ id, keyword, category: Number(category), notify: !!notify })
+            body: JSON.stringify({ id, keyword, category: Number(category), notify: !!notify, amount: ruleAmount(amount) })
         }, 'Failed to modify the rule');
+    }
+
+    /**
+     * Amount of a rule as sent to the API: '' for any amount (a PUT without amount keeps it)
+     * @param {string|number|null} amount - The amount typed ("10", "10,50"...)
+     * @returns {string} The amount, or ''
+     */
+    function ruleAmount(amount) {
+        return amount === null || amount === undefined ? '' : String(amount).trim();
     }
 
     /**

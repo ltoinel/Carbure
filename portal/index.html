@@ -1571,8 +1571,8 @@
                                     <div class="rules-group-name">{{ group.category }}</div>
                                     <div class="rules-chips">
                                         <button v-for="rule in group.rules" :key="rule.id" type="button" class="rule-chip" :class="{ 'rule-chip-notify': Number(rule.notify) }"
-                                                @click="openRuleModal(rule)" :aria-label="t('editRule') + ' ' + rule.keyword">
-                                            {{ rule.keyword }}
+                                                @click="openRuleModal(rule)" :aria-label="t('editRule') + ' ' + ruleLabel(rule)">
+                                            {{ rule.keyword }}<span v-if="rule.amount !== null && rule.amount !== undefined" class="rule-amount">· {{ formatAmount(rule.amount) }} {{ currencySymbol }}</span>
                                             <span v-if="Number(rule.notify)" class="material-icons rule-notify" :title="t('ruleNotify')" aria-hidden="true">notifications_active</span>
                                         </button>
                                     </div>
@@ -3540,6 +3540,12 @@
                         <label for="rule-keyword">{{ t('ruleKeyword') }} *</label>
                         <input id="rule-keyword" type="text" v-model="newRule.keyword" maxlength="60" :placeholder="t('ruleKeywordPlaceholder')" />
                         <small>{{ t('ruleKeywordHelp') }}</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="rule-amount">{{ t('ruleAmount') }} ({{ currencySymbol }})</label>
+                        <input id="rule-amount" type="text" inputmode="decimal" v-model="newRule.amount" maxlength="12"
+                               :placeholder="t('ruleAmountPlaceholder')" aria-describedby="rule-amount-help" />
+                        <small id="rule-amount-help">{{ t('ruleAmountHelp') }}</small>
                     </div>
                     <div class="form-group">
                         <label>{{ t('categoryLabel') }} *</label>

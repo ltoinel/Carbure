@@ -62,7 +62,9 @@ final class BackupData {
         'rules' => [
             'table' => 'bank_transaction_category_keyword',
             'key' => 'id',
-            'columns' => ['id' => 'int:4294967295', 'keyword' => 'name:60', 'category' => 'int:255', 'notify' => 'bool'],
+            'columns' => ['id' => 'int:4294967295', 'keyword' => 'name:60', 'category' => 'int:255', 'notify' => 'bool',
+                // Added with the migration 2026-11-05_rule_amount: any amount in an older backup
+                'amount' => '?decimal'],
         ],
         'budgets' => [
             'table' => 'budget',
