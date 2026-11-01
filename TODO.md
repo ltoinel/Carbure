@@ -70,6 +70,14 @@ keeps track of what was done).
       shown insights; offer to hide a card and to show a hidden one again
       (`GET /insight/disabled`, `PUT /insight/enabled`).
 
+- [ ] **Deployment of the budget notes (#468)**: the migration `2026-11-06_budget_note`
+      (column `budget.note`) is applied at container start. Before it, `GET /budget` returns
+      `note: null` and `POST /budget` with a note answers 409 (`budget_note_migration`).
+
+- [ ] **Mobile apps — budget notes (#468)**: `GET /budget` returns `note`; show it and offer it
+      in the budget editor (`POST /budget` with `note`, `""` to remove it; without `note`
+      the current one is kept).
+
 - [ ] **Deployment of the insight alerts (#387)**: the migration `2026-11-03_insight_alert`
       (table `insight_alert`) is applied at container start. Before it, `GET /insight/alert`
       is empty, `PUT /insight/alert` answers 409 and nothing alerts.

@@ -76,7 +76,7 @@ The useful tables (see [Data model](modele-donnees.md)):
 |---|---|
 | `bank_transaction` | `date` (debit date, the one of the month displayed), `rdate` (actual transaction date: day of a card payment), `type`, `label`, `category`, `amount` (negative = debit), `pointed` (1 = checked), `bank_name`, `account_number`, `split_of` (a part of a split transaction: the id of the original transaction, otherwise `NULL`) |
 | `bank_transaction_category` | `id`, `name`, `parent_category` (0 = main category), `type`: `DEBIT`, `CREDIT` or `HORS-BUDGET` |
-| `budget` | `category`, `amount` (planned positive amount), `date` (first day of the month) |
+| `budget` | `category`, `amount` (planned positive amount), `date` (first day of the month), `note` |
 | `bank_account` | `bank_name`, `account_number`, `label` (name given to the account) |
 | `tag` | `id`, `name` (without its `#`), `start_date`, `end_date` |
 | `transaction_tag` | `transaction_id` (`bank_transaction.id`), `tag_id` (`tag.id`) |

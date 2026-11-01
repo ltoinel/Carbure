@@ -1,6 +1,6 @@
 // Accessibility: every text of the portal is readable (WCAG 2.2 AA contrast), the
 // buttons at rest and on hover, on every tab and in the modals (see a11y.js)
-const { test, expect, tr, openTab, offerBudgetCopy, trustWoobRepository, asDemoInstance, woobFile } = require('../fixtures');
+const { test, expect, tr, openTab, currentMonth, offerBudgetCopy, trustWoobRepository, asDemoInstance, woobFile } = require('../fixtures');
 const { contrastProblems } = require('../a11y');
 const { startFakeSmtp } = require('../fake-smtp');
 const { startFakePushRelay } = require('../fake-push-relay');
@@ -513,5 +513,23 @@ test('the tags, their form and a summary are readable', async ({ adminPage: page
     await expect(detail.getByRole('option').locator('.tag-input-name')).toHaveText(['#voyage', tr('tagCreateNamed', { name: 'v' })]);
     await field.press('ArrowDown');
     problems.push(...await contrastProblems(page, `${tr('transactionDetail')} (tags)`));
+    expect(problems).toEqual([]);
+});
+
+test('the note of a budget is readable: on its card and in the budget editor (#468)', async ({ adminPage: page, api }) => {
+    const { month, year } = currentMonth();
+    await api.post('/api/budget', { data: { category: 4, amount: 1000, month, year, note: 'Loyer + charges, régularisation en juin' } });
+    const problems = [];
+
+    await openTab(page, tr('tabBudget'));
+    await page.getByRole('tab', { name: tr('budgetConfigTab') }).click();
+    const card = page.locator('.budget-card').filter({ has: page.locator('.budget-card-note') });
+    await expect(card).toHaveCount(1);
+    problems.push(...await contrastProblems(page, tr('budgetNoteLabel')));
+
+    await card.getByRole('button', { name: tr('budgetEditTitle') }).click();
+    const modal = page.getByRole('dialog', { name: tr('budgetEditTitle') });
+    await modal.getByLabel(tr('budgetNoteLabel')).focus();
+    problems.push(...await contrastProblems(page, `${tr('budgetEditTitle')} (${tr('budgetNoteLabel')})`));
     expect(problems).toEqual([]);
 });

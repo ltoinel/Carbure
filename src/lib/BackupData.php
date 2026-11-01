@@ -69,7 +69,9 @@ final class BackupData {
         'budgets' => [
             'table' => 'budget',
             'key' => 'id',
-            'columns' => ['id' => 'int:' . PHP_INT_MAX, 'category' => 'int:255', 'amount' => 'decimal', 'date' => 'date'],
+            'columns' => ['id' => 'int:' . PHP_INT_MAX, 'category' => 'int:255', 'amount' => 'decimal', 'date' => 'date',
+                // Added with the migration 2026-11-06_budget_note: no note in an older backup
+                'note' => '?string:200'],
         ],
         'insights' => [
             'table' => 'budget_insight',

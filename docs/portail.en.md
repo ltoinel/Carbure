@@ -241,7 +241,9 @@ Two sub-tabs: **Flow** (shown by default) and **Budgets**.
   cards are shown, with a breadcrumb to go back up.
 - Settings button of a card: changes the budgeted amount for the month. For a
   parent category, the **Sum of the sub-categories** box uses their sum; unticked,
-  the amount typed replaces it.
+  the amount typed replaces it. The **Note** field keeps a reminder of what the budget
+  covers (200 characters at most), shown under the amounts of the card and copied with
+  the budget to the next month; emptying it removes the note.
 - **Copy budgets from the previous month**: the button above the summary takes
   the budgets of the previous month (`POST /budget/copy`), either filling in only the
   categories without a budget or overwriting the month shown. It appears only when the

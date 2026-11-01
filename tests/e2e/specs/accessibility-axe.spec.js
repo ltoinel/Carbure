@@ -1,7 +1,7 @@
 // Accessibility beyond the contrasts (see accessibility.spec.js): the WCAG 2.2 A/AA rules
 // of axe-core on every screen, the reflow at 320 CSS px (1.4.10), the zoom at 200 %
 // (1.4.4) and the text spacing (1.4.12)
-const { test, expect, tr, openTab, offerBudgetCopy, clickMainTab, trustWoobRepository, chooseLanguage, asDemoInstance } = require('../fixtures');
+const { test, expect, tr, openTab, currentMonth, offerBudgetCopy, clickMainTab, trustWoobRepository, chooseLanguage, asDemoInstance } = require('../fixtures');
 const { axeViolations, reflowProblems, clippedTexts, TEXT_SPACING, WCAG_TAGS } = require('../axe');
 const { AxeBuilder } = require('@axe-core/playwright');
 
@@ -401,5 +401,22 @@ test('axe: the tags, their form and a summary', async ({ adminPage: page, api })
     await page.getByRole('button', { name: tr('tagSelect'), exact: true }).click();
     await expect(page.locator('.tag-selection-bar')).toBeVisible();
     problems.push(...await axeViolations(page, tr('tagSelect')));
+    expect(problems).toEqual([]);
+});
+
+test('axe: the note of a budget, on its card and in the budget editor (#468)', async ({ adminPage: page, api }) => {
+    const { month, year } = currentMonth();
+    await api.post('/api/budget', { data: { category: 4, amount: 1000, month, year, note: 'Loyer + charges, régularisation en juin' } });
+    const problems = [];
+
+    await openTab(page, tr('tabBudget'));
+    await page.getByRole('tab', { name: tr('budgetConfigTab') }).click();
+    const card = page.locator('.budget-card').filter({ has: page.locator('.budget-card-note') });
+    await expect(card).toHaveCount(1);
+    problems.push(...await axeViolations(page, tr('budgetNoteLabel')));
+
+    await card.getByRole('button', { name: tr('budgetEditTitle') }).click();
+    await expect(page.getByRole('dialog', { name: tr('budgetEditTitle') })).toBeVisible();
+    problems.push(...await axeViolations(page, `${tr('budgetEditTitle')} (${tr('budgetNoteLabel')})`));
     expect(problems).toEqual([]);
 });

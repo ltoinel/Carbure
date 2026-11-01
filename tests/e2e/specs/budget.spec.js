@@ -134,6 +134,31 @@ test('edits the budget of a sub-category', async ({ adminPage: page, api }) => {
     expect(Number((await apiBudget(api, 'Supermarché', 1)).budget)).toBe(350);
 });
 
+test('adds a note to a budget, shown on its card, then removes it (#468)', async ({ adminPage: page, api }) => {
+    await openBudgets(page);
+
+    let modal = await editBudget(page, 'Logement');
+    await expect(modal.getByLabel(tr('budgetNoteLabel'))).toHaveValue('');
+    await modal.getByLabel(tr('budgetNoteLabel')).fill('  Loyer + charges, régularisation en juin  ');
+    await modal.getByRole('button', { name: tr('save') }).click();
+    await expect(modal).toHaveCount(0);
+
+    // Shown on the card, trimmed; the amount is unchanged
+    const note = card(page, 'Logement').locator('.budget-card-note');
+    await expect(note).toContainText('Loyer + charges, régularisation en juin');
+    await expect(note).toHaveAttribute('title', 'Loyer + charges, régularisation en juin');
+    expect(await apiBudget(api, 'Logement')).toMatchObject({ note: 'Loyer + charges, régularisation en juin' });
+
+    // Found again in the modal, then removed
+    modal = await editBudget(page, 'Logement');
+    await expect(modal.getByLabel(tr('budgetNoteLabel'))).toHaveValue('Loyer + charges, régularisation en juin');
+    await modal.getByLabel(tr('budgetNoteLabel')).fill('');
+    await modal.getByRole('button', { name: tr('save') }).click();
+    await expect(modal).toHaveCount(0);
+    await expect(card(page, 'Logement').locator('.budget-card-note')).toHaveCount(0);
+    expect((await apiBudget(api, 'Logement')).note).toBeNull();
+});
+
 test('overrides the budget of a parent category, then goes back to the sum', async ({ adminPage: page, api }) => {
     await openBudgets(page);
 

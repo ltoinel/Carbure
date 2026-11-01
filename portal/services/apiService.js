@@ -1316,13 +1316,14 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
      * @param {number} month - Month (1-12)
      * @param {number} year - Year
      * @param {number} amount - Budget amount
+     * @param {string} [note] - Reminder of what the budget covers ('' removes it, undefined keeps it)
      * @returns {Promise<void>}
      * @throws {Error} If request fails
      */
-    async function updateBudget(categoryId, month, year, amount) {
+    async function updateBudget(categoryId, month, year, amount, note) {
         await request(`${baseUrl}/budget`, {
             method: 'POST',
-            body: JSON.stringify({ category: categoryId, amount, month, year })
+            body: JSON.stringify({ category: categoryId, amount, month, year, note })
         }, 'Failed to update budget');
     }
 

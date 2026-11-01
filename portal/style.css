@@ -3298,6 +3298,32 @@ button .material-icons {
     color: var(--success-color);
 }
 
+/* Note of a budget (#468): a reminder of what it covers, on two lines at most (the whole
+   note in the title) */
+.budget-card-note {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.4;
+    color: var(--text-secondary);
+    overflow-wrap: anywhere;
+}
+
+.budget-card-note .material-icons {
+    font-size: 16px;
+    vertical-align: -3px;
+    margin-right: 4px;
+}
+
+/* The note of the edit modal: text, not code (the other textareas are SQL) */
+.modal-body textarea.budget-edit-note {
+    font-family: inherit;
+    font-size: 16px;
+}
+
 /* ===== Trends view ===== */
 .trends-view {
     display: flex;
@@ -6442,6 +6468,15 @@ textarea:focus-visible,
 
 .budget-card.budget-card-filled.status-over {
     --budget-fill-color: color-mix(in srgb, var(--error-color) 18%, var(--surface));
+}
+
+/* The secondary texts of a filled card (budget, remaining, percent, note): darker than
+   --text-secondary, which is below 4.5:1 on the green, orange and red fills (3.4 to 3.8:1);
+   at least 5.3:1 in the light theme and 5.9:1 in the dark one */
+.budget-card.budget-card-filled .budget-card-amounts .of,
+.budget-card.budget-card-filled .budget-card-foot,
+.budget-card.budget-card-filled .budget-card-note {
+    color: color-mix(in srgb, var(--text-secondary) 60%, var(--text-primary));
 }
 
 /* ===== Logs ===== */
