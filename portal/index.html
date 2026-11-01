@@ -1043,7 +1043,7 @@
                                     <div class="insight-content">
                                         <div class="insight-label">{{ getInsightName(insight.name) }}</div>
                                         <div class="insight-value" :class="{ 'negative': insight.amount < 0 }">
-                                            {{ formatAmount(Math.abs(insight.amount)) }} {{ currencySymbol }}
+                                            {{ formatAmount(insight.amount) }} {{ currencySymbol }}
                                         </div>
                                         <div v-if="insightAlerts[insight.id]" class="insight-alert-state">
                                             <span class="material-icons" aria-hidden="true">notifications_active</span><span class="insight-alert-text">{{ insightAlertText(insight) }}</span>

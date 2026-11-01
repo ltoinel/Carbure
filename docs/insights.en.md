@@ -60,8 +60,8 @@ The card **always shows the absolute value of the amount, with two decimals and 
 - a **percentage** or a **count** (of transactions, of months…) is also shown with `€`:
   a savings rate of 32.5% appears as "32,50 €". The recipes concerned say so
   in their name (`%`, "Nb") to remove any ambiguity;
-- the **sign** only shows through the color: an expense (negative amount) is red, an
-  income or a favorable difference is not. The recipes follow the transaction
+- a negative amount is shown with its **sign** ("-1 584,20 €") and in red, an income or a
+  favorable difference without sign nor red. The recipes follow the transaction
   convention: **negative = money going out**;
 - a query that returns nothing (`NULL`, for example no transaction that month) or that
   fails shows **0,00 €**;

@@ -18,7 +18,8 @@ test('shows the amount of each insight for the month', async ({ userPage: page }
     await openTab(page, tr('tabInsights'));
 
     const expenses = card(page, 'Dépenses');
-    await expect(expenses.locator('.insight-value')).toHaveText(euros(1584.2));
+    // A negative amount shows its sign, not only the red color (#466)
+    await expect(expenses.locator('.insight-value')).toHaveText(euros(-1584.2));
     await expect(expenses.locator('.insight-value')).toHaveClass(/negative/);
     // Only the administrators manage the insights (the user hides one and sets his alert); nothing hidden to add again
     await expect(page.getByRole('button', { name: tr('addInsight') })).toHaveCount(0);
@@ -40,7 +41,7 @@ test('hides an insight, then shows it again with the + button', async ({ userPag
 
     // The last hidden one shown: the list closes
     await expect(catalog).toHaveCount(0);
-    await expect(card(page, 'Dépenses').locator('.insight-value')).toHaveText(euros(1584.2));
+    await expect(card(page, 'Dépenses').locator('.insight-value')).toHaveText(euros(-1584.2));
     await expect(page.getByRole('button', { name: tr('addInsight') })).toHaveCount(0);
 });
 
@@ -59,7 +60,7 @@ test('adds an insight whose query is checked while typing', async ({ adminPage: 
 
     await modal.getByRole('button', { name: tr('save') }).click();
     await expect(page.locator('.toast')).toHaveText(tr('insightAdded'));
-    await expect(card(page, 'Loyer').locator('.insight-value')).toHaveText(euros(950));
+    await expect(card(page, 'Loyer').locator('.insight-value')).toHaveText(euros(-950));
     await expect(card(page, 'Loyer').locator('.insight-icon')).toHaveText('home');
 });
 
