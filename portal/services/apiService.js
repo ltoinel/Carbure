@@ -401,6 +401,15 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
     }
 
     /**
+     * Saves the order of the insights shown in the Insights tab (for the whole household)
+     * @param {Array<number>} ids - The insights, in their new order
+     * @returns {Promise<Array<number>>} The ids of the shown insights, in their order
+     */
+    async function setInsightOrder(ids) {
+        return request(`${baseUrl}/insight/order`, { method: 'PUT', body: JSON.stringify({ ids }) }, 'Failed to order the insights');
+    }
+
+    /**
      * Fetches the alerts of the user on the enabled insights
      * @returns {Promise<Array>} Array of {insight, direction, threshold}
      */
@@ -1544,6 +1553,7 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
         fetchInsightDefinitions,
         fetchDisabledInsights,
         setInsightEnabled,
+        setInsightOrder,
         fetchInsightAlerts,
         setInsightAlert,
         deleteInsightAlert,

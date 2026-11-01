@@ -533,3 +533,30 @@ test('the note of a budget is readable: on its card and in the budget editor (#4
     problems.push(...await contrastProblems(page, `${tr('budgetEditTitle')} (${tr('budgetNoteLabel')})`));
     expect(problems).toEqual([]);
 });
+
+test('the cards of the insights are readable while ordered: handles, focus and the card dragged (#467)', async ({ adminPage: page, api }) => {
+    const sql = 'SELECT SUM(amount) AS amount FROM bank_transaction WHERE MONTH(date) = {month} AND YEAR(date) = {year}';
+    await api.post('/api/insight', { data: { name: 'Revenus', color: 'green', sql } });
+    const problems = [];
+
+    await openTab(page, tr('tabInsights'));
+    const handle = page.getByRole('button', { name: tr('insightMoveOf', { name: 'Dépenses' }) });
+    await expect(handle).toBeVisible();
+    problems.push(...await contrastProblems(page, tr('insightMove')));
+
+    // The handle focused by the keyboard, after a move
+    await handle.focus();
+    await page.keyboard.press('ArrowRight');
+    await expect(page.locator('.insight-card[data-insight-id] .insight-drag:focus')).toHaveCount(1);
+    problems.push(...await contrastProblems(page, `${tr('insightMove')} (focus)`));
+
+    // The card lifted while it is dragged
+    const box = await page.locator('.insight-card .insight-drag').first().boundingBox();
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width / 2 + 5, box.y + box.height / 2 + 5);
+    await expect(page.locator('.insight-card.dragging')).toHaveCount(1);
+    problems.push(...await contrastProblems(page, `${tr('insightMove')} (dragging)`));
+    await page.mouse.up();
+    expect(problems).toEqual([]);
+});

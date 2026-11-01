@@ -100,7 +100,7 @@ premier plan ; ensuite, l'en-tête de chaque réponse suffit (voir ci-dessous).
 | `accounts` | synchronisation (compte en erreur, réparé ou autre erreur), `POST`/`PUT`/`DELETE /bank`, `/bank/backend` |
 | `categories` | `POST`/`PUT`/`DELETE /category`, `/category/keyword`, `PUT /category/keyword/settings` |
 | `budgets` | `POST /budget`, `POST /budget/copy`, `DELETE /category` |
-| `insights` | `POST`/`PUT`/`DELETE /insight`, `PUT /insight/enabled` |
+| `insights` | `POST`/`PUT`/`DELETE /insight`, `PUT /insight/enabled`, `PUT /insight/order` |
 | `settings` | `PUT /system/config` |
 | `tags` | `POST`/`PUT`/`DELETE /tag` |
 
@@ -938,6 +938,18 @@ Les insights masqués, proposés par le bouton **+** de l'écran Insights :
 `id`, `enabled` (booléen, `true` par défaut) : affiche ou masque un insight pour tout le
 foyer (tout utilisateur). Renvoie `{"id", "enabled"}` ; `404` (`insight_not_found`) si
 l'insight est inconnu.
+
+### `PUT /insight/order`
+
+`ids` (liste d'identifiants d'insights) : ordre des cartes de l'écran Insights pour tout le
+foyer (tout utilisateur), choisi par glisser-déposer dans le portail. Les insights listés
+prennent les places 1, 2, 3… dans cet ordre ; les autres (masqués, ou créés entre-temps)
+passent après eux, dans leur ordre. Renvoie les identifiants des insights affichés, dans
+leur ordre. `400` (`insight_order_invalid`) si un identifiant n'est pas un entier positif
+ou est répété, `404` (`insight_not_found`) si un insight est inconnu, `409`
+(`insight_migration_pending`) avant la migration `2026-11-07_insight_position`.
+`GET /budget/insights`, `GET /insight` et `GET /insight/disabled` suivent cet ordre (par
+identifiant tant qu'aucun ordre n'est choisi) ; un nouvel insight se place à la fin.
 
 ### `GET /insight/alert`
 

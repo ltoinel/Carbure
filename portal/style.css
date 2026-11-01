@@ -2004,6 +2004,39 @@ button .material-icons {
     border-left: 4px solid var(--primary-color);
 }
 
+/* Drag and drop of the cards on a magnetic grid (#467): the dragged card is lifted and
+   snaps to the cell under the pointer, the others slide to their new cell */
+.insight-move-move {
+    transition: transform 0.2s ease;
+}
+
+.insights-sorting {
+    cursor: grabbing;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.insights-sorting .insight-card:hover {
+    transform: none;
+}
+
+.insight-card.dragging {
+    position: relative;
+    z-index: 2;
+    box-shadow: var(--shadow-3, 0 12px 28px rgba(0, 0, 0, 0.25));
+    outline: 2px dashed var(--primary-color);
+    outline-offset: 4px;
+}
+
+.insight-drag {
+    cursor: grab;
+    touch-action: none;
+}
+
+.insights-sorting .insight-drag {
+    cursor: grabbing;
+}
+
 .insight-card:hover {
     transform: translateY(-4px);
     box-shadow: var(--shadow-3);

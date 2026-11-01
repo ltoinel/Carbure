@@ -204,7 +204,7 @@ final class Backup {
     {
         $columns = array_keys(BackupData::DATASETS[$name]['columns']);
         $pending = match ($name) {
-            'insights' => Insight::ready() ? [] : ['enabled'],
+            'insights' => array_merge(Insight::ready() ? [] : ['enabled'], Insight::positionReady() ? [] : ['position']),
             'transactions' => Transaction::categorySourceReady() ? [] : ['category_source'],
             'rules' => Category::amountReady() ? [] : ['amount'],
             'budgets' => Budget::noteReady() ? [] : ['note'],
@@ -242,16 +242,16 @@ final class Backup {
      * Check the imported insights as when they are saved in the portal (their query is
      * stored and run by the server), and normalize them the same way.
      *
-     * @param list<list<mixed>> $insights The values of the insights (id, name, color, icon, sql, enabled)
+     * @param list<list<mixed>> $insights The values of the insights (id, name, color, icon, sql, enabled, position)
      * @return list<list<mixed>> The values as saved by Insight (name and query trimmed, empty icon as null)
      * @throws Error 400 If an insight is invalid
      */
     private static function checkInsights(array $insights): array
     {
-        foreach ($insights as $index => [$id, $name, $color, $icon, $sql, $enabled]) {
+        foreach ($insights as $index => [$id, $name, $color, $icon, $sql, $enabled, $position]) {
             try {
                 [$name, $color, $sql] = Insight::validate((string)$name, (string)$color, (string)$sql);
-                $insights[$index] = [$id, $name, $color, Insight::icon($icon === null ? null : (string)$icon), $sql, $enabled];
+                $insights[$index] = [$id, $name, $color, Insight::icon($icon === null ? null : (string)$icon), $sql, $enabled, $position];
             } catch (Error $e) {
                 throw new Error("insights, row " . ($index + 1) . ": " . $e->getMessage(), 400);
             }

@@ -187,6 +187,7 @@ class ApiResolverTest extends TestCase
         'PUT /insight' => 'admin',
         'PUT /insight/alert' => 'user',
         'PUT /insight/enabled' => 'user',
+        'PUT /insight/order' => 'user',
         'PUT /mcp/settings' => 'admin',
         'PUT /system/config' => 'admin',
         'PUT /tag' => 'user',
