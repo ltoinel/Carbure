@@ -91,6 +91,9 @@ export function createInsightsModule(getApiService) {
                 // drag, and what the screen readers announce after a move
                 draggingInsight: null,
                 insightOrderBefore: [],
+                // Last place of the pointer while dragging, checked again once the cards stopped sliding
+                insightPointer: null,
+                insightSettleTimer: null,
                 insightOrderAnnouncement: ''
             };
         },
@@ -349,6 +352,7 @@ export function createInsightsModule(getApiService) {
              * @param {number} y - Pointer ordinate (client)
              */
             dragInsightTo(x, y) {
+                this.insightPointer = { x, y };
                 const target = document.elementFromPoint(x, y)?.closest('.insight-card[data-insight-id]');
                 const targetId = target ? Number(target.dataset.insightId) : null;
                 if (targetId === null || targetId === this.draggingInsight) {
@@ -357,6 +361,14 @@ export function createInsightsModule(getApiService) {
                 const from = this.insights.findIndex(i => i.id === this.draggingInsight);
                 const to = this.insights.findIndex(i => i.id === targetId);
                 this.insights = moveInsight(this.insights, from, to);
+                // While the cards slide, the one under the pointer may be passing by: the cell
+                // is checked again once they stopped, even if the pointer does not move
+                clearTimeout(this.insightSettleTimer);
+                this.insightSettleTimer = setTimeout(() => {
+                    if (this.draggingInsight !== null && this.insightPointer) {
+                        this.dragInsightTo(this.insightPointer.x, this.insightPointer.y);
+                    }
+                }, 250);
             },
 
             /**
@@ -364,6 +376,8 @@ export function createInsightsModule(getApiService) {
              * @returns {Promise<void>}
              */
             async endInsightDrag() {
+                clearTimeout(this.insightSettleTimer);
+                this.insightPointer = null;
                 const insight = this.insights.find(i => i.id === this.draggingInsight);
                 this.draggingInsight = null;
                 const order = this.insights.map(i => i.id);
