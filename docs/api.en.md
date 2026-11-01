@@ -791,8 +791,10 @@ curl -X DELETE "https://exemple.fr/api/transaction?id=42" -H "Authorization: Bea
 ### `GET /budget` { #get-budget }
 
 `month`, `year`, `category` (parent category, `0` = root). For each category:
-`id`, `name`, `type`, `icon`, `color`, `budget`, `consummed` (absolute sum of the
-transactions of the category and its subcategories), `progress` (%), `children`
+`id`, `name`, `type`, `icon`, `color`, `budget`, `consummed` (transactions of the category and its
+subcategories, in the direction of its type: net spending of a `DEBIT` category, net income
+of a `CREDIT` category, never negative — a refund larger than the spending of the month gives
+0; absolute value for `HORS-BUDGET`), `progress` (%), `children`
 (number of subcategories), `children_budget` (sum of their budgets) and `budget_mode`:
 `own` (amount set for the category) or `children` (category with subcategories and
 no amount set: `budget` is then the sum of the subcategories' budgets).
