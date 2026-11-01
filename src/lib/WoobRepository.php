@@ -11,7 +11,9 @@
  * then checks the signature of every module with it, and each next keyring with the
  * previous one. So, while no keyring is trusted, Carbure starts woob only once an
  * administrator confirmed the fingerprint (SHA-1) of the keyring that Carbure downloads
- * itself, and checks afterwards that woob stored that very keyring.
+ * itself, and checks afterwards that woob stored that very keyring. The keyring of the
+ * official repository is pinned (OFFICIAL_KEYRINGS): trusted at the first start without
+ * asking (trustOfficial()); any other one still waits for an administrator.
  *
  * @author     Ludovic Toinel
  * @copyright  2026 Carbure App
@@ -26,6 +28,24 @@ final class WoobRepository {
 
     /** Repository of the bank modules of woob 3 */
     public const DEFAULT_REPOSITORY = 'https://updates.woob.tech/3/main/';
+
+    /**
+     * Fingerprints (SHA-1 of trusted.gpg) of the keyring of the official repository
+     * (DEFAULT_REPOSITORY), checked by the maintainers of Carbure: trusted at the first
+     * start without asking an administrator (#471). Keys of the maintainers of woob
+     * (Romain Bignon, Florent Fourcot), unchanged since February 2023.
+     */
+    public const OFFICIAL_KEYRINGS = ['b5fc136c2d500b8483696a0ee722865842a4cc45'];
+
+    /** Repository whose keyring is pinned (OFFICIAL_KEYRINGS), replaced by the tests */
+    public static string $officialRepository = self::DEFAULT_REPOSITORY;
+
+    /**
+     * Pinned fingerprints of the official repository, replaced by the tests
+     *
+     * @var list<string>
+     */
+    public static array $officialKeyrings = self::OFFICIAL_KEYRINGS;
 
     /** woob trusting a keyring by itself (no terminal to ask): logged */
     private const ASSUMING_YES = '*** ASSUMING YES ***';
@@ -135,6 +155,52 @@ final class WoobRepository {
         $lines = array_values(array_filter(array_map('trim', preg_split('/[\r\n]+/', $output) ?: [])));
         $updated = $code === 0 && !preg_match(self::FAILURE, $output);
         return ['updated' => $updated, 'asked' => null, 'refused' => false, 'message' => (string)end($lines)];
+    }
+
+    /**
+     * Trust the keyring of the official repository without asking an administrator, when
+     * it is exactly the one pinned by Carbure (OFFICIAL_KEYRINGS), then update the bank
+     * modules: run at each start of the Docker container, so that the banks can be
+     * connected at once. Any other keyring, or another repository, still waits for the
+     * confirmation of an administrator (Accounts page).
+     *
+     * @param callable $onMessage Receives each line written by woob
+     * @return array{updated: bool, asked: string|null, refused: bool, message: string}|null
+     *         The result of the update (see update()), null when there is nothing to do:
+     *         keyring already trusted, or a repository other than the official one
+     * @throws Exception If woob cannot be started
+     */
+    public static function trustOfficial(callable $onMessage): ?array
+    {
+        if (self::isTrusted() || self::repository() !== self::$officialRepository) {
+            return null;
+        }
+        [$remote, $error] = self::remoteFingerprint();
+        if ($remote === null) {
+            return ['updated' => false, 'asked' => null, 'refused' => false, 'message' => (string)$error];
+        }
+        if (!self::isOfficial($remote)) {
+            Logger::warn("Keyring $remote of " . self::repository() . " is not the one pinned by Carbure: an administrator must confirm it");
+            return ['updated' => false, 'asked' => $remote, 'refused' => true, 'message' => "Keyring $remote is not the official one"];
+        }
+        Logger::info("Keyring $remote of " . self::repository() . " is the official one pinned by Carbure: trusted");
+        return self::update($remote, $onMessage);
+    }
+
+    /**
+     * Whether a fingerprint is one of the official keyring pinned by Carbure.
+     *
+     * @param string $fingerprint Fingerprint of a keyring
+     * @return bool
+     */
+    public static function isOfficial(string $fingerprint): bool
+    {
+        foreach (self::$officialKeyrings as $official) {
+            if (self::matches($official, $fingerprint)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

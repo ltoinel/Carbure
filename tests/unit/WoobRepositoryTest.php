@@ -18,6 +18,8 @@ class WoobRepositoryTest extends TestCase
 
     protected function tearDown(): void
     {
+        WoobRepository::$officialRepository = WoobRepository::DEFAULT_REPOSITORY;
+        WoobRepository::$officialKeyrings = WoobRepository::OFFICIAL_KEYRINGS;
         $this->forget();
         @unlink(carbure_test_tmp('carbure-fake-woob-other-keyring'));
     }
@@ -161,5 +163,87 @@ class WoobRepositoryTest extends TestCase
         $this->assertStringContainsString('is not the confirmed one', $result['message']);
         $this->assertFalse(WoobRepository::isTrusted());
         $this->assertSame([], glob(WoobRepository::$keyringDir . '/*') ?: []);
+    }
+
+    /**
+     * Trust the official keyring pinned by Carbure, returning the result and the lines of woob.
+     *
+     * @return array{0: array<string, mixed>|null, 1: list<string>}
+     */
+    private function trustOfficial(): array
+    {
+        $lines = [];
+        $result = WoobRepository::trustOfficial(function (string $line) use (&$lines) {
+            $lines[] = $line;
+        });
+        return [$result, $lines];
+    }
+
+    public function testThePinnedKeyringOfTheOfficialRepositoryIsTrustedWithoutAsking()
+    {
+        // The fake repository plays the official one, its keyring pinned
+        WoobRepository::$officialRepository = WoobRepository::repository();
+        WoobRepository::$officialKeyrings = [strtoupper($this->fingerprint)];
+
+        [$result, $lines] = $this->trustOfficial();
+        $this->assertTrue($result['updated']);
+        $this->assertContains('Are you sure you want to continue? (Y/n): *** ASSUMING YES ***', $lines);
+        $this->assertTrue(WoobRepository::isTrusted());
+        $this->assertSame($this->fingerprint, WoobRepository::status()['fingerprint']);
+
+        // Already trusted: nothing to do, woob not started
+        [$result, $lines] = $this->trustOfficial();
+        $this->assertNull($result);
+        $this->assertSame([], $lines);
+    }
+
+    public function testAnotherKeyringOfTheOfficialRepositoryWaitsForAnAdministrator()
+    {
+        WoobRepository::$officialRepository = WoobRepository::repository();
+        WoobRepository::$officialKeyrings = [str_repeat('0', 40)];
+
+        [$result, $lines] = $this->trustOfficial();
+        $this->assertFalse($result['updated']);
+        $this->assertTrue($result['refused']);
+        // The fingerprint the administrator is asked to confirm
+        $this->assertSame($this->fingerprint, $result['asked']);
+        $this->assertSame([], $lines);
+        $this->assertFalse(WoobRepository::isTrusted());
+    }
+
+    public function testAnotherRepositoryIsNeverTrustedWithoutAsking()
+    {
+        // The fake repository is not the official one, even with the same keyring
+        WoobRepository::$officialKeyrings = [$this->fingerprint];
+
+        [$result, $lines] = $this->trustOfficial();
+        $this->assertNull($result);
+        $this->assertSame([], $lines);
+        $this->assertFalse(WoobRepository::isTrusted());
+    }
+
+    public function testTheOfficialRepositoryNotReachable()
+    {
+        $repository = Config::get('woob_repository');
+        Config::set('woob_repository', carbure_test_tmp('carbure-no-repository'));
+        WoobRepository::$officialRepository = WoobRepository::repository();
+        try {
+            [$result, $lines] = $this->trustOfficial();
+        } finally {
+            Config::set('woob_repository', $repository);
+        }
+        $this->assertFalse($result['updated']);
+        $this->assertFalse($result['refused']);
+        $this->assertStringContainsString('not downloaded', $result['message']);
+        $this->assertSame([], $lines);
+    }
+
+    public function testOnlyThePinnedFingerprintsAreOfficial()
+    {
+        $this->assertSame(['b5fc136c2d500b8483696a0ee722865842a4cc45'], WoobRepository::OFFICIAL_KEYRINGS);
+        $this->assertSame('https://updates.woob.tech/3/main/', WoobRepository::$officialRepository);
+        $this->assertTrue(WoobRepository::isOfficial('B5FC136C2D500B8483696A0EE722865842A4CC45'));
+        $this->assertFalse(WoobRepository::isOfficial(str_repeat('0', 40)));
+        $this->assertFalse(WoobRepository::isOfficial(''));
     }
 }
