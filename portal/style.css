@@ -6470,6 +6470,15 @@ textarea:focus-visible,
     --budget-fill-color: color-mix(in srgb, var(--error-color) 18%, var(--surface));
 }
 
+/* The secondary texts of a filled card (budget, remaining, percent, note): darker than
+   --text-secondary, which is below 4.5:1 on the green, orange and red fills (3.4 to 3.8:1);
+   at least 5.3:1 in the light theme and 5.9:1 in the dark one */
+.budget-card.budget-card-filled .budget-card-amounts .of,
+.budget-card.budget-card-filled .budget-card-foot,
+.budget-card.budget-card-filled .budget-card-note {
+    color: color-mix(in srgb, var(--text-secondary) 60%, var(--text-primary));
+}
+
 /* ===== Logs ===== */
 .logs-toolbar {
     display: flex;
