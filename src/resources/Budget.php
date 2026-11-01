@@ -76,8 +76,9 @@ final class Budget {
             $row['budget_mode'] = $mode;
             $row['children'] = count($kids);
             $row['children_budget'] = $childrenBudget;
-            $row['consummed'] = $total === null ? 0 : round(abs($total), 2);
-            $row['progress'] = ($total === null || $amount == 0) ? 0 : (int)abs(round($total / $amount * 100));
+            $consummed = self::consummed($row['type'], $total);
+            $row['consummed'] = $consummed;
+            $row['progress'] = $amount == 0 ? 0 : (int)abs(round($consummed / $amount * 100));
             $budget[] = $row;
         }
 
@@ -113,6 +114,28 @@ final class Budget {
     {
         $sql = "SELECT category, amount FROM budget WHERE date >= ? AND date < ?";
         return array_map('floatval', array_column(Db::select($sql, "ss", $from, $to)->fetch_all(MYSQLI_ASSOC), 'amount', 'category'));
+    }
+
+    /**
+     * Consumption of a category in the direction of its type: the net spending of an
+     * expense category (DEBIT), the net income of an income category (CREDIT), never
+     * negative (a refund larger than the spending of the month leaves 0 spent, not an
+     * overspending); the absolute value for an off-budget category.
+     *
+     * @param string     $type  Type of the category: DEBIT, CREDIT or HORS-BUDGET
+     * @param float|null $total Sum of the transactions of the month (null: none)
+     * @return float The consumption, rounded to the cent
+     */
+    private static function consummed(string $type, ?float $total): float
+    {
+        if ($total === null) {
+            return 0;
+        }
+        return round(match ($type) {
+            'DEBIT' => max(0, -$total),
+            'CREDIT' => max(0, $total),
+            default => abs($total),
+        }, 2);
     }
 
     /**

@@ -259,6 +259,31 @@ class BudgetTest extends DatabaseTestCase
         $this->assertEquals(450, Budget::getTrends()[23]['savings']);
     }
 
+    public function testRefundLargerThanSpendingIsNotAnOverspending()
+    {
+        // An expense category with a budget whose month is a net refund (issue #469)
+        Db::query("INSERT INTO bank_transaction_category (id, name, parent_category, type, icon, color) VALUES (22, 'Enfants', 0, 'DEBIT', 'child_care', 'pink')");
+        Db::query("INSERT INTO bank_transaction_category (id, name, parent_category, type, icon, color) VALUES (23, 'Centre de loisirs', 22, 'DEBIT', 'child_care', 'pink')");
+        Budget::create(22, 100, date('n'), date('Y'));
+        $date = date('Y-m-05');
+        foreach ([['r1', 23, -40], ['r2', 23, 90]] as [$uuid, $category, $amount]) {
+            Db::execute("INSERT INTO bank_transaction (uuid, date, rdate, type, label, category, amount, user)
+                VALUES (?, ?, ?, 1, 'CENTRE DE LOISIRS', ?, ?, 1)", "sssid", $uuid, $date, $date, $category, $amount);
+        }
+
+        // 40 spent, 90 refunded: nothing spent, not 50 overspent
+        $budget = $this->byName(Budget::get());
+        $this->assertEquals(0, $budget['Enfants']['consummed']);
+        $this->assertEquals(0, $budget['Enfants']['progress']);
+
+        // A spending larger than the refund stays counted
+        Db::execute("INSERT INTO bank_transaction (uuid, date, rdate, type, label, category, amount, user)
+            VALUES ('r3', ?, ?, 1, 'CENTRE DE LOISIRS', 23, -80, 1)", "ss", $date, $date);
+        $budget = $this->byName(Budget::get());
+        $this->assertEquals(30, $budget['Enfants']['consummed']);
+        $this->assertEquals(30, $budget['Enfants']['progress']);
+    }
+
     public function testFlow()
     {
         // Current month of the data set: +2000 income (Salaire), -80 Supermarché (child of

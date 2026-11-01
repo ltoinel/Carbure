@@ -794,8 +794,10 @@ curl -X DELETE "https://exemple.fr/api/transaction?id=42" -H "Authorization: Bea
 ### `GET /budget`
 
 `month`, `year`, `category` (catégorie parente, `0` = racine). Pour chaque catégorie :
-`id`, `name`, `type`, `icon`, `color`, `budget`, `consummed` (somme absolue des
-transactions de la catégorie et de ses sous-catégories), `progress` (%), `children`
+`id`, `name`, `type`, `icon`, `color`, `budget`, `consummed` (transactions de la catégorie et de ses
+sous-catégories, dans le sens de son type : dépense nette d'une catégorie `DEBIT`, revenu
+net d'une catégorie `CREDIT`, jamais négatif — un remboursement plus grand que les dépenses
+du mois donne 0 ; valeur absolue pour `HORS-BUDGET`), `progress` (%), `children`
 (nombre de sous-catégories), `children_budget` (somme de leurs budgets) et `budget_mode` :
 `own` (montant défini pour la catégorie) ou `children` (catégorie avec sous-catégories et
 sans montant défini : `budget` est alors la somme des budgets des sous-catégories).
