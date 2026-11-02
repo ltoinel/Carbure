@@ -34,7 +34,7 @@ class NetworkTest extends TestCase
         $this->assertFalse(Network::isLocalRequest());
 
         unset($_SERVER['HTTP_X_FORWARDED_FOR']);
-        $_SERVER['HTTP_FORWARDED'] = 'for="[2001:db8::1]";proto=https';
+        $_SERVER['HTTP_FORWARDED'] = 'for="[2606:4700:4700::1111]";proto=https';
         $this->assertFalse(Network::isLocalRequest());
     }
 }
