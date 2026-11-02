@@ -531,10 +531,14 @@ test('the bar of the recurring transactions is readable folded and unfolded, its
     await page.keyboard.press('Enter');
     await expect(page.locator('#recurring-bar-details')).toBeVisible();
     problems.push(...await contrastProblems(page, `${tr('recurringSummary')} (unfolded)`));
-    // The filter switched on, the calendar focused
-    await bar.locator('.toggle-recurring').click();
+    // The filter switched on with the keyboard, then the calendar reached with Tab
+    const filter = bar.getByRole('switch', { name: tr('recurringOnly') });
+    await filter.focus();
+    await page.keyboard.press('Space');
+    await expect(filter).toBeChecked();
+    await page.keyboard.press('Tab');
     const calendar = bar.getByRole('button', { name: tr('recurringCalendarButton') });
-    await calendar.focus();
+    await expect(calendar).toBeFocused();
     await expect(calendar).toHaveCSS('outline-style', 'solid');
     problems.push(...await contrastProblems(page, `${tr('recurringSummary')} (filtered, focus)`));
     expect(problems).toEqual([]);
