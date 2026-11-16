@@ -306,6 +306,7 @@
     "tabCategories": "Categorie",
     "categoriesTitle": "Categorizzazione delle transazioni",
     "addCategory": "Aggiungi una categoria",
+    "addSubcategory": "Aggiungi una sottocategoria a {name}",
     "editCategory": "Modifica la categoria",
     "deleteCategory": "Elimina la categoria",
     "categoryName": "Nome",
