@@ -1638,6 +1638,7 @@
                                         <span class="category-row-name">{{ node.category.name }}</span>
                                         <span v-if="Number(node.category.id) === 0" class="category-chip">{{ t('categoryDefault') }}</span>
                                         <template v-else>
+                                            <button class="btn-icon" @click="openSubcategoryModal(node.category)" :title="t('addSubcategory', { name: node.category.name })" :aria-label="t('addSubcategory', { name: node.category.name })"><span class="material-icons" aria-hidden="true">add</span></button>
                                             <button class="btn-icon" @click="openCategoryModal(node.category)" :title="t('editCategory')" :aria-label="t('editCategory')"><span class="material-icons" aria-hidden="true">edit</span></button>
                                             <button class="btn-icon btn-icon-delete" @click="removeCategory(node.category)" :title="t('deleteCategory')" :aria-label="t('deleteCategory')"><span class="material-icons" aria-hidden="true">delete</span></button>
                                         </template>

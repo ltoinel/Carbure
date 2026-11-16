@@ -382,7 +382,8 @@ la catégorie choisie.
 
 Arborescence des catégories (un niveau de sous-catégories) regroupée par type (dépenses,
 revenus, hors budget). **+** ajoute une catégorie, le crayon la modifie (dans une modale),
-la corbeille la supprime. L'icône et la couleur se choisissent parmi celles que
+la corbeille la supprime. Le **+** d'une ligne de catégorie principale ajoute une
+sous-catégorie : la modale s'ouvre avec ce parent et son type déjà choisis. L'icône et la couleur se choisissent parmi celles que
 les applications mobiles savent afficher, avec un aperçu. Supprimer une catégorie fait passer ses
 transactions en « Non catégorisé » et supprime ses budgets et règles ; une catégorie qui a
 des sous-catégories ne peut pas être supprimée. La catégorie « Non catégorisé » (0) est
