@@ -375,7 +375,8 @@ the chosen category.
 
 Tree of categories (one level of sub-categories) grouped by type (expenses,
 income, off-budget). **+** adds a category, the pencil edits it (in a modal),
-the trash deletes it. The icon and the color are chosen among those that
+the trash deletes it. The **+** of a top-level category row adds a
+sub-category: the modal opens with this parent and its type already chosen. The icon and the color are chosen among those that
 the mobile apps can display, with a preview. Deleting a category moves its
 transactions to "Uncategorized" and deletes its budgets and rules; a category that has
 sub-categories cannot be deleted. The "Uncategorized" category (0) is

@@ -303,6 +303,7 @@
     "tabCategories": "Categories",
     "categoriesTitle": "Transaction categorization",
     "addCategory": "Add a category",
+    "addSubcategory": "Add a sub-category to {name}",
     "editCategory": "Edit category",
     "deleteCategory": "Delete category",
     "categoryName": "Name",
