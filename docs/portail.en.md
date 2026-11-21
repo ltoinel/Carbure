@@ -155,7 +155,11 @@ taskbar or the home screen.
   `GET /transaction/search` across all months and shows the **total** of the transactions
   found; the filter also applies to the results. The cross clears the search.
 - **Manual categorization**: a transaction without a category offers a
-  "Categorize…" picker (icons, colors, search); the transaction is also checked. For an administrator, a banner
+  "Categorize…" picker (icons, colors, search); the transaction is also checked. This
+  picker, like those of the detail, of the manual entry and of the split, shows first the
+  categories of the direction of the transaction (income for a credit, expenses for a
+  debit), then the off-budget categories, then the others (a refund is a credit on an
+  expense category). For an administrator, a banner
   then offers to **Create a rule** to classify this label automatically: it opens
   the Rules tab with the label and the category pre-filled, the keyword can be
   shortened (dates, card numbers…).

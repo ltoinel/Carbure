@@ -609,3 +609,19 @@ test('explains why a file cannot be imported', async ({ adminPage: page }) => {
     await modal.locator('input[type="file"]').setInputFiles({ name: 'notes.csv', mimeType: 'text/csv', buffer: Buffer.from('a;b\n1;2\n') });
     await expect(modal.getByRole('alert')).toContainText('Columns not found');
 });
+
+test('the category list shows first the categories of the direction of the transaction (#498)', async ({ adminPage: page }) => {
+    const groups = scope => scope.locator('.category-picker-group-title');
+
+    // An expense: expenses, then off-budget (transfers), then incomes
+    await row(page, 'CB BOULANGERIE PAUL').locator('.category-picker-button').click();
+    await expect(groups(row(page, 'CB BOULANGERIE PAUL'))).toHaveText([tr('categoryTypes_DEBIT'), tr('categoryTypes_HORS-BUDGET'), tr('categoryTypes_CREDIT')]);
+    await page.keyboard.press('Escape');
+
+    // An income: incomes first; the expenses are still offered (a refund)
+    await row(page, 'VIR SALAIRE ACME').getByRole('button', { name: new RegExp(tr('transactionDetail')) }).click();
+    const modal = page.getByRole('dialog', { name: tr('transactionDetail') });
+    await modal.locator('.category-picker-button').click();
+    await expect(groups(modal)).toHaveText([tr('categoryTypes_CREDIT'), tr('categoryTypes_HORS-BUDGET'), tr('categoryTypes_DEBIT')]);
+    await expect(modal.locator('.category-picker-option').first()).toContainText('Salaire');
+});

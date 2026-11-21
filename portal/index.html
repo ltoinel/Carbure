@@ -765,7 +765,7 @@
                                     </div>
                                     <div class="transaction-category">
                                         <category-picker v-if="isUncategorized(transaction) && ruleCategoryOptions.length > 0" compact
-                                                         model-value="" :categories="ruleCategories" :t="t" :placeholder="t('chooseCategory')"
+                                                         model-value="" :categories="ruleCategories" :t="t" :placeholder="t('chooseCategory')" :amount="transaction.amount"
                                                          :icon-for="categoryIcon" :color-for="categoryColor"
                                                          @update:model-value="categorizeTransaction(transaction, $event)"></category-picker>
                                         <span v-else-if="categoryName(transaction)" class="category-chip" :title="categoryName(transaction)">{{ categoryName(transaction) }}</span>
@@ -2969,7 +2969,7 @@
                     </div>
                     <div class="form-group">
                         <label>{{ t('categoryLabel') }}</label>
-                        <category-picker v-model="transactionDetailCategory" :categories="ruleCategories" :t="t" with-default
+                        <category-picker v-model="transactionDetailCategory" :categories="ruleCategories" :t="t" with-default :amount="transactionDetail.amount"
                                          :icon-for="categoryIcon" :color-for="categoryColor"></category-picker>
                     </div>
                     <label class="setup-checkbox">
@@ -3108,7 +3108,7 @@
                     </div>
                     <div v-if="manualForm.id === null" class="form-group">
                         <label>{{ t('categoryLabel') }}</label>
-                        <category-picker v-model="manualForm.category" :categories="ruleCategories" :t="t" with-default
+                        <category-picker v-model="manualForm.category" :categories="ruleCategories" :t="t" with-default :amount="manualForm.direction === 'income' ? 1 : -1"
                                          :placeholder="t('manualCategoryAuto')" :icon-for="categoryIcon" :color-for="categoryColor"></category-picker>
                     </div>
                 </div>
@@ -3225,7 +3225,7 @@
                     </p>
                     <ul class="split-parts">
                         <li v-for="(part, index) in splitParts" :key="index" class="split-part">
-                            <category-picker v-model="part.category" :categories="ruleCategories" :t="t" with-default
+                            <category-picker v-model="part.category" :categories="ruleCategories" :t="t" with-default :amount="splitBankAmount"
                                              :placeholder="t('chooseCategory')" :icon-for="categoryIcon" :color-for="categoryColor"></category-picker>
                             <input type="number" step="0.01" min="0" inputmode="decimal" v-model="part.amount"
                                    :aria-label="t('splitPartAmount', { number: index + 1 })" @keydown.enter="splitValid && saveSplit()" />

@@ -158,7 +158,11 @@ tâches ou l'écran d'accueil.
   `GET /transaction/search` sur tous les mois et affiche le **total** des transactions
   trouvées ; le filtre s'applique aussi aux résultats. La croix efface la recherche.
 - **Catégorisation manuelle** : une transaction sans catégorie propose un sélecteur
-  « Catégoriser… » (icônes, couleurs, recherche) ; la transaction est aussi pointée. Pour un administrateur, un bandeau
+  « Catégoriser… » (icônes, couleurs, recherche) ; la transaction est aussi pointée. Ce
+  sélecteur, comme ceux du détail, de la saisie manuelle et de la répartition, présente
+  d'abord les catégories du sens de la transaction (revenus pour un crédit, dépenses pour
+  un débit), puis les catégories hors budget, puis les autres (un remboursement est un
+  crédit sur une catégorie de dépense). Pour un administrateur, un bandeau
   propose ensuite de **créer une règle** pour classer automatiquement ce libellé : il ouvre
   l'onglet Règles avec le libellé et la catégorie pré-remplis, le mot-clé pouvant être
   raccourci (dates, numéros de carte…).
