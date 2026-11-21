@@ -1888,6 +1888,10 @@
                                     <div class="config-label">
                                         <label :for="'config-' + setting.key"><code>{{ setting.key }}</code></label>
                                         <span v-if="configHelp(setting.key)" class="config-help">{{ configHelp(setting.key) }}</span>
+                                        <span v-if="configWarning(setting.key)" class="config-warning" role="note">
+                                            <span class="material-icons" aria-hidden="true">warning</span>
+                                            <span><span class="visually-hidden">{{ t('configWarningLabel') }}: </span>{{ configWarning(setting.key) }}</span>
+                                        </span>
                                     </div>
                                     <div class="config-value">
                                         <template v-if="setting.editable && configData.writable">

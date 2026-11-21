@@ -535,7 +535,7 @@ The configuration file (`data/conf/prod.ini`) section by section,
 with a description of each setting. Secrets (`db_password`, `jwtsecret`,
 `password_salt`, `sync_token`…) are never shown. Only the risk-free settings
 can be edited — `log_level`, `log_retention_days`, `savings_category`, `public_url`, `mfa_required` (two-factor authentication required), `woob_transactions`,
-`woob_logging`, `woob_debug`, `woob_auto_update`, the push notification service
+`woob_logging`, `woob_debug`, `woob_auto_update`, `woob_relabel`, the push notification service
 (`push_api_key`, with the instance key shown on request) and the SMTP server for emails — with
 lists, switches and fields checked by the server; the others carry a
 padlock. Changed settings are highlighted; the bottom bar saves or

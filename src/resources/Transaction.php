@@ -369,11 +369,13 @@ final class Transaction {
         // Deleted by a user: never saved again
         $deleted = self::deletedUuids(array_column($rows, 'uuid'));
         $repair = self::hasUnlabeled($userId, $origin);
+        // Labels changed by the woob module (setting woob_relabel): the transaction saved takes them
+        $relabeled = TransactionRelabel::apply(array_values($rows), $userId, $origin);
         foreach ($rows as $row) {
             if (isset($row['raw'])) {
                 Webservice::sendProgress($row['raw']);
             }
-            if (!isset($deleted[$row['uuid']]) && !($repair && self::relabel($row, $userId, $origin))
+            if (!isset($deleted[$row['uuid']]) && !isset($relabeled[$row['uuid']]) && !($repair && self::relabel($row, $userId, $origin))
                 && self::create($row, $userId, $origin)) {
                 $created[] = ['label' => $row['label'], 'amount' => (float)$row['amount'], 'uuid' => $row['uuid'],
                     'date' => $row['rdate'] ?? $row['date'] ?? null];
