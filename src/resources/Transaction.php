@@ -349,7 +349,9 @@ final class Transaction {
             Logger::warn("$unlabeled transactions without a label (raw and label empty) from "
                 . ($origin['bank_name'] ?? 'a file') . ": check the woob module");
         }
-        return self::store($rows, $userId, $origin);
+        // Labels changed by the woob module (setting woob_relabel): the transaction saved takes them.
+        // Only for a synchronization: never for a file imported on that account
+        return self::store($rows, $userId, $origin, TransactionRelabel::apply(array_values($rows), $userId, $origin));
     }
 
     /**
@@ -358,19 +360,18 @@ final class Transaction {
      * @param array<array<string, mixed>> $rows   The transactions, as returned by prepareAll(), with
      *                                            their raw label to send it as a progress event
      * @param int                         $userId The user owning the transactions
-     * @param array<string, string|null>  $origin bank_name and account_number of the account they come from
+     * @param array<string, string|null>  $origin    bank_name and account_number of the account they come from
+     * @param array<string, true>         $relabeled UUIDs that relabeled a saved transaction (TransactionRelabel): not saved
      * @return list<array{label: string, amount: float, uuid: string, date: string|null}> The transactions
      *              that were not known yet (label cleaned, amount, uuid, real date); the deleted ones
      *              are skipped
      */
-    private static function store(array $rows, int $userId, array $origin = []): array
+    private static function store(array $rows, int $userId, array $origin = [], array $relabeled = []): array
     {
         $created = [];
         // Deleted by a user: never saved again
         $deleted = self::deletedUuids(array_column($rows, 'uuid'));
         $repair = self::hasUnlabeled($userId, $origin);
-        // Labels changed by the woob module (setting woob_relabel): the transaction saved takes them
-        $relabeled = TransactionRelabel::apply(array_values($rows), $userId, $origin);
         foreach ($rows as $row) {
             if (isset($row['raw'])) {
                 Webservice::sendProgress($row['raw']);

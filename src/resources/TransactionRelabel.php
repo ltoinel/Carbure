@@ -26,8 +26,8 @@ use Carbure\Lib\Logger;
 final class TransactionRelabel {
 
     /**
-     * Whether the transactions of a synchronization may be relabeled: the setting is on
-     * and they come from a synchronized account (not from a file).
+     * Whether the transactions of a synchronization may be relabeled: the setting is on and
+     * the account is a synchronized one (Transaction::save(), never called for a file).
      *
      * @param array<string, string|null> $origin bank_name and account_number of the account
      * @return bool
@@ -39,16 +39,18 @@ final class TransactionRelabel {
 
     /**
      * Pairs the transactions received whose UUID is unknown with the transactions saved
-     * that the synchronization no longer sends, by real date and amount, one to one only.
+     * that the synchronization no longer sends, by real date, amount and type, one to one only.
      *
-     * @param list<array<string, mixed>> $rows     The transactions received {uuid, rdate, amount}
-     * @param list<array<string, mixed>> $existing The transactions of the account over the same days {id, uuid, rdate, amount}
+     * @param list<array<string, mixed>> $rows     The transactions received {uuid, rdate, amount, type}
+     * @param list<array<string, mixed>> $existing The transactions of the account over the same days {id, uuid, rdate, amount, type}
+     * @param list<string>               $taken    UUIDs received already used by another transaction (another
+     *                                             account, an imported file): never given again (the UUID is unique)
      * @return array<string, int> The UUIDs received relabeling a saved transaction => its id
      */
-    public static function plan(array $rows, array $existing): array
+    public static function plan(array $rows, array $existing, array $taken = []): array
     {
         $received = array_flip(array_map('strval', array_column($rows, 'uuid')));
-        $known = array_flip(array_map('strval', array_column($existing, 'uuid')));
+        $known = array_flip(array_map('strval', array_merge(array_column($existing, 'uuid'), $taken)));
 
         $new = self::byDay(array_filter($rows, fn($row) => !isset($known[(string)$row['uuid']])));
         $gone = self::byDay(array_filter($existing, fn($row) => !isset($received[(string)$row['uuid']])));
@@ -72,7 +74,7 @@ final class TransactionRelabel {
     {
         $groups = [];
         foreach ($rows as $row) {
-            $groups[$row['rdate'] . '|' . number_format((float)$row['amount'], 2, '.', '')][] = $row;
+            $groups[$row['rdate'] . '|' . number_format((float)$row['amount'], 2, '.', '') . '|' . (int)($row['type'] ?? 0)][] = $row;
         }
         return $groups;
     }
@@ -91,13 +93,15 @@ final class TransactionRelabel {
         if (!self::enabled($origin) || $days === []) {
             return [];
         }
-        $existing = Db::select("SELECT t.id, t.uuid, t.rdate, " . Transaction::BANK_AMOUNT . " AS amount FROM bank_transaction t
-            WHERE t.split_of IS NULL AND t.user = ? AND t.bank_name = ? AND t.account_number <=> ? AND t.rdate BETWEEN ? AND ?",
-            "issss", $userId, $origin['bank_name'], $origin['account_number'] ?? null, min($days), max($days))->fetch_all(MYSQLI_ASSOC);
+        // Entered by hand on the account: never sent by the bank, never relabeled
+        $existing = Db::select("SELECT t.id, t.uuid, t.rdate, t.type, " . Transaction::BANK_AMOUNT . " AS amount FROM bank_transaction t
+            WHERE t.split_of IS NULL AND t.user = ? AND t.bank_name = ? AND t.account_number <=> ? AND t.rdate BETWEEN ? AND ?
+            AND t.uuid NOT LIKE ?", "isssss", $userId, $origin['bank_name'], $origin['account_number'] ?? null, min($days), max($days),
+            Transaction::MANUAL_UUID . '%')->fetch_all(MYSQLI_ASSOC);
 
         $byUuid = array_column($rows, null, 'uuid');
         $done = [];
-        foreach (self::plan($rows, $existing) as $uuid => $id) {
+        foreach (self::plan($rows, $existing, self::taken(array_keys($byUuid))) as $uuid => $id) {
             $row = $byUuid[$uuid];
             Db::execute("UPDATE bank_transaction SET label = ?, uuid = ?, card = ? WHERE id = ?", "sssi",
                 $row['label'], $uuid, $row['card'] ?? '', $id);
@@ -109,5 +113,22 @@ final class TransactionRelabel {
             Logger::info(count($done) . " transaction(s) of " . $origin['bank_name'] . " relabeled (woob_relabel)");
         }
         return $done;
+    }
+
+    /**
+     * UUIDs received that a transaction already has, wherever it is (another account, a file).
+     *
+     * @param list<int|string> $uuids The UUIDs received
+     * @return list<string> Those already used
+     */
+    private static function taken(array $uuids): array
+    {
+        $taken = [];
+        foreach (array_chunk(array_map('strval', $uuids), 500) as $chunk) {
+            $marks = implode(',', array_fill(0, count($chunk), '?'));
+            $rows = Db::select("SELECT uuid FROM bank_transaction WHERE uuid IN ($marks)", str_repeat('s', count($chunk)), ...$chunk);
+            array_push($taken, ...array_map('strval', array_column($rows->fetch_all(MYSQLI_ASSOC), 'uuid')));
+        }
+        return $taken;
     }
 }

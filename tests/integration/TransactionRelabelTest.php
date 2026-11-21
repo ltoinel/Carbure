@@ -79,6 +79,38 @@ class TransactionRelabelTest extends DatabaseTestCase
         $this->assertCount(4, $this->rows());
     }
 
+    public function testATransactionEnteredByHandIsNeverRelabeled()
+    {
+        // Entered by hand on the synchronized account, then the bank sends its own line: both kept
+        Config::set('woob_relabel', '1');
+        Db::execute("INSERT INTO bank_account (bank_name, account_number, user_id) VALUES ('creditmutuel', '42', ?)", "i", self::USER);
+        $account = (int)Db::queryOne("SELECT id FROM bank_account WHERE bank_name = 'creditmutuel'", "")['id'];
+        $this->loginAs(self::USER);
+        $manual = Transaction::createManual($account, $this->day(2), 'Plombier', -80, null);
+        $manualUuid = Db::queryOne("SELECT uuid FROM bank_transaction WHERE id = ?", "i", $manual['id'])['uuid'];
+
+        $this->assertCount(1, Transaction::save([['type' => 2, 'raw' => 'PRLV PLOMBERIE', 'amount' => -80, 'date' => $this->day(2)]],
+            self::USER, false, self::ORIGIN));
+        $this->assertSame($manualUuid, Db::queryOne("SELECT uuid FROM bank_transaction WHERE id = ?", "i", $manual['id'])['uuid']);
+        $this->assertCount(2, $this->rows());
+    }
+
+    public function testAUuidOfAnImportedFileIsNotTakenTwice()
+    {
+        Config::set('woob_relabel', '1');
+        Transaction::save($this->history(false), self::USER, false, self::ORIGIN);
+        // The fixed label of the Super U was already imported from a file (same UUID, no account)
+        $fixed = Transaction::prepareAll([$this->history(true)[0]])[0];
+        Db::execute("INSERT INTO bank_transaction (uuid, date, rdate, type, label, category, amount, card, pointed, user)
+            VALUES (?, ?, ?, 7, ?, 0, -24.10, '', 0, ?)", "ssssi", $fixed['uuid'], $fixed['date'], $fixed['rdate'], $fixed['label'], self::USER);
+
+        // No error on the unique UUID: the Super U is left as it is, the bakery relabeled
+        Transaction::save($this->history(true), self::USER, false, self::ORIGIN);
+        $labels = array_column($this->rows(), 'label');
+        $this->assertContains('PAIEMENT PSC 2410', $labels);
+        $this->assertContains('CARTE BOULANGERIE', $labels);
+    }
+
     public function testAnotherAccountIsNotTouched()
     {
         Config::set('woob_relabel', '1');

@@ -65,6 +65,23 @@ class TransactionRelabelPlanTest extends TestCase
         $this->assertSame([], TransactionRelabel::plan([['uuid' => 'b', 'rdate' => '2026-11-03', 'amount' => -2.51]], $existing));
     }
 
+    public function testAUuidAlreadyUsedElsewhereIsNeverGiven()
+    {
+        // The new label gives a UUID that a transaction of an imported file already has: unique, not given again
+        $existing = [['id' => 1, 'uuid' => 'old', 'rdate' => '2026-11-03', 'amount' => -24.1]];
+        $rows = [['uuid' => 'new', 'rdate' => '2026-11-03', 'amount' => -24.1]];
+        $this->assertSame([], TransactionRelabel::plan($rows, $existing, ['new']));
+        $this->assertSame(['new' => 1], TransactionRelabel::plan($rows, $existing, []));
+    }
+
+    public function testTheTypeMustBeTheSame()
+    {
+        // A card payment does not replace a transfer of the same amount
+        $existing = [['id' => 1, 'uuid' => 'old', 'rdate' => '2026-11-03', 'amount' => -50, 'type' => 1]];
+        $this->assertSame([], TransactionRelabel::plan([['uuid' => 'new', 'rdate' => '2026-11-03', 'amount' => -50, 'type' => 7]], $existing));
+        $this->assertSame(['new' => 1], TransactionRelabel::plan([['uuid' => 'new', 'rdate' => '2026-11-03', 'amount' => -50, 'type' => 1]], $existing));
+    }
+
     public function testOffByDefaultAndOnlyForASynchronizedAccount()
     {
         Config::set('woob_relabel', '');
