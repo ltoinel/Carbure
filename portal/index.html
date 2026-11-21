@@ -618,29 +618,6 @@
                             <button type="button" class="search-filters-clear" @click="clearSearch">{{ t('clearSearch') }}</button>
                         </div>
 
-                        <!-- Recurring series of the month: their number, their total, the filter and the calendar -->
-                        <section v-if="!isSearching && recurring.length > 0" class="recurring-strip" :aria-label="t('recurringSummary')">
-                            <span class="recurring-strip-icon" aria-hidden="true"><span class="material-icons">autorenew</span></span>
-                            <div class="recurring-strip-info">
-                                <span class="recurring-strip-title">{{ t('recurringCount', { count: recurring.length }) }}</span>
-                                <span class="recurring-strip-detail">
-                                    {{ t('recurringCalendarReceived', { count: recurringCalendar.received.count }) }}<template v-if="recurringCalendar.expected.count > 0"> · {{ t(isCurrentMonth ? 'recurringCalendarExpected' : 'recurringCalendarMissing', { count: recurringCalendar.expected.count }) }}</template>
-                                </span>
-                            </div>
-                            <div class="recurring-strip-total">
-                                <span class="recurring-strip-total-label">{{ t('recurringTotal') }}</span>
-                                <strong :class="recurringTotal >= 0 ? 'positive' : 'negative'">{{ formatAmount(recurringTotal) }} {{ currencySymbol }}</strong>
-                            </div>
-                            <label class="toggle-switch toggle-recurring" :class="{ on: recurringOnly }">
-                                <input type="checkbox" role="switch" v-model="recurringOnly" />
-                                <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
-                                <span class="toggle-label">{{ t('recurringOnly') }}</span>
-                            </label>
-                            <button type="button" class="btn-secondary btn-recurring-calendar" @click="openRecurringCalendar" :title="t('recurringCalendarHelp')">
-                                <span class="material-icons" aria-hidden="true">calendar_month</span><span class="btn-label">{{ t('recurringCalendarButton') }}</span>
-                            </button>
-                        </section>
-
                         <div class="transactions-container">
                             <div class="transactions-header">
                                 <h2>{{ isSearching ? t('searchResultsTitle') : t('transactionsTitle') }}</h2>
@@ -666,6 +643,35 @@
                                     </button>
                                 </div>
                             </div>
+                            <!-- Recurring series of the month, a bar like the selection one (#465): folded, their
+                                 number and its chevron; unfolded, under them, what was received, their total, the
+                                 filter and the calendar -->
+                            <section v-if="!isSearching && recurring.length > 0" class="recurring-bar" :class="{ expanded: recurringExpanded }" :aria-label="t('recurringSummary')">
+                                <span class="material-icons recurring-bar-icon" aria-hidden="true">autorenew</span>
+                                <span class="recurring-bar-title">{{ t('recurringCount', { count: recurring.length }) }}</span>
+                                <button type="button" class="recurring-bar-toggle" @click="toggleRecurringBar"
+                                        :aria-expanded="recurringExpanded ? 'true' : 'false'" aria-controls="recurring-bar-details"
+                                        :title="t('recurringDetails')" :aria-label="t('recurringDetails')">
+                                    <span class="material-icons" aria-hidden="true">{{ recurringExpanded ? 'expand_less' : 'expand_more' }}</span>
+                                </button>
+                                <div v-show="recurringExpanded" id="recurring-bar-details" class="recurring-bar-details">
+                                    <span class="recurring-bar-detail">
+                                        {{ t('recurringCalendarReceived', { count: recurringCalendar.received.count }) }}<template v-if="recurringCalendar.expected.count > 0"> · {{ t(isCurrentMonth ? 'recurringCalendarExpected' : 'recurringCalendarMissing', { count: recurringCalendar.expected.count }) }}</template>
+                                    </span>
+                                    <span class="recurring-bar-total">
+                                        <span class="recurring-bar-total-label">{{ t('recurringTotal') }}</span>
+                                        <strong :class="recurringTotal >= 0 ? 'positive' : 'negative'">{{ formatAmount(recurringTotal) }} {{ currencySymbol }}</strong>
+                                    </span>
+                                    <label class="toggle-switch toggle-recurring" :class="{ on: recurringOnly }">
+                                        <input type="checkbox" role="switch" v-model="recurringOnly" />
+                                        <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
+                                        <span class="toggle-label">{{ t('recurringOnly') }}</span>
+                                    </label>
+                                    <button type="button" class="btn-secondary btn-recurring-calendar" @click="openRecurringCalendar" :title="t('recurringCalendarHelp')">
+                                        <span class="material-icons" aria-hidden="true">calendar_month</span><span class="btn-label">{{ t('recurringCalendarButton') }}</span>
+                                    </button>
+                                </div>
+                            </section>
                             <!-- Selection of transactions: one tag added to all of them, or all of them deleted -->
                             <div v-if="selectingTransactions" class="tag-selection-bar" role="region" :aria-label="t('tagSelect')">
                                 <span class="tag-selection-count" aria-live="polite">{{ t('tagSelected', { count: selectedTransactionIds.length }) }}</span>
@@ -2186,6 +2192,47 @@
                         <div v-if="backupImportFile" class="backup-actions">
                             <button type="button" class="btn-danger backup-import-button" @click="confirmBackupImport" :disabled="!backupImportSelected.length">
                                 <span class="material-icons" aria-hidden="true">settings_backup_restore</span>{{ t('backupImportButton') }}
+                            </button>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- Purge Tab (administrators): deletes the chosen datasets, from the local network only -->
+                <div v-else-if="activeTab === 'purge'" key="purge" class="tab-panel">
+                    <section class="trends-card config-card backup-card" aria-labelledby="purge-title">
+                        <div class="panel-header">
+                            <div>
+                                <h2 id="purge-title">{{ t('purgeTitle') }}</h2>
+                                <p class="rules-help">{{ t('purgeHelp') }}</p>
+                            </div>
+                        </div>
+                        <p class="backup-warning">
+                            <span class="material-icons" aria-hidden="true">warning</span>{{ t('purgeWarning') }}
+                        </p>
+                        <p v-if="!purgeLocal" class="sync-step-error purge-not-local" role="alert">
+                            <span class="material-icons" aria-hidden="true">lock</span>{{ t('purgeNotLocal') }}
+                        </p>
+                        <div v-if="loadingPurge && !purgeDatasets.length" class="loading">
+                            <div class="material-icons spin" aria-hidden="true">refresh</div>
+                            <p>{{ t('loadingMessage') }}</p>
+                        </div>
+                        <fieldset v-else class="backup-datasets">
+                            <legend class="visually-hidden">{{ t('purgeDatasets') }}</legend>
+                            <label v-for="dataset in purgeDatasets" :key="dataset.name" class="backup-dataset" :class="{ selected: purgeSelected.has(dataset.name) }">
+                                <input type="checkbox" :checked="purgeSelected.has(dataset.name)" :disabled="!purgeLocal || purgeForced.has(dataset.name)"
+                                       :data-dataset="dataset.name" @change="togglePurgeDataset(dataset.name, $event.target.checked)" />
+                                <span class="material-icons backup-dataset-icon" aria-hidden="true">{{ backupDatasetIcon(dataset.name) }}</span>
+                                <span class="backup-dataset-name">{{ backupDatasetLabel(dataset.name) }}<small v-if="purgeForced.has(dataset.name)" class="purge-forced">{{ t('purgeWithParent') }}</small></span>
+                                <span class="backup-dataset-count">{{ t('backupRows', { count: dataset.count }) }}</span>
+                            </label>
+                        </fieldset>
+                        <div v-if="purgeError" class="sync-step-error" role="alert">{{ purgeError }}</div>
+                        <div class="backup-actions">
+                            <button type="button" class="btn-secondary purge-backup-first" @click="setActiveTab('backup')">
+                                <span class="material-icons" aria-hidden="true">backup</span>{{ t('purgeBackupFirst') }}
+                            </button>
+                            <button type="button" class="btn-danger purge-button" @click="confirmPurge" :disabled="!purgeLocal || !purgeSelected.size">
+                                <span class="material-icons" aria-hidden="true">delete_forever</span>{{ t('purgeButton') }}
                             </button>
                         </div>
                     </section>

@@ -118,6 +118,12 @@ keeps track of what was done).
       arm64, and mention the demo tag in the overview of the Docker Hub repository
       (accounts: `demo` / `carbure`, `admin` with a random password printed in the logs).
 
+- [ ] **Demo data reloaded each day (#481)**: after the 1.13.0 release, the day after the
+      update of demo.carbure.org, check that `docker logs carbure-demo` shows
+      `new day (…), demonstration data reloaded up to today` and that the current month
+      has transactions up to today; the nightly `run.sh --reset` cron is then only
+      needed to change the `admin` password.
+
 - [ ] **Insights restricted to the budget tables (#226)**: after the upgrade, an insight
       whose query reads another table (or takes more than 5 s) shows 0: check the
       Insights tab of the instance and fix such queries.
@@ -226,6 +232,12 @@ keeps track of what was done).
       needs more, send the datasets in several requests (one transaction per request would
       then no longer cover the whole import) or stream the rows. The bank accounts (labels,
       owners) and connections are not in a backup: their credentials live in woob.
+
+- [ ] Purge (Administration → Purge, #453): "local network only" trusts the addresses of
+      the request (peer, `X-Forwarded-For`, `X-Real-IP`, `Forwarded`). A reverse proxy
+      that forwards none of them makes a request from Internet look local: document that
+      the NAS proxy must send `X-Forwarded-For` (passed to PHP by the nginx of the image), or add a
+      setting that turns the purge off entirely.
 
 - [ ] **Production** (two-factor authentication, #166): the migration `2026-10-24_user_mfa`
       (tables `user_mfa`, `mfa_recovery_code`, `mfa_trusted_browser`) is applied at

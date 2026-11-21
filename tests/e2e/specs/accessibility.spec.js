@@ -41,7 +41,7 @@ test('every tab is readable, buttons on hover included', async ({ adminPage: pag
     }
 
     await page.locator('.tabs').getByRole('button', { name: tr('tabAdministration'), exact: true }).click();
-    for (const tab of ['tabUsers', 'tabCategories', 'tabSync', 'tabPush', 'tabAgents', 'tabLogs', 'tabSettings', 'tabBackup']) {
+    for (const tab of ['tabUsers', 'tabCategories', 'tabSync', 'tabPush', 'tabAgents', 'tabLogs', 'tabSettings', 'tabBackup', 'tabPurge']) {
         await page.getByRole('tab', { name: tr(tab), exact: true }).click();
         await expect(page.getByRole('tab', { name: tr(tab), exact: true })).toHaveAttribute('aria-selected', 'true');
         await page.waitForLoadState('networkidle');
@@ -513,6 +513,34 @@ test('the tags, their form and a summary are readable', async ({ adminPage: page
     await expect(detail.getByRole('option').locator('.tag-input-name')).toHaveText(['#voyage', tr('tagCreateNamed', { name: 'v' })]);
     await field.press('ArrowDown');
     problems.push(...await contrastProblems(page, `${tr('transactionDetail')} (tags)`));
+    expect(problems).toEqual([]);
+});
+
+test('the bar of the recurring transactions is readable folded and unfolded, its focus visible (#465)', async ({ adminPage: page }) => {
+    const problems = [];
+    const bar = page.getByRole('region', { name: tr('recurringSummary') });
+    const unfold = bar.getByRole('button', { name: tr('recurringDetails') });
+    await expect(unfold).toHaveAttribute('aria-expanded', 'false');
+    problems.push(...await contrastProblems(page, `${tr('recurringSummary')} (folded)`));
+
+    // The chevron reached with the keyboard: its focus visible, the bar still readable
+    await unfold.focus();
+    await expect(unfold).toHaveCSS('outline-style', 'solid');
+    problems.push(...await contrastProblems(page, `${tr('recurringSummary')} (focus)`));
+
+    await page.keyboard.press('Enter');
+    await expect(page.locator('#recurring-bar-details')).toBeVisible();
+    problems.push(...await contrastProblems(page, `${tr('recurringSummary')} (unfolded)`));
+    // The filter switched on with the keyboard, then the calendar reached with Tab
+    const filter = bar.getByRole('switch', { name: tr('recurringOnly') });
+    await filter.focus();
+    await page.keyboard.press('Space');
+    await expect(filter).toBeChecked();
+    await page.keyboard.press('Tab');
+    const calendar = bar.getByRole('button', { name: tr('recurringCalendarButton') });
+    await expect(calendar).toBeFocused();
+    await expect(calendar).toHaveCSS('outline-style', 'solid');
+    problems.push(...await contrastProblems(page, `${tr('recurringSummary')} (filtered, focus)`));
     expect(problems).toEqual([]);
 });
 

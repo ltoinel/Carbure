@@ -231,10 +231,11 @@ Carbure **automatically detects** the transactions that come back every month: s
 subscriptions, bills, reimbursements…
 
 - **"Monthly" badge** on these transactions in the list of the month.
-- A **strip** under the search bar sums them up: their number, how many were received and
-  expected, and the **month total** (net: incomes minus expenses, the ones still expected
-  counted at their usual amount).
-- In this strip, a **toggle** shows only those, and lists the ones **expected this month** that have
+- A **bar** at the top of the list, like the selection one, sums them up. Folded by
+  default, it shows only their number; its chevron unfolds it (choice remembered by the
+  browser): how many were received and expected, and the **recurring transactions total**
+  (net: incomes minus expenses, the ones still expected counted at their usual amount).
+- In this unfolded bar, a **toggle** shows only those, and lists the ones **expected this month** that have
   not arrived yet, with their usual day and amount ("≈" if it varies); for a
   past month, the ones that were **missed** ("Missing this month"). Handy to check that
   the salary came in or that a direct debit was not forgotten.
@@ -577,7 +578,7 @@ Details: [Web portal](portail.md#accessibilite).
 ## Administration { #administration }
 
 The **Rules** and **Accounts** tabs, and the **Administration** menu
-(**Users**, **Categories**, **Logs**, **Settings**, **Sync**, **Mobile push**, **AI agent**, **Backup**, **API**) are reserved for administrators; other
+(**Users**, **Categories**, **Logs**, **Settings**, **Sync**, **Mobile push**, **AI agent**, **Backup**, **Purge**, **API**) are reserved for administrators; other
 users open **AI agent** from their menu.
 
 - **Users**: creation, editing (including the profile), deletion, last
@@ -599,6 +600,9 @@ users open **AI agent** from their menu.
   ZIP (choosing its files) or of a single file, which **deletes and replaces** the
   data of each imported type, after confirmation, all or nothing. No users, no
   passwords, no tokens and no bank connections in a backup.
+- **Purge**: to start again from scratch, deletion of every row of the chosen data
+  (with the data that depends on it), after confirmation, from the local network
+  only; bank accounts, users and settings kept.
 - **API**: the API documentation (Swagger UI) in the portal; "Try it out" calls
   the API with the administrator's session.
 - **Database update**: when a new version changes the database, a banner

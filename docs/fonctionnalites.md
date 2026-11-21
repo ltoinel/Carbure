@@ -233,10 +233,12 @@ Carbure **repère tout seul** les opérations qui reviennent chaque mois : salai
 abonnements, factures, remboursements…
 
 - **Badge « Mensuelle »** sur ces transactions dans la liste du mois.
-- Un **bandeau** sous la barre de recherche les résume : leur nombre, combien sont reçues et
-  attendues, et le **total du mois** (net : revenus moins dépenses, celles encore attendues
-  comptées à leur montant habituel).
-- Dans ce bandeau, un **interrupteur** n'affiche qu'elles, et liste celles **attendues ce mois-ci** qui ne sont
+- Une **barre** en haut de la liste, comme celle de la sélection, les résume. Repliée par
+  défaut, elle n'affiche que leur nombre ; son chevron la déplie (choix retenu par le
+  navigateur) : combien sont reçues et attendues, et le **total des transactions
+  récurrentes** (net : revenus moins dépenses, celles encore attendues comptées à leur
+  montant habituel).
+- Dans cette barre dépliée, un **interrupteur** n'affiche qu'elles, et liste celles **attendues ce mois-ci** qui ne sont
   pas encore arrivées, avec leur jour habituel et leur montant (« ≈ » s'il varie) ; pour un
   mois passé, celles qui ont **manqué** (« Absentes ce mois-ci »). Pratique pour vérifier que
   le salaire est tombé ou qu'un prélèvement n'a pas été oublié.
@@ -583,7 +585,7 @@ Détails : [Portail web](portail.md#accessibilite).
 ## Administration
 
 Les onglets **Règles** et **Comptes**, et le menu **Administration**
-(**Utilisateurs**, **Catégories**, **Logs**, **Paramètres**, **Synchro**, **Push mobile**, **Agent IA**, **Sauvegarde**, **API**) sont réservés aux administrateurs ; les autres
+(**Utilisateurs**, **Catégories**, **Logs**, **Paramètres**, **Synchro**, **Push mobile**, **Agent IA**, **Sauvegarde**, **Purge**, **API**) sont réservés aux administrateurs ; les autres
 utilisateurs ouvrent **Agent IA** depuis leur menu.
 
 - **Utilisateurs** : création, modification (dont le profil), suppression, dernière
@@ -605,6 +607,9 @@ utilisateurs ouvrent **Agent IA** depuis leur menu.
   ZIP (en choisissant ses fichiers) ou d'un seul fichier, qui **supprime et remplace** les
   données de chaque type importé, après confirmation, tout ou rien. Ni utilisateurs, ni mots
   de passe, ni jetons, ni connexions bancaires dans une sauvegarde.
+- **Purge** : pour repartir de zéro, suppression de toutes les lignes des données choisies
+  (celles qui en dépendent avec elles), après confirmation, depuis le réseau local
+  uniquement ; comptes bancaires, utilisateurs et réglages conservés.
 - **API** : la documentation de l'API (Swagger UI) dans le portail ; « Try it out » appelle
   l'API avec la session de l'administrateur.
 - **Mise à jour de la base** : quand une nouvelle version modifie la base, un bandeau le
