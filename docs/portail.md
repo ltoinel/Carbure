@@ -250,7 +250,9 @@ Deux sous-onglets : **Flux** (affiché par défaut) et **Budgets**.
   activité**.
 - **Clic sur une catégorie** : liste de ses transactions du mois (sous-catégories
   comprises) avec leur total et le pointage ; si elle a des sous-catégories, leurs
-  cartes s'affichent, avec un fil d'Ariane pour remonter.
+  cartes s'affichent, avec un fil d'Ariane pour remonter. Les transactions rangées
+  directement sur la catégorie parente ont leur propre carte, « *Catégorie* (hors
+  sous-catégories) », sans budget : le total de la catégorie se retrouve dans ses cartes.
 - Bouton de réglage d'une carte : modification du montant budgété pour le mois. Pour une
   catégorie parente, la case **Somme des sous-catégories** utilise leur somme ; décochée,
   le montant saisi la remplace. Le champ **Note** garde un pense-bête de ce que couvre le

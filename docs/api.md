@@ -591,6 +591,7 @@ choisis (voir [`GET /user/notifications`](#get-usernotifications)).
 |---|---|---|
 | `month`, `year` | non | Mois des transactions (mois courant par défaut) |
 | `category` | non | Limite aux transactions de cette catégorie **et de ses sous-catégories** |
+| `own` | non | Avec `category` : `1` limite aux transactions rangées sur la catégorie elle-même, sans ses sous-catégories |
 
 Les transactions sont triées par date réelle décroissante. Champs : `id`, `uuid`,
 `imported`, `date`, `rdate`, `type`, `label`, `category`, `amount`, `card`, `bank_name`
@@ -802,6 +803,11 @@ du mois donne 0 ; valeur absolue pour `HORS-BUDGET`), `progress` (%), `children`
 (nombre de sous-catégories), `children_budget` (somme de leurs budgets) et `budget_mode` :
 `own` (montant défini pour la catégorie) ou `children` (catégorie avec sous-catégories et
 sans montant défini : `budget` est alors la somme des budgets des sous-catégories).
+
+Avec `own=1` et une catégorie parente, la liste ajoute un élément pour les transactions
+rangées sur la catégorie parente elle-même plutôt que sur une sous-catégorie : `own: true`,
+`id` de la parente, sans budget (`budget` à 0), avec ce qu'elles consomment. Il n'apparaît
+que si le mois en a ; sans `own`, la réponse est inchangée.
 
 ### `GET /budget/flow`
 

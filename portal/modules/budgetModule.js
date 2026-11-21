@@ -267,17 +267,38 @@ export function createBudgetModule(getBudgetStore, getApiService) {
             },
 
             /**
-             * Loads the transactions of a category (sub-categories included)
-             * @param {Object} category - Category {id, name}
+             * Name of a budget item: the item of the transactions put on a parent
+             * category itself (own) says that they are in none of its sub-categories
+             * @param {Object} item - Budget item
+             * @returns {string}
+             */
+            budgetItemName(item) {
+                return item.own ? this.t('budgetOwnTransactions', { category: item.name }) : item.name;
+            },
+
+            /**
+             * The budget item is the one whose transactions are listed under the cards
+             * @param {Object} item - Budget item
+             * @returns {boolean}
+             */
+            isBudgetCategorySelected(item) {
+                return !!this.budgetCategory && this.budgetCategory.id === item.id && this.budgetCategory.own === !!item.own;
+            },
+
+            /**
+             * Loads the transactions of a category (sub-categories included, or only those
+             * put on the category itself for the own item of a parent category)
+             * @param {Object} category - Category or budget item {id, name, own?}
              * @param {number} month - Month (1-12)
              * @param {number} year - Year
              * @returns {Promise<void>}
              */
             async loadBudgetTransactions(category, month, year) {
-                this.budgetCategory = { id: category.id, name: category.name };
+                const own = !!category.own;
+                this.budgetCategory = { id: category.id, name: this.budgetItemName(category), own };
                 this.loadingBudgetTransactions = true;
                 try {
-                    this.budgetTransactions = await getApiService().fetchCategoryTransactions(month, year, category.id);
+                    this.budgetTransactions = await getApiService().fetchCategoryTransactions(month, year, category.id, own);
                     // Icons of the rows: the categories of the transactions
                     this.ensureCategories();
                 } catch (err) {
@@ -319,7 +340,10 @@ export function createBudgetModule(getBudgetStore, getApiService) {
                 try {
                     // List the transactions of the category, then go into its sub-categories if any
                     this.loadBudgetTransactions(item, month, year);
-                    await store.navigateToChildren(item, month, year);
+                    // The own item of a parent: its transactions only (its children are the current level)
+                    if (!item.own) {
+                        await store.navigateToChildren(item, month, year);
+                    }
                 } catch (err) {
                     console.error('Navigate to budget error:', err);
                     this.showToast(this.apiErrorText(err) || this.t('navigationError'));

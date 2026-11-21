@@ -1,5 +1,5 @@
 // Budget tab: money flow, budgets by category, sub-categories, editing a budget
-const { test, expect, tr, openTab, euros, currentMonth, offerBudgetCopy } = require('../fixtures');
+const { test, expect, tr, openTab, euros, currentMonth, offerBudgetCopy, escapeRegExp } = require('../fixtures');
 
 /**
  * Checks the amounts of a budget card: spent / budget
@@ -341,4 +341,34 @@ test('the sub-categories follow a transaction recategorized elsewhere (#402)', a
     // Its sub-category is fetched again, not taken from the cache
     await card(page, 'Alimentation').click();
     await expect(card(page, 'Supermarché').locator('.spent')).toHaveText(euros(89.2));
+});
+
+test('the transactions put on a parent category have their own card in its sub-categories (#492)', async ({ adminPage: page, api }) => {
+    // The bakery put on Alimentation itself, not on one of its sub-categories
+    const { month, year } = currentMonth();
+    const transactions = await (await api.get(`/api/transaction?month=${month}&year=${year}`)).json();
+    const bakery = transactions.find(t => t.label === 'CB BOULANGERIE PAUL');
+    expect((await api.put('/api/transaction/category', { data: { id: bakery.id, category: 1 } })).ok()).toBeTruthy();
+
+    await openBudgets(page);
+    await expect(card(page, 'Alimentation').locator('.spent')).toHaveText(euros(134.2));
+    await card(page, 'Alimentation').click();
+    await expect(card(page, 'Supermarché').locator('.spent')).toHaveText(euros(82.4));
+
+    // Its card: what it spent, no budget to set, nor a gauge
+    const name = tr('budgetOwnTransactions', { category: 'Alimentation' });
+    const own = card(page, escapeRegExp(name));
+    await expect(own.locator('.spent')).toHaveText(euros(6.8));
+    await expect(own.locator('.of')).toHaveCount(0);
+    await expect(own.getByRole('button', { name: tr('budgetEditTitle') })).toHaveCount(0);
+
+    // A click lists only its transactions and stays on the level
+    await own.click();
+    const list = page.locator('.budget-transactions');
+    await expect(list).toContainText(tr('categoryTransactions', { category: name }));
+    await expect(list.locator('.transaction-item')).toHaveCount(1);
+    await expect(list).toContainText('CB BOULANGERIE PAUL');
+    await expect(own).toHaveClass(/selected/);
+    await expect(card(page, 'Supermarché')).toBeVisible();
+    await expect(page.locator('.budget-breadcrumb')).toContainText('Alimentation');
 });

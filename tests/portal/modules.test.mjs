@@ -1569,3 +1569,34 @@ test('rules: the optional amount, shown with 2 decimals, sent with the rule and 
     await context.addRule();
     assert.deepEqual(sent.at(-1), ['create', 'PAYPAL', 1, false, '']);
 });
+
+test('budget: the own item of a parent lists only its transactions, without going into it again (#492)', async () => {
+    const navigated = [];
+    const fetched = [];
+    const store = { navigateToChildren: async (item) => { navigated.push(item.id); return true; } };
+    const api = { fetchCategoryTransactions: async (month, year, category, own) => { fetched.push([category, own]); return [{ id: 9 }]; } };
+    const module = createBudgetModule(() => store, () => api);
+    const context = {
+        budgetCategory: null,
+        budgetTransactions: [],
+        t: (key, params) => `${key}:${params.category}`,
+        ensureCategories() {},
+        showToast() {},
+        $nextTick() {},
+    };
+    for (const [name, method] of Object.entries(module.methods)) {
+        context[name] = method.bind(context);
+    }
+
+    await context.handleBudgetClick({ id: 1, name: 'Alimentation', own: true }, 11, 2026);
+    assert.deepEqual(navigated, []);
+    assert.deepEqual(fetched, [[1, true]]);
+    assert.deepEqual(context.budgetCategory, { id: 1, name: 'budgetOwnTransactions:Alimentation', own: true });
+    assert.equal(context.isBudgetCategorySelected({ id: 1, own: true }), true);
+    assert.equal(context.isBudgetCategorySelected({ id: 1 }), false);
+
+    await context.handleBudgetClick({ id: 1, name: 'Alimentation' }, 11, 2026);
+    assert.deepEqual(navigated, [1]);
+    assert.deepEqual(fetched[1], [1, false]);
+    assert.equal(context.budgetItemName({ id: 2, name: 'Supermarché' }), 'Supermarché');
+});

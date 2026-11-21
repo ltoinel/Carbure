@@ -106,7 +106,7 @@ test('a new list request cancels the previous one of the same kind', async () =>
     await assert.rejects(first, { name: 'AbortError' });
     release();
     assert.deepEqual(await second, [{ id: 2 }]);
-    assert.equal(calls[1].url, `${BASE}/budget?month=10&year=2026&category=4`);
+    assert.equal(calls[1].url, `${BASE}/budget?month=10&year=2026&category=4&own=1`);
 });
 
 test('abortAllExcept cancels the other pending lists', async () => {
@@ -311,4 +311,13 @@ test('rules: the optional amount sent with the rule, empty for any amount', asyn
     await api.updateRule(1, 'PAYPAL', 3, true, null);
     assert.equal(calls[2].options.method, 'PUT');
     assert.deepEqual(JSON.parse(calls[2].options.body), { id: 1, keyword: 'PAYPAL', category: 3, notify: true, amount: '' });
+});
+
+test('fetchCategoryTransactions asks only the transactions of the category itself with own (#492)', async () => {
+    const calls = mockFetch(() => json([]));
+    const api = createApiService(BASE, 't');
+    await api.fetchCategoryTransactions(11, 2026, 1);
+    await api.fetchCategoryTransactions(11, 2026, 1, true);
+    assert.equal(calls[0].url, `${BASE}/transaction?month=11&year=2026&category=1`);
+    assert.equal(calls[1].url, `${BASE}/transaction?month=11&year=2026&category=1&own=1`);
 });

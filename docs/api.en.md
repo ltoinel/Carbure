@@ -588,6 +588,7 @@ chose (see [`GET /user/notifications`](#get-usernotifications)).
 |---|---|---|
 | `month`, `year` | no | Month of the transactions (current month by default) |
 | `category` | no | Limits to the transactions of this category **and its subcategories** |
+| `own` | no | With `category`: `1` limits to the transactions put on the category itself, without its subcategories |
 
 Transactions are sorted by actual date, newest first. Fields: `id`, `uuid`,
 `imported`, `date`, `rdate`, `type`, `label`, `category`, `amount`, `card`, `bank_name`
@@ -799,6 +800,11 @@ of a `CREDIT` category, never negative — a refund larger than the spending of 
 (number of subcategories), `children_budget` (sum of their budgets) and `budget_mode`:
 `own` (amount set for the category) or `children` (category with subcategories and
 no amount set: `budget` is then the sum of the subcategories' budgets).
+
+With `own=1` and a parent category, the list adds an item for the transactions put on the
+parent category itself rather than on a subcategory: `own: true`, `id` of the parent, no
+budget (`budget` at 0), with what they consume. It only appears when the month has some;
+without `own`, the response is unchanged.
 
 ### `GET /budget/flow` { #get-budgetflow }
 

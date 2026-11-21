@@ -245,7 +245,9 @@ Two sub-tabs: **Flow** (shown by default) and **Budgets**.
   inactive**.
 - **Click on a category**: list of its transactions of the month (sub-categories
   included) with their total and the checking; if it has sub-categories, their
-  cards are shown, with a breadcrumb to go back up.
+  cards are shown, with a breadcrumb to go back up. The transactions put directly on
+  the parent category have their own card, "*Category* (no sub-category)", without a
+  budget: the total of the category adds up in its cards.
 - Settings button of a card: changes the budgeted amount for the month. For a
   parent category, the **Sum of the sub-categories** box uses their sum; unticked,
   the amount typed replaces it. The **Note** field keeps a reminder of what the budget

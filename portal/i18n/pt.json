@@ -649,6 +649,7 @@
     "budgetEditTitle": "Editar o orçamento",
     "allCategories": "Todas as categorias",
     "categoryTransactions": "Transações: {category}",
+    "budgetOwnTransactions": "{category} (sem subcategoria)",
     "spentLabel": "Gasto",
     "remainingLabel": "Restante",
     "overspentLabel": "Excedido",

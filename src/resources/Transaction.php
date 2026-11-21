@@ -101,16 +101,22 @@ final class Transaction {
      * @param int|string|null $month    The month of the transactions
      * @param int|string|null $year     The year of the transactions
      * @param int|string|null $category Only this category and its sub-categories (optional)
+     * @param bool|int|string|null $own With a category: only the transactions put on the category itself,
+     *                                   not on its sub-categories ("true"/"1" from a query string)
      * @return list<array<string, mixed>> The list of transactions, with the ids of their tags
      */
     #[ApiRoute('/transaction', method: 'GET')]
-    public static function get(int|string|null $month = null, int|string|null $year = null, int|string|null $category = null): array
+    public static function get(int|string|null $month = null, int|string|null $year = null, int|string|null $category = null,
+        bool|int|string|null $own = false): array
     {
         [$from, $to] = Month::range($month, $year);
 
         if ($category === null || $category === '') {
             $sql = "SELECT * FROM bank_transaction WHERE date >= ? AND date < ? ORDER BY rdate DESC";
             $stmt = Db::execute($sql, "ss", $from, $to);
+        } elseif (filter_var($own, FILTER_VALIDATE_BOOLEAN)) {
+            $sql = "SELECT * FROM bank_transaction WHERE date >= ? AND date < ? AND category = ? ORDER BY rdate DESC";
+            $stmt = Db::execute($sql, "ssi", $from, $to, $category);
         } else {
             $sql = "SELECT * FROM bank_transaction WHERE date >= ? AND date < ?
                     AND (category = ? OR category IN (SELECT id FROM bank_transaction_category WHERE parent_category = ? AND id <> 0))

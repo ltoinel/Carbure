@@ -932,21 +932,21 @@
                             <section v-if="group.items.length > 0" class="budget-section" :class="'budget-section-' + group.key">
                                 <h3 class="budget-section-title">{{ group.title }}</h3>
                                 <div class="budget-grid">
-                                    <article v-for="item in group.items" :key="item.id" class="budget-card"
-                                             :class="[group.key === 'expenses' ? 'status-' + budgetStatus(item) + ' budget-card-filled' : '', { selected: budgetCategory && budgetCategory.id === item.id }]"
-                                             :style="group.key === 'expenses' ? { '--budget-fill': Math.min(Number(item.progress) || 0, 100) + '%' } : null"
+                                    <article v-for="item in group.items" :key="(item.own ? 'own-' : '') + item.id" class="budget-card"
+                                             :class="[group.key === 'expenses' && !item.own ? 'status-' + budgetStatus(item) + ' budget-card-filled' : '', { selected: isBudgetCategorySelected(item), 'budget-card-own': item.own }]"
+                                             :style="group.key === 'expenses' && !item.own ? { '--budget-fill': Math.min(Number(item.progress) || 0, 100) + '%' } : null"
                                              tabindex="0" @click="navigateToBudget(item)" @keydown.enter="navigateToBudget(item)">
                                         <div class="budget-card-head">
                                             <span class="budget-card-icon" :style="categoryBadgeStyle(item)">
                                                 <span class="material-icons" aria-hidden="true">{{ categoryIcon(item) }}</span>
                                             </span>
-                                            <span class="budget-card-name">{{ item.name }}</span>
-                                            <button class="budget-card-edit" :title="t('budgetEditTitle')" @click.stop="openBudgetModal(item)" :aria-label="t('budgetEditTitle')">
+                                            <span class="budget-card-name">{{ budgetItemName(item) }}</span>
+                                            <button v-if="!item.own" class="budget-card-edit" :title="t('budgetEditTitle')" @click.stop="openBudgetModal(item)" :aria-label="t('budgetEditTitle')">
                                                 <span class="material-icons" aria-hidden="true">tune</span>
                                             </button>
                                         </div>
 
-                                        <template v-if="group.key === 'expenses'">
+                                        <template v-if="group.key === 'expenses' && !item.own">
                                             <div class="budget-card-amounts">
                                                 <span class="spent">{{ formatAmount(item.consummed) }} {{ currencySymbol }}</span>
                                                 <span class="of" :title="item.budget_mode === 'children' ? t('budgetSumOfChildren') : null">/ {{ item.budget_mode === 'children' ? 'Σ ' : '' }}{{ formatAmount(item.budget) }} {{ currencySymbol }}</span>

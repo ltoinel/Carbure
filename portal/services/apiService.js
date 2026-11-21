@@ -204,10 +204,11 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
      * @param {number} month - Month (1-12)
      * @param {number} year - Year
      * @param {number} category - Category ID
+     * @param {boolean} [own=false] - Only the transactions put on the category itself, not on its sub-categories
      * @returns {Promise<Array>} Array of transaction objects
      */
-    async function fetchCategoryTransactions(month, year, category) {
-        const url = `${baseUrl}/transaction?month=${month}&year=${year}&category=${encodeURIComponent(category)}`;
+    async function fetchCategoryTransactions(month, year, category, own = false) {
+        const url = `${baseUrl}/transaction?month=${month}&year=${year}&category=${encodeURIComponent(category)}${own ? '&own=1' : ''}`;
         const data = await request(url, {}, 'Failed to fetch transactions');
         return Array.isArray(data) ? data : [];
     }
@@ -1310,12 +1311,13 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
      * Fetches budget data for a given month and year
      * @param {number} month - Month (1-12)
      * @param {number} year - Year
-     * @param {number} [categoryId] - Optional category ID for children budgets
+     * @param {number} [categoryId] - Optional category ID for children budgets; the list then also
+     *                                has an item (own: true) for the transactions put on the category itself
      * @returns {Promise<Array>} Array of budget objects
      * @throws {Error} If request fails
      */
     async function fetchBudget(month, year, categoryId = null) {
-        const category = categoryId !== null ? `&category=${encodeURIComponent(categoryId)}` : '';
+        const category = categoryId !== null ? `&category=${encodeURIComponent(categoryId)}&own=1` : '';
         return cancellable('budget', `${baseUrl}/budget?month=${month}&year=${year}${category}`, 'Failed to fetch budget');
     }
     

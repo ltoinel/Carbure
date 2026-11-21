@@ -649,6 +649,7 @@
     "budgetEditTitle": "Modifier le budget",
     "allCategories": "Toutes les catégories",
     "categoryTransactions": "Transactions : {category}",
+    "budgetOwnTransactions": "{category} (hors sous-catégories)",
     "spentLabel": "Dépensé",
     "remainingLabel": "Reste",
     "overspentLabel": "Dépassement",
