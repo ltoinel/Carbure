@@ -53,12 +53,32 @@ test('budgetGroups: expenses, incomes, off-budget or empty', () => {
     const groups = budget.computed.budgetGroups.call({ currentBudgetList: [
         { name: 'Logement', type: 'DEBIT', budget: '1000.00', consummed: 950 },
         { name: 'Vacances', type: 'DEBIT', budget: '0.00', consummed: 0 },
+        // #491: an expense without budget is not an overspending
+        { name: 'Cadeaux', type: 'DEBIT', budget: '0.00', consummed: 45 },
         { name: 'Salaire', type: 'CREDIT', budget: '0.00', consummed: 3200 },
         { name: 'Épargne', type: 'HORS-BUDGET', budget: '0.00', consummed: 500 },
     ] });
     assert.deepEqual(groups.expenses.map(i => i.name), ['Logement']);
     assert.deepEqual(groups.incomes.map(i => i.name), ['Salaire']);
-    assert.deepEqual(groups.others.map(i => i.name), ['Vacances', 'Épargne']);
+    assert.deepEqual(groups.others.map(i => i.name), ['Vacances', 'Cadeaux', 'Épargne']);
+});
+
+test('submitBudgetEdit: "no budget" saves 0 without an amount (#491)', async () => {
+    const saved = [];
+    const context = {
+        budgetUseChildren: false, budgetNone: true, budgetNewValue: '', budgetNote: ' ',
+        selectedMonth: 11, selectedYear: 2026, savingBudget: false,
+        showToast(message) { saved.push(['toast', message]); },
+        t: key => key,
+        async handleBudgetSave(amount, month, year, note) { saved.push([amount, month, year, note]); },
+    };
+    await budget.methods.submitBudgetEdit.call(context);
+    assert.deepEqual(saved, [[0, 11, 2026, '']]);
+
+    // Without it, an empty amount is still refused
+    saved.length = 0;
+    await budget.methods.submitBudgetEdit.call({ ...context, budgetNone: false });
+    assert.deepEqual(saved, [['toast', 'budgetInvalidAmount']]);
 });
 
 test('budgetSummary: totals of the budgeted expenses', () => {

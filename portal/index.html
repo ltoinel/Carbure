@@ -4039,7 +4039,11 @@
                         <input type="checkbox" v-model="budgetUseChildren" />
                         {{ t('budgetUseChildren', { amount: formatAmount(budgetToEdit.children_budget) + ' ' + currencySymbol }) }}
                     </label>
-                    <template v-if="!budgetUseChildren">
+                    <label v-else class="setup-checkbox">
+                        <input type="checkbox" v-model="budgetNone" />
+                        {{ t('budgetNone') }}
+                    </label>
+                    <template v-if="!budgetUseChildren && !budgetNone">
                         <label for="budget-edit-amount">{{ Number(budgetToEdit.children) > 0 ? t('budgetOverrideLabel') : t('budgetEditLabel') }}</label>
                         <input id="budget-edit-amount" type="number" step="0.01" min="0" v-model="budgetNewValue" @keydown.enter="submitBudgetEdit" />
                     </template>

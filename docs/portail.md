@@ -246,15 +246,17 @@ Deux sous-onglets : **Flux** (affiché par défaut) et **Budgets**.
   gauche à droite à mesure que le budget est consommé (vert jusqu'à 105 % du budget, rouge
   au-delà). Le budget d'une catégorie parente précédé de « Σ » est la somme de ses
   sous-catégories.
-- Sections séparées : **dépenses budgétées**, **revenus**, **hors budget et sans
-  activité**.
+- Sections séparées : **dépenses budgétées**, **revenus**, **sans budget et hors
+  budget**. Une catégorie de dépense sans budget (montant à 0) y montre ce qu'elle a
+  dépensé, sans jauge ni dépassement, et ne compte pas dans la synthèse.
 - **Clic sur une catégorie** : liste de ses transactions du mois (sous-catégories
   comprises) avec leur total et le pointage ; si elle a des sous-catégories, leurs
   cartes s'affichent, avec un fil d'Ariane pour remonter. Les transactions rangées
   directement sur la catégorie parente ont leur propre carte, « *Catégorie* (hors
   sous-catégories) », sans budget : le total de la catégorie se retrouve dans ses cartes.
 - Bouton de réglage d'une carte : modification du montant budgété pour le mois. Pour une
-  catégorie parente, la case **Somme des sous-catégories** utilise leur somme ; décochée,
+  catégorie sans sous-catégorie, la case **Pas de budget pour cette catégorie** enregistre
+  un budget à 0. Pour une catégorie parente, la case **Somme des sous-catégories** utilise leur somme ; décochée,
   le montant saisi la remplace. Le champ **Note** garde un pense-bête de ce que couvre le
   budget (200 caractères au plus), affiché sous les montants de la carte et recopié avec
   le budget au mois suivant ; le vider supprime la note.

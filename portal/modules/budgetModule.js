@@ -62,6 +62,8 @@ export function createBudgetModule(getBudgetStore, getApiService) {
                 budgetNewValue: '',
                 budgetNote: '',
                 budgetUseChildren: false,
+                // Edit modal of a category without sub-categories: no budget (saved as 0)
+                budgetNone: false,
                 savingBudget: false,
                 // Copy of the previous month: modal, missing (default) or all, ongoing request
                 showCopyModal: false,
@@ -97,17 +99,17 @@ export function createBudgetModule(getBudgetStore, getApiService) {
 
             /**
              * Budget items grouped for display: budgeted expenses, incomes, others
-             * (off-budget categories, or nothing budgeted nor spent)
+             * (off-budget categories, or expense categories without a budget: what they
+             * spent is shown, not as an overspending)
              * @returns {{expenses: Array, incomes: Array, others: Array}}
              */
             budgetGroups() {
                 const groups = { expenses: [], incomes: [], others: [] };
                 for (const item of this.currentBudgetList) {
                     const budget = Number(item.budget) || 0;
-                    const consumed = Number(item.consummed) || 0;
                     if (item.type === 'CREDIT') {
                         groups.incomes.push(item);
-                    } else if (item.type === 'HORS-BUDGET' || (budget === 0 && consumed === 0)) {
+                    } else if (item.type === 'HORS-BUDGET' || budget === 0) {
                         groups.others.push(item);
                     } else {
                         groups.expenses.push(item);
@@ -385,6 +387,7 @@ export function createBudgetModule(getBudgetStore, getApiService) {
             handleBudgetEdit(item) {
                 this.budgetToEdit = item;
                 this.budgetUseChildren = item.budget_mode === 'children';
+                this.budgetNone = false;
                 this.budgetNewValue = this.budgetUseChildren ? '' : (Number(item.budget) || '');
                 this.budgetNote = item.note || '';
                 this.showBudgetModal = true;
@@ -393,12 +396,13 @@ export function createBudgetModule(getBudgetStore, getApiService) {
 
             /**
              * Saves the budget of the edit modal: the amount, or 0 for a parent category
-             * whose budget is the sum of its sub-categories
+             * whose budget is the sum of its sub-categories or for a category without budget
              * @returns {Promise<void>}
              */
             async submitBudgetEdit() {
-                const amount = this.budgetUseChildren ? 0 : Number(this.budgetNewValue);
-                if (!Number.isFinite(amount) || amount < 0 || (!this.budgetUseChildren && this.budgetNewValue === '')) {
+                const noAmount = this.budgetUseChildren || this.budgetNone;
+                const amount = noAmount ? 0 : Number(this.budgetNewValue);
+                if (!Number.isFinite(amount) || amount < 0 || (!noAmount && this.budgetNewValue === '')) {
                     this.showToast(this.t('budgetInvalidAmount'));
                     return;
                 }

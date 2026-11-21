@@ -119,8 +119,9 @@ test('edits the budget of a sub-category', async ({ adminPage: page, api }) => {
     await card(page, 'Alimentation').click();
 
     const modal = await editBudget(page, 'Supermarché');
-    // A category without sub-categories has no "sum" option
-    await expect(modal.getByRole('checkbox')).toHaveCount(0);
+    // A category without sub-categories has no "sum" option, only "no budget"
+    await expect(modal.getByRole('checkbox')).toHaveCount(1);
+    await expect(modal.getByRole('checkbox', { name: tr('budgetNone') })).not.toBeChecked();
     await modal.getByLabel(tr('budgetEditLabel')).fill('350');
     await modal.getByRole('button', { name: tr('save') }).click();
 
@@ -371,4 +372,29 @@ test('the transactions put on a parent category have their own card in its sub-c
     await expect(own).toHaveClass(/selected/);
     await expect(card(page, 'Supermarché')).toBeVisible();
     await expect(page.locator('.budget-breadcrumb')).toContainText('Alimentation');
+});
+
+test('a category without budget shows what it spent, not an overspending (#491)', async ({ adminPage: page, api }) => {
+    await openBudgets(page);
+
+    const modal = await editBudget(page, 'Logement');
+    await modal.getByRole('checkbox', { name: tr('budgetNone') }).check();
+    await expect(modal.getByLabel(tr('budgetEditLabel'))).toHaveCount(0);
+    await modal.getByRole('button', { name: tr('save') }).click();
+    await expect(page.locator('.toast')).toHaveText(tr('budgetUpdatedToast'));
+
+    // Saved as 0, with the categories without budget: its spending, no gauge nor overspending
+    expect(Number((await apiBudget(api, 'Logement')).budget)).toBe(0);
+    const logement = page.locator('.budget-section-others .budget-card')
+        .filter({ has: page.locator('.budget-card-name', { hasText: /^Logement$/ }) });
+    await expect(logement.locator('.spent')).toHaveText(euros(950));
+    await expect(logement.locator('.of')).toHaveCount(0);
+    await expect(logement).not.toContainText(tr('overspentAmount', { amount: euros(950) }));
+    await expect(page.locator('.budget-section-others .budget-section-title')).toHaveText(tr('othersSection'));
+
+    // Out of the summary of the budgeted expenses: only Alimentation, 127.40 of 400
+    await expect(page.locator('.budget-section-expenses .budget-card')).toHaveCount(1);
+    const summary = page.locator('.budget-summary');
+    await expect(summary).toContainText(euros(127.4));
+    await expect(summary).toContainText(euros(400));
 });

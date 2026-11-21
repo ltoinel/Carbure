@@ -241,15 +241,17 @@ Two sub-tabs: **Flow** (shown by default) and **Budgets**.
   left to right as the budget is used (green up to 105% of the budget, red
   beyond). The budget of a parent category preceded by "Σ" is the sum of its
   sub-categories.
-- Separate sections: **budgeted expenses**, **income**, **off-budget and
-  inactive**.
+- Separate sections: **budgeted expenses**, **income**, **not budgeted and
+  off-budget**. An expense category without a budget (amount at 0) shows there what it
+  spent, without gauge nor overspending, and does not count in the summary.
 - **Click on a category**: list of its transactions of the month (sub-categories
   included) with their total and the checking; if it has sub-categories, their
   cards are shown, with a breadcrumb to go back up. The transactions put directly on
   the parent category have their own card, "*Category* (no sub-category)", without a
   budget: the total of the category adds up in its cards.
 - Settings button of a card: changes the budgeted amount for the month. For a
-  parent category, the **Sum of the sub-categories** box uses their sum; unticked,
+  category without sub-categories, the **No budget for this category** box saves a budget
+  at 0. For a parent category, the **Sum of the sub-categories** box uses their sum; unticked,
   the amount typed replaces it. The **Note** field keeps a reminder of what the budget
   covers (200 characters at most), shown under the amounts of the card and copied with
   the budget to the next month; emptying it removes the note.
