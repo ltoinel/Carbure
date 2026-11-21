@@ -19,6 +19,7 @@ use Carbure\Lib\Db;
 use Carbure\Lib\Jwt;
 use Carbure\Lib\Logger;
 use Carbure\Lib\Month;
+use Carbure\Lib\SpendingAnalysis;
 use Carbure\Lib\TransactionSearch;
 use Carbure\Lib\Webservice;
 use DateTime;
@@ -250,9 +251,9 @@ final class Transaction {
     {
         $groups = [];
         foreach ($rows as $row) {
-            $name = trim(preg_replace('/[^\p{L}]+/u', ' ', preg_replace('/\d+/', '', (string)$row['label']) ?? '') ?? '');
-            if ($name !== '') {
-                $groups[((float)$row['amount'] < 0 ? '-' : '+') . $name][] = $row;
+            $key = SpendingAnalysis::seriesKey((string)$row['label'], $row['amount']);
+            if ($key !== '') {
+                $groups[$key][] = $row;
             }
         }
         return $groups;
