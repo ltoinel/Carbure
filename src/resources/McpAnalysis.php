@@ -49,12 +49,12 @@ final class McpAnalysis {
                     'exclude_category_ids' => $ids('Leave out these categories and their sub-categories, e.g. the rent'),
                 ], $annotations),
             self::tool('recurring_transactions', 'Recurring transactions',
-                'Monthly recurring series still running at the end of the period (subscriptions, bills, salary): usual day, '
-                . 'average and last amount, the amount of each month and its changes (a price increase and its month).',
+                'Monthly recurring series still running at the end of the period, detected on its last 6 months (subscriptions, bills, '
+                . 'salary): usual day, average and last amount, the amount of each month of the period and its changes (a price increase and its month).',
                 $period, $annotations),
             self::tool('duplicate_transactions', 'Possible duplicates',
-                'Transactions of the same account, day, label and amount, most recent first: a payment charged twice, '
-                . 'or two real identical payments (the user decides).',
+                'Transactions of the same account, day, label and amount, most recent first (100 at most): a payment charged twice, '
+                . 'or two real identical payments (the user decides). The account is given by its name.',
                 $period, $annotations),
             self::tool('one_off_transactions', 'One-off transactions',
                 'Transactions whose label (without its numbers) appears only once in the period, largest first: one-off purchases, '
@@ -134,7 +134,11 @@ final class McpAnalysis {
         $rows = Db::select("SELECT t.id, t.date, t.type, t.label, t.category, " . Transaction::BANK_AMOUNT . " AS amount
             FROM bank_transaction t WHERE t.split_of IS NULL AND t.date >= ? AND t.date < ? ORDER BY t.date, t.id",
             "ss", $period['start'], $period['end'])->fetch_all(MYSQLI_ASSOC);
-        $series = Transaction::findRecurring($rows, $period['to'] . '-01');
+        // Detected on the last months (a long period would hide a card subscription whose price rose),
+        // the history of their amounts over the whole period
+        $since = max($period['from'], SpendingAnalysis::shift($period['to'], 1 - SpendingAnalysis::RECURRING_MONTHS)) . '-01';
+        $recent = array_values(array_filter($rows, fn($row) => $row['date'] >= $since));
+        $series = array_slice(Transaction::findRecurring($recent, $period['to'] . '-01'), 0, SpendingAnalysis::MAX_RESULTS);
         return SpendingAnalysis::recurringHistory($series, $rows, self::names());
     }
 
@@ -158,16 +162,21 @@ final class McpAnalysis {
      * bank, its parts left out), oldest first.
      *
      * @param array{from: string, to: string, start: string, end: string} $period The period
-     * @return list<array<string, mixed>> date, label, amount, category, type (of the category), account
+     * @return list<array<string, mixed>> date, label, amount, category, type (of the category), account (its name)
      */
     private static function rows(array $period): array
     {
-        $rows = Db::select("SELECT t.date, t.label, " . Transaction::BANK_AMOUNT . " AS amount, t.category, c.type,
-                CONCAT_WS('@', t.account_number, t.bank_name) AS account
+        // The account by its name, never its number (bank_account has a row per user of the account)
+        $rows = Db::select("SELECT t.date, t.label, " . Transaction::BANK_AMOUNT . " AS amount, t.category, c.type, t.bank_name, t.account_number,
+                (SELECT MAX(a.label) FROM bank_account a WHERE a.bank_name = t.bank_name AND a.account_number <=> t.account_number) AS account_label
             FROM bank_transaction t LEFT JOIN bank_transaction_category c ON c.id = t.category
             WHERE t.split_of IS NULL AND t.date >= ? AND t.date < ? ORDER BY t.date, t.id",
             "ss", $period['start'], $period['end'])->fetch_all(MYSQLI_ASSOC);
-        return array_map(fn($row) => ['label' => stripslashes((string)$row['label']), 'account' => $row['account'] ?: null] + $row, $rows);
+        return array_map(fn($row) => [
+            'date' => $row['date'], 'label' => stripslashes((string)$row['label']), 'amount' => $row['amount'],
+            'category' => $row['category'], 'type' => $row['type'],
+            'account' => SpendingAnalysis::accountName($row['bank_name'], $row['account_number'], $row['account_label']),
+        ], $rows);
     }
 
     /**

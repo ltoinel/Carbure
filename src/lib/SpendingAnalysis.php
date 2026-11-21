@@ -24,6 +24,12 @@ final class SpendingAnalysis {
     /** Longest period analyzed, in months */
     public const MAX_MONTHS = 120;
 
+    /** Most series, duplicates or transactions returned by a tool */
+    public const MAX_RESULTS = 100;
+
+    /** Months over which the recurring series are detected (the history covers the whole period) */
+    public const RECURRING_MONTHS = 6;
+
     /** Type of the off-budget categories */
     private const OFF_BUDGET = 'HORS-BUDGET';
 
@@ -87,11 +93,13 @@ final class SpendingAnalysis {
     /**
      * A month moved by a number of months.
      *
+     * Public: McpAnalysis starts the detection of the recurring series RECURRING_MONTHS before the end.
+     *
      * @param string $month  The month (YYYY-MM)
      * @param int    $months Months to add (negative: before)
      * @return string The month (YYYY-MM)
      */
-    private static function shift(string $month, int $months): string
+    public static function shift(string $month, int $months): string
     {
         [$year, $number] = array_map('intval', explode('-', $month));
         $index = $year * 12 + $number - 1 + $months;
@@ -136,7 +144,9 @@ final class SpendingAnalysis {
     {
         $all = $ids;
         foreach ($categories as $category) {
-            if (in_array((int)$category['parent_category'], $ids, true)) {
+            $parent = (int)$category['parent_category'];
+            // A top-level category has the parent 0: it is not a sub-category of "uncategorized" (0)
+            if ($parent !== 0 && $parent !== (int)$category['id'] && in_array($parent, $ids, true)) {
                 $all[] = (int)$category['id'];
             }
         }
@@ -316,7 +326,8 @@ final class SpendingAnalysis {
      *
      * @param list<array<string, mixed>> $rows  Transactions {date, label, amount, category, account}
      * @param array<int, string>         $names Names of the categories by id
-     * @return list<array<string, mixed>> date, label, amount, category, account and count (2 or more), most recent first
+     * @return list<array<string, mixed>> date, label, amount, category, account and count (2 or more), most recent
+     *               first, MAX_RESULTS at most
      */
     public static function duplicates(array $rows, array $names): array
     {
@@ -334,7 +345,28 @@ final class SpendingAnalysis {
             }
         }
         usort($duplicates, fn($a, $b) => strcmp($b['date'], $a['date']) ?: strcmp($a['label'], $b['label']));
-        return $duplicates;
+        return array_slice($duplicates, 0, self::MAX_RESULTS);
+    }
+
+    /**
+     * Name of an account shown to an agent: the name given to it, else its bank and the last
+     * 4 characters of its number (never the whole number).
+     *
+     * @param string|null $bank   bank_name (woob backend, "manual"...)
+     * @param string|null $number account_number
+     * @param string|null $label  Name given to the account (bank_account.label)
+     * @return string|null The name, null for a transaction without account (imported file)
+     */
+    public static function accountName(?string $bank, ?string $number, ?string $label): ?string
+    {
+        if ($label !== null && trim($label) !== '') {
+            return trim($label);
+        }
+        if (($bank ?? '') === '' && ($number ?? '') === '') {
+            return null;
+        }
+        $end = $number !== null && $number !== '' ? '···' . mb_substr($number, -4) : '';
+        return trim(($bank ?? '') . ' ' . $end);
     }
 
     /**

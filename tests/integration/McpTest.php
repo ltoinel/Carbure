@@ -173,6 +173,17 @@ class McpTest extends DatabaseTestCase
         $this->assertCount(4, $netflix['history']);
         $this->assertEquals([['month' => substr($this->monthsAgo(2), 0, 7), 'from' => -13.49, 'to' => -15.99]], $netflix['changes']);
 
+        // A card subscription whose price rose by more than 20 % over two years: detected on the last months,
+        // its history over the whole period
+        $rows = [];
+        for ($ago = 23; $ago >= 0; $ago--) {
+            $rows[] = [$this->monthsAgo($ago, 12), 'CB SPOTIFY', $ago >= 12 ? -9.99 : -12.99, 0, 7, 'bnp', '111'];
+        }
+        $this->addTransactions($rows);
+        $spotify = array_column($this->tool('recurring_transactions', ['from' => substr($this->monthsAgo(23), 0, 7)])['series'], null, 'label')['CB SPOTIFY'];
+        $this->assertCount(24, $spotify['history']);
+        $this->assertEquals([['month' => substr($this->monthsAgo(11), 0, 7), 'from' => -9.99, 'to' => -12.99]], $spotify['changes']);
+
         // Not running anymore at the end of the period: not given
         $this->assertSame([], $this->tool('recurring_transactions', ['from' => substr($this->monthsAgo(3), 0, 7), 'to' => substr($this->monthsAgo(3), 0, 7)])['series']);
     }
@@ -189,7 +200,10 @@ class McpTest extends DatabaseTestCase
 
         $duplicates = $this->tool('duplicate_transactions')['duplicates'];
         $this->assertEquals([['date' => $day, 'label' => 'PRLV ASSURANCE', 'amount' => -42.1, 'category' => 'Énergie',
-            'account' => '111@bnp', 'count' => 2]], $duplicates);
+            'account' => 'bnp ···111', 'count' => 2]], $duplicates);
+        // The account by its name, never its whole number
+        Db::query("UPDATE bank_account SET label = 'Compte joint' WHERE bank_name = 'bnp'");
+        $this->assertSame('Compte joint', $this->tool('duplicate_transactions')['duplicates'][0]['account']);
     }
 
     public function testOneOffTransactions()

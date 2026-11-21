@@ -107,6 +107,36 @@ class SpendingAnalysisTest extends TestCase
         $this->assertEqualsCanonicalizing([2, 3], SpendingAnalysis::categoryFilter(self::CATEGORIES, [2], [4]));
     }
 
+    public function testUncategorizedIsNotTheParentOfTheTopLevelCategories()
+    {
+        // Category 0 has the parent 0, as every top-level category: only itself
+        $this->assertSame([0], SpendingAnalysis::categoryFilter(self::CATEGORIES, [0], []));
+        $this->assertEqualsCanonicalizing([1, 2, 3, 4, 5, 6, 7], SpendingAnalysis::categoryFilter(self::CATEGORIES, null, [0]));
+    }
+
+    public function testAccountName()
+    {
+        $this->assertSame('Compte joint', SpendingAnalysis::accountName('bnp', 'FR7630004000031234567890143', ' Compte joint '));
+        $this->assertSame('bnp ···0143', SpendingAnalysis::accountName('bnp', 'FR7630004000031234567890143', null));
+        $this->assertSame('manual', SpendingAnalysis::accountName('manual', '', ''));
+        $this->assertNull(SpendingAnalysis::accountName(null, null, null));
+    }
+
+    public function testDuplicatesAreCapped()
+    {
+        $rows = [];
+        for ($i = 0; $i < 2 * (SpendingAnalysis::MAX_RESULTS + 5); $i++) {
+            $rows[] = ['date' => '2026-06-01', 'label' => 'CB ' . intdiv($i, 2), 'amount' => -1, 'category' => 0, 'account' => 'a'];
+        }
+        $this->assertCount(SpendingAnalysis::MAX_RESULTS, SpendingAnalysis::duplicates($rows, self::NAMES));
+    }
+
+    public function testShift()
+    {
+        $this->assertSame('2026-01', SpendingAnalysis::shift('2025-08', 5));
+        $this->assertSame('2025-12', SpendingAnalysis::shift('2026-01', -1));
+    }
+
     public function testUnknownCategoryGivesTheValidIds()
     {
         try {
