@@ -31,11 +31,6 @@ export function toBase64(buffer) {
 }
 
 /**
- * Creates the import module mixin for Vue components
- * @param {Function} getApiService - Function that returns the API service instance
- * @returns {Object} Vue mixin with the import data and methods
- */
-/**
  * Account offered for the transactions of a file: the account of the household whose
  * number is the one read in the file, else none ('': the number of the file is kept)
  * @param {{account?: string|null}|null} preview - Answer of POST /transaction/import/preview
@@ -48,6 +43,11 @@ export function importAccountOf(preview, accounts) {
     return account ? account.id : '';
 }
 
+/**
+ * Creates the import module mixin for Vue components
+ * @param {Function} getApiService - Function that returns the API service instance
+ * @returns {Object} Vue mixin with the import data and methods
+ */
 export function createImportModule(getApiService) {
     return {
         data() {
@@ -175,6 +175,10 @@ export function createImportModule(getApiService) {
                         selection[row.index] = row.status === 'new';
                     }
                     this.importSelection = selection;
+                    // The accounts asked when the window opened may still be loading
+                    if (!this.manualAccounts.length) {
+                        await this.loadManualAccounts();
+                    }
                     this.importAccountId = importAccountOf(this.importPreview, this.manualAccounts);
                 } catch (err) {
                     this.importFile = null;

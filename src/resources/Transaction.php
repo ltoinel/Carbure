@@ -616,7 +616,8 @@ final class Transaction {
      * Account chosen for the transactions of an imported file.
      *
      * @param int|string|null $account Id of the account (bank_account), null or "" for none
-     * @return array{bank_name: string, account_number: string}|null Its bank and number, null when none was chosen
+     * @return array{bank_name: string, account_number: string|null}|null Its bank and number (null for an
+     *              account without number, as its synchronized transactions), null when none was chosen
      * @throws Error If the account does not exist (404)
      */
     private static function importOrigin(int|string|null $account): ?array
@@ -628,7 +629,8 @@ final class Transaction {
         if ($bank === null) {
             throw new ApiError("Account not found", 404, 'account_not_found');
         }
-        return ['bank_name' => (string)$bank['bank_name'], 'account_number' => (string)$bank['account_number']];
+        $number = $bank['account_number'];
+        return ['bank_name' => (string)$bank['bank_name'], 'account_number' => $number === null ? null : (string)$number];
     }
 
     /**
