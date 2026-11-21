@@ -2888,6 +2888,13 @@
                             <p v-if="importPreview.counts.duplicate" class="rules-help">
                                 <span class="material-icons inline-icon" aria-hidden="true">content_copy</span>{{ t('importDuplicateHelp') }}
                             </p>
+                            <div v-if="manualAccounts.length" class="form-group import-account">
+                                <label for="import-account">{{ t('importAccountLabel') }}</label>
+                                <select id="import-account" v-model="importAccountId" :disabled="importing">
+                                    <option value="">{{ importPreview.account ? t('importAccountOfFile', { account: importPreview.account }) : t('importAccountNone') }}</option>
+                                    <option v-for="a in manualAccounts" :key="a.id" :value="a.id">{{ a.label || accountName(a) }}</option>
+                                </select>
+                            </div>
                         </div>
 
                         <div class="import-list-head">

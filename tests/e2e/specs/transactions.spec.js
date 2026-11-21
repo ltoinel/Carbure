@@ -625,3 +625,28 @@ test('the category list shows first the categories of the direction of the trans
     await expect(groups(modal)).toHaveText([tr('categoryTypes_CREDIT'), tr('categoryTypes_HORS-BUDGET'), tr('categoryTypes_DEBIT')]);
     await expect(modal.locator('.category-picker-option').first()).toContainText('Salaire');
 });
+
+test('imports a statement on the account chosen (#485)', async ({ adminPage: page, api }) => {
+    const accounts = await (await api.get('/api/bank')).json();
+    const account = accounts.find(a => a.account_number === 'DEMO0000001');
+    const date = new Date();
+    date.setDate(8);
+    const csv = 'Date;Libellé;Montant\n' + `${date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })};CB CORDONNERIE;-14,00\n`;
+
+    await page.getByRole('button', { name: tr('importButton') }).click();
+    const modal = page.getByRole('dialog', { name: tr('importTitle') });
+    await modal.locator('input[type="file"]').setInputFiles({ name: 'releve.csv', mimeType: 'text/csv', buffer: Buffer.from(csv) });
+
+    // No account number in the file: none by default, any account of the household offered
+    const select = modal.getByLabel(tr('importAccountLabel'));
+    await expect(select.locator('option').first()).toHaveText(tr('importAccountNone'));
+    await expect(select).toHaveValue('');
+    await select.selectOption(String(account.id));
+    await modal.getByRole('button', { name: tr('importConfirm', { count: 1 }) }).click();
+    await expect(modal).toHaveCount(0);
+
+    const { month, year } = currentMonth();
+    const imported = (await (await api.get(`/api/transaction?month=${month}&year=${year}`)).json()).find(t => t.label === 'CB CORDONNERIE');
+    expect(imported.bank_name).toBe('bnp');
+    expect(imported.account_number).toBe('DEMO0000001');
+});

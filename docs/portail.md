@@ -219,6 +219,9 @@ tâches ou l'écran d'accueil.
   avec un autre libellé : non cochée) ou **déjà présente** (même identifiant : ignorée).
   Chaque transaction a sa case : décocher celles à ne pas importer (ou « Tout cocher » pour
   tout cocher ou décocher) ; le bouton indique le nombre de transactions importées.
+  La liste **Compte des transactions** rattache le fichier à un compte du foyer (manuel ou
+  synchronisé) ; elle propose d'office le compte dont le numéro est lu dans le fichier,
+  sinon le numéro du fichier est gardé tel quel.
   Les transactions importées appartiennent à l'utilisateur connecté et passent par les
   règles de catégorisation ; la liste s'ouvre ensuite sur le dernier mois importé
   (`POST /transaction/import/preview`, `POST /transaction/import`). Aucun compte synchronisé

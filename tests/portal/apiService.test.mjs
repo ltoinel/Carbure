@@ -321,3 +321,12 @@ test('fetchCategoryTransactions asks only the transactions of the category itsel
     assert.equal(calls[0].url, `${BASE}/transaction?month=11&year=2026&category=1`);
     assert.equal(calls[1].url, `${BASE}/transaction?month=11&year=2026&category=1&own=1`);
 });
+
+test('importTransactions sends the account only when one is chosen (#485)', async () => {
+    const calls = mockFetch(() => json({ imported: 0 }));
+    const api = createApiService(BASE, 't');
+    await api.importTransactions('eA==', 'releve.csv', [0]);
+    await api.importTransactions('eA==', 'releve.csv', [0], 3);
+    assert.deepEqual(JSON.parse(calls[0].options.body), { file: 'eA==', filename: 'releve.csv', selected: [0] });
+    assert.deepEqual(JSON.parse(calls[1].options.body), { file: 'eA==', filename: 'releve.csv', selected: [0], account: 3 });
+});

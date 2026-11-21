@@ -244,12 +244,14 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
      * @param {string} file - Content of the file, base64 encoded
      * @param {string} filename - Name of the file
      * @param {Array<number>} selected - Indexes of the rows to import
+     * @param {number|null} [account=null] - Account of the transactions (id of GET /bank); by default
+     *                                       the account number read in the file
      * @returns {Promise<Object>} {imported, categorized, from, to}
      */
-    async function importTransactions(file, filename, selected) {
+    async function importTransactions(file, filename, selected, account = null) {
         return request(`${baseUrl}/transaction/import`, {
             method: 'POST',
-            body: JSON.stringify({ file, filename, selected })
+            body: JSON.stringify(account === null ? { file, filename, selected } : { file, filename, selected, account })
         }, 'Failed to import the file');
     }
 

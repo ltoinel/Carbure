@@ -693,7 +693,9 @@ transactions), `422` (format non reconnu, colonnes CSV introuvables, XML invalid
 ### `POST /transaction/import`
 
 Mêmes paramètres, plus `selected` (facultatif) : les `index` des lignes à importer ; par
-défaut, les lignes `new`. Les lignes `known` ne sont jamais importées. Les transactions
+défaut, les lignes `new`. `account` (facultatif) : l'`id` d'un compte de `GET /bank`, auquel
+les transactions sont rattachées (404 `account_not_found` s'il n'existe pas) ; par défaut,
+le numéro de compte lu dans le fichier. Les lignes `known` ne sont jamais importées. Les transactions
 appartiennent à l'utilisateur connecté, puis les règles de catégorisation s'appliquent
 quelle que soit leur date. Renvoie `imported`, `categorized`, `from` et `to` (période des
 lignes choisies).

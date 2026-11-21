@@ -568,13 +568,17 @@ final class Transaction {
      * @param string|null                           $filename The name of the file
      * @param array<int|string>|int|string|null     $selected Indexes of the rows to import (by default:
      *                                                        the new ones)
+     * @param int|string|null                       $account  Account of the transactions (id of GET /bank); by
+     *                                                        default the account number read in the file, if any
      * @return array{imported: int, categorized: int, from: string|null, to: string|null}
      *              imported (number of new transactions), categorized, from, to
-     * @throws Error If the file is not understood
+     * @throws Error If the file is not understood, or the account does not exist (404)
      */
     #[ApiRoute('/transaction/import', method: 'POST', changes: ['transactions'])]
-    public static function import(?string $file, ?string $filename = null, array|int|string|null $selected = null): array
+    public static function import(?string $file, ?string $filename = null, array|int|string|null $selected = null,
+        int|string|null $account = null): array
     {
+        $origin = self::importOrigin($account);
         [$parsed, $rows, $prepared] = self::analyzeImport($file ?? '', $filename);
         $selected = $selected === null ? null : array_map('intval', (array)$selected);
 
@@ -587,7 +591,7 @@ final class Transaction {
             }
         }
 
-        $created = self::store($data, (int)Jwt::getUserIdFromToken(), ['account_number' => $parsed['account']]);
+        $created = self::store($data, (int)Jwt::getUserIdFromToken(), $origin ?? ['account_number' => $parsed['account']]);
 
         // The rules categorize the new transactions, whatever their date
         $categorized = self::categorizeImported($created);
@@ -606,6 +610,25 @@ final class Transaction {
             'from' => $dates ? min($dates) : null,
             'to' => $dates ? max($dates) : null,
         ];
+    }
+
+    /**
+     * Account chosen for the transactions of an imported file.
+     *
+     * @param int|string|null $account Id of the account (bank_account), null or "" for none
+     * @return array{bank_name: string, account_number: string}|null Its bank and number, null when none was chosen
+     * @throws Error If the account does not exist (404)
+     */
+    private static function importOrigin(int|string|null $account): ?array
+    {
+        if ($account === null || $account === '') {
+            return null;
+        }
+        $bank = Db::queryOne("SELECT bank_name, account_number FROM bank_account WHERE id = ?", "i", (int)$account);
+        if ($bank === null) {
+            throw new ApiError("Account not found", 404, 'account_not_found');
+        }
+        return ['bank_name' => (string)$bank['bank_name'], 'account_number' => (string)$bank['account_number']];
     }
 
     /**

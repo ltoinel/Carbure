@@ -690,7 +690,9 @@ transactions), `422` (unrecognized format, CSV columns not found, invalid XML).
 ### `POST /transaction/import` { #post-transactionimport }
 
 Same parameters, plus `selected` (optional): the `index` of the lines to import; by
-default, the `new` lines. `known` lines are never imported. The transactions
+default, the `new` lines. `account` (optional): the `id` of an account of `GET /bank`, to
+which the transactions are attached (404 `account_not_found` if it does not exist); by
+default, the account number read in the file. `known` lines are never imported. The transactions
 belong to the logged-in user, then the categorization rules apply
 whatever their date. Returns `imported`, `categorized`, `from` and `to` (period of the
 chosen lines).

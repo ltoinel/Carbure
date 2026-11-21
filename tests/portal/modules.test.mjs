@@ -1620,3 +1620,29 @@ test('budget: the own item of a parent lists only its transactions, without goin
     assert.deepEqual(fetched[1], [1, false]);
     assert.equal(context.budgetItemName({ id: 2, name: 'Supermarché' }), 'Supermarché');
 });
+
+test('importAccountOf: the account of the household with the number read in the file, else none (#485)', async () => {
+    const { importAccountOf } = await import('../../portal/modules/importModule.js');
+    const accounts = [{ id: 3, account_number: 'FR76 3000 1234' }, { id: 5, account_number: 'cash' }];
+    assert.equal(importAccountOf({ account: 'FR7630001234' }, accounts), 3);
+    assert.equal(importAccountOf({ account: 'cash' }, accounts), 5);
+    assert.equal(importAccountOf({ account: 'other' }, accounts), '');
+    assert.equal(importAccountOf({ account: null }, accounts), '');
+    assert.equal(importAccountOf(null, []), '');
+});
+
+test('confirmImport sends the account chosen, none for the one of the file (#485)', async () => {
+    const { createImportModule } = await import('../../portal/modules/importModule.js');
+    const calls = [];
+    const api = { importTransactions: async (...args) => { calls.push(args.slice(2)); return { imported: 1, categorized: 0, to: null }; } };
+    const module = createImportModule(() => api);
+    const context = {
+        importFile: { name: 'releve.csv', content: 'eA==' }, importSelection: { 0: true, 1: false }, importAccountId: 3,
+        importing: false, t: key => key, showToast() {}, loadPeriods() {}, loadTransactions() {}, closeImport() {},
+        selectedMonth: 11, selectedYear: 2026,
+    };
+    context.importSelectedCount = 1;
+    await module.methods.confirmImport.call(context);
+    await module.methods.confirmImport.call({ ...context, importAccountId: '' });
+    assert.deepEqual(calls, [[[0], 3], [[0], null]]);
+});

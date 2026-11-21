@@ -214,6 +214,9 @@ taskbar or the home screen.
   with another label: not ticked) or **already there** (same identifier: ignored).
   Each transaction has its box: untick those not to import (or "Check all" to
   tick or untick everything); the button shows the number of transactions imported.
+  The **Account of the transactions** list attaches the file to an account of the
+  household (manual or synchronized); it offers the account whose number is read in the
+  file, else the number of the file is kept as is.
   Imported transactions belong to the logged-in user and go through the
   categorization rules; the list then opens on the last imported month
   (`POST /transaction/import/preview`, `POST /transaction/import`). No synchronized account
