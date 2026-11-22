@@ -246,8 +246,9 @@ export default {
 
         /**
          * Accessible name of a node: its text exactly as shown (WCAG 2.5.3 Label in Name),
-         * the name shortened like on screen; the full name stays in its <title>, read as its
-         * description. The name ends with a space in its <text>, else axe joins it to the amount
+         * the name shortened like on screen, the full one given as its description. No <title>
+         * in a node: axe reads it as visible text. The name ends with a space in its <text>,
+         * else axe joins it to the amount
          * @param {Object} node - Node of the chart
          * @returns {string} The name, amount and, on the right, share of the income
          */
@@ -335,7 +336,7 @@ export default {
                     <g v-for="node in layout.nodes" :key="node.key" class="flow-node" :class="[state(node), node.x < ${WIDTH / 2} ? 'left' : 'right']"
                        :role="node.selectable ? 'button' : null" :tabindex="node.selectable ? 0 : null"
                        :aria-pressed="node.selectable ? (selected === node.key ? 'true' : 'false') : null"
-                       :aria-label="label(node)"
+                       :aria-label="label(node)" :aria-description="short(node.name) === node.name ? null : node.name"
                        @mouseenter="hover = node.key" @focus="hover = node.key" @blur="hover = null"
                        @click="select(node)" @keydown.enter.prevent="select(node)" @keydown.space.prevent="select(node)">
                         <!-- Invisible area: the whole label is clickable -->
@@ -352,7 +353,6 @@ export default {
                             <text :x="node.x + ${NODE + 44}" :y="node.y + node.height / 2 - 3" class="flow-name">{{ short(node.name) + ' ' }}</text>
                             <text :x="node.x + ${NODE + 44}" :y="node.y + node.height / 2 + 14" class="flow-amount">{{ money(node.amount) }} · {{ percent(node.amount) }}</text>
                         </template>
-                        <title>{{ node.name }} : {{ money(node.amount) }}</title>
                     </g>
                     <!-- The icons out of the nodes: axe 4.14 reads an icon ligature as visible text, which
                          is not in the name of the node (WCAG 2.5.3 Label in Name); clicks go through them -->
