@@ -245,6 +245,18 @@ export default {
         },
 
         /**
+         * Accessible name of a node: its whole text as shown (WCAG 2.5.3 Label in Name), the
+         * full name before the shortened one when it is cut
+         * @param {Object} node - Node of the chart
+         * @returns {string} The name, amount and, on the right, share of the income
+         */
+        label(node) {
+            const name = this.short(node.name) === node.name ? node.name : node.name + ' (' + this.short(node.name) + ')';
+            const amount = node.x < WIDTH / 2 ? this.money(node.amount) : this.money(node.amount) + ' · ' + this.percent(node.amount);
+            return name + ' ' + amount;
+        },
+
+        /**
          * Gradient id of a link (the keys only use letters, digits and dashes)
          * @param {string} key - Key of the link
          * @returns {string}
@@ -323,7 +335,7 @@ export default {
                     <g v-for="node in layout.nodes" :key="node.key" class="flow-node" :class="[state(node), node.x < ${WIDTH / 2} ? 'left' : 'right']"
                        :role="node.selectable ? 'button' : null" :tabindex="node.selectable ? 0 : null"
                        :aria-pressed="node.selectable ? (selected === node.key ? 'true' : 'false') : null"
-                       :aria-label="node.name + ' : ' + money(node.amount)"
+                       :aria-label="label(node)"
                        @mouseenter="hover = node.key" @focus="hover = node.key" @blur="hover = null"
                        @click="select(node)" @keydown.enter.prevent="select(node)" @keydown.space.prevent="select(node)">
                         <!-- Invisible area: the whole label is clickable -->
@@ -332,13 +344,13 @@ export default {
                         <rect class="flow-bar" :x="node.x" :y="node.y" width="${NODE}" :height="node.height" rx="4" :style="{ fill: node.color }" />
                         <template v-if="node.x < ${WIDTH / 2}">
                             <circle class="flow-badge" :cx="node.x - 22" :cy="node.y + node.height / 2" r="14" :style="{ fill: node.color }" />
-                            <text class="flow-icon" :x="node.x - 22" :y="node.y + node.height / 2 + 8" text-anchor="middle">{{ node.icon }}</text>
+                            <text class="flow-icon" :x="node.x - 22" :y="node.y + node.height / 2 + 8" text-anchor="middle" aria-hidden="true">{{ node.icon }}</text>
                             <text :x="node.x - 44" :y="node.y + node.height / 2 - 3" text-anchor="end" class="flow-name">{{ short(node.name) }}</text>
                             <text :x="node.x - 44" :y="node.y + node.height / 2 + 14" text-anchor="end" class="flow-amount">{{ money(node.amount) }}</text>
                         </template>
                         <template v-else>
                             <circle class="flow-badge" :cx="node.x + ${NODE + 22}" :cy="node.y + node.height / 2" r="14" :style="{ fill: node.color }" />
-                            <text class="flow-icon" :x="node.x + ${NODE + 22}" :y="node.y + node.height / 2 + 8" text-anchor="middle">{{ node.icon }}</text>
+                            <text class="flow-icon" :x="node.x + ${NODE + 22}" :y="node.y + node.height / 2 + 8" text-anchor="middle" aria-hidden="true">{{ node.icon }}</text>
                             <text :x="node.x + ${NODE + 44}" :y="node.y + node.height / 2 - 3" class="flow-name">{{ short(node.name) }}</text>
                             <text :x="node.x + ${NODE + 44}" :y="node.y + node.height / 2 + 14" class="flow-amount">{{ money(node.amount) }} · {{ percent(node.amount) }}</text>
                         </template>

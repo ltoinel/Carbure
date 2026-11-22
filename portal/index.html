@@ -741,9 +741,10 @@
                                     <div class="transaction-icon" :class="transactionCategory(transaction) ? '' : 'type-' + transaction.type" :style="transactionIconStyle(transaction)">
                                         <span class="material-icons" aria-hidden="true">{{ transactionIcon(transaction) }}</span>
                                     </div>
+                                    <!-- Named by its content (WCAG 2.5.3 Label in Name): the visible text, after a hidden prefix -->
                                     <div class="transaction-details transaction-open" role="button" tabindex="0"
-                                         :aria-label="t('transactionDetail') + ' : ' + transaction.label"
                                          @click="openTransactionModal(transaction)" @keydown.enter.prevent="openTransactionModal(transaction)" @keydown.space.prevent="openTransactionModal(transaction)">
+                                        <span class="visually-hidden">{{ t('transactionDetail') }} : </span>
                                         <div class="transaction-label">{{ transaction.label }}</div>
                                         <div class="transaction-date">
                                             {{ formatDate(transaction.rdate || transaction.date) }}
@@ -1495,10 +1496,12 @@
                                     <!-- A card per tag: its color as an accent, the time gone of its period, its cost -->
                                     <ul class="tag-list" :class="'tag-list-' + group.key" :aria-label="group.title">
                                         <li v-for="tag in group.list" :key="tag.id" class="tag-item" :class="{ 'tag-item-archived': !tag.active }" :style="{ '--tag-color': categoryColor(tag) }">
-                                            <button type="button" class="tag-open" @click="openTagSummary(tag)" :aria-label="t('tagSummaryOf', { name: tag.name })">
+                                            <!-- Named by its content (WCAG 2.5.3 Label in Name): "Summary of #tag" holds the visible #tag -->
+                                            <button type="button" class="tag-open" @click="openTagSummary(tag)">
                                                 <span class="tag-open-head">
                                                     <span class="tag-dot" aria-hidden="true"></span>
-                                                    <span class="tag-name">#{{ tag.name }}</span>
+                                                    <span class="visually-hidden">{{ t('tagSummaryOf', { name: tag.name }) }}</span>
+                                                    <span class="tag-name" aria-hidden="true">#{{ tag.name }}</span>
                                                     <span v-if="!tag.active" class="tag-status tag-status-archived">
                                                         <span class="material-icons" aria-hidden="true">inventory_2</span>{{ t('tagArchived') }}
                                                     </span>
@@ -1699,9 +1702,9 @@
                                     <p class="rules-help">{{ t('rulesHelp') }}</p>
                                 </div>
                                 <div class="panel-actions">
+                                    <!-- Named by its visible text (WCAG 2.5.3), the title describes what it does -->
                                     <button class="btn-secondary" @click="applyRules" :disabled="applyingRules"
-                                            :title="t(keepCategorized ? 'applyRulesHelpUncategorized' : 'applyRulesHelp')"
-                                            :aria-label="t(keepCategorized ? 'applyRulesHelpUncategorized' : 'applyRulesHelp')">
+                                            :title="t(keepCategorized ? 'applyRulesHelpUncategorized' : 'applyRulesHelp')">
                                         <span class="material-icons" aria-hidden="true">auto_fix_high</span>
                                         {{ t('applyRules') }}
                                     </button>
