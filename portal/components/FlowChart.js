@@ -245,15 +245,15 @@ export default {
         },
 
         /**
-         * Accessible name of a node: its whole text as shown (WCAG 2.5.3 Label in Name), the
-         * full name before the shortened one when it is cut
+         * Accessible name of a node: its text exactly as shown (WCAG 2.5.3 Label in Name),
+         * the name shortened like on screen; the full name stays in its <title>, read as its
+         * description. The name ends with a space in its <text>, else axe joins it to the amount
          * @param {Object} node - Node of the chart
          * @returns {string} The name, amount and, on the right, share of the income
          */
         label(node) {
-            const name = this.short(node.name) === node.name ? node.name : node.name + ' (' + this.short(node.name) + ')';
             const amount = node.x < WIDTH / 2 ? this.money(node.amount) : this.money(node.amount) + ' · ' + this.percent(node.amount);
-            return name + ' ' + amount;
+            return this.short(node.name) + ' ' + amount;
         },
 
         /**
@@ -344,18 +344,20 @@ export default {
                         <rect class="flow-bar" :x="node.x" :y="node.y" width="${NODE}" :height="node.height" rx="4" :style="{ fill: node.color }" />
                         <template v-if="node.x < ${WIDTH / 2}">
                             <circle class="flow-badge" :cx="node.x - 22" :cy="node.y + node.height / 2" r="14" :style="{ fill: node.color }" />
-                            <text class="flow-icon" :x="node.x - 22" :y="node.y + node.height / 2 + 8" text-anchor="middle" aria-hidden="true">{{ node.icon }}</text>
-                            <text :x="node.x - 44" :y="node.y + node.height / 2 - 3" text-anchor="end" class="flow-name">{{ short(node.name) }}</text>
+                            <text :x="node.x - 44" :y="node.y + node.height / 2 - 3" text-anchor="end" class="flow-name">{{ short(node.name) + ' ' }}</text>
                             <text :x="node.x - 44" :y="node.y + node.height / 2 + 14" text-anchor="end" class="flow-amount">{{ money(node.amount) }}</text>
                         </template>
                         <template v-else>
                             <circle class="flow-badge" :cx="node.x + ${NODE + 22}" :cy="node.y + node.height / 2" r="14" :style="{ fill: node.color }" />
-                            <text class="flow-icon" :x="node.x + ${NODE + 22}" :y="node.y + node.height / 2 + 8" text-anchor="middle" aria-hidden="true">{{ node.icon }}</text>
-                            <text :x="node.x + ${NODE + 44}" :y="node.y + node.height / 2 - 3" class="flow-name">{{ short(node.name) }}</text>
+                            <text :x="node.x + ${NODE + 44}" :y="node.y + node.height / 2 - 3" class="flow-name">{{ short(node.name) + ' ' }}</text>
                             <text :x="node.x + ${NODE + 44}" :y="node.y + node.height / 2 + 14" class="flow-amount">{{ money(node.amount) }} · {{ percent(node.amount) }}</text>
                         </template>
                         <title>{{ node.name }} : {{ money(node.amount) }}</title>
                     </g>
+                    <!-- The icons out of the nodes: axe 4.14 reads an icon ligature as visible text, which
+                         is not in the name of the node (WCAG 2.5.3 Label in Name); clicks go through them -->
+                    <text v-for="node in layout.nodes" :key="'i-' + node.key" class="flow-icon" :class="state(node)" aria-hidden="true"
+                          :x="node.x < ${WIDTH / 2} ? node.x - 22 : node.x + ${NODE + 22}" :y="node.y + node.height / 2 + 8" text-anchor="middle">{{ node.icon }}</text>
                 </svg>
             </div>
 

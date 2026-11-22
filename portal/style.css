@@ -6212,7 +6212,8 @@ a.footer-brand:hover {
     cursor: pointer;
 }
 
-.flow-node.dim {
+.flow-node.dim,
+.flow-icon.dim {
     opacity: 0.45;
 }
 
