@@ -10,9 +10,13 @@ class WoobRepositoryTest extends TestCase
     /** Fingerprint of the keyring of the fake repository (tests/fixtures/woob-repository) */
     private string $fingerprint;
 
+    /** SHA-256 of the keyring of the fake repository, the one Carbure pins */
+    private string $sha256;
+
     protected function setUp(): void
     {
         $this->fingerprint = sha1_file(dirname(__DIR__) . '/fixtures/woob-repository/trusted.gpg');
+        $this->sha256 = hash_file('sha256', dirname(__DIR__) . '/fixtures/woob-repository/trusted.gpg');
         $this->forget();
     }
 
@@ -183,7 +187,7 @@ class WoobRepositoryTest extends TestCase
     {
         // The fake repository plays the official one, its keyring pinned
         WoobRepository::$officialRepository = WoobRepository::repository();
-        WoobRepository::$officialKeyrings = [strtoupper($this->fingerprint)];
+        WoobRepository::$officialKeyrings = [strtoupper($this->sha256)];
 
         [$result, $lines] = $this->trustOfficial();
         $this->assertTrue($result['updated']);
@@ -200,7 +204,7 @@ class WoobRepositoryTest extends TestCase
     public function testAnotherKeyringOfTheOfficialRepositoryWaitsForAnAdministrator()
     {
         WoobRepository::$officialRepository = WoobRepository::repository();
-        WoobRepository::$officialKeyrings = [str_repeat('0', 40)];
+        WoobRepository::$officialKeyrings = [str_repeat('0', 64)];
 
         [$result, $lines] = $this->trustOfficial();
         $this->assertFalse($result['updated']);
@@ -214,7 +218,7 @@ class WoobRepositoryTest extends TestCase
     public function testAnotherRepositoryIsNeverTrustedWithoutAsking()
     {
         // The fake repository is not the official one, even with the same keyring
-        WoobRepository::$officialKeyrings = [$this->fingerprint];
+        WoobRepository::$officialKeyrings = [$this->sha256];
 
         [$result, $lines] = $this->trustOfficial();
         $this->assertNull($result);
@@ -240,10 +244,12 @@ class WoobRepositoryTest extends TestCase
 
     public function testOnlyThePinnedFingerprintsAreOfficial()
     {
-        $this->assertSame(['b5fc136c2d500b8483696a0ee722865842a4cc45'], WoobRepository::OFFICIAL_KEYRINGS);
+        $this->assertSame(['a1755b379793ff4922a7bfb5f566c019205f805b96f3420aee95938cd0d1634a'], WoobRepository::OFFICIAL_KEYRINGS);
         $this->assertSame('https://updates.woob.tech/3/main/', WoobRepository::$officialRepository);
-        $this->assertTrue(WoobRepository::isOfficial('B5FC136C2D500B8483696A0EE722865842A4CC45'));
-        $this->assertFalse(WoobRepository::isOfficial(str_repeat('0', 40)));
+        $this->assertTrue(WoobRepository::isOfficial('A1755B379793FF4922A7BFB5F566C019205F805B96F3420AEE95938CD0D1634A'));
+        // The SHA-1 of the official keyring is not a pinned fingerprint
+        $this->assertFalse(WoobRepository::isOfficial('b5fc136c2d500b8483696a0ee722865842a4cc45'));
+        $this->assertFalse(WoobRepository::isOfficial(str_repeat('0', 64)));
         $this->assertFalse(WoobRepository::isOfficial(''));
     }
 }
