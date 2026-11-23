@@ -29,10 +29,13 @@ Dans le **Centre de paquets**, installez :
 
 Ouvrez l'application **MariaDB 10** :
 
-1. Notez le **port** affiché (par défaut **3307** sur Synology).
-2. Cochez **Activer la connexion TCP/IP**, puis **Appliquer**.
-3. Si ce n'est pas déjà fait, définissez le mot de passe de l'utilisateur `root` de MariaDB
-   (bouton **Modifier le mot de passe MariaDB**).
+1. Dans **Connexion**, cochez **Activer la connexion TCP/IP** et notez le **Port** affiché
+   (`3306` ou `3307` selon le NAS), puis **Appliquer**.
+2. Si ce n'est pas déjà fait, définissez le mot de passe de l'utilisateur `root` de
+   MariaDB (bouton **Changer le mot de passe** ; **Réinitialiser le mot de passe root**
+   s'il est perdu).
+
+![Application MariaDB 10 de DSM : connexion TCP/IP activée et port de MariaDB](assets/synology/mariadb.webp)
 
 ## 3. Créer la base et l'utilisateur de Carbure
 
@@ -60,31 +63,59 @@ L'image est publiée sur [Docker Hub](https://hub.docker.com/r/ltoinel/carbure) 
 trouve directement depuis le DSM.
 
 1. Ouvrez **Container Manager** → **Registre**.
-2. Recherchez `carbure` et sélectionnez **ltoinel/carbure**.
-3. Cliquez sur **Télécharger**, choisissez l'étiquette `latest` (ou une version, par exemple
-   `1.0.0`) puis **Appliquer**. L'image apparaît dans **Image** une fois téléchargée.
+2. Recherchez `ltoinel/carbure` et sélectionnez **ltoinel/carbure** (d'autres images
+   portent un nom proche : vérifiez l'auteur `ltoinel`).
+3. Cliquez sur **Télécharger** : dans **Choisir une identification**, gardez `latest` (ou
+   choisissez une version, par exemple `1.13.0`) puis **Télécharger**.
+
+![Registre de Container Manager : recherche de ltoinel/carbure et choix de l'identification latest](assets/synology/etiquette.webp)
+
+L'image apparaît dans **Image** une fois téléchargée.
 
 ## 5. Lancer le conteneur Carbure
 
-1. Avec **File Station**, créez un dossier `carbure` dans le dossier partagé `docker`
-   (créé par Container Manager), puis un sous-dossier `data` : `docker/carbure/data`.
-2. Ouvrez **Container Manager** → **Image**, sélectionnez **ltoinel/carbure** puis
-   **Exécuter**.
-3. **Paramètres généraux** : **Nom du conteneur** `carbure` ; cochez **Activer le
-   redémarrage automatique**. Cliquez sur **Suivant**.
-4. **Paramètres avancés** :
-    - **Paramètres de port** : **Port local** `8080`, **Port du conteneur** `80` (TCP) ;
-    - **Paramètres de volume** → **Ajouter un dossier** : `docker/carbure/data`, monté
-      sur `/data` (configuration, logs et banques de Carbure) ;
-    - **Variables d'environnement** → ajoutez `SYNC_INTERVAL` avec la valeur `86400`
-      (synchronisation bancaire une fois par jour) ;
-    - laissez décochée **Exécuter ce conteneur avec des privilèges élevés** : Carbure
-      n'en a pas besoin.
-5. Cliquez sur **Suivant**, puis **Terminé** : Container Manager démarre Carbure.
+Ouvrez **Container Manager** → **Image**, sélectionnez **ltoinel/carbure** puis
+**Exécuter** : l'assistant **Créer un conteneur** s'ouvre.
+
+**Paramètres généraux** :
+
+- **Nom du conteneur** : remplacez le nom proposé (`ltoinel-carbure-1`) par `carbure` ;
+- cochez **Activer le redémarrage automatique** : Carbure redémarre avec le NAS ;
+- laissez décochés **Activer la limitation des ressources** et **Configurer le portail
+  Web via Web Station**.
+
+![Assistant Créer un conteneur, paramètres généraux : nom carbure et redémarrage automatique](assets/synology/parametres-generaux.webp)
+
+Cliquez sur **Suivant**. **Paramètres avancés** :
+
+- **Paramètres des ports** : saisissez `8080` dans **Port local**, en face du **Port du
+  conteneur** `80` (TCP). Supprimez la ligne du port `9000` avec le bouton **−** : c'est
+  un port interne de l'image, à ne pas publier.
+- **Paramètres du volume** → **Ajouter un dossier** : dépliez le dossier partagé `docker`
+  (créé par Container Manager), créez-y un dossier `carbure` avec **Créer dossier**,
+  sélectionnez-le puis **Sélectionnez**. Saisissez `/data` comme chemin de montage,
+  en **Lecture/écriture** : la configuration, les logs et les banques de Carbure y sont
+  conservés.
+
+![Paramètres avancés : port local 8080 vers le port 80 du conteneur, dossier docker/carbure monté sur /data](assets/synology/parametres-avances.webp)
+
+- **Environnement** : ne touchez pas aux variables déjà présentes, elles viennent de
+  l'image. `SYNC_INTERVAL` vaut `86400` : la synchronisation bancaire a lieu une fois par
+  jour (supprimez la ligne pour la désactiver, voir l'étape 7).
+- **Fonctionnalités** : gardez **Configurer les fonctionnalités** ; ne choisissez pas
+  **Exécuter le conteneur à l'aide de privilèges élevés**, Carbure n'en a pas besoin.
+- **Réseau** : gardez `bridge` (sous-réseau `172.17.0.0/16`, celui de l'utilisateur
+  `carbure` de l'étape 3).
+
+![Paramètres avancés : variables d'environnement de l'image, dont SYNC_INTERVAL, et fonctionnalités sans privilèges élevés](assets/synology/variables.webp)
+
+Cliquez sur **Suivant** : le **Résumé** reprend vos choix. Laissez cochée l'option qui
+exécute le conteneur à la fin de l'assistant, puis cliquez sur **Terminé** : Container
+Manager démarre Carbure.
 
 Les paramètres de la base de données ne se mettent pas dans le conteneur : vous les
 saisissez dans l'assistant d'installation (étape 6), qui les enregistre dans
-`docker/carbure/data`.
+`docker/carbure`.
 
 !!! tip "Port déjà utilisé ?"
     Si le port `8080` est déjà pris sur votre NAS, choisissez un autre **Port local**, par
@@ -97,7 +128,7 @@ d'installation** s'affiche.
 
 1. **Base de données** : saisissez **l'adresse IP du NAS** (par exemple `192.168.1.10`,
    pas `localhost` : depuis le conteneur, `localhost` désigne le conteneur lui-même), le
-   **port** de MariaDB 10 (étape 2, `3307` par défaut), la base et l'utilisateur
+   **port** de MariaDB 10 noté à l'étape 2, la base et l'utilisateur
    `carbure` et le **mot de passe** de l'étape 3, puis **Continuer**.
 2. **Installation** : Carbure indique qu'il va créer ses tables. Choisissez l'identifiant et
    le mot de passe du **compte administrateur** (8 caractères minimum). Laissez cochées les
@@ -120,7 +151,7 @@ Dans le portail, onglet **Comptes** → **+** :
 1. Choisissez votre banque dans la liste des banques supportées par
    [woob](https://woob.tech/) (par exemple BNP Paribas, Crédit Mutuel, Boursorama).
 2. Saisissez les identifiants demandés et cliquez sur **Connecter la banque** : ils sont
-   confiés à woob, qui les conserve dans le dossier `docker/carbure/data` du NAS ; Carbure
+   confiés à woob, qui les conserve dans le dossier `docker/carbure` du NAS ; Carbure
    ne les enregistre pas.
 3. Cliquez sur **Suivre** pour chaque compte à synchroniser, puis **Enregistrer**.
 
@@ -178,21 +209,21 @@ règle.
 
 ## Sécuriser l'installation
 
-Carbure contient vos comptes et, dans `docker/carbure/data`, les identifiants bancaires
+Carbure contient vos comptes et, dans `docker/carbure`, les identifiants bancaires
 confiés à woob et les secrets de sa configuration. Ces réglages de DSM les protègent :
 
 - **Pare-feu** (**Panneau de configuration → Sécurité → Pare-feu** → **Activer le
-  pare-feu** → **Modifier les règles**) : autorisez les ports `8080` (Carbure) et `3307`
-  (MariaDB 10) uniquement depuis votre réseau local (par exemple `192.168.1.0/24`) et
+  pare-feu** → **Modifier les règles**) : autorisez les ports `8080` (Carbure) et celui de
+  MariaDB 10 (`3306` ou `3307`) uniquement depuis votre réseau local (par exemple `192.168.1.0/24`) et
   refusez-les depuis le reste. Sur votre box, ne redirigez que le port `443` (étape 8),
-  jamais `8080` ni `3307`.
+  jamais `8080` ni le port de MariaDB.
 - **Dossier partagé `docker`** (**Panneau de configuration → Dossier partagé** → `docker`
   → **Modifier** → **Permissions**) : accès réservé aux administrateurs ; ne le partagez
   pas avec les autres utilisateurs du foyer, en SMB ou autrement.
 - **HTTPS** : sur la règle de proxy inversé de l'étape 8, activez **HSTS** (le navigateur
   refusera ensuite de repasser en HTTP), avec un certificat Let's Encrypt.
 - **Sauvegardes chiffrées** : dans la tâche **Hyper Backup** qui contient
-  `docker/carbure/data` et MariaDB 10, activez le **chiffrement côté client**, surtout si
+  `docker/carbure` et MariaDB 10, activez le **chiffrement côté client**, surtout si
   la destination est dans le cloud.
 - **Compte DSM** : activez la **validation en 2 étapes** et le **blocage automatique**
   (**Panneau de configuration → Sécurité → Protection**) : le NAS héberge tout le reste.
@@ -204,12 +235,22 @@ Voir aussi la page [Sécurité](securite.md).
 
 ## Mettre à jour Carbure
 
-Dans **Container Manager** → **Image**, le badge **Mise à jour disponible** apparaît sur
-`ltoinel/carbure` quand une nouvelle version est publiée : cliquez sur **Mettre à jour**
-(ou téléchargez à nouveau l'étiquette `latest` depuis **Registre**). Puis, dans
-**Conteneur** → `carbure` → **Action** : **Arrêter**, **Réinitialiser** (le conteneur est
-recréé avec la nouvelle image, en gardant ses ports, son dossier `data` et ses variables),
-puis **Démarrer**.
+Quand une nouvelle version est publiée, **Container Manager** → **Image** l'indique sur
+`ltoinel/carbure` : **latest (Mise à jour disponible)**. Le portail le signale aussi aux
+administrateurs.
+
+1. Sélectionnez `ltoinel/carbure`, puis **Action** → **Mise à jour** (ou cliquez sur le
+   lien **Mise à jour disponible**).
+
+    ![Image ltoinel/carbure avec une mise à jour disponible et le menu Action → Mise à jour](assets/synology/mise-a-jour.webp)
+
+2. Si le conteneur tourne encore sur l'ancienne image : **Conteneur** → `carbure` →
+   **Action** → **Arrêt**, puis **Réinitialiser** (disponible une fois le conteneur
+   arrêté : il est recréé avec la nouvelle image, en gardant ses ports, son dossier et
+   ses variables), puis **Démarrer**.
+
+    ![Menu Action d'un conteneur : Démarrer, Arrêt, Réinitialiser, Ouvrir le terminal](assets/synology/conteneur-action.webp)
+
 Au redémarrage, Carbure met sa base de données à jour automatiquement.
 
 Pensez à sauvegarder la base avant une mise à jour : phpMyAdmin → base `carbure` →
@@ -218,5 +259,5 @@ Pensez à sauvegarder la base avant une mise à jour : phpMyAdmin → base `carb
 ## Sauvegarder
 
 - **Base de données** : export phpMyAdmin ou Hyper Backup (application **MariaDB 10**).
-- **Configuration et banques** : le dossier `docker/carbure/data` (Hyper Backup ou
+- **Configuration et banques** : le dossier `docker/carbure` (Hyper Backup ou
   copie).

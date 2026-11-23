@@ -29,10 +29,12 @@ In **Package Center**, install:
 
 Open the **MariaDB 10** application:
 
-1. Note the **port** shown (**3307** by default on Synology).
-2. Check **Enable TCP/IP connection**, then **Apply**.
-3. If not already done, set the password of the MariaDB `root` user
-   (**Change MariaDB password** button).
+1. Under **Connection**, check **Enable TCP/IP connection** and note the **Port** shown
+   (`3306` or `3307` depending on the NAS), then **Apply**.
+2. If not already done, set the password of the MariaDB `root` user (**Change Password**
+   button; **Reset root password** if it is lost).
+
+![DSM MariaDB 10 application: TCP/IP connection enabled and MariaDB port](assets/en/synology/mariadb.webp)
 
 ## 3. Create the Carbure database and user { #3-creer-la-base-et-lutilisateur-de-carbure }
 
@@ -59,29 +61,56 @@ The image is published on [Docker Hub](https://hub.docker.com/r/ltoinel/carbure)
 find it directly from DSM.
 
 1. Open **Container Manager** → **Registry**.
-2. Search for `carbure` and select **ltoinel/carbure**.
-3. Click **Download**, choose the `latest` tag (or a version, for example `1.0.0`), then
-   **Apply**. The image appears in **Image** once downloaded.
+2. Search for `ltoinel/carbure` and select **ltoinel/carbure** (other images have a
+   similar name: check the `ltoinel` author).
+3. Click **Download**: in **Choose Tag**, keep `latest` (or choose a version, for example
+   `1.13.0`), then **Download**.
+
+![Container Manager registry: search for ltoinel/carbure and choice of the latest tag](assets/en/synology/etiquette.webp)
+
+The image appears in **Image** once downloaded.
 
 ## 5. Start the Carbure container { #5-lancer-le-conteneur-carbure }
 
-1. With **File Station**, create a `carbure` folder in the `docker` shared folder
-   (created by Container Manager), then a `data` subfolder: `docker/carbure/data`.
-2. Open **Container Manager** → **Image**, select **ltoinel/carbure**, then **Run**.
-3. **General Settings**: **Container Name** `carbure`; check **Enable auto-restart**.
-   Click **Next**.
-4. **Advanced Settings**:
-    - **Port Settings**: **Local Port** `8080`, **Container Port** `80` (TCP);
-    - **Volume Settings** → **Add Folder**: `docker/carbure/data`, mounted on `/data`
-      (Carbure configuration, logs and banks);
-    - **Environment** → add `SYNC_INTERVAL` with the value `86400` (bank sync once a
-      day);
-    - leave **Execute container using high privilege** unchecked: Carbure does not need
-      it.
-5. Click **Next**, then **Done**: Container Manager starts Carbure.
+Open **Container Manager** → **Image**, select **ltoinel/carbure**, then **Run**: the
+**Create Container** wizard opens.
+
+**General Settings**:
+
+- **Container Name**: replace the suggested name (`ltoinel-carbure-1`) with `carbure`;
+- check **Enable auto-restart**: Carbure restarts with the NAS;
+- leave **Enable resource limitation** and **Set up web portal via Web Station**
+  unchecked.
+
+![Create Container wizard, general settings: carbure name and auto-restart](assets/en/synology/parametres-generaux.webp)
+
+Click **Next**. **Advanced Settings**:
+
+- **Port Settings**: enter `8080` in **Local Port**, next to **Container Port** `80`
+  (TCP). Remove the line of port `9000` with the **−** button: it is an internal port of
+  the image, not to be published.
+- **Volume Settings** → **Add Folder**: expand the `docker` shared folder (created by
+  Container Manager), create a `carbure` folder in it with **Create Folder**, select it,
+  then **Select**. Enter `/data` as the mount path, **Read/Write**: the Carbure
+  configuration, logs and banks are kept there.
+
+![Advanced settings: local port 8080 to container port 80, docker/carbure folder mounted on /data](assets/en/synology/parametres-avances.webp)
+
+- **Environment**: leave the variables already there, they come from the image.
+  `SYNC_INTERVAL` is `86400`: the bank sync runs once a day (remove the line to disable
+  it, see step 7).
+- **Capabilities**: keep **Configure capabilities**; do not choose **Execute container
+  using high privilege**, Carbure does not need it.
+- **Network**: keep `bridge` (subnet `172.17.0.0/16`, the one of the `carbure` user of
+  step 3).
+
+![Advanced settings: environment variables of the image, including SYNC_INTERVAL, and capabilities without high privilege](assets/en/synology/variables.webp)
+
+Click **Next**: the **Summary** lists your choices. Leave **Run this container after the
+wizard is finished** checked, then click **Done**: Container Manager starts Carbure.
 
 The database settings do not go into the container: you enter them in the setup wizard
-(step 6), which saves them in `docker/carbure/data`.
+(step 6), which saves them in `docker/carbure`.
 
 !!! tip "Port already in use?"
     If port `8080` is already taken on your NAS, choose another **Local Port**, for
@@ -94,7 +123,7 @@ displayed.
 
 1. **Database**: enter **the NAS IP address** (for example `192.168.1.10`, not
    `localhost`: from the container, `localhost` refers to the container itself), the
-   MariaDB 10 **port** (step 2, `3307` by default), the `carbure` database and user and
+   MariaDB 10 **port** noted in step 2, the `carbure` database and user and
    the **password** from step 3, then **Continue**.
 2. **Installation**: Carbure says it is going to create its tables. Choose the username
    and password of the **administrator account** (at least 8 characters). Leave the
@@ -117,7 +146,7 @@ In the portal, **Accounts** tab → **+**:
 1. Choose your bank from the list of banks supported by [woob](https://woob.tech/) (for
    example BNP Paribas, Crédit Mutuel, Boursorama).
 2. Enter the requested credentials and click **Connect the bank**: they are handed over
-   to woob, which keeps them in the `docker/carbure/data` folder of the NAS; Carbure does
+   to woob, which keeps them in the `docker/carbure` folder of the NAS; Carbure does
    not store them.
 3. Click **Follow** for each account to sync, then **Save**.
 
@@ -171,19 +200,19 @@ the timeouts in the advanced settings of the rule.
 
 ## Secure the installation { #securiser-linstallation }
 
-Carbure holds your accounts and, in `docker/carbure/data`, the bank credentials handed
+Carbure holds your accounts and, in `docker/carbure`, the bank credentials handed
 over to woob and the secrets of its configuration. These DSM settings protect them:
 
 - **Firewall** (**Control Panel → Security → Firewall** → **Enable firewall** → **Edit
-  Rules**): allow ports `8080` (Carbure) and `3307` (MariaDB 10) only from your local
+  Rules**): allow ports `8080` (Carbure) and the MariaDB 10 one (`3306` or `3307`) only from your local
   network (for example `192.168.1.0/24`) and deny them from everywhere else. On your
-  router, forward only port `443` (step 8), never `8080` or `3307`.
+  router, forward only port `443` (step 8), never `8080` or the MariaDB port.
 - **`docker` shared folder** (**Control Panel → Shared Folder** → `docker` → **Edit** →
   **Permissions**): access restricted to administrators; do not share it with the other
   members of the household, over SMB or otherwise.
 - **HTTPS**: on the reverse proxy rule from step 8, enable **HSTS** (the browser will then
   refuse to fall back to HTTP), with a Let's Encrypt certificate.
-- **Encrypted backups**: in the **Hyper Backup** task that contains `docker/carbure/data`
+- **Encrypted backups**: in the **Hyper Backup** task that contains `docker/carbure`
   and MariaDB 10, enable **client-side encryption**, especially if the destination is in
   the cloud.
 - **DSM account**: enable **2-factor authentication** and **Auto Block** (**Control
@@ -195,11 +224,21 @@ See also the [Security](securite.md) page.
 
 ## Update Carbure { #mettre-a-jour-carbure }
 
-In **Container Manager** → **Image**, the **Update available** badge appears on
-`ltoinel/carbure` when a new version is published: click **Update** (or download the
-`latest` tag again from **Registry**). Then, in **Container** → `carbure` → **Action**:
-**Stop**, **Reset** (the container is recreated with the new image, keeping its ports, its
-`data` folder and its variables), then **Start**.
+When a new version is published, **Container Manager** → **Image** shows it on
+`ltoinel/carbure`: **latest (Update available)**. The portal also tells the
+administrators.
+
+1. Select `ltoinel/carbure`, then **Action** → **Update** (or click the **Update
+   available** link).
+
+    ![ltoinel/carbure image with an update available and the Action → Update menu](assets/en/synology/mise-a-jour.webp)
+
+2. If the container still runs the old image: **Container** → `carbure` → **Action** →
+   **Stop**, then **Reset** (available once the container is stopped: it is recreated
+   with the new image, keeping its ports, its folder and its variables), then **Start**.
+
+    ![Action menu of a container: Start, Stop, Reset, Open terminal](assets/en/synology/conteneur-action.webp)
+
 On restart, Carbure updates its database automatically.
 
 Remember to back up the database before an update: phpMyAdmin → `carbure` database →
@@ -208,4 +247,4 @@ Remember to back up the database before an update: phpMyAdmin → `carbure` data
 ## Back up { #sauvegarder }
 
 - **Database**: phpMyAdmin export or Hyper Backup (**MariaDB 10** application).
-- **Configuration and banks**: the `docker/carbure/data` folder (Hyper Backup or a copy).
+- **Configuration and banks**: the `docker/carbure` folder (Hyper Backup or a copy).
