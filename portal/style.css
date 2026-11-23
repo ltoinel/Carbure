@@ -5810,9 +5810,90 @@ a.footer-brand:hover {
     gap: 6px;
 }
 
-/* New release: its link and its button wrap under the text on a narrow screen */
+/* New release: highlighted, unlike the white cards around it (tinted background, accent
+   border, icon badge, the notes as the main action); its link wraps under the text on a
+   narrow screen, the close icon stays in the top right corner */
 .release-banner {
+    position: relative;
     flex-wrap: wrap;
+    padding-right: 56px;
+    background: color-mix(in srgb, var(--primary-color) 12%, var(--surface));
+    border: 1px solid var(--primary-color);
+    border-left-width: 6px;
+    box-shadow: var(--shadow-3);
+}
+
+.release-banner .schema-banner-text {
+    font-weight: 500;
+}
+
+.release-banner-badge {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--border-radius-full);
+    background: var(--primary-color);
+    color: var(--on-accent);
+    /* A few pulses when the banner appears, none with reduced motion */
+    animation: release-badge-pulse 1.8s ease-out 3;
+}
+
+@keyframes release-badge-pulse {
+    0% {
+        box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary-color) 55%, transparent);
+    }
+    100% {
+        box-shadow: 0 0 0 12px color-mix(in srgb, var(--primary-color) 0%, transparent);
+    }
+}
+
+a.release-banner-notes {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: var(--border-radius-md);
+    background: var(--primary-color);
+    color: var(--on-accent);
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: underline;
+    box-shadow: var(--shadow-1);
+}
+
+a.release-banner-notes:hover {
+    background: var(--primary-dark);
+    color: var(--on-accent);
+}
+
+a.release-banner-notes .material-icons {
+    font-size: 18px;
+}
+
+/* Close icon without a label: its name is given by aria-label and its tooltip */
+.schema-banner .release-banner-close {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    padding: 6px;
+    background: transparent;
+    color: var(--text-primary);
+    border-radius: var(--border-radius-full);
+    box-shadow: none;
+}
+
+.schema-banner .release-banner-close:hover {
+    background: color-mix(in srgb, var(--primary-color) 22%, var(--surface));
+    color: var(--text-primary);
+    transform: none;
+    box-shadow: none;
+}
+
+.release-banner-close .material-icons {
+    font-size: 20px;
 }
 
 /* Edit and delete buttons side by side in the tables */
