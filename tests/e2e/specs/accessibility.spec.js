@@ -208,6 +208,14 @@ test('the API tab is readable, its link on hover included', async ({ adminPage: 
     expect(await contrastProblems(page, tr('tabApi'))).toEqual([]);
 });
 
+test('the banner of a new release is readable, its link and its close icon on hover included (#520)', async ({ page, adminPage }) => {
+    const release = { enabled: true, current: '1.9.1', latest: '1.10.0', url: 'https://github.com/ltoinel/Carbure/releases/tag/v1.10.0', available: true, checked_at: '2026-11-01 10:00:00' };
+    await page.route('**/api/system/release', route => route.fulfill({ json: release }));
+    await page.reload();
+    await expect(page.locator('.release-banner')).toBeVisible();
+    expect(await contrastProblems(page, 'release banner')).toEqual([]);
+});
+
 test('the accounts grouped under their bank are readable', async ({ adminPage: page }) => {
     await openTab(page, tr('tabAccounts'));
     // A bank with an account, a bank without (its hint), the other accounts

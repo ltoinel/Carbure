@@ -29,8 +29,11 @@ test('an administrator is told about a new release, until he hides it', async ({
     await expect(notes).toHaveAttribute('href', release.url);
     await expect(notes).toHaveAttribute('target', '_blank');
 
-    // Hidden for this version, also after a reload
-    await banner.getByRole('button', { name: tr('releaseDismiss') }).click();
+    // Hidden for this version, also after a reload: a close icon, named by its label and tooltip
+    const dismiss = banner.getByRole('button', { name: tr('releaseDismiss') });
+    await expect(dismiss).toHaveAttribute('title', tr('releaseDismiss'));
+    await expect(dismiss).not.toContainText(tr('releaseDismiss'));
+    await dismiss.click();
     await expect(banner).toHaveCount(0);
     await page.reload();
     await expect(page.locator('.schema-banner')).toHaveCount(0);

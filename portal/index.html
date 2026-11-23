@@ -538,13 +538,13 @@
 
         <!-- New release of Carbure (administrators), hidden for that version once dismissed -->
         <div v-if="releaseBanner" class="schema-banner release-banner" role="status">
-            <span class="material-icons" aria-hidden="true">new_releases</span>
+            <span class="release-banner-badge" aria-hidden="true"><span class="material-icons">new_releases</span></span>
             <span class="schema-banner-text">{{ t('releaseAvailable', { version: releaseStatus.latest, current: releaseStatus.current }) }}</span>
-            <a class="api-docs-open" :href="releaseStatus.url" target="_blank" rel="noopener">
+            <a class="release-banner-notes" :href="releaseStatus.url" target="_blank" rel="noopener">
                 <span class="material-icons" aria-hidden="true">open_in_new</span>{{ t('releaseNotes') }}
             </a>
-            <button type="button" class="btn-secondary" @click="dismissRelease">
-                <span class="material-icons" aria-hidden="true">close</span>{{ t('releaseDismiss') }}
+            <button type="button" class="release-banner-close" :aria-label="t('releaseDismiss')" :title="t('releaseDismiss')" @click="dismissRelease">
+                <span class="material-icons" aria-hidden="true">close</span>
             </button>
         </div>
 
