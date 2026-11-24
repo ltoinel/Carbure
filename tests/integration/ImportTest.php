@@ -94,6 +94,29 @@ class ImportTest extends DatabaseTestCase
         $this->assertSame([['bank_name' => 'bank', 'account_number' => 'fail']], $rows);
     }
 
+    public function testSameTransactionsOnAnotherAccount()
+    {
+        // #528: the file was already imported on another followed account
+        $this->loginAs(self::USER);
+        Db::execute("INSERT INTO bank_account (bank_name, account_number, label, user_id) VALUES ('cragr', '111', NULL, ?)", "i", self::USER);
+        $other = (string)Db::queryOne("SELECT id FROM bank_account WHERE bank_name = 'cragr'", "")['id'];
+        $this->assertSame(3, Transaction::import($this->statement(), 'releve.csv', null, $other)['imported']);
+
+        // Without an account: known, as before; on the account 3 (bank / fail): not known,
+        // only reported as possible duplicates of those of the other account
+        $this->assertSame(3, Transaction::previewImport($this->statement(), 'releve.csv')['counts']['known']);
+        $preview = Transaction::previewImport($this->statement(), 'releve.csv', '3');
+        $this->assertSame(0, $preview['counts']['known']);
+        $this->assertSame('duplicate', $preview['rows'][2]['status']);
+
+        // Imported on the account 3 when chosen
+        $this->assertSame(1, Transaction::import($this->statement(), 'releve.csv', [2], '3')['imported']);
+        $rows = Db::select("SELECT bank_name, account_number FROM bank_transaction WHERE label = 'VIR SALAIRE MAI' ORDER BY id", "")->fetch_all(MYSQLI_ASSOC);
+        $this->assertSame([['bank_name' => 'cragr', 'account_number' => '111'], ['bank_name' => 'bank', 'account_number' => 'fail']], $rows);
+        // Not imported twice
+        $this->assertSame(0, Transaction::import($this->statement(), 'releve.csv', [2], '3')['imported']);
+    }
+
     public function testImportWithoutAccountKeepsTheNumberOfTheFile()
     {
         $this->loginAs(self::USER);

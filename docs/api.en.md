@@ -664,6 +664,7 @@ Reads a bank statement without saving anything.
 |---|---|---|
 | `file` | yes | File content encoded in base64 (1 MB at most before encoding); never written to the logs |
 | `filename` | no | File name (its extension helps detect the format) |
+| `account` | no | `id` of an account of `GET /bank`: the account the file would be imported on, so that an identical transaction of another followed account is not reported as known |
 
 Formats: OFX/QFX (1.x SGML and 2.x XML), QIF, CAMT.053 (ISO 20022) and CSV: read with the
 **profile of its bank** when its header is that of a known export (see
@@ -683,7 +684,7 @@ transaction).
 | Status | Meaning |
 |---|---|
 | `new` | New transaction |
-| `known` | Same UUID as an existing transaction: it would be merged. Identical lines in the file are as many transactions (each with its own UUID) |
+| `known` | Same UUID as an existing transaction: it would be merged. Identical lines in the file are as many transactions (each with its own UUID). With `account`, an identical transaction saved on another followed account is not known: it gets its own UUID on this account |
 | `duplicate` | Same amount as an existing transaction within 3 days (date or actual date): probably the same one, synchronized with another label |
 
 Errors: `400` (invalid base64, empty file), `413` (file too large, more than 5,000

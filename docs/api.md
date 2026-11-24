@@ -667,6 +667,7 @@ Lit un relevé bancaire sans rien enregistrer.
 |---|---|---|
 | `file` | oui | Contenu du fichier encodé en base64 (1 Mo au plus avant encodage) ; jamais écrit dans les logs |
 | `filename` | non | Nom du fichier (son extension aide à reconnaître le format) |
+| `account` | non | `id` d'un compte de `GET /bank` : le compte sur lequel le fichier serait importé, pour qu'une transaction identique d'un autre compte suivi ne soit pas annoncée comme connue |
 
 Formats : OFX/QFX (1.x SGML et 2.x XML), QIF, CAMT.053 (ISO 20022) et CSV : lu avec le
 **profil de sa banque** quand son en-tête est celui d'un export connu (voir
@@ -686,7 +687,7 @@ existante).
 | Statut | Signification |
 |---|---|
 | `new` | Nouvelle transaction |
-| `known` | Même UUID qu'une transaction existante : elle serait fusionnée. Des lignes identiques du fichier sont autant de transactions (chacune son UUID) |
+| `known` | Même UUID qu'une transaction existante : elle serait fusionnée. Des lignes identiques du fichier sont autant de transactions (chacune son UUID). Avec `account`, une transaction identique enregistrée sur un autre compte suivi n'est pas connue : elle a son propre UUID sur ce compte |
 | `duplicate` | Même montant qu'une transaction existante à 3 jours près (date ou date réelle) : probablement la même, synchronisée avec un autre libellé |
 
 Erreurs : `400` (base64 invalide, fichier vide), `413` (fichier trop gros, plus de 5 000

@@ -290,6 +290,75 @@ class TransactionIntegrationTest extends DatabaseTestCase
         $this->assertEquals(3, Db::queryOne("SELECT COUNT(*) AS n FROM bank_transaction WHERE label = 'PRLV CAFE DU COIN'", "")['n']);
     }
 
+    /**
+     * Follow an account of the household.
+     */
+    private function follow(string $bank, string $number): array
+    {
+        Db::execute("INSERT INTO bank_account (bank_name, account_number, label, user_id) VALUES (?, ?, NULL, ?)", "ssi", $bank, $number, self::USER);
+        return ['bank_name' => $bank, 'account_number' => $number];
+    }
+
+    private function fee(): array
+    {
+        return ['type' => 2, 'raw' => 'COTISATION OFFRE ESSENTIEL', 'amount' => -2.5, 'date' => $this->day(5)];
+    }
+
+    private function fees(): array
+    {
+        return Db::select("SELECT uuid, bank_name, account_number FROM bank_transaction WHERE label = 'COTISATION OFFRE ESSENTIEL' ORDER BY account_number", "")
+            ->fetch_all(MYSQLI_ASSOC);
+    }
+
+    public function testSameTransactionOnTwoAccounts()
+    {
+        // #528: the same fee, the same day, on two accounts: one transaction on each
+        $first = $this->follow('cragr', '111');
+        $second = $this->follow('cragr', '222');
+        $this->assertCount(1, Transaction::save([$this->fee()], self::USER, false, $first));
+        $this->assertCount(1, Transaction::save([$this->fee()], self::USER, false, $second));
+        $fees = $this->fees();
+        $this->assertSame(['111', '222'], array_column($fees, 'account_number'));
+        // The first one keeps the UUID it always had, the second one gets the UUID of its account
+        $uuid = Transaction::prepareAll([$this->fee()])[0]['uuid'];
+        $this->assertSame([$uuid, md5("$uuid|cragr|222")], array_column($fees, 'uuid'));
+
+        // Next synchronizations: nothing new, on either account
+        $this->assertCount(0, Transaction::save([$this->fee()], self::USER, false, $first));
+        $this->assertCount(0, Transaction::save([$this->fee()], self::USER, false, $second));
+        $this->assertCount(2, $this->fees());
+    }
+
+    public function testNoDuplicateWhenTheAccountIsNotAnotherFollowedOne()
+    {
+        $account = $this->follow('cragr', '111');
+        Transaction::save([$this->fee()], self::USER, false, $account);
+
+        // Account edited in Administration (its transactions keep their former origin)
+        Db::execute("UPDATE bank_account SET account_number = 'FR76111' WHERE account_number = '111'");
+        $this->assertCount(0, Transaction::save([$this->fee()], self::USER, false, ['bank_name' => 'cragr', 'account_number' => 'FR76111']));
+        // An account that is not followed (a file imported without choosing its account)
+        $this->assertCount(0, Transaction::save([$this->fee()], self::USER, false, ['bank_name' => null, 'account_number' => 'FR76999']));
+        // A transaction saved without origin
+        Db::execute("UPDATE bank_transaction SET bank_name = NULL, account_number = NULL WHERE label = 'COTISATION OFFRE ESSENTIEL'");
+        $this->assertCount(0, Transaction::save([$this->fee()], self::USER, false, $this->follow('cragr', '222')));
+        $this->assertCount(1, $this->fees());
+    }
+
+    public function testTransactionOfTheSecondAccountDeletedStaysDeleted()
+    {
+        $first = $this->follow('cragr', '111');
+        $second = $this->follow('cragr', '222');
+        Transaction::save([$this->fee()], self::USER, false, $first);
+        Transaction::save([$this->fee()], self::USER, false, $second);
+        $id = (int)Db::queryOne("SELECT id FROM bank_transaction WHERE label = 'COTISATION OFFRE ESSENTIEL' AND account_number = '222'", "")['id'];
+        $this->loginAs(self::USER);
+        Transaction::delete($id);
+
+        $this->assertCount(0, Transaction::save([$this->fee()], self::USER, false, $second));
+        $this->assertSame(['111'], array_column($this->fees(), 'account_number'));
+    }
+
     public function testRecurring()
     {
         // A subscription of the 3 previous months, not in the current month yet

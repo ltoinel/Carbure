@@ -360,7 +360,7 @@ final class Transaction {
      */
     public static function save(array $data, int $userId, bool $progress = true, array $origin = []): array
     {
-        $rows = self::prepareAll($data);
+        $rows = self::resolveUuids(self::prepareAll($data), $origin);
         if ($progress) {
             foreach ($data as $index => $transaction) {
                 $rows[$index]['raw'] = self::rawLabel($transaction);
@@ -489,6 +489,80 @@ final class Transaction {
     }
 
     /**
+     * Tell apart the same transaction on two accounts of the household (#528): the UUID of
+     * prepareAll() has no account, so a transaction with the same real date, label and
+     * amount on two accounts (account fees, subscriptions...) was merged into the first
+     * account saved. A transaction received from a followed account keeps that UUID,
+     * unless a transaction already saved with it belongs to **another followed account**:
+     * it then gets md5(uuid|bank|account), stable from a synchronization to the next.
+     *
+     * Everything else keeps the UUID, so that nothing saved before is imported twice: a
+     * transaction saved on this account, without origin, or on an account no longer
+     * followed under that bank and number (an account edited in Administration: its
+     * transactions keep their former origin), one deleted by a user, and the transactions
+     * of an account that is not followed (a file imported without choosing its account).
+     *
+     * @param array<array<string, mixed>> $rows   The transactions, as returned by prepareAll()
+     * @param array<string, string|null>  $origin bank_name and account_number of the account they come from
+     * @return array<array<string, mixed>> The transactions with their UUID, with the keys of $rows
+     */
+    public static function resolveUuids(array $rows, array $origin): array
+    {
+        $accounts = self::followedAccounts();
+        $own = ($origin['bank_name'] ?? '') . '|' . ($origin['account_number'] ?? '');
+        if ($rows === [] || !isset($accounts[$own])) {
+            return $rows;
+        }
+        $others = self::savedOnOtherAccounts(array_map(fn(array $row): string => (string)$row['uuid'], $rows), $accounts, $own);
+        foreach ($rows as &$row) {
+            if (isset($others[(string)$row['uuid']])) {
+                $row['uuid'] = md5($row['uuid'] . '|' . $own);
+            }
+        }
+        unset($row);
+        return $rows;
+    }
+
+    /**
+     * The accounts followed by the household.
+     *
+     * @return array<string, true> "bank_name|account_number" => true
+     */
+    private static function followedAccounts(): array
+    {
+        $accounts = [];
+        foreach (Db::select("SELECT bank_name, account_number FROM bank_account", "")->fetch_all(MYSQLI_ASSOC) as $account) {
+            $accounts[$account['bank_name'] . '|' . ($account['account_number'] ?? '')] = true;
+        }
+        return $accounts;
+    }
+
+    /**
+     * UUIDs among the given ones of transactions saved on another followed account.
+     *
+     * @param list<string>        $uuids    The UUIDs
+     * @param array<string, true> $accounts The followed accounts (followedAccounts())
+     * @param string              $own      The account of the transactions ("bank_name|account_number")
+     * @return array<string, true>
+     */
+    private static function savedOnOtherAccounts(array $uuids, array $accounts, string $own): array
+    {
+        $others = [];
+        foreach (array_chunk(array_values(array_unique($uuids)), 500) as $chunk) {
+            $marks = implode(',', array_fill(0, count($chunk), '?'));
+            $rows = Db::select("SELECT uuid, bank_name, account_number FROM bank_transaction WHERE uuid IN ($marks) AND bank_name IS NOT NULL",
+                str_repeat('s', count($chunk)), ...$chunk)->fetch_all(MYSQLI_ASSOC);
+            foreach ($rows as $row) {
+                $account = $row['bank_name'] . '|' . ($row['account_number'] ?? '');
+                if ($account !== $own && isset($accounts[$account])) {
+                    $others[(string)$row['uuid']] = true;
+                }
+            }
+        }
+        return $others;
+    }
+
+    /**
      * Columns of a transaction as it is stored: cleaned label, date of the salaries
      * moved to the next month, UUID.
      *
@@ -551,8 +625,10 @@ final class Transaction {
      * be merged), "duplicate" (a transaction of the same amount a few days apart, most
      * likely the same one synchronized with another label) or "new".
      *
-     * @param string|null $file     The content of the file, base64 encoded
-     * @param string|null $filename The name of the file (helps to tell the format)
+     * @param string|null     $file     The content of the file, base64 encoded
+     * @param string|null     $filename The name of the file (helps to tell the format)
+     * @param int|string|null $account  Account the file would be imported on (id of GET /bank), optional:
+     *                                  a transaction of another account is then not reported as known
      * @return array<string, mixed> format, bank ({id, name} of the profile that read a CSV file,
      *               null when its columns were guessed or for another format), account, from, to,
      *               counts {new, known, duplicate} and rows
@@ -560,10 +636,10 @@ final class Transaction {
      * @throws Error If the file is not understood
      */
     #[ApiRoute('/transaction/import/preview', method: 'POST', changes: [])]
-    public static function previewImport(?string $file, ?string $filename = null): array
+    public static function previewImport(?string $file, ?string $filename = null, int|string|null $account = null): array
     {
         // No file: refused by the parser as an empty file, as before the types
-        [$parsed, $rows] = self::analyzeImport($file ?? '', $filename);
+        [$parsed, $rows] = self::analyzeImport($file ?? '', $filename, self::importOrigin($account));
         $counts = ['new' => 0, 'known' => 0, 'duplicate' => 0];
         foreach ($rows as $row) {
             $counts[$row['status']]++;
@@ -605,7 +681,7 @@ final class Transaction {
         int|string|null $account = null): array
     {
         $origin = self::importOrigin($account);
-        [$parsed, $rows, $prepared] = self::analyzeImport($file ?? '', $filename);
+        [$parsed, $rows, $prepared] = self::analyzeImport($file ?? '', $filename, $origin);
         $selected = $selected === null ? null : array_map('intval', (array)$selected);
 
         // Prepared with the whole file: a selected row keeps the UUID of its occurrence
@@ -700,15 +776,17 @@ final class Transaction {
     /**
      * Parse a statement file and compare its transactions with the database.
      *
-     * @param string      $file     The content of the file, base64 encoded
-     * @param string|null $filename The name of the file
+     * @param string                          $file     The content of the file, base64 encoded
+     * @param string|null                     $filename The name of the file
+     * @param array<string, string|null>|null $origin   Account chosen for the file (null: none), whose
+     *                                                  transactions are told apart from those of the other accounts
      * @return array{0: array{format: string, bank: array{id: string, name: string}|null, account: string|null, transactions: list<array<string, mixed>>},
      *               1: list<array<string, mixed>>, 2: array<array<string, mixed>>}
      *               [parsed file (BankFile::parse), rows with their status, transactions as
      *               prepared by prepareAll()]
      * @throws Error If the file is not understood
      */
-    private static function analyzeImport(string $file, ?string $filename): array
+    private static function analyzeImport(string $file, ?string $filename, ?array $origin = null): array
     {
         $content = base64_decode($file, true);
         if ($content === false) {
@@ -716,7 +794,7 @@ final class Transaction {
         }
         $parsed = BankFile::parse($content, $filename);
 
-        $prepared = self::prepareAll($parsed['transactions']);
+        $prepared = self::resolveUuids(self::prepareAll($parsed['transactions']), $origin ?? []);
         $rows = [];
         foreach ($prepared as $index => $row) {
             $rows[] = ['index' => $index, 'date' => $row['date'], 'rdate' => $row['rdate'], 'amount' => $row['amount'],
