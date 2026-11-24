@@ -335,12 +335,12 @@ class TransactionIntegrationTest extends DatabaseTestCase
         Transaction::save([$this->fee()], self::USER, false, $account);
 
         // Account edited in Administration (its transactions keep their former origin)
-        Db::execute("UPDATE bank_account SET account_number = 'FR76111' WHERE account_number = '111'");
+        Db::query("UPDATE bank_account SET account_number = 'FR76111' WHERE account_number = '111'");
         $this->assertCount(0, Transaction::save([$this->fee()], self::USER, false, ['bank_name' => 'cragr', 'account_number' => 'FR76111']));
         // An account that is not followed (a file imported without choosing its account)
         $this->assertCount(0, Transaction::save([$this->fee()], self::USER, false, ['bank_name' => null, 'account_number' => 'FR76999']));
         // A transaction saved without origin
-        Db::execute("UPDATE bank_transaction SET bank_name = NULL, account_number = NULL WHERE label = 'COTISATION OFFRE ESSENTIEL'");
+        Db::query("UPDATE bank_transaction SET bank_name = NULL, account_number = NULL WHERE label = 'COTISATION OFFRE ESSENTIEL'");
         $this->assertCount(0, Transaction::save([$this->fee()], self::USER, false, $this->follow('cragr', '222')));
         $this->assertCount(1, $this->fees());
     }

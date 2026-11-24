@@ -517,7 +517,7 @@ final class Transaction {
         if ($rows === [] || !isset($numbers[$own])) {
             return $rows;
         }
-        $others = self::savedOnOtherAccounts(array_map(fn(array $row): string => (string)$row['uuid'], $rows), $numbers, $own);
+        $others = self::savedOnOtherAccounts(array_values(array_map(fn(array $row): string => (string)$row['uuid'], $rows)), $numbers, $own);
         foreach ($rows as &$row) {
             if (isset($others[(string)$row['uuid']])) {
                 $row['uuid'] = md5($row['uuid'] . '|' . $own);
