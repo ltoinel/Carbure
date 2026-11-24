@@ -321,7 +321,7 @@ class TransactionIntegrationTest extends DatabaseTestCase
         $this->assertSame(['111', '222'], array_column($fees, 'account_number'));
         // The first one keeps the UUID it always had, the second one gets the UUID of its account
         $uuid = Transaction::prepareAll([$this->fee()])[0]['uuid'];
-        $this->assertSame([$uuid, md5("$uuid|cragr|222")], array_column($fees, 'uuid'));
+        $this->assertSame([$uuid, md5("$uuid|222")], array_column($fees, 'uuid'));
 
         // Next synchronizations: nothing new, on either account
         $this->assertCount(0, Transaction::save([$this->fee()], self::USER, false, $first));
@@ -343,6 +343,22 @@ class TransactionIntegrationTest extends DatabaseTestCase
         Db::execute("UPDATE bank_transaction SET bank_name = NULL, account_number = NULL WHERE label = 'COTISATION OFFRE ESSENTIEL'");
         $this->assertCount(0, Transaction::save([$this->fee()], self::USER, false, $this->follow('cragr', '222')));
         $this->assertCount(1, $this->fees());
+    }
+
+    public function testJointAccountFollowedThroughTwoBankLogins()
+    {
+        // The same account (same number) through the bank logins of two members: saved once
+        $first = $this->follow('cragr', '333');
+        $second = $this->follow('cragr2', '333');
+        $this->assertCount(1, Transaction::save([$this->fee()], self::USER, false, $first));
+        $this->assertCount(0, Transaction::save([$this->fee()], self::USER, false, $second));
+        $this->assertCount(1, $this->fees());
+
+        // With a second account having the same fee: one more, still once for the joint account
+        $this->assertCount(1, Transaction::save([$this->fee()], self::USER, false, $this->follow('cragr', '444')));
+        $this->assertCount(0, Transaction::save([$this->fee()], self::USER, false, $first));
+        $this->assertCount(0, Transaction::save([$this->fee()], self::USER, false, $second));
+        $this->assertSame(['333', '444'], array_column($this->fees(), 'account_number'));
     }
 
     public function testTransactionOfTheSecondAccountDeletedStaysDeleted()

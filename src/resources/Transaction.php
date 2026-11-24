@@ -493,14 +493,18 @@ final class Transaction {
      * prepareAll() has no account, so a transaction with the same real date, label and
      * amount on two accounts (account fees, subscriptions...) was merged into the first
      * account saved. A transaction received from a followed account keeps that UUID,
-     * unless a transaction already saved with it belongs to **another followed account**:
-     * it then gets md5(uuid|bank|account), stable from a synchronization to the next.
+     * unless a transaction already saved with it has **another account number that is
+     * followed**: it then gets md5(uuid|account number), stable from a synchronization to
+     * the next.
      *
-     * Everything else keeps the UUID, so that nothing saved before is imported twice: a
-     * transaction saved on this account, without origin, or on an account no longer
-     * followed under that bank and number (an account edited in Administration: its
-     * transactions keep their former origin), one deleted by a user, and the transactions
-     * of an account that is not followed (a file imported without choosing its account).
+     * The account number alone tells the accounts apart, not the bank: a joint account
+     * followed through the bank logins of two members of the household (two woob backends,
+     * the same number) stays one account, its transactions saved once. Everything else
+     * keeps the UUID, so that nothing saved before is imported twice: a transaction saved
+     * on this account, without origin or account number, or on an account number no longer
+     * followed (an account edited in Administration: its transactions keep their former
+     * origin), one deleted by a user, and the transactions of an account without number or
+     * not followed (a file imported without choosing its account).
      *
      * @param array<array<string, mixed>> $rows   The transactions, as returned by prepareAll()
      * @param array<string, string|null>  $origin bank_name and account_number of the account they come from
@@ -508,12 +512,12 @@ final class Transaction {
      */
     public static function resolveUuids(array $rows, array $origin): array
     {
-        $accounts = self::followedAccounts();
-        $own = ($origin['bank_name'] ?? '') . '|' . ($origin['account_number'] ?? '');
-        if ($rows === [] || !isset($accounts[$own])) {
+        $numbers = self::followedNumbers();
+        $own = (string)($origin['account_number'] ?? '');
+        if ($rows === [] || !isset($numbers[$own])) {
             return $rows;
         }
-        $others = self::savedOnOtherAccounts(array_map(fn(array $row): string => (string)$row['uuid'], $rows), $accounts, $own);
+        $others = self::savedOnOtherAccounts(array_map(fn(array $row): string => (string)$row['uuid'], $rows), $numbers, $own);
         foreach ($rows as &$row) {
             if (isset($others[(string)$row['uuid']])) {
                 $row['uuid'] = md5($row['uuid'] . '|' . $own);
@@ -524,37 +528,37 @@ final class Transaction {
     }
 
     /**
-     * The accounts followed by the household.
+     * The account numbers followed by the household (the accounts without number are left out).
      *
-     * @return array<string, true> "bank_name|account_number" => true
+     * @return array<string, true> account_number => true
      */
-    private static function followedAccounts(): array
+    private static function followedNumbers(): array
     {
-        $accounts = [];
-        foreach (Db::select("SELECT bank_name, account_number FROM bank_account", "")->fetch_all(MYSQLI_ASSOC) as $account) {
-            $accounts[$account['bank_name'] . '|' . ($account['account_number'] ?? '')] = true;
+        $numbers = [];
+        foreach (Db::select("SELECT DISTINCT account_number FROM bank_account WHERE account_number <> ''", "")->fetch_all(MYSQLI_ASSOC) as $account) {
+            $numbers[(string)$account['account_number']] = true;
         }
-        return $accounts;
+        return $numbers;
     }
 
     /**
-     * UUIDs among the given ones of transactions saved on another followed account.
+     * UUIDs among the given ones of transactions saved with another followed account number.
      *
-     * @param list<string>        $uuids    The UUIDs
-     * @param array<string, true> $accounts The followed accounts (followedAccounts())
-     * @param string              $own      The account of the transactions ("bank_name|account_number")
+     * @param list<string>        $uuids   The UUIDs
+     * @param array<string, true> $numbers The followed account numbers (followedNumbers())
+     * @param string              $own     The account number of the transactions
      * @return array<string, true>
      */
-    private static function savedOnOtherAccounts(array $uuids, array $accounts, string $own): array
+    private static function savedOnOtherAccounts(array $uuids, array $numbers, string $own): array
     {
         $others = [];
         foreach (array_chunk(array_values(array_unique($uuids)), 500) as $chunk) {
             $marks = implode(',', array_fill(0, count($chunk), '?'));
-            $rows = Db::select("SELECT uuid, bank_name, account_number FROM bank_transaction WHERE uuid IN ($marks) AND bank_name IS NOT NULL",
+            $rows = Db::select("SELECT uuid, account_number FROM bank_transaction WHERE uuid IN ($marks) AND account_number <> ''",
                 str_repeat('s', count($chunk)), ...$chunk)->fetch_all(MYSQLI_ASSOC);
             foreach ($rows as $row) {
-                $account = $row['bank_name'] . '|' . ($row['account_number'] ?? '');
-                if ($account !== $own && isset($accounts[$account])) {
+                $number = (string)$row['account_number'];
+                if ($number !== $own && isset($numbers[$number])) {
                     $others[(string)$row['uuid']] = true;
                 }
             }
