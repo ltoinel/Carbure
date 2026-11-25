@@ -687,7 +687,7 @@ existante).
 | Statut | Signification |
 |---|---|
 | `new` | Nouvelle transaction |
-| `known` | Même UUID qu'une transaction existante : elle serait fusionnée. Des lignes identiques du fichier sont autant de transactions (chacune son UUID). Avec `account`, une transaction identique enregistrée sur un autre compte suivi n'est pas connue : elle a son propre UUID sur ce compte |
+| `known` | Même UUID qu'une transaction existante : elle serait fusionnée. Des lignes identiques du fichier sont autant de transactions (chacune son UUID). Une transaction identique enregistrée sur un **autre compte suivi** que celui du fichier (`account`, sinon le numéro lu dans le fichier) n'est pas connue : c'est une transaction de chaque compte |
 | `duplicate` | Même montant qu'une transaction existante à 3 jours près (date ou date réelle) : probablement la même, synchronisée avec un autre libellé |
 
 Erreurs : `400` (base64 invalide, fichier vide), `413` (fichier trop gros, plus de 5 000
@@ -818,8 +818,8 @@ et `category_source`, l'origine de leur catégorie : `rule` (une règle), `manua
 
 ### `DELETE /transaction`
 
-`id` : supprime la transaction (`404` si elle n'existe pas). Son `uuid` est mémorisé
-(table `bank_transaction_deleted`) : la synchronisation de son compte et l'import d'un
+`id` : supprime la transaction (`404` si elle n'existe pas). Son `uuid` est mémorisé avec
+son compte (table `bank_transaction_deleted`) : la synchronisation de son compte et l'import d'un
 relevé l'ignorent, elle ne revient pas (dans l'aperçu d'un import, la ligne est `known`
 avec `deleted: true`). Une transaction répartie est supprimée avec ses parts ; une part
 supprimée rend son montant à sa transaction.

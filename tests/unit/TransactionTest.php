@@ -236,4 +236,20 @@ class TransactionTest extends TestCase
         $this->assertFalse(Transaction::enteredByHand(['split_of' => 4, 'bank_name' => 'bnp', 'uuid' => $hand]));
         $this->assertFalse(Transaction::enteredByHand(['split_of' => 4, 'bank_name' => 'manual', 'uuid' => md5('a')]));
     }
+
+    public function testSameAccount()
+    {
+        $followed = ['111' => true, '222' => true];
+        // #528: two followed accounts are told apart, by their number
+        $this->assertTrue(Transaction::sameAccount('111', '111', $followed));
+        $this->assertFalse(Transaction::sameAccount('111', '222', $followed));
+        // Saved without account, or on a number not followed (a file, an account edited): the same
+        $this->assertTrue(Transaction::sameAccount('', '222', $followed));
+        $this->assertTrue(Transaction::sameAccount('FR76111', '222', $followed));
+        // Received without account or from one not followed (a file imported as it is): the same
+        $this->assertTrue(Transaction::sameAccount('111', '', $followed));
+        $this->assertTrue(Transaction::sameAccount('111', 'FR76222', $followed));
+        // Before the migration (no account followed known): the UUID alone
+        $this->assertTrue(Transaction::sameAccount('111', '222', []));
+    }
 }

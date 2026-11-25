@@ -127,7 +127,7 @@ erDiagram
     }
     bank_transaction {
         bigint id PK
-        varchar uuid UK "md5(rdate, libellé, montant)"
+        varchar uuid UK "md5(rdate, libellé, montant), unique par compte"
         timestamp imported
         date date "indexée"
         date rdate "date réelle"
@@ -145,6 +145,7 @@ erDiagram
     }
     bank_transaction_deleted {
         varchar uuid PK "ignorée à la synchronisation"
+        varchar account_number PK "compte, vide = tous"
         timestamp deleted_at
         int user_id FK
     }
@@ -213,11 +214,11 @@ erDiagram
 | `oauth_codes` | Codes d'autorisation OAuth en attente (empreinte SHA-256, défi PKCE `S256`, 5 minutes, usage unique) ; supprimés avec leur client ou leur utilisateur. |
 | `bank_backend` | Nom donné à une connexion bancaire (backend woob, ex. `bnp_2` → « Compte joint »), affiché à la place du nom de la banque ; sans ligne, le nom de la banque est affiché. Les identifiants restent chez woob. |
 | `bank_account` | Comptes bancaires suivis par le foyer : `account_number@bank_name` forme le `bankId` passé à woob ; `label` est le nom donné au compte (« Compte joint », `NULL` = « BANQUE ···1234 »). `user_id` est l'utilisateur qui a ajouté le compte (« Ajouté par ») ; `last_sync_at`, `last_sync_status`, `last_sync_message` décrivent la dernière synchronisation. Unicité `(account_number, bank_name, user_id)` ; l'API refuse en plus un compte déjà suivi par le foyer. Un compte **manuel** (espèces, banque que woob ne gère pas) a le `bank_name` réservé `manual` : jamais synchronisé, ses transactions sont saisies à la main. |
-| `bank_transaction` | Transactions. `uuid` unique sert au dédoublonnage ; `bank_name` et `account_number` indiquent le compte synchronisé d'origine (ou le compte lu dans un relevé importé, `bank_name` `NULL`), `NULL` pour les transactions enregistrées avant leur ajout ; `user` = premier utilisateur ayant ajouté le compte (`MIN(user_id)`), sans effet sur la visibilité ; suppression de l'utilisateur interdite tant qu'il a des transactions (`ON DELETE RESTRICT`) ; index `transaction_date` sur `date`. `split_of` = id de la transaction dont une **part** a été détachée (répartition sur plusieurs catégories ; la transaction garde le reste, supprimée avec ses parts) ; saisie à la main = `uuid` commençant par `manual` (jamais celui d'une banque, un md5 en
+| `bank_transaction` | Transactions. `uuid`, unique **par compte** (clé `unique_uuid_account` sur `uuid` et `account_number`), sert au dédoublonnage : la même transaction sur deux comptes suivis est une transaction de chacun ; `bank_name` et `account_number` indiquent le compte synchronisé d'origine (ou le compte lu dans un relevé importé, `bank_name` `NULL`), `NULL` pour les transactions enregistrées avant leur ajout ; `user` = premier utilisateur ayant ajouté le compte (`MIN(user_id)`), sans effet sur la visibilité ; suppression de l'utilisateur interdite tant qu'il a des transactions (`ON DELETE RESTRICT`) ; index `transaction_date` sur `date`. `split_of` = id de la transaction dont une **part** a été détachée (répartition sur plusieurs catégories ; la transaction garde le reste, supprimée avec ses parts) ; saisie à la main = `uuid` commençant par `manual` (jamais celui d'une banque, un md5 en
 hexadécimal), ou `bank_name` `manual` (compte manuel, saisies antérieures). `category_source` = origine de la catégorie : `rule` (une règle), `manual` (choisie à la main, jamais écrasée par les règles), `NULL` (inconnue, catégorie posée avant son ajout). `comment` = commentaire libre du foyer (500 caractères, `NULL` sans commentaire), jamais écrit par la synchronisation ni l'import. |
 | `tag` | Tags d'un projet limités dans le temps (`name` unique sans le `#`, `color`, `start_date`, `end_date` `NULL` = en cours), indépendants des catégories. |
 | `transaction_tag` | Tags des transactions (`transaction_id`, `tag_id`) ; supprimés avec la transaction ou le tag. |
-| `bank_transaction_deleted` | Transactions supprimées par un utilisateur (`uuid`, `deleted_at`, `user_id` mis à `NULL` si l'utilisateur est supprimé) : la synchronisation et l'import d'un relevé ignorent ces UUID, une transaction supprimée ne revient pas. |
+| `bank_transaction_deleted` | Transactions supprimées par un utilisateur (`uuid`, `account_number`, `deleted_at`, `user_id` mis à `NULL` si l'utilisateur est supprimé) : la synchronisation et l'import d'un relevé ignorent ces UUID sur ce compte, une transaction supprimée ne revient pas. `account_number` vide (suppression antérieure à la migration `2026-11-25_transaction_account`, ou transaction sans compte) : ignorée sur tous les comptes. |
 | `bank_transaction_category` | Catégories hiérarchiques (`parent_category`, `0` = racine). La catégorie `0` « Non catégorisé » (`HORS-BUDGET`) est créée par l'installation et protégée. |
 | `bank_transaction_category_keyword` | Règles : mots-clés (en majuscules) recherchés dans les libellés pour catégoriser automatiquement ; `notify` = chaque nouvelle transaction qui correspond est signalée au foyer. |
 | `budget` | Budget d'une catégorie pour un mois (unique par catégorie et date), en `DECIMAL(10,2)`, avec une note facultative (`note`, 200 caractères). |
@@ -256,6 +257,7 @@ main, ou par `sql/carbure.sql`). Voir [Développement](developpement.md#migratio
 | `2026-11-03_insight_alert` | Alertes des utilisateurs sur les insights (table `insight_alert`) |
 | `2026-11-04_insight_largest_expense` | L'insight de départ « Plus grosse dépense » compte une transaction répartie une fois, avec le montant de la banque (seulement si sa requête n'a pas été modifiée) |
 | `2026-11-19_transaction_comment` | Commentaire libre d'une transaction (`bank_transaction.comment`, `NULL` pour les transactions existantes) |
+| `2026-11-25_transaction_account` | UUID d'une transaction unique par compte et non plus pour le foyer (clé `unique_uuid_account` de `bank_transaction`) ; compte des transactions supprimées (`bank_transaction_deleted.account_number`). Aucun UUID n'est modifié |
 
 ## Modèle « foyer »
 

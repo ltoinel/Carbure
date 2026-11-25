@@ -82,7 +82,7 @@ CREATE TABLE `bank_transaction` (
   `pointed` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Pointed status for thjs transaction',
   `user` int(10) unsigned NOT NULL COMMENT 'The user of this transaction',
   PRIMARY KEY (`id`),
-  UNIQUE KEY `unique_uuid` (`uuid`),
+  UNIQUE KEY `unique_uuid_account` (`uuid`,`account_number`),
   KEY `transaction_category` (`category`),
   KEY `transaction_user` (`user`),
   KEY `transaction_date` (`date`),
@@ -118,13 +118,15 @@ CREATE TABLE `transaction_tag` (
 
 -- --------------------------------------------------------
 -- Table `bank_transaction_deleted`: transactions deleted by a user, skipped by the
--- synchronization and the import of a file (same UUID)
+-- synchronization and the import of a file (same UUID on the same account; an empty
+-- account_number, deleted before the accounts were told apart: on every account)
 
 CREATE TABLE `bank_transaction_deleted` (
   `uuid` varchar(32) NOT NULL COMMENT 'UUID of the deleted transaction',
+  `account_number` varchar(100) NOT NULL DEFAULT '' COMMENT 'Account number of the deleted transaction (empty: unknown, every account)',
   `deleted_at` timestamp NOT NULL DEFAULT current_timestamp() COMMENT 'Date of the deletion',
   `user_id` int(10) unsigned DEFAULT NULL COMMENT 'User who deleted it',
-  PRIMARY KEY (`uuid`),
+  PRIMARY KEY (`uuid`,`account_number`),
   KEY `fk_transaction_deleted_user` (`user_id`),
   CONSTRAINT `fk_transaction_deleted_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -432,7 +434,8 @@ INSERT IGNORE INTO `schema_migrations` (`version`) VALUES
 ('2026-11-05_rule_amount'),
 ('2026-11-06_budget_note'),
 ('2026-11-07_insight_position'),
-('2026-11-19_transaction_comment');
+('2026-11-19_transaction_comment'),
+('2026-11-25_transaction_account');
 
 SET FOREIGN_KEY_CHECKS = 1;
 COMMIT;

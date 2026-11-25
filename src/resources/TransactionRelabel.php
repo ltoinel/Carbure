@@ -43,8 +43,9 @@ final class TransactionRelabel {
      *
      * @param list<array<string, mixed>> $rows     The transactions received {uuid, rdate, amount, type}
      * @param list<array<string, mixed>> $existing The transactions of the account over the same days {id, uuid, rdate, amount, type}
-     * @param list<string>               $taken    UUIDs received already used by another transaction (another
-     *                                             account, an imported file): never given again (the UUID is unique)
+     * @param list<string>               $taken    UUIDs received already used by another transaction of the
+     *                                             account (an imported file, a transaction saved without its bank):
+     *                                             never given again (the UUID is unique on an account)
      * @return array<string, int> The UUIDs received relabeling a saved transaction => its id
      */
     public static function plan(array $rows, array $existing, array $taken = []): array
@@ -101,7 +102,7 @@ final class TransactionRelabel {
 
         $byUuid = array_column($rows, null, 'uuid');
         $done = [];
-        foreach (self::plan($rows, $existing, self::taken(array_keys($byUuid))) as $uuid => $id) {
+        foreach (self::plan($rows, $existing, array_map('strval', array_keys(Transaction::known(array_keys($byUuid), $origin)))) as $uuid => $id) {
             $row = $byUuid[$uuid];
             Db::execute("UPDATE bank_transaction SET label = ?, uuid = ?, card = ? WHERE id = ?", "sssi",
                 $row['label'], $uuid, $row['card'] ?? '', $id);
@@ -113,22 +114,5 @@ final class TransactionRelabel {
             Logger::info(count($done) . " transaction(s) of " . $origin['bank_name'] . " relabeled (woob_relabel)");
         }
         return $done;
-    }
-
-    /**
-     * UUIDs received that a transaction already has, wherever it is (another account, a file).
-     *
-     * @param list<int|string> $uuids The UUIDs received
-     * @return list<string> Those already used
-     */
-    private static function taken(array $uuids): array
-    {
-        $taken = [];
-        foreach (array_chunk(array_map('strval', $uuids), 500) as $chunk) {
-            $marks = implode(',', array_fill(0, count($chunk), '?'));
-            $rows = Db::select("SELECT uuid FROM bank_transaction WHERE uuid IN ($marks)", str_repeat('s', count($chunk)), ...$chunk);
-            array_push($taken, ...array_map('strval', array_column($rows->fetch_all(MYSQLI_ASSOC), 'uuid')));
-        }
-        return $taken;
     }
 }

@@ -175,7 +175,8 @@ final class Backup {
     {
         $dataset = BackupData::DATASETS[$name];
         $columns = implode(', ', array_map(fn(string $column): string => "`$column`", self::columns($name)));
-        $order = implode(', ', array_map(fn(string $key): string => "`$key`", explode(',', $dataset['key'])));
+        // Without the columns of a pending migration (account_number of the deleted transactions)
+        $order = implode(', ', array_map(fn(string $key): string => "`$key`", array_intersect(explode(',', $dataset['key']), self::columns($name))));
         $result = Db::select("SELECT $columns FROM `{$dataset['table']}` ORDER BY $order", "");
 
         $userColumns = BackupData::userColumns($name);
@@ -195,8 +196,9 @@ final class Backup {
      * shown), category_source of the transactions (2026-11-02_category_source: exported
      * as null, not imported), amount of the rules (2026-11-05_rule_amount: exported as
      * null, not imported), note of the budgets (2026-11-06_budget_note: exported as null, not
-     * imported) and comment of the transactions (2026-11-19_transaction_comment: exported as
-     * null, not imported).
+     * imported), comment of the transactions (2026-11-19_transaction_comment: exported as
+     * null, not imported) and account_number of the deleted transactions
+     * (2026-11-25_transaction_account: exported as null, not imported).
      *
      * @param string $name The dataset
      * @return list<string> The columns
@@ -208,6 +210,7 @@ final class Backup {
         $migrated = match ($name) {
             'insights' => ['enabled' => Insight::ready(...), 'position' => Insight::positionReady(...)],
             'transactions' => ['category_source' => Transaction::categorySourceReady(...), 'comment' => Transaction::commentReady(...)],
+            'deleted_transactions' => ['account_number' => Transaction::accountReady(...)],
             'rules' => ['amount' => Category::amountReady(...)],
             'budgets' => ['note' => Budget::noteReady(...)],
             default => [],

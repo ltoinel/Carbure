@@ -86,8 +86,8 @@ class BackupTest extends DatabaseTestCase
         $this->assertSame($before, $this->export()['datasets']);
         $this->assertSame([['user_id' => 'admin', 'insight_id' => 1, 'direction' => 'above', 'threshold' => 500.0, 'notified_month' => '2026-10-01'],
             ['user_id' => 'user', 'insight_id' => 1, 'direction' => 'below', 'threshold' => 12.5, 'notified_month' => null]], $before['insight_alerts']);
-        $this->assertSame([['uuid' => 'd1', 'deleted_at' => '2026-01-02 03:04:05', 'user_id' => 'user'],
-            ['uuid' => 'd2', 'deleted_at' => '2026-01-03 00:00:00', 'user_id' => null]], $before['deleted_transactions']);
+        $this->assertSame([['uuid' => 'd1', 'deleted_at' => '2026-01-02 03:04:05', 'user_id' => 'user', 'account_number' => ''],
+            ['uuid' => 'd2', 'deleted_at' => '2026-01-03 00:00:00', 'user_id' => null, 'account_number' => '']], $before['deleted_transactions']);
 
         // Imported again: the same data (idempotent)
         Backup::import($before);

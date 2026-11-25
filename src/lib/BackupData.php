@@ -45,7 +45,7 @@ final class BackupData {
      * before it): table, primary key (its columns separated by commas), and type of each column.
      *
      * Types: int:<max>, string:<max length> (may be empty), name:<max length> (not
-     * empty), enum:<a|b>, decimal (10,2; decimal:<n> = n digits before the point), date (Y-m-d), datetime (Y-m-d H:i:s), bool (bool:<0|1> = its value when missing),
+     * empty), account:<max length> (an account number, empty when missing), enum:<a|b>, decimal (10,2; decimal:<n> = n digits before the point), date (Y-m-d), datetime (Y-m-d H:i:s), bool (bool:<0|1> = its value when missing),
      * user (username; none or unknown here: the administrator who imports, kept none with
      * ?user); a leading ? accepts null. drop_unknown_users: the rows of a user unknown
      * here are not imported (instead of going to the administrator who imports).
@@ -106,8 +106,10 @@ final class BackupData {
         ],
         'deleted_transactions' => [
             'table' => 'bank_transaction_deleted',
-            'key' => 'uuid',
-            'columns' => ['uuid' => 'name:32', 'deleted_at' => 'datetime', 'user_id' => '?user'],
+            'key' => 'uuid,account_number',
+            'columns' => ['uuid' => 'name:32', 'deleted_at' => 'datetime', 'user_id' => '?user',
+                // Added with the migration 2026-11-25_transaction_account: deleted on every account in an older backup
+                'account_number' => 'account:100'],
         ],
         'tags' => [
             'table' => 'tag',
@@ -314,6 +316,8 @@ final class BackupData {
             // int:<max>[:<default>] = the default is the value of a column missing from an older backup
             'int' => fn(mixed $value, string $argument): int => self::integerOrDefault($value, $argument),
             'string' => fn(mixed $value, string $max): string => self::text($value, (int)$max, 0),
+            // account:<max> = an account number, none ("") when the column is missing from an older backup
+            'account' => fn(mixed $value, string $max): string => self::text($value ?? '', (int)$max, 0),
             'name' => fn(mixed $value, string $max): string => self::text($value, (int)$max, 1),
             'enum' => fn(mixed $value, string $choices): string => self::choice($value, explode('|', $choices)),
             'decimal' => fn(mixed $value, string $digits): string => self::decimal($value, $digits === '' ? 8 : (int)$digits),
