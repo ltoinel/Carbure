@@ -37,6 +37,8 @@ import { createConfigModule } from './modules/configModule.js';
 import { createConfirmModule } from './modules/confirmModule.js';
 import { createNotificationsModule } from './modules/notificationsModule.js';
 import { createMfaModule } from './modules/mfaModule.js';
+import { createPasskeyModule } from './modules/passkeyModule.js';
+import { createOidcLoginModule } from './modules/oidcLoginModule.js';
 import { createBackupModule } from './modules/backupModule.js';
 import { createPurgeModule } from './modules/purgeModule.js';
 import { createChangesModule } from './modules/changesModule.js';
@@ -124,6 +126,8 @@ const app = createApp({
         createConfirmModule(),
         createNotificationsModule(() => apiService),
         createMfaModule(() => apiService),
+        createPasskeyModule(() => apiService),
+        createOidcLoginModule(() => apiService),
         createBackupModule(() => apiService),
         createPurgeModule(() => apiService),
         createChangesModule(() => apiService)
@@ -148,6 +152,9 @@ const app = createApp({
             demoAccount: serverDemo() ? DEMO_ACCOUNT : null,
             // Currency of the amounts of the instance (GET /api/health: setting currency)
             currency: serverCurrency(),
+            // Ways to log in next to the password offered by the instance (GET /api/health:
+            // login_methods), each shown as a button under the login form
+            loginMethods: serverLoginMethods(),
             // Money flow of the selected month (Budget tab)
             budgetFlow: null,
             // Node of the flow diagram whose transactions are shown, and these transactions
@@ -195,6 +202,15 @@ const app = createApp({
          */
         intlLocale() {
             return intlLocale(this.locale);
+        },
+
+        /**
+         * Ways to log in next to the password shown under the login form: the ones of
+         * the instance that this browser can use
+         * @returns {string[]}
+         */
+        loginAlternatives() {
+            return this.loginMethods.filter(method => method !== 'passkey' || this.passkeySupported);
         },
 
         /**
@@ -740,19 +756,20 @@ const app = createApp({
         },
 
         /**
-         * Opens the session of the user of the login form with his JWT
+         * Opens the session of a user with his JWT
          * @param {string} token - JWT
+         * @param {string} [username] - His username (the one of the login form by default)
          * @returns {Promise<void>}
          */
-        async openSession(token) {
+        async openSession(token, username = this.loginForm.username) {
             // Store authentication data
             this.authToken = token;
             this.isAuthenticated = true;
 
             // Save to localStorage
             localStorage.setItem('authToken', token);
-            localStorage.setItem('username', this.loginForm.username);
-            this.username = this.loginForm.username;
+            localStorage.setItem('username', username);
+            this.username = username;
 
             // Clear password
             this.loginForm.password = '';

@@ -81,10 +81,77 @@ enable it for themselves only from **My profile**.
   OAuth tokens (authorizing an agent goes through signing in to the portal, hence through
   the second factor), and the scheduler's `sync_token`.
 
+### Passkey sign-in (WebAuthn) { #connexion-par-cle-dacces-passkey-webauthn }
+
+Besides the password (and two-factor authentication), the portal offers signing in
+with a **passkey**: a biometric or device code check (Face ID, Touch ID, Windows
+Hello, USB security key) verified by the browser, with no dependency (WebAuthn
+implemented in PHP: `Carbure\Lib\WebAuthn`, `Cbor`, `CoseKey`). Because **user
+verification is required**, a passkey sign-in also stands for the second factor:
+two-factor authentication is never asked again.
+
+- **Discoverable credential**: the browser offers the passkeys already registered
+  without the user typing a username.
+- **Attestation `none`** (not verified: Carbure does not restrict which authenticator
+  models are accepted); algorithms **ES256** and **RS256** (`openssl_verify`).
+- **Signed challenges**, never stored in the database (`Carbure\Lib\SignedToken`,
+  5 minutes, two distinct purposes: `passkey-register` and `passkey-login`, a token of
+  one is never accepted for the other): single use, the SHA-256 hash of the challenge
+  is inserted into `passkey_used_challenge` **only once the assertion or attestation is
+  accepted** (never before) — a failing anonymous request writes nothing to the
+  database, and replaying the same challenge answers `403`.
+- **Origin and RP ID (`rpId`)** strictly compared to `public_url` (or the host of the
+  request without it): changing the domain of the instance invalidates every passkey
+  already registered (see [Configuration](configuration.en.md)).
+- **Sign counter**: a key already used whose counter is positive and does not increase
+  is refused (cloning); synced keys (iCloud, Google) stay at 0 and are never blocked by
+  this rule.
+- Adding a passkey (**My profile → Passkeys**) does not ask for the password again (the
+  session is enough); deleting one answers `404` for another user's passkey. An
+  administrator **reset of two-factor authentication** (`POST /user/mfa/reset`) also
+  removes the user's passkeys.
+- As long as the `2026-11-25_user_passkey` migration is not applied, the passkey routes
+  answer `409` and `login_methods` does not offer `passkey`.
+
+### Single sign-on (OIDC) { #connexion-unique-oidc }
+
+Besides the password, two-factor authentication and passkeys, the portal offers signing
+in through an **OpenID Connect** provider (Authelia, Keycloak, any provider with a
+discovery document), once the 3 settings of the `[auth]` section are filled in (see
+[Configuration](configuration.en.md#connexion-unique-oidc)): authorization flow **with
+PKCE (S256)** and the client secret sent at the token endpoint (`client_secret_basic`),
+implemented with no dependency (`Carbure\Lib\Oidc`, `Carbure\Resources\Oidc`).
+
+- **State and ticket**, two signed tokens (`Carbure\Lib\SignedToken`), never stored in
+  the database, carried by cookies: the **state** of the authorization request (state,
+  nonce, PKCE verifier), `SameSite=Lax` (the return from the provider is a cross-site
+  navigation), valid for **10 minutes**; then, once the provider answers, a **ticket**
+  `SameSite=Strict`, valid for **60 seconds**, that the portal exchanges for the session
+  with a plain `POST` (no secret in the URL the browser was redirected to).
+- **Claims checked** in the `id_token`: `iss` equal to the configured issuer, `aud`
+  contains the client id (string or array; with several audiences, `azp` must be the
+  client id), `exp` in the future, `nonce` equal to the one of the authorization request.
+- **Signature not verified**: the `id_token` is received straight from the provider's
+  token endpoint over TLS (OIDC Core §3.1.3.7 allows it); curl always verifies the
+  server's certificate (never disabled).
+- **Account mapping**: the claim chosen by `oidc_username_claim` (`preferred_username` or
+  `email`) must match an already created Carbure user; single sign-on never creates an
+  account, an unknown or locked account is refused.
+- **Never a second factor**: a successful single sign-on stands for the second factor,
+  even with `mfa_required` (the provider carries its own second factor).
+- **Logout stays local**: `POST /user/logout` only closes the Carbure session, with no
+  logout on the provider side (no *RP-initiated logout*); no setting hides the password
+  form.
+- Every failure redirects to the portal with `?oidc=error&reason=<denied|unknown_user|
+  locked|failed>` (closed list); the real cause (refused by the provider, claim with no
+  matching user, locked account, technical failure) is logged, never the code, the
+  tokens nor the client secret.
+
 ### Login rate limit { #limitation-des-connexions }
 
 The Docker image limits in nginx the sign-in routes (`POST /api/user/login`,
-`/api/user/login/mfa`, `/api/oauth/token`) to **30 requests per minute per client
+`/api/user/login/mfa`, `/api/user/login/passkey`, `/api/user/login/passkey/options`,
+`/api/oauth/token`) to **30 requests per minute per client
 address**, with a burst of 10 (a password then the code of the second factor, a
 typo…): beyond that, nginx answers `429` (`{"error": …, "code": 429}`,
 `Retry-After: 60`) without calling PHP, and the portal shows "Too many login attempts
@@ -256,6 +323,11 @@ Only these routes do not require a JWT (a unit test checks it):
 - `POST /user/login`, and `POST /user/login/mfa`, the second step of sign-in, which
   requires the 5-minute challenge given by the first one (password verified) and the
   app's code;
+- `POST /user/login/passkey/options` and `POST /user/login/passkey` (passkey sign-in,
+  see [above](#connexion-par-cle-dacces-passkey-webauthn));
+- `GET /user/login/oidc`, `GET /user/login/oidc/callback` and `POST /user/login/oidc`
+  (OIDC single sign-on, 404 as long as it is not configured, see
+  [above](#connexion-unique-oidc));
 - `GET /bank/sync`, which requires **either** a JWT **or** the configuration's
   `sync_token` (`X-Sync-Token` header; `?token=` is still accepted but deprecated, see
   [API](api.md#bank-sync)). Without a configured
@@ -271,9 +343,9 @@ Only these routes do not require a JWT (a unit test checks it):
 - Logs mask the `password` and `token` fields of requests, the OAuth secrets
   (`code`, `code_verifier`, `refresh_token`, `access_token`, `client_secret`), and the
   `token=` parameter of URLs (synchronization, MCP), as well as the challenge, the secret, the
-  `otpauth` URI and the backup codes of two-factor authentication (requests and responses
-  logged at `debug` level). The body of responses from the MCP server and OAuth is
-  not logged.
+  `otpauth` URI and the backup codes of two-factor authentication, and a passkey's
+  `credential` and `challenge_token` (requests and responses logged at `debug` level).
+  The body of responses from the MCP server and OAuth is not logged.
 - The nginx access log (Docker image, `docker logs`) also replaces with `***` the
   `token=`, `access_token=` and `code=` parameters of URLs (`carbure` format of
   `docker/nginx.conf`): the token of a scheduled task not yet migrated to the header
