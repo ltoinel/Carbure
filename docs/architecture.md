@@ -118,6 +118,14 @@ sequenceDiagram
   libellé et montant : deux cafés le même jour) sont distinguées par leur rang : la
   première garde cet UUID, les suivantes ont `md5(uuid + "#n")`
   (`Transaction::prepareAll()`).
+- L'UUID est **unique par compte** (`account_number`), pas pour le foyer : la même
+  transaction sur deux comptes suivis (frais de tenue de compte, abonnement prélevé le
+  même jour) est une transaction de chacun. Seul le numéro distingue les comptes, pas la
+  banque : un compte joint suivi par les identifiants de deux membres du foyer reste un
+  seul compte. Une transaction enregistrée sans compte, ou sur un numéro qui n'est pas
+  suivi (relevé importé sans choisir son compte, ancien numéro d'un compte modifié), est
+  reconnue quel que soit le compte : rien n'est importé deux fois
+  (`Transaction::sameAccount()`).
 - Les virements reçus (type 1, le salaire) datés à partir du jour `next_month_day` (25 par
   défaut, 0 : jamais) sont rattachés au 1er du mois suivant (`date`) ; `rdate` garde la date
   réelle, et donc l'UUID.
@@ -128,8 +136,8 @@ sequenceDiagram
   choisis par le destinataire pour ce type (`sync`, `rule`, `expense`, `budget`) : push
   (`Apns`) et/ou email (`Mailer`, si un serveur SMTP est configuré). L'échec d'un canal
   n'empêche ni l'autre ni la synchronisation.
-- Une transaction est **nouvelle** quand son UUID n'existait pas (l'`INSERT` crée une
-  ligne). Seules les nouvelles dépenses déclenchent l'alerte de seuil : une
+- Une transaction est **nouvelle** quand son UUID n'existait pas sur son compte (l'`INSERT`
+  crée une ligne). Seules les nouvelles dépenses déclenchent l'alerte de seuil : une
   resynchronisation ou le passage d'une opération « en cours » à « débitée » ne
   ré-alerte pas.
 

@@ -664,6 +664,7 @@ Reads a bank statement without saving anything.
 |---|---|---|
 | `file` | yes | File content encoded in base64 (1 MB at most before encoding); never written to the logs |
 | `filename` | no | File name (its extension helps detect the format) |
+| `account` | no | `id` of an account of `GET /bank`: the account the file would be imported on, so that an identical transaction of another followed account is not reported as known |
 
 Formats: OFX/QFX (1.x SGML and 2.x XML), QIF, CAMT.053 (ISO 20022) and CSV: read with the
 **profile of its bank** when its header is that of a known export (see
@@ -683,7 +684,7 @@ transaction).
 | Status | Meaning |
 |---|---|
 | `new` | New transaction |
-| `known` | Same UUID as an existing transaction: it would be merged. Identical lines in the file are as many transactions (each with its own UUID) |
+| `known` | Same UUID as an existing transaction: it would be merged. Identical lines in the file are as many transactions (each with its own UUID). An identical transaction saved on **another followed account** than the one of the file (`account`, else the number read in the file) is not known: it is a transaction of each account |
 | `duplicate` | Same amount as an existing transaction within 3 days (date or actual date): probably the same one, synchronized with another label |
 
 Errors: `400` (invalid base64, empty file), `413` (file too large, more than 5,000
@@ -813,8 +814,8 @@ category set before the migration `2026-11-02_category_source`, or none).
 
 ### `DELETE /transaction` { #delete-transaction }
 
-`id`: deletes the transaction (`404` if it does not exist). Its `uuid` is remembered
-(`bank_transaction_deleted` table): the synchronization of its account and the import of a
+`id`: deletes the transaction (`404` if it does not exist). Its `uuid` is remembered with
+its account (`bank_transaction_deleted` table): the synchronization of its account and the import of a
 statement ignore it, it does not come back (in an import preview, the line is `known`
 with `deleted: true`). A split transaction is deleted with its parts; a deleted part gives
 its amount back to its transaction.

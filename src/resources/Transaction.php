@@ -72,6 +72,9 @@ final class Transaction {
     /** Whether the migration 2026-11-19_transaction_comment is applied (read once per request) */
     private static ?bool $commentReady = null;
 
+    /** @var bool|null Whether a transaction is unique on its account (migration 2026-11-25_transaction_account), checked once */
+    private static ?bool $accountReady = null;
+
     /** SQL amount of the transaction t as the bank gave it: its own one plus the one of its parts */
     const BANK_AMOUNT = "(t.amount + COALESCE((SELECT SUM(p.amount) FROM bank_transaction p WHERE p.split_of = t.id), 0))";
     
@@ -98,6 +101,19 @@ final class Transaction {
     {
         return self::$commentReady ??= Db::queryOne("SELECT 1 FROM information_schema.COLUMNS
             WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'bank_transaction' AND COLUMN_NAME = 'comment'", "") !== null;
+    }
+
+    /**
+     * Check if a transaction is unique on its account: the migration
+     * 2026-11-25_transaction_account is applied (before it, the UUID is unique for the
+     * whole household and the same transaction on two accounts is saved once, #528).
+     *
+     * @return bool
+     */
+    public static function accountReady(): bool
+    {
+        return self::$accountReady ??= Db::queryOne("SELECT 1 FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'bank_transaction_deleted' AND COLUMN_NAME = 'account_number'", "") !== null;
     }
 
     /**
@@ -355,8 +371,9 @@ final class Transaction {
      * @param array<string, string|null>  $origin   Account the transactions come from: bank_name (woob
      *                                              backend of a synchronized account), account_number
      *                                              (synchronized or imported)
-     * @return list<array{label: string, amount: float, uuid: string}> The transactions that were not
-     *              known yet (label cleaned, amount, uuid)
+     * @return list<array{id: int, label: string, amount: float, uuid: string, date: string|null}> The
+     *              transactions that were not known yet on this account (id, label cleaned, amount,
+     *              uuid, real date)
      */
     public static function save(array $data, int $userId, bool $progress = true, array $origin = []): array
     {
@@ -377,30 +394,38 @@ final class Transaction {
     }
 
     /**
-     * Save prepared transactions (duplicates are merged on their UUID).
+     * Save prepared transactions (those known on their account are merged on their UUID).
      *
      * @param array<array<string, mixed>> $rows   The transactions, as returned by prepareAll(), with
      *                                            their raw label to send it as a progress event
      * @param int                         $userId The user owning the transactions
      * @param array<string, string|null>  $origin    bank_name and account_number of the account they come from
      * @param array<string, true>         $relabeled UUIDs that relabeled a saved transaction (TransactionRelabel): not saved
-     * @return list<array{label: string, amount: float, uuid: string, date: string|null}> The transactions
-     *              that were not known yet (label cleaned, amount, uuid, real date); the deleted ones
+     * @return list<array{id: int, label: string, amount: float, uuid: string, date: string|null}> The transactions
+     *              that were not known yet (id, label cleaned, amount, uuid, real date); the deleted ones
      *              are skipped
      */
     private static function store(array $rows, int $userId, array $origin = [], array $relabeled = []): array
     {
         $created = [];
         // Deleted by a user: never saved again
-        $deleted = self::deletedUuids(array_column($rows, 'uuid'));
+        $uuids = array_column($rows, 'uuid');
+        $deleted = self::deletedUuids($uuids, $origin);
+        // Already saved on this account: updated, not saved again
+        $known = self::known($uuids, $origin);
         $repair = self::hasUnlabeled($userId, $origin);
         foreach ($rows as $row) {
             if (isset($row['raw'])) {
                 Webservice::sendProgress($row['raw']);
             }
-            if (!isset($deleted[$row['uuid']]) && !isset($relabeled[$row['uuid']]) && !($repair && self::relabel($row, $userId, $origin))
-                && self::create($row, $userId, $origin)) {
-                $created[] = ['label' => $row['label'], 'amount' => (float)$row['amount'], 'uuid' => $row['uuid'],
+            $uuid = $row['uuid'];
+            if (isset($deleted[$uuid]) || isset($relabeled[$uuid])
+                || ($repair && !isset($known[$uuid]) && self::relabel($row, $userId, $origin))) {
+                continue;
+            }
+            $id = self::create($row, $userId, $origin, $known[$uuid] ?? null);
+            if ($id !== null) {
+                $created[] = ['id' => $id, 'label' => $row['label'], 'amount' => (float)$row['amount'], 'uuid' => $uuid,
                     'date' => $row['rdate'] ?? $row['date'] ?? null];
             }
         }
@@ -430,14 +455,14 @@ final class Transaction {
      * date, amount and type) instead of saving the transaction again: it keeps its
      * category and its pointing, and gets the category of the rules if it had none.
      *
-     * @param array<string, mixed>       $row    The transaction, as returned by prepare()
+     * @param array<string, mixed>       $row    The transaction, as returned by prepare(), not known on the account (known())
      * @param int                        $userId The user owning the transactions
      * @param array<string, string|null> $origin bank_name and account_number of the account
      * @return bool True if a transaction without a label was completed
      */
     private static function relabel(array $row, int $userId, array $origin): bool
     {
-        if ($row['label'] === '' || Db::queryOne("SELECT id FROM bank_transaction WHERE uuid = ?", "s", $row['uuid']) !== null) {
+        if ($row['label'] === '') {
             return false;
         }
         $unlabeled = Db::queryOne("SELECT t.id, t.category FROM bank_transaction t WHERE t.label = '' AND t.split_of IS NULL
@@ -489,6 +514,84 @@ final class Transaction {
     }
 
     /**
+     * Whether a transaction saved on an account is the one received from another: the UUID
+     * of prepareAll() has no account, and the same transaction (real date, label, amount)
+     * on two accounts of the household — account fees, subscriptions... — is a transaction
+     * of each (#528). Two **different account numbers that are both followed** tell them
+     * apart; the number alone, not the bank: a joint account followed through the bank
+     * logins of two members of the household (two woob backends, the same number) is one
+     * account, its transactions saved once.
+     *
+     * Everything else is the same transaction, so that nothing saved is imported twice: a
+     * transaction saved without origin or account number, or on a number that is not
+     * followed (the number read in a file, the former number of an account edited in
+     * Administration: its transactions keep it), and a transaction received from an account
+     * without number or not followed (a file imported without choosing its account).
+     *
+     * @param string                  $saved    The account number of the transaction saved ("" for none)
+     * @param string                  $own      The account number of the transaction received ("" for none)
+     * @param array<int|string, true> $followed The account numbers followed (followedNumbers())
+     * @return bool
+     */
+    public static function sameAccount(string $saved, string $own, array $followed): bool
+    {
+        return $saved === $own || !isset($followed[$own]) || !isset($followed[$saved]);
+    }
+
+    /**
+     * The account numbers followed by the household. None before the migration
+     * 2026-11-25_transaction_account: the UUID is then unique for the household, a
+     * transaction is the same one whatever its account (sameAccount()).
+     *
+     * @return array<int|string, true> account_number => true
+     */
+    private static function followedNumbers(): array
+    {
+        $numbers = [];
+        if (self::accountReady()) {
+            foreach (Db::select("SELECT DISTINCT account_number FROM bank_account WHERE account_number <> ''", "")->fetch_all(MYSQLI_ASSOC) as $account) {
+                $numbers[(string)$account['account_number']] = true;
+            }
+        }
+        return $numbers;
+    }
+
+    /**
+     * The transactions already saved among those received from an account (sameAccount()):
+     * the one of the account itself first, else the first one saved.
+     *
+     * @param list<mixed>                $uuids  The UUIDs received
+     * @param array<string, string|null> $origin bank_name and account_number of the account they come from
+     * @return array<string, int> The UUIDs known => the id of the transaction saved
+     */
+    public static function known(array $uuids, array $origin): array
+    {
+        $own = (string)($origin['account_number'] ?? '');
+        $followed = self::followedNumbers();
+        $known = [];
+        $exact = [];
+        foreach (array_chunk(array_values(array_unique(array_map('strval', $uuids))), 500) as $chunk) {
+            $marks = implode(',', array_fill(0, count($chunk), '?'));
+            $rows = Db::select("SELECT id, uuid, IFNULL(account_number, '') AS account FROM bank_transaction WHERE uuid IN ($marks) ORDER BY id",
+                str_repeat('s', count($chunk)), ...$chunk)->fetch_all(MYSQLI_ASSOC);
+            foreach ($rows as $row) {
+                $uuid = (string)$row['uuid'];
+                $account = (string)$row['account'];
+                if (isset($exact[$uuid]) || !self::sameAccount($account, $own, $followed)) {
+                    continue;
+                }
+                if ($account === $own) {
+                    $exact[$uuid] = true;
+                    $known[$uuid] = (int)$row['id'];
+                } elseif (!isset($known[$uuid])) {
+                    $known[$uuid] = (int)$row['id'];
+                }
+            }
+        }
+        return $known;
+    }
+
+    /**
      * Columns of a transaction as it is stored: cleaned label, date of the salaries
      * moved to the next month, UUID.
      *
@@ -520,14 +623,29 @@ final class Transaction {
      * @param array<string, mixed>       $row    The transaction, as returned by prepare()
      * @param int                        $userId The user owning the transaction
      * @param array<string, string|null> $origin bank_name and account_number of the account it comes from
-     * @return bool True if the transaction is new, false if it was already known
+     * @param int|null                   $known  Id of the transaction already saved on this account (known()), null if none
+     * @return int|null The id of the transaction if it is new, null if it was already known
      */
-    private static function create(array $row, int $userId, array $origin = []): bool
+    private static function create(array $row, int $userId, array $origin = [], ?int $known = null): ?int
     {
         ['uuid' => $uuid, 'date' => $date, 'rdate' => $rdate, 'amount' => $amount,
          'label' => $label, 'type' => $type, 'card' => $card] = $row;
+        $bank = $origin['bank_name'] ?? null;
+        $account = $origin['account_number'] ?? null;
 
         // A known transaction keeps its origin; one saved before it was stored gets it
+        if ($known !== null) {
+            $stmt = Db::execute("UPDATE bank_transaction SET type = ?, label = ?, bank_name = IFNULL(bank_name, ?),
+                account_number = IFNULL(account_number, ?) WHERE id = ?", "isssi", $type, $label, $bank, $account, $known);
+            // 0 affected row when unchanged: the daily synchronization of an account that did not move
+            if ($stmt->affected_rows > 0) {
+                Changes::touch('transactions');
+            }
+            return null;
+        }
+
+        // The unique key (the UUID on its account number; the UUID alone before the migration
+        // 2026-11-25_transaction_account) still merges a transaction saved meanwhile
         $sql = "INSERT INTO bank_transaction (uuid, date, rdate, amount, label, type, card, bank_name, account_number, user)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON DUPLICATE KEY UPDATE type=?, label=?,
@@ -535,14 +653,13 @@ final class Transaction {
                     account_number = IFNULL(account_number, VALUES(account_number))";
 
         $stmt = Db::execute($sql, "sssdsisssiis", $uuid, $date, $rdate, $amount, $label, $type, $card,
-            $origin['bank_name'] ?? null, $origin['account_number'] ?? null, $userId, $type, $label);
+            $bank, $account, $userId, $type, $label);
 
         // MySQL reports 1 affected row for an insert, 2 or 0 for an update of a known UUID
-        // (0: unchanged, the daily synchronization of an account that did not move)
         if ($stmt->affected_rows > 0) {
             Changes::touch('transactions');
         }
-        return $stmt->affected_rows === 1;
+        return $stmt->affected_rows === 1 ? (int)$stmt->insert_id : null;
     }
 
     /**
@@ -551,8 +668,10 @@ final class Transaction {
      * be merged), "duplicate" (a transaction of the same amount a few days apart, most
      * likely the same one synchronized with another label) or "new".
      *
-     * @param string|null $file     The content of the file, base64 encoded
-     * @param string|null $filename The name of the file (helps to tell the format)
+     * @param string|null     $file     The content of the file, base64 encoded
+     * @param string|null     $filename The name of the file (helps to tell the format)
+     * @param int|string|null $account  Account the file would be imported on (id of GET /bank), optional:
+     *                                  a transaction of another account is then not reported as known
      * @return array<string, mixed> format, bank ({id, name} of the profile that read a CSV file,
      *               null when its columns were guessed or for another format), account, from, to,
      *               counts {new, known, duplicate} and rows
@@ -560,10 +679,10 @@ final class Transaction {
      * @throws Error If the file is not understood
      */
     #[ApiRoute('/transaction/import/preview', method: 'POST', changes: [])]
-    public static function previewImport(?string $file, ?string $filename = null): array
+    public static function previewImport(?string $file, ?string $filename = null, int|string|null $account = null): array
     {
         // No file: refused by the parser as an empty file, as before the types
-        [$parsed, $rows] = self::analyzeImport($file ?? '', $filename);
+        [$parsed, $rows] = self::analyzeImport($file ?? '', $filename, self::importOrigin($account));
         $counts = ['new' => 0, 'known' => 0, 'duplicate' => 0];
         foreach ($rows as $row) {
             $counts[$row['status']]++;
@@ -605,7 +724,7 @@ final class Transaction {
         int|string|null $account = null): array
     {
         $origin = self::importOrigin($account);
-        [$parsed, $rows, $prepared] = self::analyzeImport($file ?? '', $filename);
+        [$parsed, $rows, $prepared, $origin] = self::analyzeImport($file ?? '', $filename, $origin);
         $selected = $selected === null ? null : array_map('intval', (array)$selected);
 
         // Prepared with the whole file: a selected row keeps the UUID of its occurrence
@@ -617,7 +736,7 @@ final class Transaction {
             }
         }
 
-        $created = self::store($data, (int)Jwt::getUserIdFromToken(), $origin ?? ['account_number' => $parsed['account']]);
+        $created = self::store($data, (int)Jwt::getUserIdFromToken(), $origin);
 
         // The rules categorize the new transactions, whatever their date
         $categorized = self::categorizeImported($created);
@@ -662,7 +781,7 @@ final class Transaction {
     /**
      * Categorize imported transactions with the rules (those still without category).
      *
-     * @param list<array{label: string, amount: float, uuid: string}> $created The new transactions
+     * @param list<array{id: int, label: string, amount: float, uuid: string}> $created The new transactions
      * @return int The number of transactions categorized
      */
     private static function categorizeImported(array $created): int
@@ -673,7 +792,7 @@ final class Transaction {
             $category = Category::find($transaction['label'], $keywords, $transaction['amount']);
             if ($category !== null) {
                 Db::execute("UPDATE bank_transaction SET category = ?" . self::sourceSql(self::SOURCE_RULE)
-                    . " WHERE uuid = ? AND category = 0", "is", $category, $transaction['uuid']);
+                    . " WHERE id = ? AND category = 0", "ii", $category, $transaction['id']);
                 $categorized++;
             }
         }
@@ -700,15 +819,18 @@ final class Transaction {
     /**
      * Parse a statement file and compare its transactions with the database.
      *
-     * @param string      $file     The content of the file, base64 encoded
-     * @param string|null $filename The name of the file
+     * @param string                          $file     The content of the file, base64 encoded
+     * @param string|null                     $filename The name of the file
+     * @param array<string, string|null>|null $origin   Account chosen for the file (null: none, the account
+     *                                                  number read in the file), whose transactions are
+     *                                                  told apart from those of the other accounts
      * @return array{0: array{format: string, bank: array{id: string, name: string}|null, account: string|null, transactions: list<array<string, mixed>>},
-     *               1: list<array<string, mixed>>, 2: array<array<string, mixed>>}
+     *               1: list<array<string, mixed>>, 2: array<array<string, mixed>>, 3: array<string, string|null>}
      *               [parsed file (BankFile::parse), rows with their status, transactions as
-     *               prepared by prepareAll()]
+     *               prepared by prepareAll(), account of the transactions (bank_name, account_number)]
      * @throws Error If the file is not understood
      */
-    private static function analyzeImport(string $file, ?string $filename): array
+    private static function analyzeImport(string $file, ?string $filename, ?array $origin = null): array
     {
         $content = base64_decode($file, true);
         if ($content === false) {
@@ -716,6 +838,7 @@ final class Transaction {
         }
         $parsed = BankFile::parse($content, $filename);
 
+        $origin ??= ['account_number' => $parsed['account']];
         $prepared = self::prepareAll($parsed['transactions']);
         $rows = [];
         foreach ($prepared as $index => $row) {
@@ -731,31 +854,42 @@ final class Transaction {
         $from = date('Y-m-d', Month::timestamp(min($dates) . ' -' . self::DUPLICATE_DAYS . ' days'));
         $to = date('Y-m-d', Month::timestamp(max($dates) . ' +' . self::DUPLICATE_DAYS . ' days'));
         // A split transaction is matched with the amount of the bank, its parts are not
-        $existing = Db::select("SELECT t.id, t.uuid, t.date, t.rdate, " . self::BANK_AMOUNT . " AS amount, t.label
+        $existing = Db::select("SELECT t.id, t.uuid, t.date, t.rdate, " . self::BANK_AMOUNT . " AS amount, t.label,
+            IFNULL(t.account_number, '') AS account
             FROM bank_transaction t WHERE t.split_of IS NULL AND (t.date BETWEEN ? AND ? OR t.rdate BETWEEN ? AND ?)",
             "ssss", $from, $to, $from, $to)->fetch_all(MYSQLI_ASSOC);
-        $matched = self::markKnown($rows, $existing);
-        self::markDeleted($rows);
+        $matched = self::markKnown($rows, $existing, $origin);
+        self::markDeleted($rows, $origin);
         self::markDuplicates($rows, $existing, $matched);
 
         foreach ($rows as &$row) {
             unset($row['uuid']);
         }
         unset($row);
-        return [$parsed, $rows, $prepared];
+        return [$parsed, $rows, $prepared, $origin];
     }
 
     /**
-     * Mark the rows of a file whose UUID is in the database (identical rows of the file
-     * have their own UUID).
+     * Mark the rows of a file whose UUID is in the database on their account (sameAccount();
+     * identical rows of the file have their own UUID).
      *
      * @param list<array<string, mixed>>  $rows     The rows of the file (status updated)
-     * @param list<array<string, mixed>>  $existing The transactions of the database around the file
+     * @param list<array<string, mixed>>  $existing The transactions of the database around the file (with their account)
+     * @param array<string, string|null>  $origin   bank_name and account_number of the account of the file
      * @return array<int|string, true> The ids of the transactions of the database matched
      */
-    private static function markKnown(array &$rows, array $existing): array
+    private static function markKnown(array &$rows, array $existing, array $origin): array
     {
-        $uuids = array_flip(array_column($existing, 'uuid'));
+        $own = (string)($origin['account_number'] ?? '');
+        $followed = self::followedNumbers();
+        // The transaction of the account itself first, as known()
+        $uuids = [];
+        foreach ($existing as $index => $transaction) {
+            $account = (string)$transaction['account'];
+            if (self::sameAccount($account, $own, $followed) && (!isset($uuids[$transaction['uuid']]) || $account === $own)) {
+                $uuids[$transaction['uuid']] = $index;
+            }
+        }
         $matched = [];
         foreach ($rows as &$row) {
             if (isset($uuids[$row['uuid']])) {
@@ -771,12 +905,13 @@ final class Transaction {
      * Mark the rows of a file deleted by a user: "known" (not imported again), with
      * deleted = true.
      *
-     * @param list<array<string, mixed>> $rows The rows of the file (status updated)
+     * @param list<array<string, mixed>> $rows   The rows of the file (status updated)
+     * @param array<string, string|null> $origin bank_name and account_number of the account of the file
      * @return void
      */
-    private static function markDeleted(array &$rows): void
+    private static function markDeleted(array &$rows, array $origin): void
     {
-        $deleted = self::deletedUuids(array_column($rows, 'uuid'));
+        $deleted = self::deletedUuids(array_column($rows, 'uuid'), $origin);
         foreach ($rows as &$row) {
             if (isset($deleted[$row['uuid']])) {
                 $row['status'] = 'known';
@@ -787,21 +922,33 @@ final class Transaction {
     }
 
     /**
-     * UUIDs among the given ones of the transactions deleted by a user.
+     * UUIDs among the given ones of the transactions deleted by a user on the account they
+     * are received from (sameAccount(); a transaction deleted before the migration
+     * 2026-11-25_transaction_account has no account: deleted on every account).
      *
-     * @param list<mixed> $uuids The UUIDs to check
+     * @param list<mixed>                $uuids  The UUIDs to check
+     * @param array<string, string|null> $origin bank_name and account_number of the account they come from
      * @return array<string, true> The deleted UUIDs (as keys)
      */
-    private static function deletedUuids(array $uuids): array
+    private static function deletedUuids(array $uuids, array $origin): array
     {
         $uuids = array_values(array_unique(array_map('strval', $uuids)));
         if (!$uuids) {
             return [];
         }
+        $own = (string)($origin['account_number'] ?? '');
+        $followed = self::followedNumbers();
+        $account = self::accountReady() ? "account_number" : "''";
         $placeholders = implode(',', array_fill(0, count($uuids), '?'));
-        $rows = Db::select("SELECT uuid FROM bank_transaction_deleted WHERE uuid IN ($placeholders)",
+        $rows = Db::select("SELECT uuid, $account AS account FROM bank_transaction_deleted WHERE uuid IN ($placeholders)",
             str_repeat('s', count($uuids)), ...$uuids)->fetch_all(MYSQLI_ASSOC);
-        return array_fill_keys(array_column($rows, 'uuid'), true);
+        $deleted = [];
+        foreach ($rows as $row) {
+            if (self::sameAccount((string)$row['account'], $own, $followed)) {
+                $deleted[(string)$row['uuid']] = true;
+            }
+        }
+        return $deleted;
     }
 
     /**
@@ -1521,9 +1668,10 @@ final class Transaction {
     }
 
     /**
-     * Delete a transaction. Its UUID is remembered: the synchronization of its account
-     * and the import of a file skip it, so that it does not come back. Its parts, if it was
-     * split, are deleted with it; a part deleted gives its amount back to its transaction.
+     * Delete a transaction. Its UUID is remembered with its account: the synchronization
+     * of its account and the import of a file skip it, so that it does not come back. Its
+     * parts, if it was split, are deleted with it; a part deleted gives its amount back to
+     * its transaction.
      *
      * @param int|string $id The id of the transaction
      * @return bool True once deleted
@@ -1532,7 +1680,7 @@ final class Transaction {
     #[ApiRoute('/transaction', method: 'DELETE', changes: ['transactions'])]
     public static function delete(int|string $id): bool
     {
-        $transaction = Db::queryOne("SELECT uuid, label, amount, split_of FROM bank_transaction WHERE id = ?", "i", $id);
+        $transaction = Db::queryOne("SELECT uuid, label, amount, split_of, account_number FROM bank_transaction WHERE id = ?", "i", $id);
         if (!$transaction) {
             throw new ApiError("Transaction not found", 404, 'transaction_not_found');
         }
@@ -1541,6 +1689,10 @@ final class Transaction {
         if ($transaction['split_of'] !== null) {
             // A part is not known by the bank: its amount goes back to its transaction
             Db::execute("UPDATE bank_transaction SET amount = amount + ? WHERE id = ?", "si", $transaction['amount'], $transaction['split_of']);
+        } elseif (self::accountReady()) {
+            // Deleted on its account: the same transaction of another account is not
+            Db::execute("INSERT IGNORE INTO bank_transaction_deleted (uuid, account_number, user_id) VALUES (?, ?, ?)", "ssi",
+                $transaction['uuid'], (string)($transaction['account_number'] ?? ''), $userId);
         } else {
             Db::execute("INSERT IGNORE INTO bank_transaction_deleted (uuid, user_id) VALUES (?, ?)", "si", $transaction['uuid'], $userId);
         }

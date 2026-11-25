@@ -127,7 +127,7 @@ erDiagram
     }
     bank_transaction {
         bigint id PK
-        varchar uuid UK "md5(rdate, label, amount)"
+        varchar uuid UK "md5(rdate, label, amount), unique per account"
         timestamp imported
         date date "indexed"
         date rdate "actual date"
@@ -145,6 +145,7 @@ erDiagram
     }
     bank_transaction_deleted {
         varchar uuid PK "ignored on sync"
+        varchar account_number PK "account, empty = all"
         timestamp deleted_at
         int user_id FK
     }
@@ -213,11 +214,11 @@ erDiagram
 | `oauth_codes` | Pending OAuth authorization codes (SHA-256 hash, PKCE `S256` challenge, 5 minutes, single use); deleted with their client or their user. |
 | `bank_backend` | Name given to a bank connection (woob backend, e.g. `bnp_2` → "Joint account"), displayed instead of the bank name; with no row, the bank name is displayed. The credentials stay with woob. |
 | `bank_account` | Bank accounts followed by the household: `account_number@bank_name` forms the `bankId` passed to woob; `label` is the name given to the account ("Joint account", `NULL` = "BANK ···1234"). `user_id` is the user who added the account ("Added by"); `last_sync_at`, `last_sync_status`, `last_sync_message` describe the last sync. Uniqueness on `(account_number, bank_name, user_id)`; the API also rejects an account already followed by the household. A **manual** account (cash, a bank woob does not support) has the reserved `bank_name` `manual`: never synced, its transactions are entered by hand. |
-| `bank_transaction` | Transactions. The unique `uuid` is used for deduplication; `bank_name` and `account_number` indicate the source synced account (or the account read from an imported statement, `bank_name` `NULL`), `NULL` for transactions saved before they were added; `user` = first user who added the account (`MIN(user_id)`), with no effect on visibility; deleting the user is forbidden as long as they have transactions (`ON DELETE RESTRICT`); `transaction_date` index on `date`. `split_of` = id of the transaction a **part** was taken from (split across several categories; the transaction keeps the rest, deleted with its parts); entered by hand = `uuid` starting with `manual` (never a bank's one, an md5 in
+| `bank_transaction` | Transactions. The `uuid`, unique **per account** (`unique_uuid_account` key on `uuid` and `account_number`), is used for deduplication: the same transaction on two followed accounts is a transaction of each; `bank_name` and `account_number` indicate the source synced account (or the account read from an imported statement, `bank_name` `NULL`), `NULL` for transactions saved before they were added; `user` = first user who added the account (`MIN(user_id)`), with no effect on visibility; deleting the user is forbidden as long as they have transactions (`ON DELETE RESTRICT`); `transaction_date` index on `date`. `split_of` = id of the transaction a **part** was taken from (split across several categories; the transaction keeps the rest, deleted with its parts); entered by hand = `uuid` starting with `manual` (never a bank's one, an md5 in
 hexadecimal), or `bank_name` `manual` (manual account, older entries). `category_source` = origin of the category: `rule` (a rule), `manual` (chosen by hand, never overwritten by the rules), `NULL` (unknown, a category set before it was added). `comment` = free-text comment of the household (500 characters, `NULL` without one), never written by the synchronization or the import. |
 | `tag` | Tags of a project limited in time (unique `name` without the `#`, `color`, `start_date`, `end_date` `NULL` = running), apart from the categories. |
 | `transaction_tag` | Tags of the transactions (`transaction_id`, `tag_id`); deleted with the transaction or the tag. |
-| `bank_transaction_deleted` | Transactions deleted by a user (`uuid`, `deleted_at`, `user_id` set to `NULL` if the user is deleted): sync and statement import ignore these UUIDs, so a deleted transaction does not come back. |
+| `bank_transaction_deleted` | Transactions deleted by a user (`uuid`, `account_number`, `deleted_at`, `user_id` set to `NULL` if the user is deleted): sync and statement import ignore these UUIDs on that account, so a deleted transaction does not come back. An empty `account_number` (deleted before the migration `2026-11-25_transaction_account`, or a transaction without account): ignored on every account. |
 | `bank_transaction_category` | Hierarchical categories (`parent_category`, `0` = root). Category `0` "Uncategorized" (`HORS-BUDGET`) is created by the installation and protected. |
 | `bank_transaction_category_keyword` | Rules: keywords (in uppercase) searched for in labels to categorize automatically; `notify` = each new matching transaction is reported to the household. |
 | `budget` | Budget of a category for a month (unique per category and date), as `DECIMAL(10,2)`, with an optional note (`note`, 200 characters). |
@@ -256,6 +257,7 @@ already been applied (by hand, or by `sql/carbure.sql`). See
 | `2026-11-03_insight_alert` | Alerts of the users on the insights (`insight_alert` table) |
 | `2026-11-04_insight_largest_expense` | The starter insight "Largest expense" counts a split transaction once, with the amount of the bank (only when its query was not changed) |
 | `2026-11-19_transaction_comment` | Free-text comment of a transaction (`bank_transaction.comment`, `NULL` for the existing transactions) |
+| `2026-11-25_transaction_account` | UUID of a transaction unique per account instead of for the household (`unique_uuid_account` key of `bank_transaction`); account of the deleted transactions (`bank_transaction_deleted.account_number`). No UUID is changed |
 
 ## "Household" model { #modele-foyer }
 

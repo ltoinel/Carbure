@@ -87,8 +87,10 @@ class BackupDataTest extends TestCase
         $this->assertSame([], BackupData::validate('budgets', []));
         $this->assertSame([[0, 'Aucune', 0, 'HORS-BUDGET', 'help', 'grey']],
             BackupData::validate('categories', [['id' => 0, 'name' => 'Aucune', 'parent_category' => 0, 'type' => 'HORS-BUDGET', 'icon' => 'help', 'color' => 'grey']]));
-        $this->assertSame([['u1', '2026-01-01 00:00:00', null]],
-            BackupData::validate('deleted_transactions', [['uuid' => 'u1', 'deleted_at' => '2026-01-01 00:00:00', 'user_id' => null]]));
+        // account_number is missing from an older backup: none (deleted on every account)
+        $this->assertSame([['u1', '2026-01-01 00:00:00', null, ''], ['u1', '2026-01-02 00:00:00', null, '222']],
+            BackupData::validate('deleted_transactions', [['uuid' => 'u1', 'deleted_at' => '2026-01-01 00:00:00', 'user_id' => null],
+                ['uuid' => 'u1', 'deleted_at' => '2026-01-02 00:00:00', 'user_id' => null, 'account_number' => '222']]));
     }
 
     /**
@@ -115,7 +117,7 @@ class BackupDataTest extends TestCase
             'bad user' => ['transactions', [['user' => ['admin']] + self::TRANSACTION], 'invalid user'],
             'long user' => ['deleted_transactions', [['uuid' => 'u1', 'deleted_at' => '2026-01-01 00:00:00', 'user_id' => str_repeat('u', 21)]], 'invalid user_id'],
             'repeated uuid' => ['deleted_transactions', [['uuid' => 'u1', 'deleted_at' => '2026-01-01 00:00:00', 'user_id' => null],
-                ['uuid' => 'u1', 'deleted_at' => '2026-01-02 00:00:00', 'user_id' => null]], 'deleted_transactions: repeated uuid: u1'],
+                ['uuid' => 'u1', 'deleted_at' => '2026-01-02 00:00:00', 'user_id' => null]], 'deleted_transactions: repeated uuid,account_number: u1,'],
             'impossible datetime' => ['transactions', [['imported' => '2026-02-29 10:00:00'] + self::TRANSACTION], 'invalid imported'],
             'number as date' => ['budgets', [['id' => 1, 'category' => 1, 'amount' => 1, 'date' => 20260201]], 'invalid date'],
             'float id' => ['budgets', [['id' => 1.5, 'category' => 1, 'amount' => 1, 'date' => '2026-02-01']], 'invalid id'],

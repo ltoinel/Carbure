@@ -125,7 +125,10 @@ git config core.hooksPath .githooks   # pre-commit lint, pre-push unit tests
 - **Transaction UUID** = `md5(rdate . label . amount)` (card labels truncated to 24
   chars), computed after `Transaction::cleanLabel()` + config `regex_label`. Identical
   rows in one batch: `md5(uuid . '#n')` (`Transaction::prepareAll()`). Changing label
-  cleaning creates duplicates → needs a migration.
+  cleaning creates duplicates → needs a migration. The UUID has no account and is unique
+  **per account** (`unique_uuid_account` on `uuid, account_number`): never look a transaction
+  up by its UUID alone, use `Transaction::known()` / `sameAccount()` (two different
+  followed account numbers = two transactions; anything else = the same one).
 - **Statement import**: a bank's CSV format = a profile in `src/lib/import/banks/` with its
   anonymized fixture, its snapshot (`tests/fixtures/import/expected/`) and its row in the
   bank table of `docs/fonctionnalites.md` (tests check all three); no bank-specific rule in

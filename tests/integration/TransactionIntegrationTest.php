@@ -2,6 +2,7 @@
 
 use Carbure\Lib\ApiError;
 use Carbure\Lib\Db;
+use Carbure\Lib\Migrator;
 use Carbure\Resources\Transaction;
 
 class TransactionIntegrationTest extends DatabaseTestCase
@@ -288,6 +289,167 @@ class TransactionIntegrationTest extends DatabaseTestCase
         $this->assertCount(1, Transaction::save([$coffee, $coffee, $coffee], self::USER, false));
 
         $this->assertEquals(3, Db::queryOne("SELECT COUNT(*) AS n FROM bank_transaction WHERE label = 'PRLV CAFE DU COIN'", "")['n']);
+    }
+
+    /**
+     * Follow an account of the household.
+     */
+    private function follow(string $bank, string $number): array
+    {
+        Db::execute("INSERT INTO bank_account (bank_name, account_number, label, user_id) VALUES (?, ?, NULL, ?)", "ssi", $bank, $number, self::USER);
+        return ['bank_name' => $bank, 'account_number' => $number];
+    }
+
+    private function fee(): array
+    {
+        return ['type' => 2, 'raw' => 'COTISATION OFFRE ESSENTIEL', 'amount' => -2.5, 'date' => $this->day(5)];
+    }
+
+    private function fees(): array
+    {
+        return Db::select("SELECT uuid, bank_name, account_number FROM bank_transaction WHERE label = 'COTISATION OFFRE ESSENTIEL' ORDER BY account_number", "")
+            ->fetch_all(MYSQLI_ASSOC);
+    }
+
+    public function testSameTransactionOnTwoAccounts()
+    {
+        // #528: the same fee, the same day, on two accounts: one transaction on each
+        $first = $this->follow('cragr', '111');
+        $second = $this->follow('cragr', '222');
+        $this->assertCount(1, Transaction::save([$this->fee()], self::USER, false, $first));
+        $this->assertCount(1, Transaction::save([$this->fee()], self::USER, false, $second));
+        $fees = $this->fees();
+        $this->assertSame(['111', '222'], array_column($fees, 'account_number'));
+        // The UUID does not change: it is unique on each account
+        $uuid = Transaction::prepareAll([$this->fee()])[0]['uuid'];
+        $this->assertSame([$uuid, $uuid], array_column($fees, 'uuid'));
+
+        // Next synchronizations: nothing new, on either account
+        $this->assertCount(0, Transaction::save([$this->fee()], self::USER, false, $first));
+        $this->assertCount(0, Transaction::save([$this->fee()], self::USER, false, $second));
+        $this->assertCount(2, $this->fees());
+    }
+
+    public function testNoDuplicateWhenTheAccountIsNotAnotherFollowedOne()
+    {
+        $account = $this->follow('cragr', '111');
+        Transaction::save([$this->fee()], self::USER, false, $account);
+
+        // Account edited in Administration (its transactions keep their former origin)
+        Db::query("UPDATE bank_account SET account_number = 'FR76111' WHERE account_number = '111'");
+        $this->assertCount(0, Transaction::save([$this->fee()], self::USER, false, ['bank_name' => 'cragr', 'account_number' => 'FR76111']));
+        // An account that is not followed (a file imported without choosing its account)
+        $this->assertCount(0, Transaction::save([$this->fee()], self::USER, false, ['bank_name' => null, 'account_number' => 'FR76999']));
+        // A transaction saved without origin
+        Db::query("UPDATE bank_transaction SET bank_name = NULL, account_number = NULL WHERE label = 'COTISATION OFFRE ESSENTIEL'");
+        $this->assertCount(0, Transaction::save([$this->fee()], self::USER, false, $this->follow('cragr', '222')));
+        $this->assertCount(1, $this->fees());
+    }
+
+    public function testJointAccountFollowedThroughTwoBankLogins()
+    {
+        // The same account (same number) through the bank logins of two members: saved once
+        $first = $this->follow('cragr', '333');
+        $second = $this->follow('cragr2', '333');
+        $this->assertCount(1, Transaction::save([$this->fee()], self::USER, false, $first));
+        $this->assertCount(0, Transaction::save([$this->fee()], self::USER, false, $second));
+        $this->assertCount(1, $this->fees());
+
+        // With a second account having the same fee: one more, still once for the joint account
+        $this->assertCount(1, Transaction::save([$this->fee()], self::USER, false, $this->follow('cragr', '444')));
+        $this->assertCount(0, Transaction::save([$this->fee()], self::USER, false, $first));
+        $this->assertCount(0, Transaction::save([$this->fee()], self::USER, false, $second));
+        $this->assertSame(['333', '444'], array_column($this->fees(), 'account_number'));
+    }
+
+    public function testTransactionOfTheSecondAccountDeletedStaysDeleted()
+    {
+        $first = $this->follow('cragr', '111');
+        $second = $this->follow('cragr', '222');
+        Transaction::save([$this->fee()], self::USER, false, $first);
+        Transaction::save([$this->fee()], self::USER, false, $second);
+        $id = (int)Db::queryOne("SELECT id FROM bank_transaction WHERE label = 'COTISATION OFFRE ESSENTIEL' AND account_number = '222'", "")['id'];
+        $this->loginAs(self::USER);
+        Transaction::delete($id);
+
+        $this->assertCount(0, Transaction::save([$this->fee()], self::USER, false, $second));
+        $this->assertCount(0, Transaction::save([$this->fee()], self::USER, false, $first));
+        $this->assertSame(['111'], array_column($this->fees(), 'account_number'));
+    }
+
+    public function testTransactionDeletedOnAnAccountIsStillSavedOnAnother()
+    {
+        // Deleted on the first account before the second one is synchronized
+        $first = $this->follow('cragr', '111');
+        $second = $this->follow('cragr', '222');
+        Transaction::save([$this->fee()], self::USER, false, $first);
+        $this->loginAs(self::USER);
+        Transaction::delete((int)Db::queryOne("SELECT id FROM bank_transaction WHERE label = 'COTISATION OFFRE ESSENTIEL'", "")['id']);
+        $this->assertSame('111', Db::queryOne("SELECT account_number FROM bank_transaction_deleted", "")['account_number']);
+
+        $this->assertCount(0, Transaction::save([$this->fee()], self::USER, false, $first));
+        $this->assertCount(1, Transaction::save([$this->fee()], self::USER, false, $second));
+        $this->assertSame(['222'], array_column($this->fees(), 'account_number'));
+
+        // Deleted before the accounts were told apart (no account): deleted on every account
+        Db::query("UPDATE bank_transaction_deleted SET account_number = ''");
+        Db::query("DELETE FROM bank_transaction WHERE label = 'COTISATION OFFRE ESSENTIEL'");
+        $this->assertCount(0, Transaction::save([$this->fee()], self::USER, false, $second));
+        $this->assertCount(0, $this->fees());
+    }
+
+    /**
+     * Forget the cached state of the schema (read once per request).
+     */
+    private function resetAccountReady()
+    {
+        (new ReflectionProperty(Transaction::class, 'accountReady'))->setValue(null, null);
+    }
+
+    public function testMigrationTellsTheAccountsApartOnAnExistingDatabase()
+    {
+        $migration = '2026-11-25_transaction_account';
+        // Back to the schema before the migration: the UUID unique for the household
+        Db::query("ALTER TABLE bank_transaction DROP INDEX unique_uuid_account, ADD UNIQUE KEY unique_uuid (uuid)");
+        Db::query("ALTER TABLE bank_transaction_deleted DROP PRIMARY KEY, DROP COLUMN account_number, ADD PRIMARY KEY (uuid)");
+        Db::execute("DELETE FROM schema_migrations WHERE version = ?", "s", $migration);
+        $this->resetAccountReady();
+        try {
+            // Pending: as before, the same transaction of two accounts is saved once
+            $this->assertFalse(Transaction::accountReady());
+            $first = $this->follow('cragr', '111');
+            $second = $this->follow('cragr', '222');
+            $this->assertCount(1, Transaction::save([$this->fee()], self::USER, false, $first));
+            $this->assertCount(0, Transaction::save([$this->fee()], self::USER, false, $second));
+            $this->assertSame(['111'], array_column($this->fees(), 'account_number'));
+            // A deletion is still remembered
+            $this->loginAs(self::USER);
+            Transaction::delete($this->transaction('u1')['id']);
+            $this->assertNotNull(Db::queryOne("SELECT uuid FROM bank_transaction_deleted WHERE uuid = 'u1'", ""));
+            $before = Db::select("SELECT id, uuid, label, amount, bank_name, account_number FROM bank_transaction ORDER BY id", "")->fetch_all(MYSQLI_ASSOC);
+
+            $migrator = new Migrator(Db::getConnection());
+            $this->assertContains($migration, $migrator->pending());
+            $this->assertSame([$migration], $migrator->migrate());
+            $this->resetAccountReady();
+
+            // Every transaction unchanged; the deleted one has no account
+            $this->assertTrue(Transaction::accountReady());
+            $this->assertSame($before, Db::select("SELECT id, uuid, label, amount, bank_name, account_number FROM bank_transaction ORDER BY id", "")->fetch_all(MYSQLI_ASSOC));
+            $this->assertSame('', Db::queryOne("SELECT account_number FROM bank_transaction_deleted WHERE uuid = 'u1'", "")['account_number']);
+
+            // The transaction missing on the second account comes back at its next synchronization, once
+            $this->assertCount(1, Transaction::save([$this->fee()], self::USER, false, $second));
+            $this->assertCount(0, Transaction::save([$this->fee()], self::USER, false, $first));
+            $this->assertCount(0, Transaction::save([$this->fee()], self::USER, false, $second));
+            $this->assertSame(['111', '222'], array_column($this->fees(), 'account_number'));
+            $this->assertSame([], $migrator->pending());
+        } finally {
+            // The schema and the migration back, whatever the test left (the other tests rely on them)
+            $this->resetAccountReady();
+            (new Migrator(Db::getConnection()))->migrate();
+            $this->resetAccountReady();
+        }
     }
 
     public function testRecurring()

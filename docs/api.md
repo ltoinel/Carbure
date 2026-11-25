@@ -667,6 +667,7 @@ Lit un relevé bancaire sans rien enregistrer.
 |---|---|---|
 | `file` | oui | Contenu du fichier encodé en base64 (1 Mo au plus avant encodage) ; jamais écrit dans les logs |
 | `filename` | non | Nom du fichier (son extension aide à reconnaître le format) |
+| `account` | non | `id` d'un compte de `GET /bank` : le compte sur lequel le fichier serait importé, pour qu'une transaction identique d'un autre compte suivi ne soit pas annoncée comme connue |
 
 Formats : OFX/QFX (1.x SGML et 2.x XML), QIF, CAMT.053 (ISO 20022) et CSV : lu avec le
 **profil de sa banque** quand son en-tête est celui d'un export connu (voir
@@ -686,7 +687,7 @@ existante).
 | Statut | Signification |
 |---|---|
 | `new` | Nouvelle transaction |
-| `known` | Même UUID qu'une transaction existante : elle serait fusionnée. Des lignes identiques du fichier sont autant de transactions (chacune son UUID) |
+| `known` | Même UUID qu'une transaction existante : elle serait fusionnée. Des lignes identiques du fichier sont autant de transactions (chacune son UUID). Une transaction identique enregistrée sur un **autre compte suivi** que celui du fichier (`account`, sinon le numéro lu dans le fichier) n'est pas connue : c'est une transaction de chaque compte |
 | `duplicate` | Même montant qu'une transaction existante à 3 jours près (date ou date réelle) : probablement la même, synchronisée avec un autre libellé |
 
 Erreurs : `400` (base64 invalide, fichier vide), `413` (fichier trop gros, plus de 5 000
@@ -817,8 +818,8 @@ et `category_source`, l'origine de leur catégorie : `rule` (une règle), `manua
 
 ### `DELETE /transaction`
 
-`id` : supprime la transaction (`404` si elle n'existe pas). Son `uuid` est mémorisé
-(table `bank_transaction_deleted`) : la synchronisation de son compte et l'import d'un
+`id` : supprime la transaction (`404` si elle n'existe pas). Son `uuid` est mémorisé avec
+son compte (table `bank_transaction_deleted`) : la synchronisation de son compte et l'import d'un
 relevé l'ignorent, elle ne revient pas (dans l'aperçu d'un import, la ligne est `known`
 avec `deleted: true`). Une transaction répartie est supprimée avec ses parts ; une part
 supprimée rend son montant à sa transaction.

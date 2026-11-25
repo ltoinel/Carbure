@@ -117,6 +117,14 @@ sequenceDiagram
   transactions received together (same actual date, label and amount: two coffees on the
   same day) are told apart by their rank: the first keeps this UUID, the following ones
   get `md5(uuid + "#n")` (`Transaction::prepareAll()`).
+- The UUID is **unique per account** (`account_number`), not for the household: the same
+  transaction on two followed accounts (account fees, a subscription charged the same day)
+  is a transaction of each. The number alone tells the accounts apart, not the bank: a
+  joint account followed through the bank logins of two members of the household stays one
+  account. A transaction saved without account, or on a number that is not followed (a
+  statement imported without choosing its account, the former number of an edited
+  account), is recognized whatever the account: nothing is imported twice
+  (`Transaction::sameAccount()`).
 - Received transfers (type 1, the salary) dated from the day `next_month_day` (25 by
   default, 0: never) are attached to the 1st of the following month (`date`); `rdate` keeps
   the actual date, hence the UUID.
@@ -127,7 +135,8 @@ sequenceDiagram
   chosen by the recipient for that type (`sync`, `rule`, `expense`, `budget`): push
   (`Apns`) and/or email (`Mailer`, if an SMTP server is configured). The failure of one
   channel prevents neither the other nor the sync.
-- A transaction is **new** when its UUID did not exist (the `INSERT` creates a row). Only
+- A transaction is **new** when its UUID did not exist on its account (the `INSERT` creates
+  a row). Only
   new expenses trigger the threshold alert: a re-sync or an operation going from
   "pending" to "debited" does not alert again.
 

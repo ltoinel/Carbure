@@ -86,8 +86,8 @@ class BackupTest extends DatabaseTestCase
         $this->assertSame($before, $this->export()['datasets']);
         $this->assertSame([['user_id' => 'admin', 'insight_id' => 1, 'direction' => 'above', 'threshold' => 500.0, 'notified_month' => '2026-10-01'],
             ['user_id' => 'user', 'insight_id' => 1, 'direction' => 'below', 'threshold' => 12.5, 'notified_month' => null]], $before['insight_alerts']);
-        $this->assertSame([['uuid' => 'd1', 'deleted_at' => '2026-01-02 03:04:05', 'user_id' => 'user'],
-            ['uuid' => 'd2', 'deleted_at' => '2026-01-03 00:00:00', 'user_id' => null]], $before['deleted_transactions']);
+        $this->assertSame([['uuid' => 'd1', 'deleted_at' => '2026-01-02 03:04:05', 'user_id' => 'user', 'account_number' => ''],
+            ['uuid' => 'd2', 'deleted_at' => '2026-01-03 00:00:00', 'user_id' => null, 'account_number' => '']], $before['deleted_transactions']);
 
         // Imported again: the same data (idempotent)
         Backup::import($before);
@@ -238,13 +238,14 @@ class BackupTest extends DatabaseTestCase
         $transactions = $this->export('transactions')['datasets']['transactions'];
         $mode = Db::queryOne("SELECT @@SESSION.sql_mode AS m", "")['m'];
         try {
-            // The categories are valid and written first; the transactions repeat a UUID
+            // The categories are valid and written first; the transactions repeat a UUID on an account
             Backup::import([
                 'categories' => [['id' => 0, 'name' => 'Aucune', 'parent_category' => 0, 'type' => 'HORS-BUDGET', 'icon' => 'help', 'color' => 'grey'],
                     ['id' => 9, 'name' => 'Nouvelle', 'parent_category' => 0, 'type' => 'DEBIT', 'icon' => '', 'color' => '']],
                 'rules' => [],
                 'budgets' => [],
-                'transactions' => [['id' => 1, 'uuid' => 'same', 'category' => 9] + $transactions[0], ['id' => 2, 'uuid' => 'same', 'category' => 9] + $transactions[1]],
+                'transactions' => [['id' => 1, 'uuid' => 'same', 'account_number' => '111', 'category' => 9] + $transactions[0],
+                    ['id' => 2, 'uuid' => 'same', 'account_number' => '111', 'category' => 9] + $transactions[1]],
             ]);
             $this->fail('Accepted');
         } catch (Error $e) {
