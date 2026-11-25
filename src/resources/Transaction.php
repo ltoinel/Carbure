@@ -528,9 +528,9 @@ final class Transaction {
      * Administration: its transactions keep it), and a transaction received from an account
      * without number or not followed (a file imported without choosing its account).
      *
-     * @param string              $saved    The account number of the transaction saved ("" for none)
-     * @param string              $own      The account number of the transaction received ("" for none)
-     * @param array<string, true> $followed The account numbers followed (followedNumbers())
+     * @param string                  $saved    The account number of the transaction saved ("" for none)
+     * @param string                  $own      The account number of the transaction received ("" for none)
+     * @param array<int|string, true> $followed The account numbers followed (followedNumbers())
      * @return bool
      */
     public static function sameAccount(string $saved, string $own, array $followed): bool
@@ -543,7 +543,7 @@ final class Transaction {
      * 2026-11-25_transaction_account: the UUID is then unique for the household, a
      * transaction is the same one whatever its account (sameAccount()).
      *
-     * @return array<string, true> account_number => true
+     * @return array<int|string, true> account_number => true
      */
     private static function followedNumbers(): array
     {

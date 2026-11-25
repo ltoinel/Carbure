@@ -238,13 +238,14 @@ class BackupTest extends DatabaseTestCase
         $transactions = $this->export('transactions')['datasets']['transactions'];
         $mode = Db::queryOne("SELECT @@SESSION.sql_mode AS m", "")['m'];
         try {
-            // The categories are valid and written first; the transactions repeat a UUID
+            // The categories are valid and written first; the transactions repeat a UUID on an account
             Backup::import([
                 'categories' => [['id' => 0, 'name' => 'Aucune', 'parent_category' => 0, 'type' => 'HORS-BUDGET', 'icon' => 'help', 'color' => 'grey'],
                     ['id' => 9, 'name' => 'Nouvelle', 'parent_category' => 0, 'type' => 'DEBIT', 'icon' => '', 'color' => '']],
                 'rules' => [],
                 'budgets' => [],
-                'transactions' => [['id' => 1, 'uuid' => 'same', 'category' => 9] + $transactions[0], ['id' => 2, 'uuid' => 'same', 'category' => 9] + $transactions[1]],
+                'transactions' => [['id' => 1, 'uuid' => 'same', 'account_number' => '111', 'category' => 9] + $transactions[0],
+                    ['id' => 2, 'uuid' => 'same', 'account_number' => '111', 'category' => 9] + $transactions[1]],
             ]);
             $this->fail('Accepted');
         } catch (Error $e) {
