@@ -69,3 +69,46 @@ test('deletes a user', async ({ adminPage: page }) => {
     await expect(page.locator('.toast')).toHaveText(tr('userDeleted'));
     await expect(userRow(page, 'marie')).toHaveCount(0);
 });
+
+test('closes the sessions of a user, who goes back to the login screen', async ({ adminPage: page, request, browser }) => {
+    // Marie is on the portal in her own browser
+    const marie = await (await browser.newContext()).newPage();
+    const token = (await (await request.post('/api/user/login', { data: { username: 'marie', password: 'marie-password' } })).json()).token;
+    await marie.addInitScript(([jwt]) => {
+        localStorage.setItem('authToken', jwt);
+        localStorage.setItem('username', 'marie');
+    }, [token]);
+    await marie.goto('/portal/');
+    await expect(marie.locator('.user-menu-name')).toHaveText('marie');
+
+    await openTab(page, tr('tabUsers'));
+    await page.getByRole('button', { name: `${tr('signOutUser')} marie` }).click();
+    const dialog = page.getByRole('dialog', { name: tr('signOutUser') });
+    await expect(dialog.locator('#confirm-dialog-message')).toHaveText(tr('signOutUserConfirm', { username: 'marie' }));
+    await expect(dialog.locator('#confirm-dialog-warning')).toHaveText(tr('signOutUserWarning'));
+    await dialog.getByRole('button', { name: tr('signOutUser') }).click();
+    await expect(page.locator('.toast')).toHaveText(tr('signOutUserDone', { username: 'marie' }));
+
+    // Her next call is refused: login screen, with the reason
+    await marie.reload();
+    await expect(marie.getByRole('alert')).toContainText(tr('sessionExpired'));
+    await expect(marie.getByRole('button', { name: tr('loginButton') })).toBeVisible();
+    await marie.context().close();
+    // The administrator keeps his own session
+    await page.reload();
+    await expect(page.locator('.user-menu-name')).toHaveText('admin');
+});
+
+test('administrators who close their own sessions from the list stay signed in', async ({ adminPage: page }) => {
+    const before = await page.evaluate(() => localStorage.getItem('authToken'));
+    await openTab(page, tr('tabUsers'));
+    await page.getByRole('button', { name: `${tr('signOutUser')} admin` }).click();
+
+    // Their own account: the wording of the profile
+    const dialog = page.getByRole('dialog', { name: tr('signOutEverywhere') });
+    await dialog.getByRole('button', { name: tr('signOutEverywhere') }).click();
+    await expect(page.locator('.toast')).toHaveText(tr('signOutEverywhereDone'));
+    expect(await page.evaluate(() => localStorage.getItem('authToken'))).not.toBe(before);
+    await page.reload();
+    await expect(page.locator('.user-menu-name')).toHaveText('admin');
+});

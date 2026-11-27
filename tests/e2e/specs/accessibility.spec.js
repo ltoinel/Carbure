@@ -490,6 +490,24 @@ test('the registration of an app in the profile is readable', async ({ userPage:
     expect(await contrastProblems(page, tr('mfaSetupButton'))).toEqual([]);
 });
 
+test('the sessions block of the devices and its confirmation are readable', async ({ userPage: page }) => {
+    await page.locator('.user-menu-toggle').click();
+    await page.getByRole('menuitem', { name: tr('myProfile') }).click();
+    await page.getByRole('tab', { name: tr('myDevices'), exact: true }).click();
+    const sessions = page.getByRole('group', { name: tr('sessionsTitle') });
+    await sessions.scrollIntoViewIfNeeded();
+    expect(await contrastProblems(page, tr('sessionsTitle'))).toEqual([]);
+
+    await sessions.getByRole('button', { name: tr('signOutEverywhere') }).click();
+    const dialog = page.getByRole('dialog', { name: tr('signOutEverywhere') });
+    await expect(dialog.locator('#confirm-dialog-warning')).toHaveText(tr('signOutEverywhereWarning'));
+    const problems = await contrastProblems(page, tr('signOutEverywhere'));
+    await dialog.getByRole('button', { name: tr('cancel') }).click();
+    await expect(dialog).toHaveCount(0);
+
+    expect(problems).toEqual([]);
+});
+
 test('the confirmation resetting the two-factor authentication of a user is readable', async ({ adminPage: page }) => {
     await openTab(page, tr('tabUsers'));
     await page.getByRole('button', { name: `${tr('mfaReset')} marie` }).click();

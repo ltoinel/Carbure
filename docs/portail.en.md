@@ -538,7 +538,9 @@ List of the users with their **profile** (User or Administrator) and their
 "Locked until …" and an **Unlock** button. **+** creates a user; the pencil
 edits it (including its profile); the trash deletes it. The **Reset two-factor
 authentication** button (after a confirmation recalling its consequences, **Reset** button) removes the app, the recovery codes and
-the trusted browsers of a user who lost their phone. The last administrator cannot
+the trusted browsers of a user who lost their phone. The **Close the sessions** button
+(after a confirmation) signs a user out of all their browsers and mobile apps; they will
+have to sign in again with their password. The last administrator cannot
 lose their role, and a user who owns transactions cannot be
 deleted.
 
@@ -711,7 +713,15 @@ Four sub-tabs, like the administration: **Profile**, **Two-factor authentication
   - **Trusted browsers**: web browsers where the two-factor authentication code
     is not asked again for 6 months, with a readable name taken from the User-Agent ("Firefox
     on Windows"), the date of last use and the expiration, and their
-    **Revoke** button (`GET /user/mfa`, `DELETE /user/mfa/browser`).
+    **Revoke** button (`GET /user/mfa`, `DELETE /user/mfa/browser`);
+  - **Open sessions**: the **Sign out everywhere** button (after a confirmation) closes
+    all your sessions, on the portal and in the mobile apps — after losing a phone or
+    signing in from a shared computer. The current browser stays signed in; the others go
+    back to the login screen (`DELETE /user/sessions`).
+
+Changing your password (**Profile** sub-tab) closes all the other sessions in the same
+way. A browser whose session was closed goes back to the login screen with the message
+"Your session has expired or was closed".
 
 ## Footer { #pied-de-page }
 

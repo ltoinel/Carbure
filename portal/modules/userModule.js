@@ -206,6 +206,33 @@ export function createUserModule(getApiService) {
             },
 
             /**
+             * Closes every session of a user, or of the logged-in user ("sign out everywhere"):
+             * this browser then goes on with the new token of the answer
+             * @param {Object} [user] - User of the Users tab (administrators); the logged-in user by default
+             * @returns {Promise<void>}
+             */
+            async signOutEverywhere(user = null) {
+                const own = !user || Number(user.id) === Number(this.currentUser?.id);
+                const params = { username: user?.username };
+                let result = null;
+                const closed = await this.askConfirm({
+                    title: this.t(own ? 'signOutEverywhere' : 'signOutUser'),
+                    message: this.t(own ? 'signOutEverywhereConfirm' : 'signOutUserConfirm', params),
+                    warning: this.t(own ? 'signOutEverywhereWarning' : 'signOutUserWarning'),
+                    confirmLabel: this.t(own ? 'signOutEverywhere' : 'signOutUser'),
+                    icon: 'logout',
+                    danger: true,
+                    action: async () => {
+                        result = await getApiService().signOutEverywhere(own ? null : user.id);
+                    }
+                });
+                if (closed) {
+                    this.adoptSession(result?.session);
+                    this.showToast(this.t(own ? 'signOutEverywhereDone' : 'signOutUserDone', params));
+                }
+            },
+
+            /**
              * Unlocks a user locked after too many failed logins
              * @param {Object} user - User
              * @returns {Promise<void>}

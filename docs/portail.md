@@ -548,7 +548,9 @@ Liste des utilisateurs avec leur **profil** (Utilisateur ou Administrateur) et l
 « Bloqué jusqu'au … » et un bouton **Débloquer**. **+** crée un utilisateur ; le crayon le
 modifie (dont son profil) ; la corbeille le supprime. Le bouton **Réinitialiser la double
 authentification** (après une confirmation qui en rappelle les conséquences, bouton **Réinitialiser**) supprime l'application, les codes de secours et
-les navigateurs de confiance d'un utilisateur qui a perdu son téléphone. Le dernier administrateur ne peut
+les navigateurs de confiance d'un utilisateur qui a perdu son téléphone. Le bouton **Fermer les
+sessions** (après confirmation) déconnecte un utilisateur de tous ses navigateurs et de ses
+applications mobiles ; il devra se reconnecter avec son mot de passe. Le dernier administrateur ne peut
 pas perdre son rôle, et un utilisateur propriétaire de transactions ne peut pas être
 supprimé.
 
@@ -721,7 +723,15 @@ Quatre sous-onglets, comme l'administration : **Profil**, **Double authentificat
   - **Navigateurs de confiance** : navigateurs web où le code de double authentification
     n'est pas redemandé pendant 6 mois, avec un nom lisible tiré du User-Agent (« Firefox
     sur Windows »), la date de dernière utilisation et l'échéance, et leur bouton
-    **Révoquer** (`GET /user/mfa`, `DELETE /user/mfa/browser`).
+    **Révoquer** (`GET /user/mfa`, `DELETE /user/mfa/browser`) ;
+  - **Sessions ouvertes** : le bouton **Se déconnecter partout** (après confirmation) ferme
+    toutes vos sessions, sur le portail et dans les applications mobiles — après la perte
+    d'un téléphone ou une connexion depuis un ordinateur partagé. Le navigateur en cours
+    reste connecté ; les autres reviennent à la mire de connexion (`DELETE /user/sessions`).
+
+Changer son mot de passe (sous-onglet **Profil**) ferme de la même façon toutes les autres
+sessions. Un navigateur dont la session a été fermée revient à la mire de connexion avec
+le message « Votre session a expiré ou a été fermée ».
 
 ## Pied de page
 
