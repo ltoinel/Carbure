@@ -23,6 +23,7 @@ namespace Carbure\Resources;
 use Carbure\Lib\ApiRoute;
 use Carbure\Lib\Db;
 use Carbure\Lib\Jwt;
+use Carbure\Lib\Logger;
 use Carbure\Lib\Month;
 use Carbure\Lib\Setting;
 use Carbure\Lib\Webservice;
@@ -55,6 +56,15 @@ final class Mcp {
     private const INVALID_PARAMS = -32602;
 
     /**
+     * Headers of a response to a request authenticated with the ?token= parameter
+     * (RFC 9745): deprecated since 2026-11-27, and the page that explains what to use instead.
+     */
+    public const TOKEN_IN_URL_HEADERS = [
+        'Deprecation: @1795737600',
+        'Link: <https://carbure.org/mcp/#jeton-dans-lurl>; rel="deprecation"; type="text/html"',
+    ];
+
+    /**
      * Most months a query is checked on by check_insight_query (each run has a time limit)
      */
     private const CHECK_MAX_MONTHS = 6;
@@ -71,7 +81,8 @@ final class Mcp {
      * @param mixed       $params  The parameters of the method (an object)
      * @param mixed       $result  Response of the client to a server request (unused)
      * @param mixed       $error   Error of the client to a server request (unused)
-     * @param string|null $token   API token, for the agents that cannot send a header
+     * @param string|null $token   API token in the URL (deprecated: the Authorization header
+     *                             or OAuth instead), for the agents that cannot send a header
      * @return string The JSON-RPC response, or '' (HTTP 202) for a notification
      * @throws Error If disabled (403), unauthenticated (401) or from another site (403)
      */
@@ -212,8 +223,8 @@ final class Mcp {
     }
 
     /**
-     * Authenticate the client with an API token or a JWT; the tools then run as
-     * this user.
+     * Authenticate the client with an API token or a JWT in the Authorization header, or
+     * an API token in the URL (deprecated); the tools then run as this user.
      *
      * @param string|null $queryToken API token given in the URL
      * @return int The user id
@@ -221,7 +232,7 @@ final class Mcp {
      */
     private static function authenticate(?string $queryToken = null): int
     {
-        $token = Jwt::getTokenFromHeader() ?: $queryToken;
+        $token = Jwt::getTokenFromHeader() ?: self::tokenFromUrl($queryToken);
         $userId = null;
         if ($token) {
             if (str_starts_with($token, ApiToken::PREFIX)) {
@@ -242,6 +253,35 @@ final class Mcp {
 
         Jwt::actAs($userId);
         return $userId;
+    }
+
+    /**
+     * The token of the ?token= parameter, still accepted for the agents already configured
+     * with it but deprecated (an URL is written in the logs of the proxies, the history of
+     * the browsers, the screenshots of a configuration): a warning is logged (never the
+     * token) and the response has the Deprecation and Link headers. Only an API token is
+     * read there, never a session of the portal (30 days, the whole API).
+     *
+     * @param string|null $token The token passed as query parameter
+     * @return string|null The API token, null if there is none or if it is not one
+     */
+    private static function tokenFromUrl(?string $token): ?string
+    {
+        if ($token === null || $token === '') {
+            return null;
+        }
+        if (!str_starts_with($token, ApiToken::PREFIX)) {
+            Logger::warn("MCP: a token passed in the URL that is not an API token is refused");
+            return null;
+        }
+
+        Logger::warn("MCP: the API token passed in the URL is deprecated, use the Authorization header or OAuth");
+        if (!headers_sent()) {
+            foreach (self::TOKEN_IN_URL_HEADERS as $header) {
+                header($header);
+            }
+        }
+        return $token;
     }
 
     /**

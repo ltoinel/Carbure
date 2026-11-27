@@ -158,7 +158,7 @@
     "oauthAllow": "Allow",
     "oauthDeny": "Deny",
     "oauthInvalid": "Invalid or expired authorization request",
-    "agentHow_chatgpt": "Settings → Apps & Connectors → Developer mode → Create: paste this URL (Carbure must be reachable over HTTPS from Internet), without authentication.",
+    "agentHow_chatgpt": "Settings → Apps & Connectors → Developer mode → Create: paste this URL and choose the OAuth authentication. ChatGPT opens Carbure for you to allow the access: no token to copy (Carbure must be reachable over HTTPS from Internet).",
     "agentHow_cursor": "Settings → MCP → Add a server: paste this block in ~/.cursor/mcp.json.",
     "agentHow_vscode": "Command \"MCP: Open User Configuration\": paste this block in mcp.json, then use Copilot in Agent mode.",
     "agentHow_gemini": "In a terminal, run this command, then /mcp in Gemini CLI to check the connection.",

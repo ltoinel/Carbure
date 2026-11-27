@@ -28,7 +28,8 @@ export function agentConfigurations(url, token) {
             id: 'chatgpt',
             name: 'ChatGPT',
             how: 'agentHow_chatgpt',
-            code: `${url}?token=${token}`
+            // OAuth: ChatGPT only takes the URL and asks the user to authorize it in the portal
+            code: url
         },
         {
             id: 'cursor',

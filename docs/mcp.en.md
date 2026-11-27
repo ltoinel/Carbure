@@ -44,7 +44,7 @@ kept in the database.
 
 ## 3. Connect your AI agent { #3-connecter-son-agent-ia }
 
-### Claude (web, Desktop, mobile): no token, through OAuth { #claude-web-desktop-mobile-sans-jeton-par-oauth }
+### Claude and ChatGPT: no token, through OAuth { #claude-web-desktop-mobile-sans-jeton-par-oauth }
 
 In Claude: **Settings → Connectors → Add custom connector**, paste
 the MCP server URL (`https://<your-server>/api/mcp`, shown in the **AI agent** tab)
@@ -53,12 +53,15 @@ needed, then **Allow**. The access appears in **My access tokens**, under the ag
 (“Claude”), and is revoked like the other tokens. Carbure must be reachable over HTTPS
 from the Internet (see [Synology](synology.md), step 8).
 
+In **ChatGPT**: **Settings → Apps & Connectors → Developer mode → Create**, paste the same
+URL and choose the **OAuth** authentication. ChatGPT opens the Carbure portal in the same
+way; there is no token to copy.
+
 ### Other agents: with a token { #les-autres-agents-avec-un-jeton }
 
 | Agent | Configuration (suggested by the portal) |
 |---|---|
 | Claude Code | `claude mcp add --transport http carbure <url> --header "Authorization: Bearer <token>"` |
-| ChatGPT | connector in developer mode, URL `<url>?token=<token>` (public HTTPS required) |
 | Cursor | `mcpServers` block of `~/.cursor/mcp.json` with the `Authorization` header |
 | VS Code (Copilot) | `servers` block of `mcp.json` (type `http`) with the `Authorization` header |
 | Gemini CLI | `gemini mcp add --transport http --header "Authorization: Bearer <token>" carbure <url>` |
@@ -66,11 +69,26 @@ from the Internet (see [Synology](synology.md), step 8).
 `<url>` is `https://<your-server>/api/mcp`. Any MCP client that supports the
 **Streamable HTTP** transport works the same way.
 
-!!! note "Token in the URL"
-    For agents that cannot send a header (ChatGPT), the token can be passed
-    as a `?token=` parameter. It is not written to Carbure's logs nor to the nginx access
-    log of the Docker image (masked as `token=***`), but it may be by a proxy
-    placed in front: prefer the header when the agent allows it.
+<span id="jeton-dans-lurl"></span>
+
+!!! warning "Token in the URL: deprecated"
+    The `?token=` parameter (`<url>?token=<token>`) is still accepted for the agents
+    already configured with it, but it is **deprecated**: use OAuth or the `Authorization`
+    header. Carbure masks the token in its logs and in the nginx access log of the Docker
+    image (`token=***`), but a URL leaks elsewhere:
+
+    | Where | Why |
+    |---|---|
+    | Reverse proxy in front of Carbure (NAS, router) | It logs the full URL |
+    | History of the browser, of the command line | The URL stays there in plaintext |
+    | Screenshots of an agent configuration | The token can be read on them |
+
+    - Only access tokens (`cbt_…`) are read there: a portal session (JWT) is **refused**
+      (`401`).
+    - Each use is reported in the logs (without the token) and the response carries the
+      `Deprecation` and `Link` headers.
+    - A token already pasted in a URL must be **revoked and created again** (**My access
+      tokens**), then given to the agent through the header or replaced by OAuth.
 
 ## Available tools { #outils-disponibles }
 
@@ -112,8 +130,8 @@ the token of another user, the agent proposes a query without being able to run 
   and responds in JSON; a notification gets `202` with no body; `GET /api/mcp` responds `405`
   (no SSE stream).
 - Protocol versions: `2025-11-25`, `2025-06-18`, `2025-03-26`, `2024-11-05`.
-- Authentication: access token (`cbt_…`, `Authorization` header or `?token=`) or the portal
-  JWT; otherwise `401` with `WWW-Authenticate: Bearer resource_metadata="…"`, which tells
+- Authentication: access token (`cbt_…`) or the portal JWT in the `Authorization` header;
+  access token only in `?token=` (deprecated); otherwise `401` with `WWW-Authenticate: Bearer resource_metadata="…"`, which tells
   the agent where to find how to obtain a token. A request carrying an `Origin` header from
   a site other than Carbure, `claude.ai` or `claude.com` is rejected (`403`), like any
   request when the server is disabled.

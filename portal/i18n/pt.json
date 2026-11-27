@@ -158,7 +158,7 @@
     "oauthAllow": "Autorizar",
     "oauthDeny": "Recusar",
     "oauthInvalid": "Pedido de autorização inválido ou expirado",
-    "agentHow_chatgpt": "Definições → Aplicações e conectores → Modo de programador → Criar: cole este URL (o Carbure tem de estar acessível em HTTPS a partir da Internet), sem autenticação.",
+    "agentHow_chatgpt": "Definições → Aplicações e conectores → Modo de programador → Criar: cole este URL e escolha a autenticação OAuth. O ChatGPT abre o Carbure para que autorize o acesso: nenhum token a copiar (o Carbure tem de estar acessível em HTTPS a partir da Internet).",
     "agentHow_cursor": "Definições → MCP → Adicionar um servidor: cole este bloco em ~/.cursor/mcp.json.",
     "agentHow_vscode": "Comando «MCP: Open User Configuration»: cole este bloco em mcp.json e depois utilize o Copilot no modo Agent.",
     "agentHow_gemini": "Num terminal, execute este comando e depois /mcp no Gemini CLI para verificar a ligação.",

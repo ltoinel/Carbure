@@ -369,8 +369,10 @@ test('agentConfigurations: the MCP URL and the token in each configuration', () 
     const occurrences = (text, part) => text.split(part).length - 1;
     for (const config of configs) {
         assert.ok(occurrences(config.code, url) > 0, config.id);
-        assert.ok(occurrences(config.code, 'tok-123') > 0, config.id);
+        // ChatGPT connects with OAuth: the URL alone, never a token in it
+        assert.equal(occurrences(config.code, 'tok-123'), config.id === 'chatgpt' ? 0 : 1, config.id);
     }
+    assert.equal(configs.find(c => c.id === 'chatgpt').code, url);
     assert.deepEqual(JSON.parse(configs.find(c => c.id === 'cursor').code), { mcpServers: { carbure: { url, headers: { Authorization: 'Bearer tok-123' } } } });
 });
 
