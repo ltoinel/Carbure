@@ -85,6 +85,7 @@ class ApiResolverTest extends TestCase
         'DELETE /user/browser' => 'user',
         'DELETE /user/mfa' => 'user',
         'DELETE /user/mfa/browser' => 'user',
+        'DELETE /user/sessions' => 'user',
         'GET /.well-known/oauth-authorization-server' => 'public',
         'GET /.well-known/oauth-protected-resource' => 'public',
         'GET /.well-known/oauth-protected-resource/api/mcp' => 'public',

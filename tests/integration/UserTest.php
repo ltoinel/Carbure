@@ -151,9 +151,10 @@ class UserTest extends DatabaseTestCase
 
     public function testMeDeletedUser()
     {
+        // The session of a user who no longer exists is closed
         $this->loginAs(99);
         $this->expectException(Error::class);
-        $this->expectExceptionCode(404);
+        $this->expectExceptionCode(401);
         User::me();
     }
 

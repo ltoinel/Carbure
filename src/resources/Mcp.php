@@ -227,8 +227,7 @@ final class Mcp {
             if (str_starts_with($token, ApiToken::PREFIX)) {
                 $userId = ApiToken::authenticate($token);
             } else {
-                $payload = Jwt::parseJwt($token);
-                $userId = $payload === false || !isset($payload->sub) ? null : (int)$payload->sub;
+                $userId = Jwt::authenticate($token);
             }
         }
 

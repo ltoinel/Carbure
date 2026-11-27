@@ -22,6 +22,20 @@ final class Jwt {
     private static ?int $actingUser = null;
 
     /**
+     * Tokens already checked against the database in this request: token => user id, or
+     * null when refused (revoked session, deleted user)
+     *
+     * @var array<string, int|null>
+     */
+    private static array $checked = [];
+
+    /**
+     * Whether the column users.tokens_valid_after exists (migration
+     * 2026-11-27_user_tokens_valid_after); null until checked
+     */
+    private static ?bool $revocationReady = null;
+
+    /**
      * Run the next calls as a user authenticated by another mean (an API token):
      * getUserIdFromToken() then returns this user. null goes back to the JWT.
      *
@@ -37,10 +51,13 @@ final class Jwt {
     /**
      * Create a JWT token for a user.
      *
-     * @param int $userId The user id
+     * @param int      $userId The user id
+     * @param int|null $after  Time of the last revocation of the sessions of the user
+     *                         (users.tokens_valid_after): the token is issued after it, even
+     *                         within the same second
      * @return array{exp: int, sub: int, iat: int, token: string} The token data with 'token', 'exp', 'sub', 'iat'
      */
-    public static function createJwt(int $userId): array
+    public static function createJwt(int $userId, ?int $after = null): array
     {
         // Create token header as a JSON string
         $header = json_encode(['typ' => 'JWT', 'alg' => 'HS256'], JSON_THROW_ON_ERROR);
@@ -52,7 +69,7 @@ final class Jwt {
         $data = [
             'exp' => $expire->getTimestamp(),
             'sub' => $userId,
-            'iat' => time(),
+            'iat' => max(time(), $after === null ? 0 : $after + 1),
         ];
 
         $payload = json_encode($data, JSON_THROW_ON_ERROR);
@@ -168,6 +185,94 @@ final class Jwt {
     }
 
     /**
+     * User of a JWT whose session is still open: the token is signed and not expired, its
+     * user still exists and has not revoked the sessions since it was issued (password
+     * change, "sign out everywhere"). One primary-key lookup per token and per request.
+     *
+     * @param string $token The JWT
+     * @return int|null The user id, null if the token is refused
+     */
+    public static function authenticate(string $token): ?int
+    {
+        if (!array_key_exists($token, self::$checked)) {
+            $payload = self::parseJwt($token);
+            self::$checked[$token] = $payload === false ? null : self::openSession($payload);
+        }
+        return self::$checked[$token];
+    }
+
+    /**
+     * User of a valid token, unless deleted or signed out since the token was issued.
+     * The column of the revocation is read from the whole row: no error before its
+     * migration (nothing is revoked until then).
+     *
+     * @param object $payload The payload of a signed, unexpired token
+     * @return int|null The user id, null if the session is closed
+     */
+    private static function openSession(object $payload): ?int
+    {
+        $userId = (int)($payload->sub ?? 0);
+        $user = Db::queryOne("SELECT * FROM users WHERE id = ?", "i", $userId);
+        if ($user === null) {
+            Logger::warn("JWT token of a user who no longer exists");
+            return null;
+        }
+        $validAfter = $user['tokens_valid_after'] ?? null;
+        if ($validAfter !== null && (int)($payload->iat ?? 0) <= (int)$validAfter) {
+            Logger::warn("JWT token of a session that was signed out");
+            return null;
+        }
+        return $userId;
+    }
+
+    /**
+     * Close every session of a user: the tokens issued so far are refused from now on
+     * (password change, "sign out everywhere"). Nothing is revoked before the migration.
+     *
+     * @param int $userId The user
+     * @return int|null The time of the revocation, to give to createJwt() for a session that
+     *                  stays open; null if the migration is not applied yet
+     */
+    public static function revokeSessions(int $userId): ?int
+    {
+        if (!self::revocationReady()) {
+            return null;
+        }
+        $now = time();
+        Db::execute("UPDATE users SET tokens_valid_after = GREATEST(COALESCE(tokens_valid_after, 0), ?) WHERE id = ?", "ii", $now, $userId);
+        self::forget();
+        $row = Db::queryOne("SELECT tokens_valid_after FROM users WHERE id = ?", "i", $userId);
+        return $row === null ? $now : (int)$row['tokens_valid_after'];
+    }
+
+    /**
+     * Whether the sessions can be revoked (migration applied), checked once per request.
+     *
+     * @return bool True once the migration 2026-11-27_user_tokens_valid_after is applied
+     */
+    public static function revocationReady(): bool
+    {
+        if (self::$revocationReady === null) {
+            $row = Db::queryOne("SELECT COUNT(*) AS found FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'tokens_valid_after'", "");
+            self::$revocationReady = (int)($row['found'] ?? 0) > 0;
+        }
+        return self::$revocationReady;
+    }
+
+    /**
+     * Forget the tokens already checked (a session was closed, a user deleted, or the
+     * schema changed): the next call reads the database again.
+     *
+     * @return void
+     */
+    public static function forget(): void
+    {
+        self::$checked = [];
+        self::$revocationReady = null;
+    }
+
+    /**
      * Get the user ID from the Authorization header.
      * @return int the user ID
      */
@@ -183,14 +288,13 @@ final class Jwt {
             throw new Error("Missing Authorization header");
         }
 
-        // Parse JWT token
-        $payload = self::parseJwt($token);
-        
-        if ($payload === false || !isset($payload->sub)) {
-            throw new Error("Invalid JWT token");
+        $userId = self::authenticate($token);
+
+        if ($userId === null) {
+            throw new Error("Unauthorized - Invalid or missing JWT token", 401);
         }
 
-        return $payload->sub;
+        return $userId;
     }
 
     /**
@@ -206,15 +310,15 @@ final class Jwt {
             return false;
         }
 
-        // Validate JWT token
-        $payload = self::parseJwt($token);
-        
-        if ($payload === false) {
+        // Signed, not expired, and its session still open
+        $userId = self::authenticate($token);
+
+        if ($userId === null) {
             Logger::warn("Invalid JWT token");
             return false;
         }
 
-        Logger::setContext('user', (int)($payload->sub ?? 0));
+        Logger::setContext('user', $userId);
         return true;
     }
 }
