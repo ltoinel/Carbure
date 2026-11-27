@@ -12,6 +12,21 @@ icon: material/shield-lock-outline
   `jwtsecret`, valid for **30 days** (`sub` = user ID).
 - The other routes require `Authorization: Bearer <token>`; the signature is compared
   in constant time and the expiration is checked.
+- **Session revocation**: on each request, the token is also checked against the user in
+  the database. It is refused (`401`) in these cases:
+
+    | Event | Sessions closed |
+    |---|---|
+    | Password changed by the user | All of theirs, except the one making the change (it receives a new token) |
+    | Password reset by an administrator | All those of the user |
+    | "Sign out everywhere" (`DELETE /user/sessions`) | All those of the user; an administrator can do it for another account |
+    | User deleted | All of theirs |
+
+    The **lockout after 5 failures** closes no session: anyone could otherwise sign a
+    household member out by mistyping their password for them. Removing the administrator
+    role takes effect at once (the role is read from the database on each restricted
+    route). MCP access tokens (`cbt_…`) are not sessions: they are revoked one by one. To
+    close **all** the sessions of the household at once, renew `jwtsecret`.
 - Passwords are hashed with `password_hash()` (bcrypt). Legacy salted SHA-256
   hashes are verified one last time, then replaced at sign-in.
 

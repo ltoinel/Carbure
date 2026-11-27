@@ -292,6 +292,31 @@ curl -X PUT "https://exemple.fr/api/user?id=1" -H "Authorization: Bearer $TOKEN"
 
 Returns the updated user.
 
+A new password **closes every session of the user** (their tokens return `401`). When you
+change your own password, the response also holds `session` (`token`, `exp`, `sub`, `iat`,
+as `POST /user/login`): the client replaces its token with this one to stay signed in.
+
+### `DELETE /user/sessions` { #delete-usersessions }
+
+Closes every session of a user ("sign out everywhere"): the tokens issued so far return
+`401`.
+
+| Parameter | Required | Description |
+|---|---|---|
+| `id` | no | The user; yourself by default, another account for an administrator (`403` otherwise) |
+
+```bash
+curl -X DELETE "https://exemple.fr/api/user/sessions" -H "Authorization: Bearer $TOKEN"
+```
+
+```json
+{ "revoked": true, "session": { "token": "eyJ…", "exp": 1767225600, "sub": 2, "iat": 1764633600 } }
+```
+
+`session` is only returned for your own sessions: it is the new token of the device that
+made the request. `409` until the migration `2026-11-27_user_tokens_valid_after` is
+applied.
+
 ### `GET /user/notifications` { #get-usernotifications }
 
 Channels of each notification type for the logged-in user:
@@ -373,7 +398,7 @@ curl -X PUT "https://exemple.fr/api/user/notifications" -H "Authorization: Beare
 ### `DELETE /user` — administrator { #delete-user-administrateur }
 
 `id`: you cannot delete yourself (400) or delete a user who owns
-transactions (409).
+transactions (409). The sessions of the deleted user are closed at once.
 
 ## Accounts and synchronization { #comptes-et-synchronisation }
 

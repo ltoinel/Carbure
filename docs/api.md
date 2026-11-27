@@ -295,6 +295,32 @@ curl -X PUT "https://exemple.fr/api/user?id=1" -H "Authorization: Bearer $TOKEN"
 
 Renvoie l'utilisateur mis à jour.
 
+Un nouveau mot de passe **ferme toutes les sessions de l'utilisateur** (leurs jetons
+renvoient `401`). Quand on change son propre mot de passe, la réponse contient en plus
+`session` (`token`, `exp`, `sub`, `iat`, comme `POST /user/login`) : le client remplace son
+jeton par celui-ci pour rester connecté.
+
+### `DELETE /user/sessions`
+
+Ferme toutes les sessions d'un utilisateur (« se déconnecter partout ») : les jetons émis
+jusque-là renvoient `401`.
+
+| Paramètre | Requis | Description |
+|---|---|---|
+| `id` | non | Utilisateur concerné ; soi-même par défaut, un autre compte pour un administrateur (`403` sinon) |
+
+```bash
+curl -X DELETE "https://exemple.fr/api/user/sessions" -H "Authorization: Bearer $TOKEN"
+```
+
+```json
+{ "revoked": true, "session": { "token": "eyJ…", "exp": 1767225600, "sub": 2, "iat": 1764633600 } }
+```
+
+`session` n'est renvoyé que pour ses propres sessions : c'est le nouveau jeton de
+l'appareil qui a fait la demande. `409` tant que la migration
+`2026-11-27_user_tokens_valid_after` n'est pas appliquée.
+
 ### `GET /user/notifications`
 
 Canaux de chaque type de notification de l'utilisateur connecté :
@@ -376,7 +402,8 @@ curl -X PUT "https://exemple.fr/api/user/notifications" -H "Authorization: Beare
 ### `DELETE /user` — administrateur
 
 `id` : impossible de se supprimer soi-même (400) ou de supprimer un utilisateur
-propriétaire de transactions (409).
+propriétaire de transactions (409). Les sessions de l'utilisateur supprimé sont fermées
+aussitôt.
 
 ## Comptes et synchronisation
 
