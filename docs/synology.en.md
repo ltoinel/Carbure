@@ -209,3 +209,10 @@ Remember to back up the database before an update: phpMyAdmin → `carbure` data
 
 - **Database**: phpMyAdmin export or Hyper Backup (**MariaDB 10** application).
 - **Configuration and banks**: the `docker/carbure/data` folder (Hyper Backup or a copy).
+
+!!! warning "This folder holds your bank credentials"
+    `docker/carbure/data/woob` keeps the login and the password of each bank, in
+    plaintext: a copy of this folder holds them. Enable the **client-side encryption** of
+    the Hyper Backup task, or exclude the `woob` folder from it (the banks then have to be
+    connected again after a restore). See
+    [Bank credentials and backups](securite.md#identifiants-bancaires-et-sauvegardes).

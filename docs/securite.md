@@ -332,6 +332,37 @@ Seules ces routes ne demandent pas de JWT (un test unitaire le vérifie) :
 - `data/` : `conf/prod.ini` (dont `push_api_key`, la clé d'API du service de notifications push), `logs/`, `woob/` (identifiants bancaires woob)
   sont exclus du dépôt Git.
 
+### Identifiants bancaires et sauvegardes
+
+Les identifiants de vos banques ne sont pas dans la base de données : woob les garde dans
+`data/woob`, **en clair**.
+
+| Fichier | Contenu |
+|---|---|
+| `data/woob/.config/woob/backends` | Identifiant et mot de passe de chaque banque connectée |
+| `data/woob/.local/share/woob/` | Sessions de woob : cookies, jetons d'appareil de confiance obtenus après une validation en deux étapes |
+
+**Une copie de `data/woob` est donc une copie de vos identifiants bancaires** : une
+sauvegarde, un instantané du volume, une image du disque ou un disque volé.
+
+| Protection | Protège de | Ne protège pas de |
+|---|---|---|
+| Fichier lisible par son seul propriétaire (`chmod 600`) | Les autres comptes du serveur | `root` sur l'hôte, toute copie du volume |
+| Identifiants jamais sur la ligne de commande | Les autres processus du conteneur (`ps`) | La lecture du fichier lui-même |
+
+Pour sauvegarder sans exposer ces identifiants, au choix :
+
+- un outil qui **chiffre avant l'envoi** (restic, BorgBackup, Hyper Backup avec le
+  chiffrement côté client), avec une clé gardée ailleurs que sur le support de sauvegarde ;
+- **exclure `data/woob`** de la sauvegarde : après une restauration, les banques sont à
+  reconnecter dans l'onglet **Comptes** (les comptes suivis et les transactions, eux, sont
+  dans la base).
+
+La sauvegarde du portail (**Administration → Sauvegarde**) ne contient **aucun identifiant
+bancaire** : elle n'exporte que des données de la base. Le chiffrement de ces identifiants
+sur le disque est suivi dans le ticket
+[#532](https://github.com/ltoinel/Carbure/issues/532).
+
 ## Recommandations de déploiement
 
 !!! danger "Secret JWT"

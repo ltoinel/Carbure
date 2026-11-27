@@ -330,6 +330,36 @@ Only these routes do not require a JWT (a unit test checks it):
 - `data/`: `conf/prod.ini` (including `push_api_key`, the API key of the push notification service), `logs/`, `woob/` (woob bank credentials)
   are excluded from the Git repository.
 
+### Bank credentials and backups { #identifiants-bancaires-et-sauvegardes }
+
+The credentials of your banks are not in the database: woob keeps them in `data/woob`, **in
+plaintext**.
+
+| File | Content |
+|---|---|
+| `data/woob/.config/woob/backends` | Login and password of each connected bank |
+| `data/woob/.local/share/woob/` | woob sessions: cookies, trusted-device tokens obtained after a two-step validation |
+
+**A copy of `data/woob` is therefore a copy of your bank credentials**: a backup, a
+snapshot of the volume, a disk image or a stolen disk.
+
+| Protection | Protects from | Does not protect from |
+|---|---|---|
+| File readable by its owner only (`chmod 600`) | The other accounts of the server | `root` on the host, any copy of the volume |
+| Credentials never on the command line | The other processes of the container (`ps`) | Reading the file itself |
+
+To back up without exposing these credentials, either:
+
+- use a tool that **encrypts before sending** (restic, BorgBackup, Hyper Backup with
+  client-side encryption), with a key kept elsewhere than on the backup medium;
+- or **exclude `data/woob`** from the backup: after a restore, the banks have to be
+  connected again in the **Accounts** tab (the followed accounts and the transactions are
+  in the database).
+
+The backup of the portal (**Administration → Backup**) holds **no bank credentials**: it
+only exports data of the database. Encrypting these credentials on disk is tracked in
+issue [#532](https://github.com/ltoinel/Carbure/issues/532).
+
 ## Deployment recommendations { #recommandations-de-deploiement }
 
 !!! danger "JWT secret"

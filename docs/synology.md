@@ -220,3 +220,10 @@ Pensez à sauvegarder la base avant une mise à jour : phpMyAdmin → base `carb
 - **Base de données** : export phpMyAdmin ou Hyper Backup (application **MariaDB 10**).
 - **Configuration et banques** : le dossier `docker/carbure/data` (Hyper Backup ou
   copie).
+
+!!! warning "Ce dossier contient vos identifiants bancaires"
+    `docker/carbure/data/woob` garde l'identifiant et le mot de passe de chaque banque, en
+    clair : une copie de ce dossier les contient. Activez le **chiffrement côté client**
+    de la tâche Hyper Backup, ou excluez-en le dossier `woob` (les banques sont alors à
+    reconnecter après une restauration). Voir
+    [Identifiants bancaires et sauvegardes](securite.md#identifiants-bancaires-et-sauvegardes).

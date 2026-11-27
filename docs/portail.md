@@ -613,7 +613,9 @@ cet onglet ; voir [Configuration](configuration.md#push).
   nombre de lignes, puis **Exporter** télécharge `carbure-backup-AAAA-MM-JJ.zip`. Le ZIP
   contient un fichier JSON par type de données et un `manifest.json` (version du format,
   version de Carbure et du schéma, date, nombre de lignes). Les utilisateurs, mots de passe,
-  jetons, appareils, réglages, connexions et comptes bancaires n'y figurent jamais.
+  jetons, appareils, réglages, connexions et comptes bancaires n'y figurent jamais, pas plus
+  que les identifiants bancaires, que woob garde dans `data/woob` (voir
+  [Identifiants bancaires et sauvegardes](securite.md#identifiants-bancaires-et-sauvegardes)).
 - **Importer une sauvegarde** : on dépose un ZIP exporté par Carbure, ou un seul de ses
   fichiers JSON. Pour un ZIP, ses fichiers sont listés avec leur nombre de lignes et on coche
   ceux à importer (un fichier non reconnu est signalé et ne peut pas être coché).

@@ -603,7 +603,9 @@ this tab; see [Configuration](configuration.md#push).
   number of rows, then **Export** downloads `carbure-backup-YYYY-MM-DD.zip`. The ZIP
   contains one JSON file per kind of data and a `manifest.json` (format version,
   Carbure and schema version, date, number of rows). Users, passwords,
-  tokens, devices, settings, bank connections and bank accounts are never included.
+  tokens, devices, settings, bank connections and bank accounts are never included, nor are
+  the bank credentials, which woob keeps in `data/woob` (see
+  [Bank credentials and backups](securite.md#identifiants-bancaires-et-sauvegardes)).
 - **Import a backup**: you drop a ZIP exported by Carbure, or a single one of its
   JSON files. For a ZIP, its files are listed with their number of rows and you tick
   those to import (an unrecognized file is flagged and cannot be ticked).

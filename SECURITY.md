@@ -49,7 +49,10 @@ Out of scope:
   [woob](https://gitlab.com/woob/woob));
 - an instance exposed without HTTPS, or a configuration that ignores the
   [security documentation](https://carbure.org/securite/);
-- attacks that need an administrator account or access to the server (`data/`);
+- attacks that need an administrator account or access to the server (`data/`). Note that
+  `data/woob` holds the bank credentials in plaintext, so a backup of it must be protected
+  like the credentials themselves: see
+  [Bank credentials and backups](https://carbure.org/securite/#identifiants-bancaires-et-sauvegardes);
 - denial of service by volume, and reports of scanners without a demonstrated impact.
 
 ## Security measures
