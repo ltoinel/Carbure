@@ -48,11 +48,12 @@ d'authentification, ou un code de secours. À la première connexion, il affiche
 navigateur ; **Retour** revient au mot de passe. Un code faux est compté comme un échec
 de connexion.
 
-Deux profils existent :
+Trois profils existent :
 
 | Profil | Onglets |
 |---|---|
 | **Utilisateur** | Transactions, Budget, Insights, Tendances, Tags ; **Agent IA** et **Mon profil** dans le menu utilisateur |
+| **Lecture seule** | Les mêmes onglets que l'utilisateur, en consultation : le serveur refuse ses modifications des données du foyer (message « Votre compte est en lecture seule »). Il gère son propre profil, sa double authentification, ses appareils et ses jetons d'accès. Un badge **Lecture seule** le rappelle à côté de son nom |
 | **Administrateur** | En plus : Règles, Comptes, et le menu **Administration** (Utilisateurs, Catégories, Synchro, Push mobile, Agent IA, Logs, Paramètres, Sauvegarde, Purge, API) ; ajout et modification des insights ; activation du serveur MCP ; mise à jour de la base de données |
 
 Les pages d'administration (Règles, Catégories, Comptes, Utilisateurs) et les onglets

@@ -61,7 +61,7 @@ final class Device {
      * @return array<string, mixed> The device registered
      * @throws Error If there is no token or the platform is not known (400)
      */
-    #[ApiRoute('/device', method: 'POST', changes: [])]
+    #[ApiRoute('/device', method: 'POST', changes: [], self: true)]
     public static function registerMine(?string $token = null, ?string $name = '', ?string $platform = null, ?string $model = null,
         ?string $os_version = null, ?string $app_version = null): array
     {
@@ -93,7 +93,7 @@ final class Device {
      * @return bool True if deleted
      * @throws Error If the device does not exist or belongs to another user
      */
-    #[ApiRoute('/device', method: 'DELETE', changes: [])]
+    #[ApiRoute('/device', method: 'DELETE', changes: [], self: true)]
     public static function delete(int $id): bool
     {
         $stmt = Db::execute("DELETE FROM devices WHERE id=? AND user_id=?", "ii", $id, Jwt::getUserIdFromToken());
@@ -392,7 +392,7 @@ final class Device {
      *
      * @return array<string, array<string, mixed>> Results of the test notification
      */
-    #[ApiRoute('/device/push', method: 'POST', changes: [])]
+    #[ApiRoute('/device/push', method: 'POST', changes: [], self: true)]
     public static function testNotification(): array
     {
         $userId = Jwt::getUserIdFromToken();

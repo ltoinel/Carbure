@@ -745,7 +745,7 @@ final class Bank {
      *
      * @param string|null $token The sync token passed as query parameter (deprecated)
      * @return bool True for an authenticated user, false for the scheduler
-     * @throws Error If the caller is not allowed
+     * @throws Error If the caller is not allowed (401), or is a read-only member (403)
      */
     private static function checkSyncAccess(?string $token): bool
     {
@@ -756,6 +756,8 @@ final class Bank {
         }
 
         if (Jwt::checkAuthorization()) {
+            // The route is a GET: a read-only member is refused here, not by its attribute
+            User::requireWriter();
             return true;
         }
 

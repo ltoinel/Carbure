@@ -54,7 +54,7 @@ final class TrustedBrowser {
      * @return bool True if revoked
      * @throws Error If it does not exist or belongs to another user (404)
      */
-    #[ApiRoute('/user/mfa/browser', method: 'DELETE', changes: [])]
+    #[ApiRoute('/user/mfa/browser', method: 'DELETE', changes: [], self: true)]
     public static function delete(int $id): bool
     {
         $stmt = Db::execute("DELETE FROM mfa_trusted_browser WHERE id = ? AND user_id = ?", "ii", $id, Jwt::getUserIdFromToken());

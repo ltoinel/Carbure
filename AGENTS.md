@@ -80,6 +80,11 @@ git config core.hooksPath .githooks   # pre-commit lint, pre-push unit tests
   `admin: true` = administrators only, checked by `Webservice` before the method is called
   (403 of `User::requireAdmin()`; invalid with `public: true`); `quiet: true` = successful
   calls logged at DEBUG, errors unchanged (only `GET /health`, pinned by `ApiResolverTest`).
+- **Read-only members** (`users.role = 'viewer'`): `Webservice` refuses them (403 `read_only`)
+  on every route but GET. A route that only writes what belongs to the caller (own profile,
+  second factor, devices, API tokens) declares `self: true`; `ApiResolverTest::SELF` pins
+  that list and `RoleTest` walks every route as a read-only member. A GET that writes (the
+  synchronization) calls `User::requireWriter()` itself.
 - Request params (JSON body + query string) are injected **by name** into method params:
   renaming one breaks the API; unknown param → 400.
 - **Errors**:

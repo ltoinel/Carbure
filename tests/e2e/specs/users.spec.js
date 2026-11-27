@@ -69,3 +69,32 @@ test('deletes a user', async ({ adminPage: page }) => {
     await expect(page.locator('.toast')).toHaveText(tr('userDeleted'));
     await expect(userRow(page, 'marie')).toHaveCount(0);
 });
+
+test('makes a user a read-only member, who can no longer change the household data', async ({ adminPage: page, request, browser }) => {
+    await openTab(page, tr('tabUsers'));
+    await page.getByRole('button', { name: `${tr('editUser')} marie` }).click();
+    const modal = page.getByRole('dialog', { name: tr('editUser') });
+    await expect(modal).toContainText(tr('roleHelp'));
+    await modal.getByLabel(tr('userRole'), { exact: true }).selectOption({ label: tr('role_viewer') });
+    await modal.getByRole('button', { name: tr('save') }).click();
+    await expect(page.locator('.toast')).toHaveText(tr('userUpdated'));
+    await expect(userRow(page, 'marie')).toContainText(tr('role_viewer'));
+
+    // The API refuses her writes, and still answers her reads
+    const token = (await (await request.post('/api/user/login', { data: { username: 'marie', password: 'marie-password' } })).json()).token;
+    const headers = { Authorization: `Bearer ${token}` };
+    const refused = await request.post('/api/tag', { headers, data: { name: 'vacances' } });
+    expect(refused.status()).toBe(403);
+    expect((await refused.json()).error_code).toBe('read_only');
+    expect((await request.get('/api/tag', { headers })).ok()).toBeTruthy();
+
+    // Her portal says so next to her name
+    const marie = await (await browser.newContext()).newPage();
+    await marie.addInitScript(([jwt]) => {
+        localStorage.setItem('authToken', jwt);
+        localStorage.setItem('username', 'marie');
+    }, [token]);
+    await marie.goto('/portal/');
+    await expect(marie.locator('.read-only-chip')).toHaveText(tr('role_viewer'));
+    await marie.context().close();
+});

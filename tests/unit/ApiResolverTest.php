@@ -232,6 +232,64 @@ class ApiResolverTest extends TestCase
         $this->assertSame(self::ACCESS, $access, 'The access level of a route changed: make it deliberate');
     }
 
+    /**
+     * Write routes a read-only member (role viewer) may still call: they only write what
+     * belongs to the caller. Every other route but GET is refused to them.
+     */
+    private const SELF = [
+        'DELETE /device',
+        'DELETE /insight/alert',
+        'DELETE /token',
+        'DELETE /user/browser',
+        'DELETE /user/mfa',
+        'DELETE /user/mfa/browser',
+        'POST /device',
+        'POST /device/push',
+        'POST /oauth/approve',
+        'POST /token',
+        'POST /user/mfa/enable',
+        'POST /user/mfa/recovery-codes',
+        'POST /user/mfa/setup',
+        'PUT /insight/alert',
+        'PUT /user',
+        'PUT /user/notifications',
+    ];
+
+    public function testWriteRoutesOpenToAReadOnlyMember()
+    {
+        $self = [];
+        foreach (glob(__DIR__ . '/../../src/resources/*.php') as $file) {
+            $class = new ReflectionClass(ApiResolver::RESOURCES_NAMESPACE . basename($file, '.php'));
+            foreach ($class->getMethods() as $method) {
+                foreach ($method->getAttributes(ApiRoute::class) as $attribute) {
+                    $route = $attribute->newInstance();
+                    if ($route->self) {
+                        $self[] = $route->method . ' ' . $route->path;
+                        $this->assertSame('user', $route->access(), "$route->method $route->path");
+                    }
+                }
+            }
+        }
+        sort($self);
+        $this->assertSame(self::SELF, $self, 'A route was opened to (or closed for) the read-only members:'
+            . ' self: true only for a route that writes nothing but what belongs to the caller');
+    }
+
+    public function testARouteWritesHouseholdDataUnlessGetOrSelf()
+    {
+        $this->assertFalse((new ApiRoute('/x'))->writesHouseholdData());
+        $this->assertTrue((new ApiRoute('/x', method: 'POST', changes: []))->writesHouseholdData());
+        $this->assertTrue((new ApiRoute('/x', method: 'DELETE', admin: true, changes: []))->writesHouseholdData());
+        $this->assertFalse((new ApiRoute('/x', method: 'PUT', changes: [], self: true))->writesHouseholdData());
+    }
+
+    public function testCachedRoutesCarryTheSelfFlag()
+    {
+        ApiResolver::clearRouteCache();
+        $this->assertTrue(ApiResolver::findRoute('/user', 'PUT')['apiRoute']->self);
+        $this->assertFalse(ApiResolver::findRoute('/transaction', 'PUT')['apiRoute']->self);
+    }
+
     public function testEveryWriteRouteDeclaresTheDataItChanges()
     {
         $undeclared = [];

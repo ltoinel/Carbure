@@ -33,6 +33,18 @@ final class User {
     private const THEMES = ['system', 'light', 'dark'];
 
     /**
+     * Roles of a user: administrator, member (reads and writes the household data) and
+     * viewer (reads only: an accountant, a teenager)
+     */
+    public const ROLES = ['admin', 'member', 'viewer'];
+
+    /**
+     * Whether the column users.role exists (migration 2026-11-28_user_role), checked once
+     * per request; null until checked
+     */
+    private static ?bool $roleColumn = null;
+
+    /**
      * Whether the column users.theme exists (migration 2026-10-19_user_theme), checked
      * once per request; null until checked
      */
@@ -48,7 +60,34 @@ final class User {
     private static function columns(): string
     {
         $theme = self::hasThemeColumn() ? "theme" : "'system' AS theme";
-        return "id, username, firstname, lastname, email, is_admin, language, $theme, alert_threshold";
+        // The administrator flag wins; before the migration of the roles, nobody is read-only
+        $role = "IF(is_admin = 1, 'admin', " . (self::roleReady() ? "role" : "'member'") . ") AS role";
+        return "id, username, firstname, lastname, email, is_admin, $role, language, $theme, alert_threshold";
+    }
+
+    /**
+     * Whether the roles are stored (their migration applied): before it, nobody is read-only.
+     *
+     * @return bool True once the migration 2026-11-28_user_role is applied
+     */
+    public static function roleReady(): bool
+    {
+        if (self::$roleColumn === null) {
+            $row = Db::queryOne("SELECT COUNT(*) AS found FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'role'", "");
+            self::$roleColumn = (int)($row['found'] ?? 0) > 0;
+        }
+        return self::$roleColumn;
+    }
+
+    /**
+     * Forget whether the roles are stored (tests that change the schema).
+     *
+     * @return void
+     */
+    public static function forgetSchema(): void
+    {
+        self::$roleColumn = null;
     }
 
     /**
@@ -289,6 +328,32 @@ final class User {
     }
 
     /**
+     * Check if the authenticated user is a read-only member (role viewer): reads the
+     * household data, writes only what is their own (profile, second factor, devices...).
+     * The administrator flag wins: an administrator is never read-only.
+     *
+     * @return bool True if the user is read-only
+     */
+    public static function isViewer(): bool
+    {
+        $user = Db::queryOne("SELECT * FROM users WHERE id=?", "i", Jwt::getUserIdFromToken());
+        return $user !== null && !$user['is_admin'] && ($user['role'] ?? 'member') === 'viewer';
+    }
+
+    /**
+     * Require the authenticated user to be allowed to write household data.
+     *
+     * @return void
+     * @throws Error If the user is a read-only member (403)
+     */
+    public static function requireWriter(): void
+    {
+        if (self::isViewer()) {
+            throw new ApiError("Forbidden - Read-only account", 403, 'read_only');
+        }
+    }
+
+    /**
      * Get all users (administrator) or the authenticated user only, with the date
      * of their last login.
      * @return list<array<string, mixed>> List of users (without passwords)
@@ -341,12 +406,17 @@ final class User {
      * @param string|null $firstname The first name (optional)
      * @param string|null $lastname  The last name (optional)
      * @param bool|int|string|null $is_admin Administrator profile (optional, user by default): true, "true", 1...
+     * @param string|null $role      The role (optional): admin, member or viewer (read-only);
+     *                               wins over is_admin
      * @return array<string, mixed> The created user data with id
      * @throws Error If the username or email already exists or the caller is not an administrator
      */
     #[ApiRoute('/user', method: 'POST', admin: true, changes: [])]
-    public static function create(string $username, string $password, string $email, ?string $firstname = null, ?string $lastname = null, bool|int|string|null $is_admin = false): array
+    public static function create(string $username, string $password, string $email, ?string $firstname = null, ?string $lastname = null, bool|int|string|null $is_admin = false,
+        ?string $role = null): array
     {
+        $role = self::roleValue($role) ?? (filter_var($is_admin, FILTER_VALIDATE_BOOLEAN) ? 'admin' : 'member');
+
         // Check if username already exists
         $sql = "SELECT id FROM users WHERE username=?";
         $stmt = Db::execute($sql, "s", $username);
@@ -369,11 +439,14 @@ final class User {
         $hashedPassword = self::hashPassword($password);
 
         // Insert the new user
-        $isAdmin = filter_var($is_admin, FILTER_VALIDATE_BOOLEAN) ? 1 : 0;
+        $isAdmin = $role === 'admin' ? 1 : 0;
         $sql = "INSERT INTO users (username, password, email, firstname, lastname, is_admin) VALUES (?, ?, ?, ?, ?, ?)";
         $stmt = Db::execute($sql, "sssssi", $username, $hashedPassword, $email, $firstname, $lastname, $isAdmin);
 
         $userId = $stmt->insert_id;
+        if (self::roleReady()) {
+            Db::execute("UPDATE users SET role = ? WHERE id = ?", "si", $role, $userId);
+        }
 
         return array(
             'id' => $userId,
@@ -381,7 +454,8 @@ final class User {
             'email' => $email,
             'firstname' => $firstname,
             'lastname' => $lastname,
-            'is_admin' => $isAdmin
+            'is_admin' => $isAdmin,
+            'role' => $role
         );
     }
 
@@ -434,26 +508,29 @@ final class User {
      *                                    (optional, "" or 0 disables the alerts)
      * @param bool|int|string|null $is_admin Administrator profile (optional, administrators only): true, "true", 1...
      * @param string|null $theme     The display theme of the portal (optional, system|light|dark)
+     * @param string|null $role      The role (optional, administrators only): admin, member or
+     *                               viewer (read-only); wins over is_admin
      * @return array<string, mixed> The updated user data
      * @throws Error If the user is not found, email already exists or the caller is not allowed
      */
-    #[ApiRoute('/user', method: 'PUT', changes: [])]
+    #[ApiRoute('/user', method: 'PUT', changes: [], self: true)]
     public static function update(int $id, ?string $email = null, ?string $firstname = null, ?string $lastname = null, ?string $password = null,
         ?string $language = null, float|int|string|null $alertThreshold = null, bool|int|string|null $is_admin = null,
-        ?string $theme = null): array
+        ?string $theme = null, ?string $role = null): array
     {
         // A user can only update his own profile, unless administrator
         if ($id !== (int)Jwt::getUserIdFromToken()) {
             self::requireAdmin();
         }
 
-        $is_admin = self::adminFlag($id, $is_admin);
         $currentUser = self::findForUpdate($id);
+        $role = self::roleChange($id, $currentUser, $role, $is_admin);
+        $is_admin = $role === null ? null : (int)($role === 'admin');
         self::checkEmailFree($id, $email, $currentUser['email']);
 
         // Update only the provided fields
         $fields = [...self::updateFields($email, $firstname, $lastname, $language, $is_admin, $alertThreshold, $password),
-            ...self::themeField($theme)];
+            ...self::themeField($theme), ...($role === null || !self::roleReady() ? [] : [["role", "s", $role]])];
         if (!empty($fields)) {
             $types = implode('', array_column($fields, 1)) . "i";
             $params = [...array_column($fields, 2), $id];
@@ -477,25 +554,53 @@ final class User {
     }
 
     /**
-     * Administrator flag of an update: only an administrator changes it, and the last
-     * administrator keeps his role.
+     * Role sent by a client, checked.
+     *
+     * @param string|null $role The role sent, null or "" if none
+     * @return string|null admin, member or viewer; null if none was sent
+     * @throws Error If the role is unknown (400), or viewer before its migration (409)
+     */
+    private static function roleValue(?string $role): ?string
+    {
+        if ($role === null || $role === '') {
+            return null;
+        }
+        if (!in_array($role, self::ROLES, true)) {
+            throw new ApiError("Unsupported role: $role", 400, 'role_unsupported', ['role' => $role]);
+        }
+        if ($role === 'viewer' && !self::roleReady()) {
+            throw new Error("Apply the pending database migrations first: the read-only role cannot be saved yet", 409);
+        }
+        return $role;
+    }
+
+    /**
+     * New role of an update: only an administrator changes it, and the last administrator
+     * keeps his role. The older clients send is_admin only: false then keeps a read-only
+     * member as he is.
      *
      * @param int                  $id       The user id to update
+     * @param array<string, mixed> $current  The current row of the user
+     * @param string|null          $role     The role sent, null if not changed
      * @param bool|int|string|null $is_admin The flag sent (true, "true", 1...), null if not changed
-     * @return int|null 1 or 0, null if not changed
+     * @return string|null admin, member or viewer; null if not changed
      * @throws Error If the caller is not an administrator or no administrator would remain
      */
-    private static function adminFlag(int $id, bool|int|string|null $is_admin): ?int
+    private static function roleChange(int $id, array $current, ?string $role, bool|int|string|null $is_admin): ?string
     {
-        if ($is_admin === null) {
+        $role = self::roleValue($role);
+        if ($role === null && $is_admin !== null) {
+            $member = ($current['role'] ?? 'member') === 'viewer' ? 'viewer' : 'member';
+            $role = filter_var($is_admin, FILTER_VALIDATE_BOOLEAN) ? 'admin' : $member;
+        }
+        if ($role === null) {
             return null;
         }
         self::requireAdmin();
-        $flag = filter_var($is_admin, FILTER_VALIDATE_BOOLEAN) ? 1 : 0;
-        if ($flag === 0 && !Db::queryOne("SELECT id FROM users WHERE is_admin = 1 AND id <> ? LIMIT 1", "i", $id)) {
+        if ($role !== 'admin' && !Db::queryOne("SELECT id FROM users WHERE is_admin = 1 AND id <> ? LIMIT 1", "i", $id)) {
             throw new ApiError("At least one administrator is required", 409, 'admin_required');
         }
-        return $flag;
+        return $role;
     }
 
     /**

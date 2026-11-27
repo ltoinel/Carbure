@@ -186,6 +186,14 @@ export function createProfileModule(getApiService) {
             },
 
             /**
+             * Read-only member (role viewer): the API refuses what he would write of the household data
+             * @returns {boolean}
+             */
+            isViewer() {
+                return !!(this.currentUser && !Number(this.currentUser.is_admin) && this.currentUser.role === 'viewer');
+            },
+
+            /**
              * Action of the header theme toggle, its accessible name and tooltip
              * @returns {string}
              */

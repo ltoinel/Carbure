@@ -198,10 +198,12 @@ final class Webservice {
 
     /**
      * Check access control for the endpoint, before its method is called: a valid JWT
-     * unless public, and an administrator for the routes declared with admin: true.
+     * unless public, an administrator for the routes declared with admin: true, and a
+     * member who can write for every route that writes household data.
      * @param ApiRoute $apiRoute The API route metadata
      * @return void
      * @throws Error 401 without a valid JWT, 403 if the route is reserved to the administrators
+     *               or writes household data and the caller is a read-only member
      */
     private static function checkAccess(ApiRoute $apiRoute): void
     {
@@ -218,6 +220,11 @@ final class Webservice {
         // Administrator endpoints: same error as the checks made by the methods themselves
         if ($apiRoute->admin) {
             User::requireAdmin();
+        }
+
+        // Read-only members: refused on every route that writes household data
+        if ($apiRoute->writesHouseholdData()) {
+            User::requireWriter();
         }
     }
 

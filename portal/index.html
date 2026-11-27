@@ -372,6 +372,7 @@
                                 aria-haspopup="menu" :aria-expanded="showUserMenu ? 'true' : 'false'">
                             <span class="material-icons" aria-hidden="true">account_circle</span>
                             <span class="user-menu-name">{{ currentUser ? currentUser.username : (username || '…') }}</span>
+                            <span v-if="isViewer" class="category-chip read-only-chip" :title="t('readOnlyHelp')">{{ t('role_viewer') }}</span>
                             <span class="material-icons user-menu-caret" aria-hidden="true">expand_more</span>
                         </button>
                         <div v-if="showUserMenu" class="user-menu-dropdown" role="menu">
@@ -2606,7 +2607,7 @@
                                             <td>{{ user.email }}</td>
                                             <td>{{ user.firstname || '-' }}</td>
                                             <td>{{ user.lastname || '-' }}</td>
-                                            <td><span class="category-chip" :class="{ 'role-admin': Number(user.is_admin) }">{{ Number(user.is_admin) ? t('role_admin') : t('role_user') }}</span></td>
+                                            <td><span class="category-chip" :class="{ 'role-admin': userRole(user) === 'admin' }">{{ t(roleLabel(userRole(user))) }}</span></td>
                                             <td class="user-last-login">
                                                 {{ user.last_login ? formatSyncDate(user.last_login) : t('neverLoggedIn') }}
                                                 <span v-if="isLocked(user)" class="category-chip user-locked">
@@ -4250,9 +4251,10 @@
                     </div>
                     <div class="form-group">
                         <label for="field-9">{{ t('userRole') }}</label>
-                        <select id="field-9" v-model.number="userFormData.is_admin">
-                            <option :value="0">{{ t('role_user') }}</option>
-                            <option :value="1">{{ t('role_admin') }}</option>
+                        <select id="field-9" v-model="userFormData.role">
+                            <option value="member">{{ t('role_user') }}</option>
+                            <option value="viewer">{{ t('role_viewer') }}</option>
+                            <option value="admin">{{ t('role_admin') }}</option>
                         </select>
                         <small>{{ t('roleHelp') }}</small>
                     </div>

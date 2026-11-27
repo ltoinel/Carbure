@@ -33,7 +33,7 @@ final class ApiResolver {
      * version would not be found; v4 carries the kinds of data changed by each route;
      * v5 carries the quiet flag (calls logged at the DEBUG level)
      */
-    private const APCU_CACHE_KEY = 'carbure_routes_cache_v5';
+    private const APCU_CACHE_KEY = 'carbure_routes_cache_v6';
 
     /**
      * Namespace of the resource classes (src/resources)

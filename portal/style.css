@@ -9929,3 +9929,12 @@ button.is-busy:not(.btn-confirm-danger):hover {
     margin-left: 4px;
     font-variant-numeric: tabular-nums;
 }
+
+/* Read-only member (role viewer): reminder next to the name in the header */
+.read-only-chip {
+    margin-left: 8px;
+    white-space: nowrap;
+    /* Its own colors, whatever the header behind: #1F2937 on white = 14.7:1 */
+    background: #FFFFFF;
+    color: #1F2937;
+}

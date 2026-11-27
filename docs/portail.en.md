@@ -48,11 +48,12 @@ app, or a recovery code. At the first login, it shows the
 browser; **Back** returns to the password. A wrong code counts as a failed
 login.
 
-There are two profiles:
+There are three profiles:
 
 | Profile | Tabs |
 |---|---|
 | **User** | Transactions, Budget, Insights, Trends, Tags; **AI agent** and **My profile** in the user menu |
+| **Read-only** | The same tabs as the user, for consultation: the server refuses their changes to the household data (message "Your account is read-only"). They manage their own profile, two-factor authentication, devices and access tokens. A **Read-only** badge next to their name is a reminder |
 | **Administrator** | In addition: Rules, Accounts, and the **Administration** menu (Users, Categories, Sync, Mobile push, AI agent, Logs, Settings, Backup, Purge, API); adding and editing insights; enabling the MCP server; database update |
 
 The administration pages (Rules, Categories, Accounts, Users) and the

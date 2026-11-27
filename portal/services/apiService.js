@@ -1489,11 +1489,13 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
      * @returns {Promise<Object>} Created user object
      * @throws {Error} If request fails
      */
-    async function createUser(username, password, email, firstname, lastname, isAdmin = false) {
-        return request(`${baseUrl}/user`, {
-            method: 'POST',
-            body: JSON.stringify({ username, password, email, firstname, lastname, is_admin: !!isAdmin })
-        }, 'Failed to create user');
+    async function createUser(username, password, email, firstname, lastname, isAdmin = false, role = null) {
+        const body = { username, password, email, firstname, lastname, is_admin: !!isAdmin };
+        // admin, member or viewer (read-only): wins over is_admin, kept for an older server
+        if (role) {
+            body.role = role;
+        }
+        return request(`${baseUrl}/user`, { method: 'POST', body: JSON.stringify(body) }, 'Failed to create user');
     }
 
     /**
@@ -1520,7 +1522,7 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
      * @returns {Promise<Object>} Updated user object
      * @throws {Error} If request fails
      */
-    async function updateUser(userId, email, firstname, lastname, password, language, alertThreshold, isAdmin, theme) {
+    async function updateUser(userId, email, firstname, lastname, password, language, alertThreshold, isAdmin, theme, role = null) {
         const url = `${baseUrl}/user?id=${userId}`;
         const body = { email, firstname, lastname };
 
@@ -1531,6 +1533,11 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
 
         if (isAdmin !== undefined && isAdmin !== null) {
             body.is_admin = !!isAdmin;
+        }
+
+        // admin, member or viewer (read-only): wins over is_admin, kept for an older server
+        if (role) {
+            body.role = role;
         }
 
         if (language) {

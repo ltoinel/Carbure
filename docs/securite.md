@@ -130,11 +130,19 @@ conteneur au démarrage (message dans `docker logs`), qui affiche aussi les prox
 | Rôle | Droits |
 |---|---|
 | Utilisateur | Données du foyer (comptes, transactions, budgets, insights, tendances), pointage et catégorie des transactions, montants des budgets, synchronisation par l'API, son profil, ses appareils, ses jetons d'accès MCP |
+| Lecture seule (`users.role = 'viewer'`) | Lit les mêmes données du foyer qu'un utilisateur, sans rien y modifier ni lancer de synchronisation. Garde la gestion de son propre compte : profil et mot de passe, double authentification, appareils, notifications, jetons d'accès MCP (outils en lecture seule), alertes d'insight |
 | Administrateur (`users.is_admin = 1`) | En plus : règles de catégorisation, catégories, connexions bancaires et comptes suivis (et leur synchronisation depuis le portail), mise à jour des modules woob, insights (requêtes SQL), activation du serveur MCP, paramètres du serveur (dont SMTP) et logs, mise à jour de la base de données, utilisateurs (profil, déblocage, réinitialisation de la double authentification), double authentification imposée |
 
 Les routes réservées sont déclarées dans leur attribut (`#[ApiRoute(..., admin: true)]`) et
 renvoient `403` avant l'appel de la méthode ; un test unitaire fixe le niveau d'accès de
 chaque route. Le portail masque les onglets correspondants.
+
+Le rôle **lecture seule** (un comptable, un adolescent) est appliqué au même endroit, avant
+l'appel de la méthode : toute route autre que `GET` renvoie `403` (`read_only`), sauf celles
+déclarées `self: true`, qui ne modifient que ce qui appartient à l'appelant. Un test
+parcourt **toutes** les routes de l'API en lecture seule : une nouvelle route qui écrit est
+refusée par défaut. Ce rôle limite les modifications, pas ce qui est visible : un membre
+en lecture seule lit toutes les données du foyer.
 
 Après **5 tentatives de connexion échouées** d'affilée, le compte est **bloqué 24 heures**
 (`423`, dès le 5e échec : la mire de connexion l'indique aussitôt), même avec le bon mot
