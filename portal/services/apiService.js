@@ -1379,6 +1379,18 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
     }
 
     /**
+     * Closes every session of a user ("sign out everywhere"): the tokens issued so far are refused
+     * @param {number} [id] - User (administrators only for another user); the caller by default
+     * @returns {Promise<{revoked: boolean, session?: {token: string}}>} session: the new
+     *   token of the caller, when the sessions closed are his own
+     * @throws {Error} If request fails
+     */
+    async function signOutEverywhere(id = null) {
+        const query = id === null ? '' : `?id=${encodeURIComponent(id)}`;
+        return request(`${baseUrl}/user/sessions${query}`, { method: 'DELETE' }, 'Failed to close the sessions');
+    }
+
+    /**
      * Agent asking for an OAuth authorization (consent page)
      * @param {string} oauthRequest - Authorization request (query string given to the portal)
      * @returns {Promise<{name: string, redirect_host: string}>}
@@ -1747,6 +1759,7 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
         importTransactions,
         createUser,
         setAuthToken,
+        signOutEverywhere,
         updateUser,
         updateUserTheme,
         deleteUser,

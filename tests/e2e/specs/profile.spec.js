@@ -423,3 +423,27 @@ test('sets the large expense threshold under its label in the notifications', as
     await openProfile(page, 'notificationsTitle');
     await expect(page.getByLabel(tr('alertThreshold'))).toHaveValue('');
 });
+
+test('signs out everywhere from the devices of the profile and stays signed in', async ({ userPage: page, request }) => {
+    const phone = (await (await request.post('/api/user/login', { data: { username: 'marie', password: 'marie-password' } })).json()).token;
+    const before = await page.evaluate(() => localStorage.getItem('authToken'));
+    await openProfile(page, 'myDevices');
+
+    const sessions = page.getByRole('group', { name: tr('sessionsTitle') });
+    await expect(sessions).toContainText(tr('sessionsHelp'));
+    await sessions.getByRole('button', { name: tr('signOutEverywhere') }).click();
+    // The consequences in a warning, cancel focused
+    const dialog = page.getByRole('dialog', { name: tr('signOutEverywhere') });
+    await expect(dialog.locator('#confirm-dialog-message')).toHaveText(tr('signOutEverywhereConfirm'));
+    await expect(dialog.locator('#confirm-dialog-warning')).toHaveText(tr('signOutEverywhereWarning'));
+    await expect(dialog.getByRole('button', { name: tr('cancel') })).toBeFocused();
+    await dialog.getByRole('button', { name: tr('signOutEverywhere') }).click();
+    await expect(page.locator('.toast')).toHaveText(tr('signOutEverywhereDone'));
+
+    // The other sessions are closed, this browser goes on with a new token
+    for (const token of [phone, before]) {
+        expect((await request.get('/api/user/me', { headers: { Authorization: `Bearer ${token}` } })).status()).toBe(401);
+    }
+    await page.reload();
+    await expect(page.locator('.user-menu-name')).toHaveText('marie');
+});

@@ -2621,6 +2621,9 @@
                                                     <button class="btn-icon" @click="resetUserMfa(user)" :title="t('mfaReset')" :aria-label="t('mfaReset') + ' ' + user.username">
                                                         <span class="material-icons" aria-hidden="true">phonelink_erase</span>
                                                     </button>
+                                                    <button class="btn-icon" @click="signOutEverywhere(user)" :title="t('signOutUser')" :aria-label="t('signOutUser') + ' ' + user.username">
+                                                        <span class="material-icons" aria-hidden="true">logout</span>
+                                                    </button>
                                                     <button class="btn-icon btn-icon-edit" @click="openEditUserModal(user)" :title="t('editUser')" :aria-label="t('editUser') + ' ' + user.username">
                                                         <span class="material-icons" aria-hidden="true">edit</span>
                                                     </button>
@@ -3017,6 +3020,18 @@
                                     </li>
                                 </ul>
                             </template>
+
+                            <!-- Sign out everywhere: closes the sessions of the portal and of the mobile apps -->
+                            <div class="profile-sessions" role="group" aria-labelledby="sessions-title">
+                                <h3 id="sessions-title" class="mfa-subtitle">{{ t('sessionsTitle') }}</h3>
+                                <p class="rules-help">{{ t('sessionsHelp') }}</p>
+                                <div class="mfa-actions">
+                                    <button type="button" class="btn-secondary" @click="signOutEverywhere()">
+                                        <span class="material-icons" aria-hidden="true">logout</span>
+                                        {{ t('signOutEverywhere') }}
+                                    </button>
+                                </div>
+                            </div>
                         </section>
                     </div>
                 </div>
