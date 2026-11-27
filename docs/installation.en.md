@@ -168,6 +168,11 @@ woob configuration with your banks (`data/woob`). It is the only folder to back 
 the database. No administrator password is passed through
 the environment: it is chosen in the wizard.
 
+!!! warning "A backup of `data/woob` holds your bank credentials"
+    woob keeps the login and the password of each bank there, in plaintext. Encrypt your
+    backups before they leave the server, or exclude `data/woob` from them: see
+    [Bank credentials and backups](securite.md#identifiants-bancaires-et-sauvegardes).
+
 The image contains nginx (portal, Swagger and API on port 80), PHP-FPM and woob. Its
 `HEALTHCHECK` queries `GET /api/health` every 5 minutes (every 10 seconds
 during the first 2 minutes, with Docker 25 or later): `docker ps` shows `healthy`

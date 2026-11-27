@@ -169,6 +169,11 @@ configuration woob avec vos banques (`data/woob`). C'est le seul dossier à sauv
 la base de données. Aucun mot de passe administrateur n'est passé par
 l'environnement : il est choisi dans l'assistant.
 
+!!! warning "Une sauvegarde de `data/woob` contient vos identifiants bancaires"
+    woob y garde l'identifiant et le mot de passe de chaque banque, en clair. Chiffrez vos
+    sauvegardes avant qu'elles ne quittent le serveur, ou excluez-en `data/woob` : voir
+    [Identifiants bancaires et sauvegardes](securite.md#identifiants-bancaires-et-sauvegardes).
+
 L'image contient nginx (portail, Swagger et API sur le port 80), PHP-FPM et woob. Son
 `HEALTHCHECK` interroge `GET /api/health` toutes les 5 minutes (toutes les 10 secondes
 pendant les 2 premières minutes, avec Docker 25 ou plus) : `docker ps` affiche `healthy`
