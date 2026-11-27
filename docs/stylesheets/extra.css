@@ -348,3 +348,11 @@
     display: none;
   }
 }
+
+/* ===== Navigation tabs (Accueil, Découvrir…) ===== */
+
+/* A band of its own under the pink header: the deep red of the brand. White on #8E1428 =
+   9.2:1, the inactive tabs (white at 70 %) = 5.1:1 */
+.md-tabs {
+  background-color: #8E1428;
+}
