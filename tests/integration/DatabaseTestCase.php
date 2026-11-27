@@ -53,6 +53,7 @@ abstract class DatabaseTestCase extends TestCase
     {
         unset($_SERVER['HTTP_AUTHORIZATION'], $_SERVER['HTTP_X_SYNC_TOKEN'], $_SERVER['HTTP_ORIGIN'], $_SERVER['HTTP_HOST']);
         Jwt::actAs(null);
+        Jwt::forget();
     }
 
     /**

@@ -88,6 +88,27 @@ test('changes the password', async ({ userPage: page, request }) => {
     expect(login.ok()).toBeTruthy();
 });
 
+test('a new password closes the other sessions and keeps this one', async ({ userPage: page, request }) => {
+    // Another session of Marie (her phone), opened before the change
+    const phone = (await (await request.post('/api/user/login', { data: { username: 'marie', password: 'marie-password' } })).json()).token;
+    const before = await page.evaluate(() => localStorage.getItem('authToken'));
+    await openProfile(page);
+
+    await page.getByLabel(tr('password')).fill('new-marie-password');
+    await page.getByRole('button', { name: tr('save') }).click();
+    await expect(page.locator('.toast')).toHaveText(tr('profileUpdated'));
+
+    // The tokens issued before the change are refused
+    for (const token of [phone, before]) {
+        expect((await request.get('/api/user/me', { headers: { Authorization: `Bearer ${token}` } })).status()).toBe(401);
+    }
+    // The portal goes on with the token of the answer, also after a reload
+    expect(await page.evaluate(() => localStorage.getItem('authToken'))).not.toBe(before);
+    await page.reload();
+    await expect(page.locator('.user-menu-name')).toHaveText('marie');
+    await expect(page.locator('.transaction-item').first()).toBeVisible();
+});
+
 test('switches the portal to English', async ({ userPage: page }) => {
     await openProfile(page);
 

@@ -12,6 +12,22 @@ icon: material/shield-lock-outline
   `jwtsecret`, valable **30 jours** (`sub` = identifiant de l'utilisateur).
 - Les autres routes exigent `Authorization: Bearer <token>` ; la signature est comparée
   en temps constant et l'expiration est contrôlée.
+- **Révocation des sessions** : à chaque requête, le jeton est aussi confronté à
+  l'utilisateur en base. Il est refusé (`401`) dans ces cas :
+
+    | Événement | Sessions fermées |
+    |---|---|
+    | Changement de mot de passe par l'utilisateur | Toutes les siennes, sauf celle qui fait le changement (elle reçoit un nouveau jeton) |
+    | Mot de passe réinitialisé par un administrateur | Toutes celles de l'utilisateur |
+    | « Se déconnecter partout » (`DELETE /user/sessions`) | Toutes celles de l'utilisateur ; un administrateur peut le faire pour un autre compte |
+    | Utilisateur supprimé | Toutes les siennes |
+
+    Le **blocage après 5 échecs** ne ferme aucune session : n'importe qui pourrait sinon
+    déconnecter un membre du foyer en se trompant de mot de passe à sa place. Le retrait
+    du rôle administrateur est effectif aussitôt (le rôle est relu en base à chaque route
+    réservée). Les jetons d'accès MCP (`cbt_…`) ne sont pas des sessions : ils se révoquent
+    un par un. Pour fermer **toutes** les sessions du foyer d'un coup, renouvelez
+    `jwtsecret`.
 - Les mots de passe sont hachés avec `password_hash()` (bcrypt). Les anciens hachages
   SHA-256 salés sont vérifiés une dernière fois puis remplacés à la connexion.
 

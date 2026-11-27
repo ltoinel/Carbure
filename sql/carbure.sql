@@ -237,6 +237,7 @@ CREATE TABLE `users` (
   `last_login` datetime DEFAULT NULL,
   `failed_logins` tinyint(3) unsigned NOT NULL DEFAULT 0,
   `locked_until` datetime DEFAULT NULL,
+  `tokens_valid_after` int(10) unsigned DEFAULT NULL COMMENT 'Sessions revoked up to this time (Unix seconds): the JWTs issued until then are refused',
   PRIMARY KEY (`id`),
   UNIQUE KEY `username` (`username`),
   UNIQUE KEY `email` (`email`),
@@ -432,7 +433,8 @@ INSERT IGNORE INTO `schema_migrations` (`version`) VALUES
 ('2026-11-05_rule_amount'),
 ('2026-11-06_budget_note'),
 ('2026-11-07_insight_position'),
-('2026-11-19_transaction_comment');
+('2026-11-19_transaction_comment'),
+('2026-11-27_user_tokens_valid_after');
 
 SET FOREIGN_KEY_CHECKS = 1;
 COMMIT;

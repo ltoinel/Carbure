@@ -54,12 +54,11 @@ class JwtTest extends TestCase
         $this->assertFalse(Jwt::parseJwt($this->forge(['foo' => 'bar'])));
     }
 
-    public function testUserIdFromBearerHeader()
+    public function testATokenIsIssuedAfterTheLastRevocation()
     {
-        $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer ' . Jwt::createJwt(7)['token'];
-
-        $this->assertTrue(Jwt::checkAuthorization());
-        $this->assertSame(7, Jwt::getUserIdFromToken());
+        // Same second as the revocation, or a clock behind it: still issued after it
+        $this->assertSame(time() + 61, Jwt::createJwt(7, time() + 60)['iat']);
+        $this->assertEqualsWithDelta(time(), Jwt::createJwt(7, time() - 60)['iat'], 1);
     }
 
     public function testMissingHeader()

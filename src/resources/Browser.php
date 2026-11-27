@@ -10,7 +10,8 @@
  *
  * Not in the table devices: a browser receives no push notification and is not a "known
  * device" that skips the second factor. Removing a browser only forgets it: its session
- * (JWT) stays valid until it expires. The browsers unused for DAYS days are forgotten.
+ * (JWT) stays valid until it expires or is revoked (password change, DELETE
+ * /user/sessions). The browsers unused for DAYS days are forgotten.
  *
  * @author     Ludovic Toinel
  * @copyright  2026 Carbure App

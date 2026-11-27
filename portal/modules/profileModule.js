@@ -691,7 +691,7 @@ export function createProfileModule(getApiService) {
 
                 this.savingProfile = true;
                 try {
-                    this.currentUser = await apiService.updateUser(
+                    const { session, ...user } = await apiService.updateUser(
                         this.currentUser.id,
                         this.profileForm.email,
                         this.profileForm.firstname,
@@ -702,6 +702,9 @@ export function createProfileModule(getApiService) {
                         undefined,
                         this.profileForm.theme
                     );
+                    // A new password closes the other sessions: this one goes on with a new token
+                    this.adoptSession(session);
+                    this.currentUser = user;
                     this.profileForm.password = '';
                     applyTheme(this.currentUser.theme);
                     // The email channel depends on the address of the profile

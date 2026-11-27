@@ -176,6 +176,15 @@ test('updateUser only sends the fields given', async () => {
     });
 });
 
+test('setAuthToken replaces the token of the next calls', async () => {
+    const calls = mockFetch(() => json({ id: 2 }));
+    const api = createApiService(BASE, 'old-token');
+
+    api.setAuthToken('new-token');
+    await api.updateUserTheme(2, 'dark');
+    assert.equal(calls[0].options.headers.Authorization, 'Bearer new-token');
+});
+
 test('syncBanks reads the progress events of one account', async () => {
     const stream = 'data: Syncing 1@bnp (coming)...\n\n: heartbeat\n\ndata: Done 1@bnp (coming): 1 received, 1 new\n\ndata: Synchronization complete\n\n';
     const calls = mockFetch(() => new Response(new Blob([stream]).stream(), { status: 200 }));

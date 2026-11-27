@@ -148,7 +148,8 @@ final class User {
             Device::register((int)$user['id'], $device);
         }
 
-        $token = Jwt::createJwt($user['id']);
+        // Issued after the last revocation of the sessions, even within the same second
+        $token = Jwt::createJwt((int)$user['id'], isset($user['tokens_valid_after']) ? (int)$user['tokens_valid_after'] : null);
 
         // Shown to the administrators (Users tab)
         Db::execute("UPDATE users SET last_login = NOW() WHERE id = ?", "i", $user['id']);
@@ -418,7 +419,55 @@ final class User {
         $sql = "DELETE FROM users WHERE id=?";
         Db::execute($sql, "i", $id);
 
+        // The sessions of the deleted user are closed at once
+        Jwt::forget();
+
         return true;
+    }
+
+    /**
+     * Sign a user out everywhere: every session opened so far (portal, mobile apps) is
+     * refused from now on. The API tokens of the MCP server are not sessions: they are
+     * revoked one by one (DELETE /token).
+     *
+     * @param int|null $id The user (administrators only for another user); the caller by default
+     * @return array<string, mixed> revoked (false until the migration is applied) and, for the
+     *                              caller, session: a new token (exp, sub, iat, token) that
+     *                              keeps the current device signed in
+     * @throws Error If the user is not found or the caller is not allowed
+     */
+    #[ApiRoute('/user/sessions', method: 'DELETE', changes: [])]
+    public static function signOutEverywhere(?int $id = null): array
+    {
+        $caller = (int)Jwt::getUserIdFromToken();
+        $id ??= $caller;
+        if ($id !== $caller) {
+            self::requireAdmin();
+        }
+        self::findForUpdate($id);
+        if (!Jwt::revocationReady()) {
+            throw new Error("Apply the pending database migrations first: the sessions cannot be closed yet", 409);
+        }
+        return ['revoked' => true, ...self::closeSessions($id)];
+    }
+
+    /**
+     * Close every session of a user (password change, sign out everywhere). When users
+     * close their own, the device they are using gets a new token and stays signed in.
+     *
+     * @param int $id The user
+     * @return array{session?: array{exp: int, sub: int, iat: int, token: string}} The new
+     *               session of the caller, nothing for another user
+     */
+    private static function closeSessions(int $id): array
+    {
+        $caller = (int)Jwt::getUserIdFromToken();
+        $after = Jwt::revokeSessions($id);
+        if ($after === null || $id !== $caller) {
+            return [];
+        }
+        Logger::info("Sessions closed, new session for the current device");
+        return ['session' => Jwt::createJwt($id, $after)];
     }
 
     /**
@@ -434,7 +483,9 @@ final class User {
      *                                    (optional, "" or 0 disables the alerts)
      * @param bool|int|string|null $is_admin Administrator profile (optional, administrators only): true, "true", 1...
      * @param string|null $theme     The display theme of the portal (optional, system|light|dark)
-     * @return array<string, mixed> The updated user data
+     * @return array<string, mixed> The updated user data; after a change of their own password,
+     *                              session: a new token (exp, sub, iat, token), the previous
+     *                              ones being revoked
      * @throws Error If the user is not found, email already exists or the caller is not allowed
      */
     #[ApiRoute('/user', method: 'PUT', changes: [])]
@@ -462,9 +513,12 @@ final class User {
             Db::execute($sql, $types, ...$params);
         }
 
-        // A new password revokes the browsers trusted for the second factor
+        // A new password revokes the browsers trusted for the second factor and closes
+        // every session of the user, but the one that changes its own password
+        $session = [];
         if (in_array('password', array_column($fields, 0), true)) {
             Mfa::passwordChanged($id);
+            $session = self::closeSessions($id);
         }
 
         // Get updated user data
@@ -473,7 +527,7 @@ final class User {
             throw new ApiError("User not found", 404, 'user_not_found');
         }
 
-        return $updatedUser;
+        return [...$updatedUser, ...$session];
     }
 
     /**

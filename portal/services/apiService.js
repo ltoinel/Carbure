@@ -76,6 +76,15 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
     }
 
     /**
+     * Replaces the JWT of the next calls: the API gives a new one to the session that
+     * changes its own password, the previous tokens being revoked
+     * @param {string} token - The new JWT
+     */
+    function setAuthToken(token) {
+        authToken = token;
+    }
+
+    /**
      * Active AbortControllers for cancellable requests
      */
     const controllers = {
@@ -1737,6 +1746,7 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
         previewImport,
         importTransactions,
         createUser,
+        setAuthToken,
         updateUser,
         updateUserTheme,
         deleteUser,

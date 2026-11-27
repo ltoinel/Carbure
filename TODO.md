@@ -21,6 +21,13 @@ keeps track of what was done).
       5. remove the `[apns]` section and `data/conf/certs/*.p8` from the NAS (no longer used);
       6. later: a release workflow publishing the image of Carbure Push to a registry.
 
+- [ ] **Deployment of the session revocation (#533)**: the migration
+      `2026-11-27_user_tokens_valid_after` (`users.tokens_valid_after`) is applied at container
+      start (the code works before it: nothing is revoked until then). Release notes: a
+      password change now signs the other devices out; a mobile app older than the one
+      that reads `session` in the answer of `PUT /user` goes back to its login screen after
+      changing its own password.
+
 - [ ] **Release 1.12.0 — changelog (#391)**: add the `1.12.0` section to `docs/changelog.md`
       and `docs/changelog.en.md` (features, fixes, migrations to apply: split, tags, insights
       shown, …); from now on, the upgrade notes of each release go there, not in

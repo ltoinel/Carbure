@@ -162,7 +162,7 @@ export function createUserModule(getApiService) {
                 try {
                     if (this.userToEdit) {
                         // Update existing user
-                        await apiService.updateUser(
+                        const { session } = await apiService.updateUser(
                             this.userToEdit.id,
                             this.userFormData.email,
                             this.userFormData.firstname,
@@ -172,6 +172,8 @@ export function createUserModule(getApiService) {
                             null,
                             this.userFormData.is_admin
                         );
+                        // Administrators who change their own password here stay signed in
+                        this.adoptSession(session);
                         this.showToast(this.t('userUpdated'));
                         await this.loadUsers(); // Reload user list
                     } else {

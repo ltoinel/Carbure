@@ -761,6 +761,20 @@ const app = createApp({
         },
 
         /**
+         * Keeps the session open with the new token given by the API when the user changes
+         * his own password (the tokens issued before are revoked)
+         * @param {{token: string}} [session] - New session of the answer, if any
+         */
+        adoptSession(session) {
+            if (!session?.token) {
+                return;
+            }
+            this.authToken = session.token;
+            localStorage.setItem('authToken', session.token);
+            apiService.setAuthToken(session.token);
+        },
+
+        /**
          * Expired or invalid token: back to the login screen with a message
          */
         sessionExpired() {
