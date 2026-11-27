@@ -283,13 +283,23 @@ final class Bank {
      * fingerprint of its keyring (the one trusted, else the one woob would ask to trust,
      * to compare with the one published by the woob maintainers).
      *
-     * @return array{repository: string, trusted: bool, fingerprint: string|null, error: string|null}
-     *         error: why the fingerprint is unknown (repository not reachable), null if none
+     * With the state of the encryption of the bank credentials (Woob::credentialsStatus()):
+     * key configured or not, credentials encrypted, still in clear, or that the configured
+     * key no longer decrypts.
+     *
+     * @return array<string, mixed> repository, trusted, fingerprint, error (why the
+     *         fingerprint is unknown: repository not reachable, null if none), credentials
+     *         (key, settings, encrypted, clear, undecryptable; or error: an invalid key)
      */
     #[ApiRoute('/bank/woob', method: 'GET', admin: true)]
     public static function woob(): array
     {
-        return WoobRepository::status();
+        try {
+            $credentials = Woob::credentialsStatus();
+        } catch (Exception $e) {
+            $credentials = ['key' => false, 'error' => $e->getMessage()];
+        }
+        return WoobRepository::status() + ['credentials' => $credentials];
     }
 
     /**

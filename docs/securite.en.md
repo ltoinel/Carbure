@@ -349,6 +349,56 @@ Only these routes do not require a JWT (a unit test checks it):
 - Restrict the MySQL user to the `carbure` database.
 - Monitor `data/logs/carbure_YYYYMMDD.log` (synchronization errors, denied access: the WARNING end-of-request lines in 401 or 403, with the client IP). In JSON Lines format, the file can also be read with `jq` or a log collector.
 
+### Encryption of the bank credentials { #chiffrement-des-identifiants-bancaires }
+
+By default, woob keeps the login and the password of each bank **in plaintext** in
+`data/woob/.config/woob/backends`: a copy of the data folder (backup, snapshot, stolen
+disk) holds them. With an **encryption key given to Carbure outside that folder**, they
+are encrypted there (libsodium, `secretbox`).
+
+**Turn the encryption on**
+
+1. Generate a key of at least 32 characters: `openssl rand -base64 32`.
+2. Give it to the container, either way:
+
+    | Means | How |
+    |---|---|
+    | Environment variable | `CARBURE_SECRET_KEY=<key>` |
+    | File | `CARBURE_SECRET_KEY_FILE=/path/of/the/file` |
+    | Docker secret | a secret named `carbure_secret_key` (read in `/run/secrets/`) |
+
+3. Restart Carbure. At the next synchronization, the credentials already saved are
+   encrypted; the banks connected afterwards are encrypted as they are written.
+
+!!! danger "The key must not be in `data/`"
+    Neither in `data/conf/prod.ini` nor in a file of the data folder: a backup would then
+    hold the encrypted credentials **and** their key. Keep a copy of it elsewhere (a
+    password manager): without it, the credentials are lost.
+
+**How it works.** woob runs a value written between backquotes and uses what it prints.
+So Carbure writes, instead of the password, the call of its tool
+`tools/carbure-secret.php` followed by the encrypted value. The tool gets the key from the
+environment of the woob process and prints the value: it only goes through the pipe to
+woob, never to the disk nor to a command line. A value between backquotes typed in the
+portal is still refused.
+
+| Situation | What happens |
+|---|---|
+| No key | Today's behaviour (credentials in plaintext); a warning is shown to the administrators on the **Accounts** page |
+| Key added | The plaintext credentials are encrypted before the next call to woob |
+| Key to replace | Give the new one in `CARBURE_SECRET_KEY` and the old one in `CARBURE_SECRET_KEY_OLD`: everything is encrypted again at the next call to woob, then remove the old one |
+| Key missing or different | woob is not started, or fails with "The bank credentials cannot be decrypted"; the **Accounts** page reports it |
+| Key lost | Remove the banks on the **Accounts** page then connect them again: the transactions are kept |
+
+**Limits.**
+
+- An attacker running code in the container as the web server account reads the key and
+  can run woob: unattended synchronizations need it.
+- woob's sessions (`data/woob/.local/share/woob/`: cookies, trusted-device tokens) are
+  written by woob and stay in plaintext.
+- Outside Docker, the `php` command (command line, with the `sodium` extension) must be
+  reachable by the web server user, and `tools/carbure-secret.php` executable.
+
 ## Security scans { #analyses-de-securite }
 
 The **Security** workflow (README badge) groups the security scans:

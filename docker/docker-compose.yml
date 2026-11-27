@@ -29,6 +29,10 @@ services:
       # of the logins, logs). Unset: private networks and loopback; "none": no proxy
       # (Carbure published directly). See docs/securite.md
       # TRUSTED_PROXIES: 172.16.0.0/12
+      # Encrypts the bank credentials kept by woob in ../data/woob (32 characters at
+      # least: openssl rand -base64 32). Never store this key in ../data: a backup would
+      # hold the credentials and their key. See docs/securite.md
+      # CARBURE_SECRET_KEY: ${CARBURE_SECRET_KEY}
     volumes:
       - ../data:/data
     depends_on:

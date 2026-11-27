@@ -48,6 +48,15 @@ final class Woob {
      */
     private const UNSAFE_SETTING = '/[\x00-\x1f\x7f]|^`(.*`)?$/s';
 
+    /**
+     * Setting encrypted by Carbure (#532): the command that prints it, between backquotes.
+     * woob runs it to read the value (woob/core/backendscfg.py, DictWithCommands).
+     */
+    private const ENCRYPTED_SETTING = '/^`[^`]*carbure-secret\.php\'? (v1:[A-Za-z0-9+\/=]+)`$/';
+
+    /** Error of woob when the command of a setting fails: the key is missing or is another one */
+    private const DECRYPTION_FAILED = 'The call to the external tool failed';
+
     /** Hint woob adds after an error: not its cause */
     private const DEBUG_HINT = '/^Use --debug option to print backtraces/';
 
@@ -86,8 +95,145 @@ final class Woob {
                 }
             }
         }
+        self::protectCredentials();
         // An unset woob_path gives an empty command, as before
         return (string)$woob_path;
+    }
+
+    /**
+     * Before woob runs: with a key (Secret), encrypt the credentials still in clear in the
+     * file of the banks (first start with a key, bank added by hand) and those encrypted
+     * with the previous key; without one, refuse to run woob on encrypted credentials
+     * rather than let it fail on each bank.
+     *
+     * @return void
+     * @throws Exception If the credentials are encrypted and no key is configured, or the
+     *                   key is too short
+     */
+    private static function protectCredentials(): void
+    {
+        try {
+            $file = self::backendsFile();
+        } catch (Exception $e) {
+            return;
+        }
+        if (!is_file($file)) {
+            return;
+        }
+        if (Secret::available()) {
+            self::rewriteBackends($file, self::encryptSettings(...));
+        } elseif (self::credentialsStatus()['encrypted'] > 0) {
+            throw new Exception("The bank credentials are encrypted and " . Secret::KEY . " is not set: give the key back "
+                . "to Carbure (environment or secret file), or connect the banks again");
+        }
+    }
+
+    /**
+     * State of the encryption of the bank credentials, for the administrators.
+     *
+     * @return array{key: bool, settings: int, encrypted: int, clear: int, undecryptable: int}
+     *         key: a key is configured; settings: credentials and settings of the banks;
+     *         encrypted: those encrypted by Carbure; clear: those still in clear;
+     *         undecryptable: encrypted with a key that is no longer configured
+     * @throws Exception If the key is too short
+     */
+    public static function credentialsStatus(): array
+    {
+        $status = ['key' => Secret::available(), 'settings' => 0, 'encrypted' => 0, 'clear' => 0, 'undecryptable' => 0];
+        try {
+            $file = self::backendsFile();
+        } catch (Exception $e) {
+            return $status;
+        }
+        foreach (is_file($file) ? self::settingLines((string)@file_get_contents($file)) : [] as $value) {
+            $status['settings']++;
+            if (!preg_match(self::ENCRYPTED_SETTING, $value, $m)) {
+                // A command written by hand (password manager) is neither clear nor ours
+                $status['clear'] += (int)!str_starts_with($value, '`');
+                continue;
+            }
+            $status['encrypted']++;
+            $status['undecryptable'] += (int)($status['key'] && Secret::decrypt($m[1]) === null);
+        }
+        return $status;
+    }
+
+    /**
+     * Values of the settings of every backend of a file of woob (not "_module" and the
+     * other names woob keeps for itself).
+     *
+     * @param string $content The content of the file
+     * @return list<string> The values
+     */
+    private static function settingLines(string $content): array
+    {
+        preg_match_all('/^(?!_)[A-Za-z0-9_]+[ \t]*=[ \t]*(.*?)[ \t]*\r?$/m', $content, $matches);
+        return array_values(array_filter($matches[1], fn(string $value): bool => $value !== ''));
+    }
+
+    /**
+     * A file of woob with its credentials encrypted with the current key: the values in
+     * clear, and those encrypted with the previous key. A value that no key decrypts, or a
+     * command written by hand between backquotes, is left as it is.
+     *
+     * @param string $content The content of the file
+     * @return string The content to write
+     */
+    private static function encryptSettings(string $content): string
+    {
+        return (string)preg_replace_callback('/^((?!_)[A-Za-z0-9_]+[ \t]*=[ \t]*)(.*?)([ \t]*\r?)$/m', function (array $m): string {
+            $value = $m[2];
+            if (preg_match(self::ENCRYPTED_SETTING, $value, $encrypted)) {
+                $clear = Secret::isCurrent($encrypted[1]) ? null : Secret::decrypt($encrypted[1]);
+            } else {
+                $clear = $value === '' || str_starts_with($value, '`') ? null : $value;
+            }
+            return $m[1] . ($clear === null ? $value : self::encryptedSetting($clear)) . $m[3];
+        }, $content);
+    }
+
+    /**
+     * Setting written in the file of woob for an encrypted value: the command that
+     * prints it. Only content generated by Carbure between the backquotes: the path of
+     * its tool and base64.
+     *
+     * @param string $value The clear value
+     * @return string The command between backquotes
+     */
+    private static function encryptedSetting(string $value): string
+    {
+        return '`' . escapeshellarg(Config::get('install_dir') . '/tools/carbure-secret.php') . ' ' . Secret::encrypt($value) . '`';
+    }
+
+    /**
+     * Rewrite the file of the woob backends through a function, locked meanwhile; left
+     * untouched when the function changes nothing.
+     *
+     * @param string                   $file    The configuration file of the woob backends
+     * @param callable(string): string $rewrite Gives the new content from the current one
+     * @return void
+     */
+    private static function rewriteBackends(string $file, callable $rewrite): void
+    {
+        $handle = @fopen($file, 'c+');
+        if ($handle === false) {
+            return;
+        }
+        try {
+            flock($handle, LOCK_EX);
+            $content = (string)stream_get_contents($handle);
+            $new = $rewrite($content);
+            if ($new !== $content) {
+                ftruncate($handle, 0);
+                rewind($handle);
+                fwrite($handle, $new);
+                fflush($handle);
+                Logger::info("woob: bank credentials encrypted in the file of the banks");
+            }
+        } finally {
+            flock($handle, LOCK_UN);
+            fclose($handle);
+        }
     }
 
     /**
@@ -486,7 +632,8 @@ final class Woob {
             if (!preg_match('/^[A-Za-z0-9_]{1,100}$/', (string)$key) || preg_match(self::UNSAFE_SETTING, $value)) {
                 throw new Exception("Invalid setting $key");
             }
-            $section .= strtolower((string)$key) . " = $value\n";
+            // Encrypted when a key is configured: the file then holds no credential
+            $section .= strtolower((string)$key) . " = " . (Secret::available() && $value !== '' ? self::encryptedSetting($value) : $value) . "\n";
         }
         return "$section\n";
     }
@@ -679,7 +826,24 @@ final class Woob {
     {
         if (!$data && preg_match(self::ERROR_LINE, self::withoutLogs($stderr))) {
             Logger::error($message, ["stderr" => self::loggedOutput($stderr)]);
+            self::failOnDecryption($stderr);
             throw new Exception($message . self::lastLine($stderr));
+        }
+    }
+
+    /**
+     * Say what happened when woob could not read a credential encrypted by Carbure (its
+     * own error only tells that "the call to the external tool failed").
+     *
+     * @param string $stderr The error output of woob
+     * @return void
+     * @throws Exception If woob failed on the command of a setting
+     */
+    private static function failOnDecryption(string $stderr): void
+    {
+        if (str_contains($stderr, self::DECRYPTION_FAILED)) {
+            throw new Exception("The bank credentials cannot be decrypted: " . Secret::KEY . " is missing or is not the key "
+                . "they were encrypted with. Give that key back to Carbure, or connect the bank again");
         }
     }
 
@@ -913,6 +1077,8 @@ final class Woob {
             // The whole output (accounts, transactions, pages of the bank) only with woob_debug
             Logger::error("Error while calling woob (exit code: $return_var)", Config::get('woob_debug')
                 ? ["stdout" => $stdout, "stderr" => $stderr] : ["stderr" => self::loggedOutput($stderr)]);
+
+            self::failOnDecryption($stderr);
 
             // The last line of the error output usually gives the cause (e.g. a Python exception)
             throw new Exception("Error while calling woob (exit code: $return_var)" . self::lastLine($stderr));

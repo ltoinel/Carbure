@@ -21,6 +21,12 @@ keeps track of what was done).
       5. remove the `[apns]` section and `data/conf/certs/*.p8` from the NAS (no longer used);
       6. later: a release workflow publishing the image of Carbure Push to a registry.
 
+- [ ] **Encryption of the woob credentials (#532), what is left**: edit the credentials of
+      a connected bank without removing it (lost key, changed password); set the key from
+      the YunoHost package (`carbure_ynh`: a generated key outside the data directory);
+      Synology tutorial (environment variable of the container). Production (NAS): add
+      `CARBURE_SECRET_KEY` to the container, keep a copy of the key outside the NAS backups.
+
 - [ ] **Release 1.12.0 — changelog (#391)**: add the `1.12.0` section to `docs/changelog.md`
       and `docs/changelog.en.md` (features, fixes, migrations to apply: split, tags, insights
       shown, …); from now on, the upgrade notes of each release go there, not in

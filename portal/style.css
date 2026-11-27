@@ -9929,3 +9929,21 @@ button.is-busy:not(.btn-confirm-danger):hover {
     margin-left: 4px;
     font-variant-numeric: tabular-nums;
 }
+
+/* Bank credentials stored in clear, or encrypted with a lost key (Accounts page,
+   administrators): the colors of an error note */
+.bank-credentials-notice {
+    margin: 12px 0;
+    padding: 8px 12px;
+    border-radius: var(--border-radius-sm);
+    background: var(--error-light);
+    color: var(--error-color);
+    font-size: 13px;
+    word-break: break-word;
+}
+
+.bank-credentials-notice a {
+    margin-left: 6px;
+    color: inherit;
+    text-decoration: underline;
+}
