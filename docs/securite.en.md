@@ -127,6 +127,35 @@ the client are ignored. It is also used by the nginx access log and by PHP
 
 ## Permissions { #autorisations }
 
+### One household, shared data { #un-foyer-des-donnees-partagees }
+
+Carbure manages **a single household**: every signed-in person reads **all** the household
+data, whatever the bank account or the person who added it.
+
+| Data | Who reads it |
+|---|---|
+| Accounts, balances, transactions, attachments | Every signed-in member |
+| Budgets, categories, tags, trends, insights | Every signed-in member |
+| MCP server (AI agents) | Each member, with their own token: the same data |
+| Profile, devices, access tokens, two-factor authentication | Their owner only (and an administrator for the profile) |
+
+- The `user` and `user_id` columns of the database name an **owner** (who can delete a
+  transaction, whom an account is attached to), not a right to read: no read is filtered
+  by user.
+- **A stolen session therefore gives access to all the household data**, even the session
+  of a non-administrator account: enable
+  [two-factor authentication](#double-authentification-totp) on every account. Session
+  revocation is tracked in issues
+  [#533](https://github.com/ltoinel/Carbure/issues/533) and
+  [#535](https://github.com/ltoinel/Carbure/issues/535).
+- For a **strict separation** (a partner's personal accounts, an accountant who must see
+  one account only), install **a separate Carbure instance**, with its own container and
+  its own database: it is the only guaranteed separation. A read-only role is planned
+  ([#539](https://github.com/ltoinel/Carbure/issues/539)); it will limit the changes,
+  not what is visible.
+
+### Roles { #roles }
+
 | Role | Rights |
 |---|---|
 | User | Household data (accounts, transactions, budgets, insights, trends), checking and category of transactions, budget amounts, synchronization through the API, their profile, their devices, their MCP access tokens |

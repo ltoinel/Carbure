@@ -48,7 +48,9 @@ d'authentification, ou un code de secours. À la première connexion, il affiche
 navigateur ; **Retour** revient au mot de passe. Un code faux est compté comme un échec
 de connexion.
 
-Deux profils existent :
+Deux profils existent. Ils fixent ce qu'une personne peut **modifier**, pas ce qu'elle
+voit : chaque membre connecté lit toutes les données du foyer (voir
+[Un foyer, des données partagées](securite.md#un-foyer-des-donnees-partagees)).
 
 | Profil | Onglets |
 |---|---|
