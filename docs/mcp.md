@@ -72,9 +72,11 @@ Carbure de la même façon ; aucun jeton n'est à copier.
 <span id="jeton-dans-lurl"></span>
 
 !!! warning "Jeton dans l'URL : obsolète"
-    Le paramètre `?token=` (`<url>?token=<jeton>`) reste accepté pour les agents déjà
-    configurés ainsi, mais il est **obsolète** : utilisez OAuth ou l'en-tête
-    `Authorization`. Carbure masque le jeton dans ses logs et dans le log d'accès de nginx
+    Le paramètre `?token=` (`<url>?token=<jeton>`) est **obsolète et refusé par défaut**
+    (`401`) : utilisez OAuth ou l'en-tête `Authorization`. Pour un agent qui ne sait faire
+    ni l'un ni l'autre, un administrateur l'autorise dans l'onglet **Agent IA** (**Autoriser
+    le jeton dans l'URL**) ; un avertissement y reste affiché tant que le réglage est
+    actif, ainsi que le dernier jour où un agent a passé son jeton dans l'URL. Carbure masque le jeton dans ses logs et dans le log d'accès de nginx
     de l'image Docker (`token=***`), mais une URL fuit ailleurs :
 
     | Où | Pourquoi |
@@ -85,8 +87,11 @@ Carbure de la même façon ; aucun jeton n'est à copier.
 
     - Seuls les jetons d'accès (`cbt_…`) y sont lus : une session du portail (JWT) y est
       **refusée** (`401`).
-    - Chaque utilisation est signalée dans les logs (sans le jeton) et la réponse porte les
-      en-têtes `Deprecation` et `Link`.
+    - Chaque utilisation, acceptée ou refusée, est signalée dans les logs (sans le jeton) et
+      la réponse porte les en-têtes `Deprecation` et `Link`.
+    - **Après une mise à jour**, le réglage est désactivé : un agent configuré avec
+      `?token=` reçoit `401` jusqu'à ce qu'il passe à l'en-tête ou à OAuth, ou qu'un
+      administrateur réactive le réglage.
     - Un jeton déjà collé dans une URL doit être **révoqué et recréé** (**Mes jetons
       d'accès**), puis donné à l'agent par l'en-tête ou remplacé par OAuth.
 
@@ -132,7 +137,7 @@ sans pouvoir l'exécuter.
   (pas de flux SSE).
 - Versions du protocole : `2025-11-25`, `2025-06-18`, `2025-03-26`, `2024-11-05`.
 - Authentification : jeton d'accès (`cbt_…`) ou JWT du portail dans l'en-tête
-  `Authorization` ; jeton d'accès seul dans `?token=` (obsolète) ; sinon `401` avec `WWW-Authenticate: Bearer resource_metadata="…"`, qui indique à
+  `Authorization` ; jeton d'accès seul dans `?token=` (obsolète, refusé sauf réglage de l'administrateur) ; sinon `401` avec `WWW-Authenticate: Bearer resource_metadata="…"`, qui indique à
   l'agent où trouver comment obtenir un jeton. Une requête portant un en-tête `Origin` d'un
   autre site que Carbure, `claude.ai` ou `claude.com` est refusée (`403`), comme toute
   requête quand le serveur est désactivé.

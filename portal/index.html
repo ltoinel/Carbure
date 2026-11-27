@@ -2446,6 +2446,21 @@
                                 <span v-else class="category-chip" :class="{ 'role-admin': mcpEnabled }">{{ t(mcpEnabled ? 'mcpOn' : 'mcpOff') }}</span>
                                 <span class="rules-help">{{ t(mcpEnabled ? 'mcpOnHelp' : (isAdmin ? 'mcpOffHelpAdmin' : 'mcpOffHelp')) }}</span>
                             </div>
+                            <!-- Token in the URL (?token=, deprecated): refused until an administrator allows it -->
+                            <div v-if="isAdmin && mcpEnabled" class="mcp-switch-row mcp-url-token">
+                                <label class="toggle-switch" :class="{ on: mcpUrlToken }">
+                                    <input type="checkbox" role="switch" :checked="mcpUrlToken" :disabled="switchingMcp" @change="toggleMcpUrlToken" />
+                                    <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
+                                    <span class="toggle-label">{{ t('mcpUrlToken') }}</span>
+                                </label>
+                                <span class="rules-help">{{ t('mcpUrlTokenHelp') }}</span>
+                            </div>
+                            <p v-if="isAdmin && mcpEnabled && mcpUrlToken" class="sync-step-error mcp-url-token-warning" role="note">
+                                <span class="material-icons inline-icon" aria-hidden="true">warning</span>{{ t('mcpUrlTokenWarning') }}
+                            </p>
+                            <p v-if="isAdmin && mcpEnabled && mcpUrlTokenLastUsed" class="rules-help mcp-url-token-used">
+                                <span class="material-icons inline-icon" aria-hidden="true">history</span>{{ t('mcpUrlTokenLastUsed', { date: formatDate(mcpUrlTokenLastUsed) }) }}
+                            </p>
                             <p class="rules-help api-token-privacy">
                                 <span class="material-icons inline-icon" aria-hidden="true">privacy_tip</span>{{ t('apiTokenPrivacy') }}
                             </p>

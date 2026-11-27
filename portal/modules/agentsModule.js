@@ -63,6 +63,10 @@ export function createAgentsModule(getApiService) {
             return {
                 mcpEnabled: false,
                 switchingMcp: false,
+                // API token accepted in the URL (?token=, deprecated): off by default
+                mcpUrlToken: false,
+                // Last day an agent gave its token in the URL (Y-m-d), null if never
+                mcpUrlTokenLastUsed: null,
                 // Agent whose configuration is shown after creating a token
                 selectedAgent: 'claude-code'
             };
@@ -93,11 +97,41 @@ export function createAgentsModule(getApiService) {
              */
             async loadAgents() {
                 try {
-                    this.mcpEnabled = !!(await getApiService().fetchMcpSettings()).enabled;
+                    this.applyMcpSettings(await getApiService().fetchMcpSettings());
                 } catch (error) {
-                    this.mcpEnabled = false;
+                    this.applyMcpSettings({});
                 }
                 this.loadApiTokens();
+            },
+
+            /**
+             * Keeps the settings of the MCP server answered by the API
+             * @param {Object} settings - {enabled, url_token, url_token_last_used}
+             */
+            applyMcpSettings(settings) {
+                this.mcpEnabled = !!settings.enabled;
+                this.mcpUrlToken = !!settings.url_token;
+                this.mcpUrlTokenLastUsed = settings.url_token_last_used || null;
+            },
+
+            /**
+             * Allows or refuses the API token in the URL (administrators)
+             * @param {Event} [event] - Change of the switch: shown again as saved when refused
+             * @returns {Promise<void>}
+             */
+            async toggleMcpUrlToken(event) {
+                this.switchingMcp = true;
+                try {
+                    this.applyMcpSettings(await getApiService().updateMcpUrlToken(!this.mcpUrlToken));
+                    this.showToast(this.t(this.mcpUrlToken ? 'mcpUrlTokenOnToast' : 'mcpUrlTokenOffToast'));
+                } catch (error) {
+                    this.showToast(this.apiErrorText(error));
+                } finally {
+                    this.switchingMcp = false;
+                    if (event && event.target) {
+                        event.target.checked = this.mcpUrlToken;
+                    }
+                }
             },
 
             /**
@@ -108,7 +142,7 @@ export function createAgentsModule(getApiService) {
             async toggleMcp(event) {
                 this.switchingMcp = true;
                 try {
-                    this.mcpEnabled = !!(await getApiService().updateMcpSettings(!this.mcpEnabled)).enabled;
+                    this.applyMcpSettings(await getApiService().updateMcpSettings(!this.mcpEnabled));
                     this.showToast(this.t(this.mcpEnabled ? 'mcpEnabledToast' : 'mcpDisabledToast'));
                 } catch (error) {
                     this.showToast(this.apiErrorText(error));

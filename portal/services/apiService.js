@@ -461,10 +461,19 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
     /**
      * Enables or disables the MCP server (administrators)
      * @param {boolean} enabled - New state
-     * @returns {Promise<Object>} {enabled}
+     * @returns {Promise<Object>} {enabled, url_token, url_token_last_used}
      */
     async function updateMcpSettings(enabled) {
         return request(`${baseUrl}/mcp/settings`, { method: 'PUT', body: JSON.stringify({ enabled }) }, 'Failed to change the MCP server state');
+    }
+
+    /**
+     * Allows or refuses the API token in the URL of the MCP server (administrators)
+     * @param {boolean} allowed - New state
+     * @returns {Promise<Object>} {enabled, url_token, url_token_last_used}
+     */
+    async function updateMcpUrlToken(allowed) {
+        return request(`${baseUrl}/mcp/settings`, { method: 'PUT', body: JSON.stringify({ url_token: allowed }) }, 'Failed to change the MCP server settings');
     }
 
     /**
@@ -1652,6 +1661,7 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
         unlockUser,
         fetchMcpSettings,
         updateMcpSettings,
+        updateMcpUrlToken,
         fetchSchemaStatus,
         fetchRelease,
         migrateSchema,
