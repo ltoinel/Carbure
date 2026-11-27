@@ -365,10 +365,42 @@ class McpTest extends DatabaseTestCase
 
     public function testTokenInTheUrl()
     {
-        // For the agents that cannot send an Authorization header
+        // Deprecated, still accepted for the agents already configured with it
         unset($_SERVER['HTTP_AUTHORIZATION']);
         $response = json_decode(Mcp::handle('2.0', 'ping', 1, null, null, null, $this->token), true);
         $this->assertArrayHasKey('result', $response);
+        $this->assertSame('Deprecation: @1795737600', Mcp::TOKEN_IN_URL_HEADERS[0]);
+        $this->assertStringContainsString('rel="deprecation"', Mcp::TOKEN_IN_URL_HEADERS[1]);
+    }
+
+    public function testASessionOfThePortalIsRefusedInTheUrl()
+    {
+        // A JWT opens the whole API for 30 days: never in an URL
+        unset($_SERVER['HTTP_AUTHORIZATION']);
+        $jwt = Jwt::createJwt(self::USER)['token'];
+        try {
+            Mcp::handle('2.0', 'ping', 1, null, null, null, $jwt);
+            $this->fail('Accepted');
+        } catch (Error $e) {
+            $this->assertSame(401, $e->getCode());
+        }
+        // Still accepted in the Authorization header
+        $_SERVER['HTTP_AUTHORIZATION'] = "Bearer $jwt";
+        $this->assertArrayHasKey('result', json_decode(Mcp::handle('2.0', 'ping', 1), true));
+    }
+
+    public function testTheHeaderWinsOverTheUrl()
+    {
+        // No deprecated path taken when the header authenticates
+        $response = json_decode(Mcp::handle('2.0', 'ping', 1, null, null, null, 'cbt_unknown'), true);
+        $this->assertArrayHasKey('result', $response);
+    }
+
+    public function testAnUnknownApiTokenInTheUrl()
+    {
+        unset($_SERVER['HTTP_AUTHORIZATION']);
+        $this->expectExceptionCode(401);
+        Mcp::handle('2.0', 'ping', 1, null, null, null, 'cbt_unknown');
     }
 
     public function testGetIsNotAllowed()

@@ -1277,7 +1277,8 @@ l'active ou le désactive — administrateur.
 ### `POST /mcp` — publique (jeton d'accès)
 
 Serveur MCP (JSON-RPC 2.0, transport Streamable HTTP) en lecture seule, authentifié par
-`Authorization: Bearer <jeton>` (ou `?token=`). `GET /mcp` répond `405`. Voir
+`Authorization: Bearer <jeton>` (ou `?token=`, obsolète et réservé aux jetons `cbt_…` : voir
+[Jeton dans l'URL](mcp.md#jeton-dans-lurl)). `GET /mcp` répond `405`. Voir
 [Agents IA (MCP)](mcp.md).
 
 ### OAuth 2.1 des agents IA — publiques (sauf indication)

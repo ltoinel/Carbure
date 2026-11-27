@@ -1270,7 +1270,8 @@ enables or disables it — administrator.
 ### `POST /mcp` — public (access token) { #post-mcp-publique-jeton-dacces }
 
 Read-only MCP server (JSON-RPC 2.0, Streamable HTTP transport), authenticated with
-`Authorization: Bearer <token>` (or `?token=`). `GET /mcp` answers `405`. See
+`Authorization: Bearer <token>` (or `?token=`, deprecated and limited to `cbt_…` tokens: see
+[Token in the URL](mcp.md#jeton-dans-lurl)). `GET /mcp` answers `405`. See
 [AI agents (MCP)](mcp.md).
 
 ### OAuth 2.1 for AI agents — public (unless stated otherwise) { #oauth-21-des-agents-ia-publiques-sauf-indication }

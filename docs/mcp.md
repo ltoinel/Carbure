@@ -44,7 +44,7 @@ conservée en base.
 
 ## 3. Connecter son agent IA
 
-### Claude (web, Desktop, mobile) : sans jeton, par OAuth
+### Claude et ChatGPT : sans jeton, par OAuth { #claude-web-desktop-mobile-sans-jeton-par-oauth }
 
 Dans Claude : **Paramètres → Connecteurs → Ajouter un connecteur personnalisé**, collez
 l'URL du serveur MCP (`https://<votre-serveur>/api/mcp`, affichée dans l'onglet **Agent IA**)
@@ -53,12 +53,15 @@ besoin, puis **Autoriser**. L'accès apparaît dans **Mes jetons d'accès**, au 
 (« Claude »), et se révoque comme les autres jetons. Carbure doit être accessible en HTTPS
 depuis Internet (voir [Synology](synology.md), étape 8).
 
+Dans **ChatGPT** : **Réglages → Applications et connecteurs → Mode développeur → Créer**,
+collez la même URL et choisissez l'authentification **OAuth**. ChatGPT ouvre le portail de
+Carbure de la même façon ; aucun jeton n'est à copier.
+
 ### Les autres agents : avec un jeton
 
 | Agent | Configuration (proposée par le portail) |
 |---|---|
 | Claude Code | `claude mcp add --transport http carbure <url> --header "Authorization: Bearer <jeton>"` |
-| ChatGPT | connecteur en mode développeur, URL `<url>?token=<jeton>` (HTTPS public requis) |
 | Cursor | bloc `mcpServers` de `~/.cursor/mcp.json` avec l'en-tête `Authorization` |
 | VS Code (Copilot) | bloc `servers` de `mcp.json` (type `http`) avec l'en-tête `Authorization` |
 | Gemini CLI | `gemini mcp add --transport http --header "Authorization: Bearer <jeton>" carbure <url>` |
@@ -66,11 +69,26 @@ depuis Internet (voir [Synology](synology.md), étape 8).
 `<url>` est `https://<votre-serveur>/api/mcp`. Tout client MCP compatible avec le transport
 **Streamable HTTP** fonctionne de la même façon.
 
-!!! note "Jeton dans l'URL"
-    Pour les agents qui ne savent pas envoyer d'en-tête (ChatGPT), le jeton peut être passé
-    en paramètre `?token=`. Il n'est pas écrit dans les logs de Carbure ni dans le log
-    d'accès de nginx de l'image Docker (masqué en `token=***`), mais peut l'être par un proxy
-    placé devant : préférez l'en-tête quand l'agent le permet.
+<span id="jeton-dans-lurl"></span>
+
+!!! warning "Jeton dans l'URL : obsolète"
+    Le paramètre `?token=` (`<url>?token=<jeton>`) reste accepté pour les agents déjà
+    configurés ainsi, mais il est **obsolète** : utilisez OAuth ou l'en-tête
+    `Authorization`. Carbure masque le jeton dans ses logs et dans le log d'accès de nginx
+    de l'image Docker (`token=***`), mais une URL fuit ailleurs :
+
+    | Où | Pourquoi |
+    |---|---|
+    | Proxy inversé placé devant Carbure (NAS, box) | Il journalise l'URL complète |
+    | Historique du navigateur, de la ligne de commande | L'URL y reste en clair |
+    | Captures d'écran d'une configuration d'agent | Le jeton y est lisible |
+
+    - Seuls les jetons d'accès (`cbt_…`) y sont lus : une session du portail (JWT) y est
+      **refusée** (`401`).
+    - Chaque utilisation est signalée dans les logs (sans le jeton) et la réponse porte les
+      en-têtes `Deprecation` et `Link`.
+    - Un jeton déjà collé dans une URL doit être **révoqué et recréé** (**Mes jetons
+      d'accès**), puis donné à l'agent par l'en-tête ou remplacé par OAuth.
 
 ## Outils disponibles
 
@@ -113,8 +131,8 @@ sans pouvoir l'exécuter.
   et répond en JSON ; une notification reçoit `202` sans corps ; `GET /api/mcp` répond `405`
   (pas de flux SSE).
 - Versions du protocole : `2025-11-25`, `2025-06-18`, `2025-03-26`, `2024-11-05`.
-- Authentification : jeton d'accès (`cbt_…`, en-tête `Authorization` ou `?token=`) ou JWT du
-  portail ; sinon `401` avec `WWW-Authenticate: Bearer resource_metadata="…"`, qui indique à
+- Authentification : jeton d'accès (`cbt_…`) ou JWT du portail dans l'en-tête
+  `Authorization` ; jeton d'accès seul dans `?token=` (obsolète) ; sinon `401` avec `WWW-Authenticate: Bearer resource_metadata="…"`, qui indique à
   l'agent où trouver comment obtenir un jeton. Une requête portant un en-tête `Origin` d'un
   autre site que Carbure, `claude.ai` ou `claude.com` est refusée (`403`), comme toute
   requête quand le serveur est désactivé.
