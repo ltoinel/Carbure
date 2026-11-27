@@ -49,6 +49,9 @@ Out of scope:
   [woob](https://gitlab.com/woob/woob));
 - an instance exposed without HTTPS, or a configuration that ignores the
   [security documentation](https://carbure.org/securite/);
+- a signed-in member reading data of another member: Carbure is one household whose
+  members share all its data, by design (see
+  [One household, shared data](https://carbure.org/securite/#un-foyer-des-donnees-partagees));
 - attacks that need an administrator account or access to the server (`data/`);
 - denial of service by volume, and reports of scanners without a demonstrated impact.
 

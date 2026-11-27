@@ -48,7 +48,9 @@ app, or a recovery code. At the first login, it shows the
 browser; **Back** returns to the password. A wrong code counts as a failed
 login.
 
-There are two profiles:
+There are two profiles. They set what a person can **change**, not what they see: every
+signed-in member reads all the household data (see
+[One household, shared data](securite.md#un-foyer-des-donnees-partagees)).
 
 | Profile | Tabs |
 |---|---|

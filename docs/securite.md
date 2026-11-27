@@ -127,6 +127,36 @@ conteneur au démarrage (message dans `docker logs`), qui affiche aussi les prox
 
 ## Autorisations
 
+### Un foyer, des données partagées
+
+Carbure gère **un seul foyer** : toute personne connectée lit **toutes** les données du
+foyer, quel que soit le compte bancaire ou la personne qui l'a ajouté.
+
+| Donnée | Qui la lit |
+|---|---|
+| Comptes, soldes, transactions, pièces jointes | Tous les membres connectés |
+| Budgets, catégories, tags, tendances, insights | Tous les membres connectés |
+| Serveur MCP (agents IA) | Chaque membre, avec son propre jeton : les mêmes données |
+| Profil, appareils, jetons d'accès, double authentification | Leur seul propriétaire (et un administrateur pour le profil) |
+
+- Les colonnes `user` et `user_id` de la base désignent un **propriétaire** (qui peut
+  supprimer une transaction, à qui un compte est rattaché), pas un droit de lecture :
+  aucune lecture n'est filtrée par utilisateur.
+- **Une session volée donne donc accès à toutes les données du foyer**, même celle d'un
+  compte non administrateur : activez la
+  [double authentification](#double-authentification-totp) sur chaque compte. La
+  révocation des sessions est suivie dans les tickets
+  [#533](https://github.com/ltoinel/Carbure/issues/533) et
+  [#535](https://github.com/ltoinel/Carbure/issues/535).
+- Pour une **séparation stricte** (les comptes personnels d'un conjoint, un comptable qui
+  ne doit voir qu'un compte), installez **une instance de Carbure distincte**, avec son
+  propre conteneur et sa propre base : c'est la seule séparation garantie. Un rôle en
+  lecture seule est prévu
+  ([#539](https://github.com/ltoinel/Carbure/issues/539)) ; il limitera les
+  modifications, pas ce qui est visible.
+
+### Rôles
+
 | Rôle | Droits |
 |---|---|
 | Utilisateur | Données du foyer (comptes, transactions, budgets, insights, tendances), pointage et catégorie des transactions, montants des budgets, synchronisation par l'API, son profil, ses appareils, ses jetons d'accès MCP |
