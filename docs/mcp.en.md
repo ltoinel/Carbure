@@ -72,9 +72,11 @@ way; there is no token to copy.
 <span id="jeton-dans-lurl"></span>
 
 !!! warning "Token in the URL: deprecated"
-    The `?token=` parameter (`<url>?token=<token>`) is still accepted for the agents
-    already configured with it, but it is **deprecated**: use OAuth or the `Authorization`
-    header. Carbure masks the token in its logs and in the nginx access log of the Docker
+    The `?token=` parameter (`<url>?token=<token>`) is **deprecated and refused by
+    default** (`401`): use OAuth or the `Authorization` header. For an agent that can do
+    neither, an administrator allows it in the **AI agent** tab (**Allow the token in the
+    URL**); a warning stays there while the setting is on, along with the last day an agent
+    passed its token in the URL. Carbure masks the token in its logs and in the nginx access log of the Docker
     image (`token=***`), but a URL leaks elsewhere:
 
     | Where | Why |
@@ -85,8 +87,11 @@ way; there is no token to copy.
 
     - Only access tokens (`cbt_…`) are read there: a portal session (JWT) is **refused**
       (`401`).
-    - Each use is reported in the logs (without the token) and the response carries the
-      `Deprecation` and `Link` headers.
+    - Each use, accepted or refused, is reported in the logs (without the token) and the
+      response carries the `Deprecation` and `Link` headers.
+    - **After an upgrade**, the setting is off: an agent configured with `?token=` gets
+      `401` until it moves to the header or OAuth, or until an administrator turns the
+      setting back on.
     - A token already pasted in a URL must be **revoked and created again** (**My access
       tokens**), then given to the agent through the header or replaced by OAuth.
 
@@ -131,7 +136,7 @@ the token of another user, the agent proposes a query without being able to run 
   (no SSE stream).
 - Protocol versions: `2025-11-25`, `2025-06-18`, `2025-03-26`, `2024-11-05`.
 - Authentication: access token (`cbt_…`) or the portal JWT in the `Authorization` header;
-  access token only in `?token=` (deprecated); otherwise `401` with `WWW-Authenticate: Bearer resource_metadata="…"`, which tells
+  access token only in `?token=` (deprecated, refused unless an administrator allows it); otherwise `401` with `WWW-Authenticate: Bearer resource_metadata="…"`, which tells
   the agent where to find how to obtain a token. A request carrying an `Origin` header from
   a site other than Carbure, `claude.ai` or `claude.com` is rejected (`403`), like any
   request when the server is disabled.

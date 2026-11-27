@@ -238,7 +238,9 @@ durée de validité au choix (30, 90 ou 365 jours, ou sans expiration), révocab
 date de dernière utilisation. Ils ne donnent accès qu'aux outils en
 lecture seule du serveur MCP, pas au reste de l'API. Le serveur refuse les requêtes
 portant un en-tête `Origin` d'un autre site que Carbure ou les clients web de Claude
-(protection contre le DNS rebinding).
+(protection contre le DNS rebinding). Un jeton passé dans l'URL (`?token=`) est refusé,
+sauf si un administrateur l'autorise (voir [Jeton dans l'URL](mcp.md#jeton-dans-lurl)) ;
+une session du portail (JWT) n'y est jamais acceptée.
 
 Les agents qui ne prennent qu'une URL (Claude web, Desktop, mobile) obtiennent un tel jeton
 par **OAuth 2.1** : l'utilisateur se connecte au portail et autorise explicitement l'agent ;

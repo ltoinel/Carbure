@@ -55,6 +55,12 @@ final class Mcp {
     private const METHOD_NOT_FOUND = -32601;
     private const INVALID_PARAMS = -32602;
 
+    /** Setting: the API token accepted in the URL (?token=), "1" or "0" (default) */
+    private const URL_TOKEN = 'mcp_url_token';
+
+    /** Setting: last day (Y-m-d) a valid API token was given in the URL, accepted or not */
+    private const URL_TOKEN_LAST_USED = 'mcp_url_token_last_used';
+
     /**
      * Headers of a response to a request authenticated with the ?token= parameter
      * (RFC 9745): deprecated since 2026-11-27, and the page that explains what to use instead.
@@ -155,25 +161,50 @@ final class Mcp {
     /**
      * State of the MCP server, for the AI agents tab.
      *
-     * @return array{enabled: bool} enabled
+     * @return array{enabled: bool, url_token: bool, url_token_last_used: string|null} enabled;
+     *               url_token: the API token is accepted in the URL (?token=);
+     *               url_token_last_used: last day (Y-m-d) an agent gave its token in the URL,
+     *               accepted or not, null if never
      */
     #[ApiRoute('/mcp/settings', method: 'GET')]
     public static function settings(): array
     {
-        return ['enabled' => self::enabled()];
+        return [
+            'enabled' => self::enabled(),
+            'url_token' => self::urlTokenAllowed(),
+            'url_token_last_used' => Setting::get(self::URL_TOKEN_LAST_USED) ?: null,
+        ];
     }
 
     /**
-     * Enable or disable the MCP server (administrators).
+     * Enable or disable the MCP server, or the token in the URL (administrators): only
+     * the settings sent are changed.
      *
-     * @param bool|int|string|null $enabled True to enable it (or "true", "1"...)
-     * @return array{enabled: bool} enabled
+     * @param bool|int|string|null $enabled   True to enable the server (or "true", "1"...)
+     * @param bool|int|string|null $url_token True to accept the API token in the URL
+     *                                        (?token=, deprecated; refused by default)
+     * @return array{enabled: bool, url_token: bool, url_token_last_used: string|null} The settings
      */
     #[ApiRoute('/mcp/settings', method: 'PUT', admin: true, changes: [])]
-    public static function updateSettings(bool|int|string|null $enabled): array
+    public static function updateSettings(bool|int|string|null $enabled = null, bool|int|string|null $url_token = null): array
     {
-        Setting::set('mcp_enabled', filter_var($enabled, FILTER_VALIDATE_BOOLEAN) ? '1' : '0');
-        return ['enabled' => self::enabled()];
+        foreach (['mcp_enabled' => $enabled, self::URL_TOKEN => $url_token] as $name => $value) {
+            if ($value !== null) {
+                Setting::set($name, filter_var($value, FILTER_VALIDATE_BOOLEAN) ? '1' : '0');
+            }
+        }
+        return self::settings();
+    }
+
+    /**
+     * Whether an API token is accepted in the URL (?token=): refused until an
+     * administrator allows it, for an agent that can send neither a header nor use OAuth.
+     *
+     * @return bool True if allowed
+     */
+    public static function urlTokenAllowed(): bool
+    {
+        return Setting::get(self::URL_TOKEN, '0') === '1';
     }
 
     /**
@@ -275,13 +306,50 @@ final class Mcp {
             return null;
         }
 
-        Logger::warn("MCP: the API token passed in the URL is deprecated, use the Authorization header or OAuth");
         if (!headers_sent()) {
             foreach (self::TOKEN_IN_URL_HEADERS as $header) {
                 header($header);
             }
         }
+        if (!self::urlTokenAllowed()) {
+            self::refuseUrlToken($token);
+        }
+        Logger::warn("MCP: the API token passed in the URL is deprecated, use the Authorization header or OAuth");
+        self::recordUrlToken();
         return $token;
+    }
+
+    /**
+     * Refuse an API token given in the URL while the setting is off. A valid token is
+     * recorded first, so that the administrators see that an agent still uses the URL;
+     * an unknown one gets the usual 401.
+     *
+     * @param string $token The API token of the URL
+     * @return never
+     * @throws Error Always (401)
+     */
+    private static function refuseUrlToken(string $token): never
+    {
+        if (ApiToken::authenticate($token) === null) {
+            throw new Error("Unauthorized - Invalid or missing API token", 401);
+        }
+        Logger::warn("MCP: an API token passed in the URL is refused (setting off)");
+        self::recordUrlToken();
+        throw new Error("Unauthorized - The token in the URL is disabled: send it in the Authorization header or connect "
+            . "with OAuth, or ask an administrator to allow the token in the URL in the AI agents tab", 401);
+    }
+
+    /**
+     * Remember the day an API token was given in the URL (one write a day).
+     *
+     * @return void
+     */
+    private static function recordUrlToken(): void
+    {
+        $today = date('Y-m-d');
+        if (Setting::get(self::URL_TOKEN_LAST_USED) !== $today) {
+            Setting::set(self::URL_TOKEN_LAST_USED, $today);
+        }
     }
 
     /**

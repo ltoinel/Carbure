@@ -365,12 +365,51 @@ class McpTest extends DatabaseTestCase
 
     public function testTokenInTheUrl()
     {
-        // Deprecated, still accepted for the agents already configured with it
+        // Deprecated: only once an administrator allows it
+        Mcp::updateSettings(null, true);
         unset($_SERVER['HTTP_AUTHORIZATION']);
         $response = json_decode(Mcp::handle('2.0', 'ping', 1, null, null, null, $this->token), true);
         $this->assertArrayHasKey('result', $response);
         $this->assertSame('Deprecation: @1795737600', Mcp::TOKEN_IN_URL_HEADERS[0]);
         $this->assertStringContainsString('rel="deprecation"', Mcp::TOKEN_IN_URL_HEADERS[1]);
+    }
+
+    public function testTheTokenInTheUrlIsRefusedByDefault()
+    {
+        $this->assertSame(['enabled' => true, 'url_token' => false, 'url_token_last_used' => null], Mcp::settings());
+        unset($_SERVER['HTTP_AUTHORIZATION']);
+        try {
+            Mcp::handle('2.0', 'ping', 1, null, null, null, $this->token);
+            $this->fail('Accepted');
+        } catch (Error $e) {
+            $this->assertSame(401, $e->getCode());
+            $this->assertStringContainsString('The token in the URL is disabled', $e->getMessage());
+        }
+        // The administrators see that an agent still gives its token in the URL
+        $this->loginAs(self::ADMIN);
+        $this->assertSame(date('Y-m-d'), Mcp::settings()['url_token_last_used']);
+    }
+
+    public function testAnUnknownTokenInTheUrlLeavesNoTrace()
+    {
+        unset($_SERVER['HTTP_AUTHORIZATION']);
+        try {
+            Mcp::handle('2.0', 'ping', 1, null, null, null, 'cbt_unknown');
+            $this->fail('Accepted');
+        } catch (Error $e) {
+            $this->assertSame('Unauthorized - Invalid or missing API token', $e->getMessage());
+        }
+        $this->assertNull(Mcp::settings()['url_token_last_used']);
+    }
+
+    public function testTheSettingsAreChangedOneByOne()
+    {
+        $this->loginAs(self::ADMIN);
+        $this->assertTrue(Mcp::updateSettings(null, '1')['url_token']);
+        // The server state alone, as the portal sends it: the other setting is kept
+        $settings = Mcp::updateSettings(false);
+        $this->assertSame([false, true], [$settings['enabled'], $settings['url_token']]);
+        $this->assertFalse(Mcp::updateSettings(url_token: 'false')['url_token']);
     }
 
     public function testASessionOfThePortalIsRefusedInTheUrl()
@@ -394,13 +433,6 @@ class McpTest extends DatabaseTestCase
         // No deprecated path taken when the header authenticates
         $response = json_decode(Mcp::handle('2.0', 'ping', 1, null, null, null, 'cbt_unknown'), true);
         $this->assertArrayHasKey('result', $response);
-    }
-
-    public function testAnUnknownApiTokenInTheUrl()
-    {
-        unset($_SERVER['HTTP_AUTHORIZATION']);
-        $this->expectExceptionCode(401);
-        Mcp::handle('2.0', 'ping', 1, null, null, null, 'cbt_unknown');
     }
 
     public function testGetIsNotAllowed()

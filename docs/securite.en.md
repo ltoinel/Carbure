@@ -238,7 +238,9 @@ validity period of your choice (30, 90 or 365 days, or no expiration), revocable
 date of last use. They only give access to the
 read-only tools of the MCP server, not to the rest of the API. The server rejects requests
 carrying an `Origin` header from a site other than Carbure or Claude's web clients
-(protection against DNS rebinding).
+(protection against DNS rebinding). A token passed in the URL (`?token=`) is refused,
+unless an administrator allows it (see [Token in the URL](mcp.md#jeton-dans-lurl)); a
+portal session (JWT) is never accepted there.
 
 Agents that only take a URL (Claude web, Desktop, mobile) obtain such a token
 through **OAuth 2.1**: the user signs in to the portal and explicitly authorizes the agent;
