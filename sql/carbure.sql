@@ -228,6 +228,7 @@ CREATE TABLE `users` (
   `lastname` varchar(50) DEFAULT NULL,
   `email` varchar(50) DEFAULT NULL,
   `is_admin` tinyint(1) NOT NULL DEFAULT 0,
+  `role` varchar(10) NOT NULL DEFAULT 'member' COMMENT 'admin, member or viewer (read-only); is_admin = 1 for admin',
   `language` varchar(5) NOT NULL DEFAULT 'fr',
   `theme` varchar(10) NOT NULL DEFAULT 'system' COMMENT 'Display theme of the portal: system, light or dark',
   `alert_threshold` decimal(10,2) DEFAULT NULL,
@@ -432,7 +433,8 @@ INSERT IGNORE INTO `schema_migrations` (`version`) VALUES
 ('2026-11-05_rule_amount'),
 ('2026-11-06_budget_note'),
 ('2026-11-07_insight_position'),
-('2026-11-19_transaction_comment');
+('2026-11-19_transaction_comment'),
+('2026-11-28_user_role');
 
 SET FOREIGN_KEY_CHECKS = 1;
 COMMIT;

@@ -27,7 +27,7 @@ export function createUserModule(getApiService) {
                     email: '',
                     firstname: '',
                     lastname: '',
-                    is_admin: 0
+                    role: 'member'
                 }
             };
         },
@@ -59,6 +59,27 @@ export function createUserModule(getApiService) {
             },
 
             /**
+             * Role of a user: the one of the API, else (older server) from its administrator flag
+             * @param {Object} user - User
+             * @returns {string} admin, member or viewer
+             */
+            userRole(user) {
+                if (Number(user.is_admin)) {
+                    return 'admin';
+                }
+                return user.role === 'viewer' ? 'viewer' : 'member';
+            },
+
+            /**
+             * Translation key of a role
+             * @param {string} role - admin, member or viewer
+             * @returns {string}
+             */
+            roleLabel(role) {
+                return { admin: 'role_admin', viewer: 'role_viewer' }[role] || 'role_user';
+            },
+
+            /**
              * Opens the user modal for creating a new user
              */
             openAddUserModal() {
@@ -69,7 +90,7 @@ export function createUserModule(getApiService) {
                     email: '',
                     firstname: '',
                     lastname: '',
-                    is_admin: 0
+                    role: 'member'
                 };
                 this.showUserModal = true;
             },
@@ -86,7 +107,7 @@ export function createUserModule(getApiService) {
                     email: user.email,
                     firstname: user.firstname || '',
                     lastname: user.lastname || '',
-                    is_admin: Number(user.is_admin) ? 1 : 0
+                    role: this.userRole(user)
                 };
                 this.showUserModal = true;
             },
@@ -103,7 +124,7 @@ export function createUserModule(getApiService) {
                     email: '',
                     firstname: '',
                     lastname: '',
-                    is_admin: 0
+                    role: 'member'
                 };
             },
 
@@ -170,7 +191,9 @@ export function createUserModule(getApiService) {
                             this.userFormData.password,
                             null,
                             null,
-                            this.userFormData.is_admin
+                            this.userFormData.role === 'admin',
+                            undefined,
+                            this.userFormData.role
                         );
                         this.showToast(this.t('userUpdated'));
                         await this.loadUsers(); // Reload user list
@@ -182,7 +205,8 @@ export function createUserModule(getApiService) {
                             this.userFormData.email,
                             this.userFormData.firstname,
                             this.userFormData.lastname,
-                            this.userFormData.is_admin
+                            this.userFormData.role === 'admin',
+                            this.userFormData.role
                         );
                         this.showToast(this.t('userCreated'));
                         await this.loadUsers(); // Reload user list

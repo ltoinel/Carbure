@@ -274,7 +274,7 @@ final class OAuth {
      * @return array{redirect: string} redirect: where the browser goes back to the agent
      * @throws Error If the request is invalid, or the MCP server disabled (403)
      */
-    #[ApiRoute('/oauth/approve', method: 'POST', changes: [])]
+    #[ApiRoute('/oauth/approve', method: 'POST', changes: [], self: true)]
     public static function approve(?string $request, bool|int|string|null $approved = true): array
     {
         $fields = self::parseRequest($request);

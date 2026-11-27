@@ -270,8 +270,9 @@ as `GET /user/me`, plus `last_login` (last successful login, `null` if never) an
 
 ### `POST /user` — administrator { #post-user-administrateur }
 
-`username`, `password`, `email` (required), `firstname`, `lastname`, `is_admin` (optional;
-user profile by default). `400` if the username or the email already exists.
+`username`, `password`, `email` (required), `firstname`, `lastname`, `is_admin`, `role`
+(optional; user profile by default). `role` is `admin`, `member` or `viewer` (read-only)
+and wins over `is_admin`. `400` if the username or the email already exists.
 
 ### `PUT /user` { #put-user }
 
@@ -284,13 +285,19 @@ user profile by default). `400` if the username or the email already exists.
 | `theme` | no | Portal theme: `system` (follows the system's light/dark preference, default), `light` or `dark`; `400` for any other value |
 | `alertThreshold` | no | Alert threshold in euros for new expenses; `""` or `0` disables alerts |
 | `is_admin` | no | Administrator (`true`) or user (`false`) profile; administrators only, `409` when removing the role from the last administrator |
+| `role` | no | `admin`, `member` or `viewer` (read-only); administrators only, wins over `is_admin`; `400` for any other value |
 
 ```bash
 curl -X PUT "https://exemple.fr/api/user?id=1" -H "Authorization: Bearer $TOKEN" \
   -H 'Content-Type: application/json' -d '{"language":"en"}'
 ```
 
-Returns the updated user.
+Returns the updated user. Users are returned with `role` in addition to `is_admin`
+(`is_admin` is `1` for the `admin` role).
+
+A **read-only** member (`viewer`) gets `403` (`error_code: read_only`) on every route other
+than `GET`, except those that only change their own account (profile, two-factor
+authentication, devices, notifications, access tokens, insight alerts).
 
 ### `GET /user/notifications` { #get-usernotifications }
 

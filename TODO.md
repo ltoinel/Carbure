@@ -21,6 +21,13 @@ keeps track of what was done).
       5. remove the `[apns]` section and `data/conf/certs/*.p8` from the NAS (no longer used);
       6. later: a release workflow publishing the image of Carbure Push to a registry.
 
+- [ ] **Read-only role (#539), what is left**: the portal still shows the write actions to
+      a read-only member (the API refuses them with a translated message; hide them tab by
+      tab, with e2e); the iOS and Android apps do not know the role (handle the 403
+      `read_only`, hide the write actions); drop `users.is_admin` once every client reads
+      `role`. Deployment: migration `2026-11-28_user_role` applied at container start (the code
+      works before it: nobody is read-only until then).
+
 - [ ] **Release 1.12.0 — changelog (#391)**: add the `1.12.0` section to `docs/changelog.md`
       and `docs/changelog.en.md` (features, fixes, migrations to apply: split, tags, insights
       shown, …); from now on, the upgrade notes of each release go there, not in

@@ -179,7 +179,7 @@ final class Mfa {
      * @return array{secret: string, otpauth: string} The secret (base32) and its URI
      * @throws Error If the migration is not applied (409) or the second factor is already enabled (409)
      */
-    #[ApiRoute('/user/mfa/setup', method: 'POST', changes: [])]
+    #[ApiRoute('/user/mfa/setup', method: 'POST', changes: [], self: true)]
     public static function setup(): array
     {
         self::requireAvailable();
@@ -199,7 +199,7 @@ final class Mfa {
      * @return array{enabled: bool, recovery_codes: list<string>} The recovery codes, shown once
      * @throws Error If no registration was started (409) or the code is wrong (400)
      */
-    #[ApiRoute('/user/mfa/enable', method: 'POST', changes: [])]
+    #[ApiRoute('/user/mfa/enable', method: 'POST', changes: [], self: true)]
     public static function enable(string $code): array
     {
         self::requireAvailable();
@@ -225,7 +225,7 @@ final class Mfa {
      * @return array{enabled: bool} enabled (false)
      * @throws Error If it is not enabled (409) or the code is wrong (400)
      */
-    #[ApiRoute('/user/mfa', method: 'DELETE', changes: [])]
+    #[ApiRoute('/user/mfa', method: 'DELETE', changes: [], self: true)]
     public static function disable(string $code): array
     {
         $userId = self::requireEnabledCode($code, true);
@@ -241,7 +241,7 @@ final class Mfa {
      * @return array{recovery_codes: list<string>} The recovery codes, shown once
      * @throws Error If it is not enabled (409) or the code is wrong (400)
      */
-    #[ApiRoute('/user/mfa/recovery-codes', method: 'POST', changes: [])]
+    #[ApiRoute('/user/mfa/recovery-codes', method: 'POST', changes: [], self: true)]
     public static function renewRecoveryCodes(string $code): array
     {
         $userId = self::requireEnabledCode($code, false);

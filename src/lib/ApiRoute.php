@@ -24,6 +24,7 @@ class ApiRoute {
     public bool $raw = false;
     public bool $admin = false;
     public bool $quiet = false;
+    public bool $self = false;
     /** @var list<string>|null */
     public ?array $changes = null;
 
@@ -43,6 +44,9 @@ class ApiRoute {
      *                       none of them. Required on every route but GET (ApiResolverTest)
      * @param bool   $quiet  True if the successful calls are logged at the DEBUG level only
      *                       (GET /health, polled by the healthchecks): its errors keep their level
+     * @param bool   $self   True if the route only writes what belongs to the caller (own
+     *                       profile, second factor, devices, API tokens): allowed to a
+     *                       read-only member (role viewer), refused on every other write route
      * @throws LogicException If the route is both public and reserved to the administrators,
      *                        or declares an unknown kind of data
      */
@@ -54,7 +58,8 @@ class ApiRoute {
         bool $raw = false,
         bool $admin = false,
         ?array $changes = null,
-        bool $quiet = false
+        bool $quiet = false,
+        bool $self = false
     ) {
         if ($public && $admin) {
             throw new LogicException("The route $method $path cannot be both public and reserved to the administrators");
@@ -71,6 +76,18 @@ class ApiRoute {
         $this->admin = $admin;
         $this->changes = $changes;
         $this->quiet = $quiet;
+        $this->self = $self;
+    }
+
+    /**
+     * Whether the route writes household data: every route but GET, unless it only writes
+     * what belongs to the caller (self). Refused to a read-only member.
+     *
+     * @return bool True if a read-only member is refused
+     */
+    public function writesHouseholdData(): bool
+    {
+        return $this->method !== 'GET' && !$this->self;
     }
 
     /**

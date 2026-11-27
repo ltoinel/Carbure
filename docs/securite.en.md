@@ -130,11 +130,19 @@ the client are ignored. It is also used by the nginx access log and by PHP
 | Role | Rights |
 |---|---|
 | User | Household data (accounts, transactions, budgets, insights, trends), checking and category of transactions, budget amounts, synchronization through the API, their profile, their devices, their MCP access tokens |
+| Read-only (`users.role = 'viewer'`) | Reads the same household data as a user, without changing anything nor starting a synchronization. Keeps the management of their own account: profile and password, two-factor authentication, devices, notifications, MCP access tokens (read-only tools), insight alerts |
 | Administrator (`users.is_admin = 1`) | In addition: categorization rules, categories, bank connections and followed accounts (and their synchronization from the portal), woob module updates, insights (SQL queries), enabling the MCP server, server settings (including SMTP) and logs, database update, users (profile, unlocking, two-factor authentication reset), required two-factor authentication |
 
 Restricted routes are declared in their attribute (`#[ApiRoute(..., admin: true)]`) and
 return `403` before the method is called; a unit test pins the access level of
 each route. The portal hides the corresponding tabs.
+
+The **read-only** role (an accountant, a teenager) is enforced at the same place, before
+the method is called: every route other than `GET` returns `403` (`read_only`), except
+those declared `self: true`, which only change what belongs to the caller. A test walks
+**every** route of the API as a read-only member: a new route that writes is refused by
+default. This role limits the changes, not what is visible: a read-only member reads all
+the household data.
 
 After **5 failed sign-in attempts** in a row, the account is **locked for 24 hours**
 (`423`, from the 5th failure on: the sign-in screen shows it right away), even with the right

@@ -86,7 +86,7 @@ final class InsightAlert {
      * @throws Error If the insight is unknown (404) or disabled, the direction or the threshold
      *               is not valid (400), or the migration is not applied yet (409)
      */
-    #[ApiRoute('/insight/alert', method: 'PUT', changes: [])]
+    #[ApiRoute('/insight/alert', method: 'PUT', changes: [], self: true)]
     public static function set(int|string $insight, string $direction, int|float|string $threshold): array
     {
         $id = self::enabledInsight($insight);
@@ -110,7 +110,7 @@ final class InsightAlert {
      * @return bool True if removed
      * @throws Error If the user has no alert on this insight (404)
      */
-    #[ApiRoute('/insight/alert', method: 'DELETE', changes: [])]
+    #[ApiRoute('/insight/alert', method: 'DELETE', changes: [], self: true)]
     public static function delete(int|string $insight): bool
     {
         $removed = self::ready() && Db::execute("DELETE FROM insight_alert WHERE user_id = ? AND insight_id = ?", "ii",

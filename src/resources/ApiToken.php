@@ -59,7 +59,7 @@ final class ApiToken {
      * @return array{id: int|string, name: string, token: string, token_hint: string, expires_at: string|null} The token: id, name, token (shown only this time), token_hint, expires_at
      * @throws Error If the name or the lifetime is invalid or the user has too many tokens
      */
-    #[ApiRoute('/token', method: 'POST', changes: [])]
+    #[ApiRoute('/token', method: 'POST', changes: [], self: true)]
     public static function create(?string $name, int|string|null $days = null): array
     {
         $days = $days === null || $days === '' || (int)$days === 0 ? null : (int)$days;
@@ -93,7 +93,7 @@ final class ApiToken {
      * @return bool True if deleted
      * @throws Error If the token does not exist or belongs to another user
      */
-    #[ApiRoute('/token', method: 'DELETE', changes: [])]
+    #[ApiRoute('/token', method: 'DELETE', changes: [], self: true)]
     public static function delete(int $id): bool
     {
         $stmt = Db::execute("DELETE FROM api_tokens WHERE id = ? AND user_id = ?", "ii", $id, Jwt::getUserIdFromToken());
