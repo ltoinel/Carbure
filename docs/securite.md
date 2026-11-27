@@ -351,6 +351,56 @@ Seules ces routes ne demandent pas de JWT (un test unitaire le vérifie) :
 - Restreindre l'utilisateur MySQL à la base `carbure`.
 - Surveiller `data/logs/carbure_AAAAMMJJ.log` (erreurs de synchronisation, accès refusés : les lignes WARNING de fin de requête en 401 ou 403, avec l'IP du client). Au format JSON Lines, le fichier se lit aussi avec `jq` ou un collecteur de logs.
 
+### Chiffrement des identifiants bancaires
+
+Par défaut, woob garde l'identifiant et le mot de passe de chaque banque **en clair** dans
+`data/woob/.config/woob/backends` : une copie du dossier de données (sauvegarde,
+instantané, disque volé) les contient. Avec une **clé de chiffrement donnée à Carbure en
+dehors de ce dossier**, ils y sont chiffrés (libsodium, `secretbox`).
+
+**Activer le chiffrement**
+
+1. Générez une clé d'au moins 32 caractères : `openssl rand -base64 32`.
+2. Donnez-la au conteneur, au choix :
+
+    | Moyen | Comment |
+    |---|---|
+    | Variable d'environnement | `CARBURE_SECRET_KEY=<clé>` |
+    | Fichier | `CARBURE_SECRET_KEY_FILE=/chemin/du/fichier` |
+    | Secret Docker | un secret nommé `carbure_secret_key` (lu dans `/run/secrets/`) |
+
+3. Redémarrez Carbure. À la prochaine synchronisation, les identifiants déjà enregistrés
+   sont chiffrés ; les banques connectées ensuite le sont dès leur écriture.
+
+!!! danger "La clé ne doit pas être dans `data/`"
+    Ni dans `data/conf/prod.ini`, ni dans un fichier du dossier de données : une sauvegarde
+    contiendrait alors les identifiants chiffrés **et** leur clé. Gardez-en une copie
+    ailleurs (gestionnaire de mots de passe) : sans elle, les identifiants sont perdus.
+
+**Comment ça marche.** woob exécute une valeur écrite entre accents graves et utilise ce
+qu'elle affiche. Carbure écrit donc, à la place du mot de passe, l'appel de son outil
+`tools/carbure-secret.php` suivi de la valeur chiffrée. L'outil reçoit la clé par
+l'environnement du processus woob et affiche la valeur : elle ne passe que par le tube
+vers woob, jamais sur le disque ni sur une ligne de commande. Une valeur entre accents
+graves saisie dans le portail reste refusée.
+
+| Situation | Ce qui se passe |
+|---|---|
+| Pas de clé | Comportement actuel (identifiants en clair) ; un avertissement s'affiche aux administrateurs sur la page **Comptes** |
+| Clé ajoutée | Les identifiants en clair sont chiffrés avant le prochain appel à woob |
+| Clé à remplacer | Donnez la nouvelle dans `CARBURE_SECRET_KEY` et l'ancienne dans `CARBURE_SECRET_KEY_OLD` : tout est rechiffré au prochain appel à woob, puis retirez l'ancienne |
+| Clé absente ou différente | woob n'est pas lancé, ou échoue avec « The bank credentials cannot be decrypted » ; la page **Comptes** le signale |
+| Clé perdue | Supprimez les banques dans la page **Comptes** puis reconnectez-les : les transactions sont conservées |
+
+**Limites.**
+
+- Un attaquant qui exécute du code dans le conteneur avec le compte du serveur web lit la
+  clé et peut lancer woob : les synchronisations sans surveillance en ont besoin.
+- Les sessions de woob (`data/woob/.local/share/woob/` : cookies, jetons d'appareil de
+  confiance) sont écrites par woob et restent en clair.
+- Hors Docker, la commande `php` (ligne de commande, avec l'extension `sodium`) doit être
+  accessible à l'utilisateur du serveur web, et `tools/carbure-secret.php` exécutable.
+
 ## Analyses de sécurité
 
 Le workflow **Security** (badge du README) regroupe les analyses de sécurité :

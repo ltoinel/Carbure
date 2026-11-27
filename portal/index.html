@@ -1871,6 +1871,12 @@
                             <!-- The banks connected in woob (one per login), each with its followed accounts
                                  below it; the accounts of no connected bank (removed connection, imported
                                  file) in a last group -->
+                            <!-- Bank credentials kept by woob: in clear without a key, or a key that no longer reads them -->
+                            <p v-if="isAdmin && bankCredentialsNotice" class="bank-credentials-notice"
+                               :role="bankCredentialsNotice.level === 'error' ? 'alert' : 'note'">
+                                <span class="material-icons inline-icon" aria-hidden="true">{{ bankCredentialsNotice.level === 'error' ? 'error' : 'warning' }}</span>{{ bankCredentialsNotice.text }}
+                                <a href="https://carbure.org/securite/#chiffrement-des-identifiants-bancaires" target="_blank" rel="noopener">{{ t('credentialsLearnMore') }}</a>
+                            </p>
                             <div v-if="bankGroups.length === 0" class="transactions-hint">{{ t('noConnectedBank') }}</div>
                             <ul v-else class="bank-groups">
                                 <li v-for="g in bankGroups" :key="g.key" class="bank-group">

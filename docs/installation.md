@@ -161,6 +161,7 @@ DB_PASSWORD=un-mot-de-passe-solide
 | `SYNC_INTERVAL` | Synchronisation automatique de tous les comptes toutes les N secondes (`86400` = une fois par jour) | désactivée |
 | `TRUSTED_PROXIES` | Proxys inversés de confiance (adresses ou réseaux CIDR) dont l'en-tête `X-Forwarded-For` donne l'adresse du client, pour la [limitation des connexions](securite.md#limitation-des-connexions) et les journaux ; `none` : aucun (Carbure publié sans proxy) | réseaux privés et boucle locale |
 | `CARBURE_WOOB_PATH` | Commande woob écrite dans la configuration par l'assistant ; l'image la définit déjà (`env HOME=/data/woob woob`) | `woob` |
+| `CARBURE_SECRET_KEY` | Clé (32 caractères au moins) qui [chiffre les identifiants bancaires](securite.md#chiffrement-des-identifiants-bancaires) gardés par woob ; jamais dans `data/`. `CARBURE_SECRET_KEY_FILE` ou le secret Docker `carbure_secret_key` la lisent dans un fichier | identifiants en clair |
 
 Le dossier `data/` du projet, monté sur `/data` dans le conteneur, conserve tout ce qui est
 propre à votre instance : la configuration écrite par l'assistant (`data/conf/prod.ini`, avec

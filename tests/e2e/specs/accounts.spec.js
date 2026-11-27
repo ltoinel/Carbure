@@ -595,3 +595,19 @@ test('the update of the bank modules is not offered to a user', async ({ userPag
     expect((await request.get('/api/bank/woob', { headers })).status()).toBe(403);
     expect((await request.get('/api/bank/woob/update', { headers })).status()).toBe(403);
 });
+
+test('an administrator is told that the bank credentials are stored in plaintext', async ({ adminPage: page, api }) => {
+    // No key in this instance: the state given with the woob repository
+    const status = await (await api.get('/api/bank/woob')).json();
+    expect(status.credentials.key).toBe(false);
+
+    await openTab(page, tr('tabAccounts'));
+    const notice = page.locator('.bank-credentials-notice');
+    if (status.credentials.clear > 0) {
+        await expect(notice).toContainText(tr('credentialsClear'));
+        await expect(notice.getByRole('link', { name: tr('credentialsLearnMore') })).toHaveAttribute('href', /chiffrement-des-identifiants-bancaires$/);
+    } else {
+        // No bank connected yet: nothing to encrypt, nothing to say
+        await expect(notice).toHaveCount(0);
+    }
+});

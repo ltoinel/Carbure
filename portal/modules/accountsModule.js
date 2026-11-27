@@ -99,11 +99,32 @@ export function createAccountsModule(getApiService) {
                 followingAccounts: false,
                 // Update of the woob bank modules: repository {repository, trusted, fingerprint,
                 // error}, its keyring trusted by the administrator, lines written by woob
-                woobUpdate: { ...EMPTY_WOOB_UPDATE }
+                woobUpdate: { ...EMPTY_WOOB_UPDATE },
+                // Encryption of the bank credentials kept by woob (administrators), null until read
+                bankCredentials: null
             };
         },
 
         computed: {
+            /**
+             * What to tell an administrator about the bank credentials kept by woob: the key
+             * is invalid or lost (error), they are stored in clear (warning), or nothing
+             * @returns {{level: string, text: string}|null}
+             */
+            bankCredentialsNotice() {
+                const status = this.bankCredentials;
+                if (!status) {
+                    return null;
+                }
+                if (status.error) {
+                    return { level: 'error', text: this.t('credentialsKeyError', { error: status.error }) };
+                }
+                if (status.undecryptable > 0 || (!status.key && status.encrypted > 0)) {
+                    return { level: 'error', text: this.t('credentialsUndecryptable') };
+                }
+                return status.clear > 0 ? { level: 'warning', text: this.t('credentialsClear') } : null;
+            },
+
             /**
              * Followed accounts under their bank connection (Accounts page)
              * @returns {Array<{key: string, backend: Object|null, accounts: Array}>}
@@ -240,6 +261,20 @@ export function createAccountsModule(getApiService) {
                 this.bankModules = modules.status === 'fulfilled' ? modules.value : [];
                 // Why no bank can be chosen (e.g. woob repository to trust first)
                 this.bankModulesError = modules.status === 'rejected' ? this.apiErrorText(modules.reason) : null;
+                this.loadBankCredentials();
+            },
+
+            /**
+             * Loads the state of the encryption of the bank credentials (administrators):
+             * shown on the Accounts page when something is to be done
+             * @returns {Promise<void>}
+             */
+            async loadBankCredentials() {
+                try {
+                    this.bankCredentials = this.isAdmin ? (await getApiService().fetchWoobStatus()).credentials || null : null;
+                } catch (error) {
+                    this.bankCredentials = null;
+                }
             },
 
             /**
