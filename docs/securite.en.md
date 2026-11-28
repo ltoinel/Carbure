@@ -12,6 +12,21 @@ icon: material/shield-lock-outline
   `jwtsecret`, valid for **30 days** (`sub` = user ID).
 - The other routes require `Authorization: Bearer <token>`; the signature is compared
   in constant time and the expiration is checked.
+- **Portal session in an `HttpOnly` cookie**: the portal logs in with `cookie: true`; the
+  API then sets the JWT in the `carbure_session` cookie (`HttpOnly`, `SameSite=Strict`,
+  `Secure` over HTTPS, path `/api`, expiration of the token) and leaves it out of the
+  response. The scripts of the page never see it: an XSS flaw cannot steal it. The mobile
+  apps, the MCP server and the API clients keep the `Authorization` header, which takes
+  precedence over the cookie; the MCP server does not accept the cookie.
+    - **Forged requests (CSRF)**: on top of `SameSite=Strict`, a write (`POST`, `PUT`,
+      `DELETE`) authenticated by the cookie must come from the portal itself:
+      `Sec-Fetch-Site: same-origin`, or else an `Origin` header equal to the host of the
+      server (`Host`, `X-Forwarded-Host` or `public_url`). Otherwise: `401`.
+    - **Sign-out**: `POST /user/logout` removes the cookie (public route, also for an
+      expired session). After a password change or "sign out everywhere", the portal gets
+      its new cookie instead of a token.
+    - **Migration**: a portal signed in by a previous version (token in the browser
+      storage) erases that token and goes through the login screen once.
 - **Session revocation**: on each request, the token is also checked against the user in
   the database. It is refused (`401`) in these cases:
 
@@ -180,9 +195,9 @@ by nginx (`docker/nginx.conf`); Carbure does not provide a `.htaccess`.
 Swagger UI (`/swagger/`) has the same headers as the portal, except for display in a
 frame: `frame-ancestors 'self'` and `X-Frame-Options: SAMEORIGIN`, for the portal's
 **Administration → API** tab; no other site can display it in a frame, and
-the portal itself keeps `frame-ancestors 'none'` / `DENY`. Swagger UI reads the portal's session
-token from the browser storage (same origin) and only sends it in
-the `Authorization` header of calls to `/api`.
+the portal itself keeps `frame-ancestors 'none'` / `DENY`. The "Try it out" calls of Swagger UI
+to `/api` (same origin) carry the session cookie of the portal, sent by the browser:
+Swagger UI sees no token.
 
 **No external CDN**: the portal and Swagger UI load nothing from another site.
 Vue, CodeMirror, the fonts (`portal/vendor/`) and Swagger UI (`swagger/vendor/`) are
@@ -355,7 +370,7 @@ Only these routes do not require a JWT (a unit test checks it):
     secret invalidates all sessions (iOS app and portal).
 
 - Serve the API and the portal **over HTTPS only** (JWTs and passwords travel
-  in the requests; copying the token in the portal requires HTTPS).
+  in the requests; the session cookie of the portal is `Secure` only over HTTPS).
 - Do not expose `data/`, `conf/`, `sql/`, `tests/` or `tools/` through the
   web server.
 - Generate a long `sync_token` (the **Administration → Sync** tab creates one) and

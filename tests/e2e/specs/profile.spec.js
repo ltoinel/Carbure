@@ -1,7 +1,7 @@
 // Profile page, in four sub-tabs: personal information and language, two-factor
 // authentication, notifications (channels, large expense threshold, budget watched and
 // its threshold), devices (mobile apps, web browsers and trusted web browsers)
-const { test, expect, tr } = require('../fixtures');
+const { test, expect, tr, sessionCookie } = require('../fixtures');
 const { startFakeSmtp } = require('../fake-smtp');
 
 /** Heading of each sub-tab of the profile page */
@@ -91,7 +91,7 @@ test('changes the password', async ({ userPage: page, request }) => {
 test('a new password closes the other sessions and keeps this one', async ({ userPage: page, request }) => {
     // Another session of Marie (her phone), opened before the change
     const phone = (await (await request.post('/api/user/login', { data: { username: 'marie', password: 'marie-password' } })).json()).token;
-    const before = await page.evaluate(() => localStorage.getItem('authToken'));
+    const before = await sessionCookie(page);
     await openProfile(page);
 
     await page.getByLabel(tr('password')).fill('new-marie-password');
@@ -102,8 +102,8 @@ test('a new password closes the other sessions and keeps this one', async ({ use
     for (const token of [phone, before]) {
         expect((await request.get('/api/user/me', { headers: { Authorization: `Bearer ${token}` } })).status()).toBe(401);
     }
-    // The portal goes on with the token of the answer, also after a reload
-    expect(await page.evaluate(() => localStorage.getItem('authToken'))).not.toBe(before);
+    // The portal goes on with the new session cookie set by the answer, also after a reload
+    expect(await sessionCookie(page)).not.toBe(before);
     await page.reload();
     await expect(page.locator('.user-menu-name')).toHaveText('marie');
     await expect(page.locator('.transaction-item').first()).toBeVisible();
@@ -411,8 +411,7 @@ test('sets the large expense threshold under its label in the notifications', as
     await page.reload();
     await openProfile(page, 'notificationsTitle');
     await expect(page.getByLabel(tr('alertThreshold'))).toHaveValue('200');
-    const token = await page.evaluate(() => localStorage.getItem('authToken'));
-    const me = await request.get('/api/user/me', { headers: { Authorization: `Bearer ${token}` } });
+    const me = await page.request.get('/api/user/me');
     expect(Number((await me.json()).alert_threshold)).toBe(200);
 
     // Emptied: off again
@@ -426,7 +425,7 @@ test('sets the large expense threshold under its label in the notifications', as
 
 test('signs out everywhere from the devices of the profile and stays signed in', async ({ userPage: page, request }) => {
     const phone = (await (await request.post('/api/user/login', { data: { username: 'marie', password: 'marie-password' } })).json()).token;
-    const before = await page.evaluate(() => localStorage.getItem('authToken'));
+    const before = await sessionCookie(page);
     await openProfile(page, 'myDevices');
 
     const sessions = page.getByRole('group', { name: tr('sessionsTitle') });
@@ -440,7 +439,8 @@ test('signs out everywhere from the devices of the profile and stays signed in',
     await dialog.getByRole('button', { name: tr('signOutEverywhere') }).click();
     await expect(page.locator('.toast')).toHaveText(tr('signOutEverywhereDone'));
 
-    // The other sessions are closed, this browser goes on with a new token
+    // The other sessions are closed, this browser goes on with a new session cookie
+    expect(await sessionCookie(page)).not.toBe(before);
     for (const token of [phone, before]) {
         expect((await request.get('/api/user/me', { headers: { Authorization: `Bearer ${token}` } })).status()).toBe(401);
     }

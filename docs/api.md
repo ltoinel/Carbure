@@ -10,8 +10,10 @@ icon: material/api
 - **Format** : JSON en entrée (corps) et en sortie. Les paramètres peuvent aussi être
   passés en query string ; corps et query string sont fusionnés.
 - **Authentification** : en-tête `Authorization: Bearer <token>` (JWT obtenu par
-  `POST /user/login`) sur toutes les routes, sauf les routes **publiques** :
-  `POST /user/login`, `GET /bank/sync` (JWT ou `sync_token`), `POST /mcp` et `GET /mcp`
+  `POST /user/login`) sur toutes les routes, ou, pour le portail web, le cookie
+  `HttpOnly` `carbure_session` (connexion avec `cookie: true`, voir
+  [Sécurité](securite.md#authentification)) ; sauf les routes **publiques** :
+  `POST /user/login`, `POST /user/login/mfa`, `POST /user/logout`, `GET /bank/sync` (JWT ou `sync_token`), `POST /mcp` et `GET /mcp`
   (jeton d'accès ou JWT), `GET /health`, et les routes OAuth des agents IA (métadonnées
   `/.well-known/oauth-*`, `POST /oauth/register`, `GET /oauth/authorize`,
   `POST /oauth/token`). Un test unitaire vérifie cette liste.
@@ -141,6 +143,7 @@ qui quand le foyer utilise l'application et quand la synchronisation tourne.
 | `password` | string | oui | Mot de passe |
 | `device` | objet `{name, token, platform?, model?, os_version?, app_version?}` | non | Appareil mobile à enregistrer pour les notifications (voir [l'objet `device`](#objet-device)) |
 | `mfa` | booléen | non | Le client gère la double authentification (`true` pour le portail) |
+| `cookie` | booléen | non | Garder la session dans le cookie `HttpOnly` `carbure_session` (`true` pour le portail) : la réponse contient alors `cookie: true` au lieu de `token` |
 
 ```bash
 curl -X POST https://exemple.fr/api/user/login \
@@ -217,6 +220,7 @@ Seconde étape de la connexion : échange le défi et le code contre la session.
 | `mfa_token` | string | oui | Défi renvoyé par `POST /user/login` |
 | `code` | string | oui | Code à 6 chiffres de l'application, ou code de secours (`xxxxx-xxxxx`) |
 | `trust` | booléen | non | Faire confiance à ce navigateur 6 mois (cookie `HttpOnly`) |
+| `cookie` | booléen | non | Session dans le cookie `carbure_session`, comme pour `POST /user/login` |
 | `device` | objet `{name, token, platform?, model?, os_version?, app_version?}` | non | Appareil mobile à enregistrer, comme pour `POST /user/login` (voir [l'objet `device`](#objet-device)) |
 
 Réponse : la session, comme `POST /user/login` (`exp`, `sub`, `iat`, `token`), plus
@@ -298,7 +302,9 @@ Renvoie l'utilisateur mis à jour.
 Un nouveau mot de passe **ferme toutes les sessions de l'utilisateur** (leurs jetons
 renvoient `401`). Quand on change son propre mot de passe, la réponse contient en plus
 `session` (`token`, `exp`, `sub`, `iat`, comme `POST /user/login`) : le client remplace son
-jeton par celui-ci pour rester connecté.
+jeton par celui-ci pour rester connecté. Pour le portail (session dans le cookie), le
+nouveau jeton est posé dans le cookie et `session` contient `cookie: true` au lieu de
+`token`.
 
 ### `DELETE /user/sessions`
 
@@ -318,8 +324,19 @@ curl -X DELETE "https://exemple.fr/api/user/sessions" -H "Authorization: Bearer 
 ```
 
 `session` n'est renvoyé que pour ses propres sessions : c'est le nouveau jeton de
-l'appareil qui a fait la demande. `409` tant que la migration
-`2026-11-27_user_tokens_valid_after` n'est pas appliquée.
+l'appareil qui a fait la demande (posé dans le cookie pour le portail, comme pour
+`PUT /user`). `409` tant que la migration `2026-11-27_user_tokens_valid_after` n'est pas
+appliquée.
+
+### `POST /user/logout` — publique
+
+Déconnecte le navigateur : supprime le cookie de session du portail (`carbure_session`),
+y compris pour une session déjà expirée. Les autres clients oublient simplement leur jeton ;
+pour le révoquer, voir `DELETE /user/sessions`.
+
+```json
+{ "signed_out": true }
+```
 
 ### `GET /user/notifications`
 

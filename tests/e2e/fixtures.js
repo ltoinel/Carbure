@@ -2,7 +2,7 @@
 // - the database is recreated before each test (data set: server/seed.php);
 // - an uncaught error in the page fails the test;
 // - the confirmation dialogs (delete...) are accepted;
-// - adminPage / userPage: the portal opened by a logged-in user (token from the API);
+// - adminPage / userPage: the portal opened by a logged-in user (session cookie from the API);
 // - api: requests to the API as the administrator, to check what was saved.
 const base = require('@playwright/test');
 const fs = require('fs');
@@ -49,25 +49,37 @@ async function apiLogin(request, user) {
 }
 
 /**
- * Opens the portal as a logged-in user (token stored like the login screen does)
+ * Opens the portal as a logged-in user, like the login screen does: the session cookie
+ * (HttpOnly) of the API in the browser, the name of the user in its storage
  * @param {import('@playwright/test').Page} page
- * @param {string} token
- * @param {string} username
+ * @param {string} user - Key of USERS
  */
-async function openPortal(page, token, username) {
-    await page.addInitScript(([token, username]) => {
+async function openPortal(page, user) {
+    // The requests of page.request share the cookies of the browser of the page
+    const response = await page.request.post('/api/user/login', { data: { ...USERS[user], cookie: true } });
+    base.expect(response.ok()).toBeTruthy();
+    const username = USERS[user].username;
+    await page.addInitScript(username => {
         // Runs in every frame too: a framed page blocked by X-Frame-Options has no storage
         if (window !== window.top) {
             return;
         }
         if (!sessionStorage.getItem('e2e-init')) {
             sessionStorage.setItem('e2e-init', '1');
-            localStorage.setItem('authToken', token);
             localStorage.setItem('username', username);
         }
-    }, [token, username]);
+    }, username);
     await page.goto('/portal/');
     await base.expect(page.locator('.user-menu-name')).toHaveText(username);
+}
+
+/**
+ * JWT of the session cookie of the portal (HttpOnly: read from the browser, never by the page)
+ * @param {import('@playwright/test').Page} page
+ * @returns {Promise<string|undefined>}
+ */
+async function sessionCookie(page) {
+    return (await page.context().cookies()).find(cookie => cookie.name === 'carbure_session')?.value;
 }
 
 const test = base.test.extend({
@@ -85,13 +97,13 @@ const test = base.test.extend({
         base.expect(errors, 'Uncaught errors in the page').toEqual([]);
     },
 
-    adminPage: async ({ page, request }, use) => {
-        await openPortal(page, await apiLogin(request, 'admin'), 'admin');
+    adminPage: async ({ page }, use) => {
+        await openPortal(page, 'admin');
         await use(page);
     },
 
-    userPage: async ({ page, request }, use) => {
-        await openPortal(page, await apiLogin(request, 'marie'), 'marie');
+    userPage: async ({ page }, use) => {
+        await openPortal(page, 'marie');
         await use(page);
     },
 
@@ -263,4 +275,4 @@ async function chooseLanguage(page, from, to) {
     await base.expect(page.locator('.tabs').getByRole('button', { name: tr('tabTransactions', {}, to), exact: true })).toBeVisible();
 }
 
-module.exports = { test, expect: base.expect, USERS, openTab, clickMainTab, tr, pickCategory, euros, currentMonth, offerBudgetCopy, escapeRegExp, woobFile, trustWoobRepository, chooseLanguage, asDemoInstance };
+module.exports = { test, expect: base.expect, USERS, openPortal, sessionCookie, openTab, clickMainTab, tr, pickCategory, euros, currentMonth, offerBudgetCopy, escapeRegExp, woobFile, trustWoobRepository, chooseLanguage, asDemoInstance };

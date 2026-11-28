@@ -56,12 +56,13 @@ class ApiResolverTest extends TestCase
         // Any new public route must be a deliberate decision
         // The MCP routes authenticate with an API token themselves; the OAuth routes are
         // the metadata, the registration, the authorization (sent to the portal) and the tokens;
-        // the second step of the login takes the challenge given by the first one (password)
+        // the second step of the login takes the challenge given by the first one (password);
+        // the sign-out only removes the session cookie, even of an expired session
         $this->assertSame([
             'GET /.well-known/oauth-authorization-server', 'GET /.well-known/oauth-protected-resource',
             'GET /.well-known/oauth-protected-resource/api/mcp', 'GET /bank/sync', 'GET /health', 'GET /mcp',
             'GET /oauth/authorize', 'POST /mcp', 'POST /oauth/register', 'POST /oauth/token', 'POST /user/login',
-            'POST /user/login/mfa',
+            'POST /user/login/mfa', 'POST /user/logout',
         ], $public);
     }
 
@@ -180,6 +181,7 @@ class ApiResolverTest extends TestCase
         'POST /user' => 'admin',
         'POST /user/login' => 'public',
         'POST /user/login/mfa' => 'public',
+        'POST /user/logout' => 'public',
         'POST /user/mfa/enable' => 'user',
         'POST /user/mfa/recovery-codes' => 'user',
         'POST /user/mfa/reset' => 'admin',

@@ -36,6 +36,12 @@ final class Jwt {
     private static ?bool $revocationReady = null;
 
     /**
+     * Whether the token of the current request came from the session cookie of the portal
+     * (SessionCookie) rather than the Authorization header
+     */
+    private static bool $viaCookie = false;
+
+    /**
      * Run the next calls as a user authenticated by another mean (an API token):
      * getUserIdFromToken() then returns this user. null goes back to the JWT.
      *
@@ -185,6 +191,61 @@ final class Jwt {
     }
 
     /**
+     * JWT of the request: the Authorization header (mobile apps, API clients), else the
+     * session cookie of the portal, refused for a write that does not come from the portal
+     * itself (request forged by another site).
+     *
+     * @return string|null The token, null if there is none
+     */
+    private static function requestToken(): ?string
+    {
+        $token = self::getTokenFromHeader();
+        if ($token !== null && $token !== '') {
+            self::$viaCookie = false;
+            return $token;
+        }
+        $token = SessionCookie::token();
+        if ($token === null) {
+            return null;
+        }
+        if (!SessionCookie::originAllowed()) {
+            Logger::warn("Session cookie refused: write request from another origin");
+            return null;
+        }
+        self::$viaCookie = true;
+        return $token;
+    }
+
+    /**
+     * Whether the current request is authenticated by the session cookie of the portal:
+     * a new session is then given in the cookie, not in the answer.
+     *
+     * @return bool
+     */
+    public static function viaCookie(): bool
+    {
+        return self::$viaCookie;
+    }
+
+    /**
+     * Session given to a client: in the answer (token), or in the cookie of the portal,
+     * whose scripts then never see the token.
+     *
+     * @param array{exp: int, sub: int, iat: int, token: string} $session A token of createJwt()
+     * @param bool $cookie Give it in the session cookie
+     * @return array<string, mixed> The session: exp, sub, iat and token, or cookie: true
+     */
+    public static function deliver(array $session, bool $cookie): array
+    {
+        if (!$cookie) {
+            return $session;
+        }
+        SessionCookie::send($session['token'], $session['exp']);
+        unset($session['token']);
+        return $session + ['cookie' => true];
+    }
+
+    /**
      * User of a JWT whose session is still open: the token is signed and not expired, its
      * user still exists and has not revoked the sessions since it was issued (password
      * change, "sign out everywhere"). One primary-key lookup per token and per request.
@@ -282,7 +343,7 @@ final class Jwt {
             return self::$actingUser;
         }
 
-        $token = self::getTokenFromHeader();
+        $token = self::requestToken();
         
         if (!$token) {
             throw new Error("Missing Authorization header");
@@ -303,7 +364,7 @@ final class Jwt {
      */
     public static function checkAuthorization(): bool
     {
-        $token = self::getTokenFromHeader();
+        $token = self::requestToken();
         
         if (!$token) {
             Logger::warn("Missing Authorization header");

@@ -123,12 +123,14 @@ final class Mfa {
      * @param string                    $code      The code of the authenticator app (6 digits), or a recovery code
      * @param bool|int|string|null      $trust     Trust this browser for 6 months: true, "true", 1...
      * @param array<string, mixed>|null $device    The device to register ('name', 'token', optional 'platform', 'model', 'os_version', 'app_version'), as POST /user/login
+     * @param bool|int|string|null      $cookie    The session is kept in the cookie of the portal, as POST /user/login
      * @return array<string, mixed> The session (exp, sub, iat, token, as POST /user/login), and
      *               recovery_codes when the authenticator was registered at this step
      * @throws Error If the challenge expired (403), the code is wrong (401) or the account is locked (423)
      */
     #[ApiRoute('/user/login/mfa', method: 'POST', public: true, changes: [])]
-    public static function login(string $mfa_token, string $code, bool|int|string|null $trust = false, ?array $device = null): array
+    public static function login(string $mfa_token, string $code, bool|int|string|null $trust = false, ?array $device = null,
+        bool|int|string|null $cookie = null): array
     {
         $user = self::challengedUser($mfa_token);
         User::checkNotLocked($user);
@@ -142,7 +144,7 @@ final class Mfa {
         if (filter_var($trust, FILTER_VALIDATE_BOOLEAN)) {
             TrustedBrowser::trust($userId);
         }
-        $session = User::completeLogin($user, $device);
+        $session = User::completeLogin($user, $device, filter_var($cookie, FILTER_VALIDATE_BOOLEAN));
         return $recoveryCodes ? $session + ['recovery_codes' => $recoveryCodes] : $session;
     }
 

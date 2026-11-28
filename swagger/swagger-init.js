@@ -39,20 +39,6 @@ function carbureFollowTheme() {
     }
 }
 
-/**
- * Session of the portal (JWT kept by the portal in the storage of this origin), so that
- * "Try it out" calls the API as the logged-in user. The token stays in this page: it is
- * only sent in the Authorization header of the requests to /api, never in a URL.
- * @returns {string|null} The token, or null when nobody is logged in
- */
-function carbureSessionToken() {
-    try {
-        return window.localStorage.getItem('authToken');
-    } catch (e) {
-        return null;
-    }
-}
-
 carbureFollowTheme();
 
 window.onload = function () {
@@ -75,12 +61,11 @@ window.onload = function () {
         docExpansion: 'list',
         filter: true,
         tryItOutEnabled: true,
-        // Authorized with the session of the portal (not kept by Swagger UI itself)
-        onComplete: function () {
-            const token = carbureSessionToken();
-            if (token) {
-                window.ui.preauthorizeApiKey('BearerAuth', token);
-            }
+        // "Try it out" calls the API with the session of the portal: its HttpOnly cookie,
+        // sent by the browser to /api (same origin), never readable by this page
+        requestInterceptor: function (request) {
+            request.credentials = 'same-origin';
+            return request;
         }
     });
 };

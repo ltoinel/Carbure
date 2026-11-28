@@ -18,6 +18,7 @@ use Carbure\Lib\Db;
 use Carbure\Lib\Jwt;
 use Carbure\Lib\Logger;
 use Carbure\Lib\Messages;
+use Carbure\Lib\SessionCookie;
 use Error;
 
 final class User {
@@ -78,12 +79,17 @@ final class User {
      *                                          'platform' (ios or android, by default the one of the token), 'model',
      *                                          'os_version', 'app_version' (mobile apps only, see Device::register())
      * @param bool|int|string|null $mfa The client supports the second step of the login: true, "true", 1...
-     * @return array<string, mixed> The JWT token data (exp, sub, iat, token), or the challenge
-     *               of the second factor (mfa, mfa_token, exp; secret and otpauth to register it)
+     * @param bool|int|string|null $cookie The session is kept in a cookie that the scripts of the page cannot
+     *                                     read (web portal): true, "true", 1... The answer then has cookie: true
+     *                                     instead of the token
+     * @return array<string, mixed> The JWT token data (exp, sub, iat, token; cookie instead of the token for a
+     *               session in a cookie), or the challenge of the second factor (mfa, mfa_token, exp; secret
+     *               and otpauth to register it)
      * @throws Error If the credentials are invalid
      */
     #[ApiRoute('/user/login', method: 'POST', public: true, changes: [])]
-    public static function login(string $username, string $password, ?array $device = null, bool|int|string|null $mfa = null): array {
+    public static function login(string $username, string $password, ?array $device = null, bool|int|string|null $mfa = null,
+        bool|int|string|null $cookie = null): array {
 
         // check if the $username and the $password are valid in database
         $sql = "SELECT * FROM users where username=?";
@@ -103,7 +109,21 @@ final class User {
             return $challenge;
         }
 
-        return self::completeLogin($user, $device);
+        return self::completeLogin($user, $device, filter_var($cookie, FILTER_VALIDATE_BOOLEAN));
+    }
+
+    /**
+     * Sign out the browser: the session cookie of the portal is removed. Public: a session
+     * already expired or revoked is signed out too. The clients that keep their token
+     * (mobile apps, API clients) just forget it.
+     *
+     * @return array{signed_out: bool} Always true
+     */
+    #[ApiRoute('/user/logout', method: 'POST', public: true, changes: [])]
+    public static function logout(): array
+    {
+        SessionCookie::clear();
+        return ['signed_out' => true];
     }
 
     /**
@@ -132,9 +152,11 @@ final class User {
      * @param array<string, mixed>|null $device Associative array with 'name', 'token' and, optional,
      *                                        'platform' (ios or android, by default the one of the token), 'model',
      *                                        'os_version', 'app_version' (mobile apps only, see Device::register())
-     * @return array{exp: int, sub: int, iat: int, token: string} The JWT token data
+     * @param bool                      $cookie The session is kept in the cookie of the portal (SessionCookie)
+     * @return array<string, mixed> The JWT token data (exp, sub, iat, token; cookie instead of the token
+     *                              for a session in a cookie)
      */
-    public static function completeLogin(array $user, ?array $device): array
+    public static function completeLogin(array $user, ?array $device, bool $cookie = false): array
     {
         if (((int)$user['failed_logins'] > 0 || $user['locked_until'] !== null)) {
             Db::execute("UPDATE users SET failed_logins = 0, locked_until = NULL WHERE id = ?", "i", $user['id']);
@@ -154,7 +176,7 @@ final class User {
         // Shown to the administrators (Users tab)
         Db::execute("UPDATE users SET last_login = NOW() WHERE id = ?", "i", $user['id']);
 
-        return $token;
+        return Jwt::deliver($token, $cookie);
     }
 
     /**
@@ -453,11 +475,13 @@ final class User {
 
     /**
      * Close every session of a user (password change, sign out everywhere). When users
-     * close their own, the device they are using gets a new token and stays signed in.
+     * close their own, the device they are using gets a new token and stays signed in (in
+     * the session cookie for the portal).
      *
      * @param int $id The user
-     * @return array{session?: array{exp: int, sub: int, iat: int, token: string}} The new
-     *               session of the caller, nothing for another user
+     * @return array{session?: array<string, mixed>} The new session of the caller (exp, sub,
+     *               iat, token; cookie instead of the token for the portal), nothing for
+     *               another user
      */
     private static function closeSessions(int $id): array
     {
@@ -467,7 +491,7 @@ final class User {
             return [];
         }
         Logger::info("Sessions closed, new session for the current device");
-        return ['session' => Jwt::createJwt($id, $after)];
+        return ['session' => Jwt::deliver(Jwt::createJwt($id, $after), Jwt::viaCookie())];
     }
 
     /**

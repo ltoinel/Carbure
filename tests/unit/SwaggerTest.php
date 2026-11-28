@@ -19,12 +19,12 @@ class SwaggerTest extends TestCase
 
         $me = $spec['paths']['/api/user/me']['get'];
         $this->assertSame('user', $me['x-carbure-access']);
-        $this->assertSame([['BearerAuth' => []]], $me['security']);
+        $this->assertSame([['BearerAuth' => []], ['SessionCookie' => []]], $me['security']);
         $this->assertArrayNotHasKey('403', $me['responses']);
 
         $config = $spec['paths']['/api/system/config']['put'];
         $this->assertSame('admin', $config['x-carbure-access']);
-        $this->assertSame([['BearerAuth' => []]], $config['security']);
+        $this->assertSame([['BearerAuth' => []], ['SessionCookie' => []]], $config['security']);
         $this->assertStringEndsWith('(Administrators only.)', $config['description']);
         $this->assertSame('Forbidden - Administrator only', $config['responses']['403']['description']);
     }

@@ -1,5 +1,5 @@
 // Users tab (administrators): list, add, modify, unlock, delete
-const { test, expect, tr, openTab } = require('../fixtures');
+const { test, expect, tr, openTab, openPortal, sessionCookie } = require('../fixtures');
 
 /** Row of a user, by username */
 const userRow = (page, username) => page.locator('.users-table tbody tr').filter({ has: page.locator('.user-username', { hasText: new RegExp(`(^|\\s)${username}\\s*$`) }) });
@@ -70,16 +70,10 @@ test('deletes a user', async ({ adminPage: page }) => {
     await expect(userRow(page, 'marie')).toHaveCount(0);
 });
 
-test('closes the sessions of a user, who goes back to the login screen', async ({ adminPage: page, request, browser }) => {
+test('closes the sessions of a user, who goes back to the login screen', async ({ adminPage: page, browser }) => {
     // Marie is on the portal in her own browser
     const marie = await (await browser.newContext()).newPage();
-    const token = (await (await request.post('/api/user/login', { data: { username: 'marie', password: 'marie-password' } })).json()).token;
-    await marie.addInitScript(([jwt]) => {
-        localStorage.setItem('authToken', jwt);
-        localStorage.setItem('username', 'marie');
-    }, [token]);
-    await marie.goto('/portal/');
-    await expect(marie.locator('.user-menu-name')).toHaveText('marie');
+    await openPortal(marie, 'marie');
 
     await openTab(page, tr('tabUsers'));
     await page.getByRole('button', { name: `${tr('signOutUser')} marie` }).click();
@@ -100,7 +94,7 @@ test('closes the sessions of a user, who goes back to the login screen', async (
 });
 
 test('administrators who close their own sessions from the list stay signed in', async ({ adminPage: page }) => {
-    const before = await page.evaluate(() => localStorage.getItem('authToken'));
+    const before = await sessionCookie(page);
     await openTab(page, tr('tabUsers'));
     await page.getByRole('button', { name: `${tr('signOutUser')} admin` }).click();
 
@@ -108,7 +102,7 @@ test('administrators who close their own sessions from the list stay signed in',
     const dialog = page.getByRole('dialog', { name: tr('signOutEverywhere') });
     await dialog.getByRole('button', { name: tr('signOutEverywhere') }).click();
     await expect(page.locator('.toast')).toHaveText(tr('signOutEverywhereDone'));
-    expect(await page.evaluate(() => localStorage.getItem('authToken'))).not.toBe(before);
+    expect(await sessionCookie(page)).not.toBe(before);
     await page.reload();
     await expect(page.locator('.user-menu-name')).toHaveText('admin');
 });

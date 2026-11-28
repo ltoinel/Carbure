@@ -12,6 +12,22 @@ icon: material/shield-lock-outline
   `jwtsecret`, valable **30 jours** (`sub` = identifiant de l'utilisateur).
 - Les autres routes exigent `Authorization: Bearer <token>` ; la signature est comparée
   en temps constant et l'expiration est contrôlée.
+- **Session du portail dans un cookie `HttpOnly`** : le portail se connecte avec
+  `cookie: true` ; l'API pose alors le JWT dans le cookie `carbure_session` (`HttpOnly`,
+  `SameSite=Strict`, `Secure` en HTTPS, chemin `/api`, expiration du jeton) et ne le met pas
+  dans la réponse. Les scripts de la page ne le voient jamais : une faille XSS ne peut pas
+  le voler. Les applications mobiles, le serveur MCP et les clients de l'API gardent
+  l'en-tête `Authorization`, prioritaire sur le cookie ; le serveur MCP n'accepte pas le
+  cookie.
+    - **Requêtes forgées (CSRF)** : en plus de `SameSite=Strict`, une écriture (`POST`,
+      `PUT`, `DELETE`) authentifiée par le cookie doit venir du portail lui-même :
+      `Sec-Fetch-Site: same-origin`, ou à défaut un en-tête `Origin` égal à l'hôte du
+      serveur (`Host`, `X-Forwarded-Host` ou `public_url`). Sinon : `401`.
+    - **Déconnexion** : `POST /user/logout` supprime le cookie (route publique, pour une
+      session déjà expirée aussi). Après un changement de mot de passe ou « se déconnecter
+      partout », le portail reçoit son nouveau cookie au lieu d'un jeton.
+    - **Migration** : un portail connecté par une version précédente (jeton dans le
+      stockage du navigateur) efface ce jeton et repasse une fois par l'écran de connexion.
 - **Révocation des sessions** : à chaque requête, le jeton est aussi confronté à
   l'utilisateur en base. Il est refusé (`401`) dans ces cas :
 
@@ -181,9 +197,9 @@ par nginx (`docker/nginx.conf`) ; Carbure ne fournit pas de `.htaccess`.
 Swagger UI (`/swagger/`) a les mêmes en-têtes que le portail, sauf l'affichage dans un
 cadre : `frame-ancestors 'self'` et `X-Frame-Options: SAMEORIGIN`, pour l'onglet
 **Administration → API** du portail ; aucun autre site ne peut l'afficher dans un cadre, et
-le portail lui-même garde `frame-ancestors 'none'` / `DENY`. Swagger UI lit le jeton de
-session du portail dans le stockage du navigateur (même origine) et ne l'envoie que dans
-l'en-tête `Authorization` des appels à `/api`.
+le portail lui-même garde `frame-ancestors 'none'` / `DENY`. Les appels « Try it out » de
+Swagger UI à `/api` (même origine) portent le cookie de session du portail, envoyé par le
+navigateur : Swagger UI ne voit aucun jeton.
 
 **Aucun CDN externe** : le portail et Swagger UI ne chargent rien depuis un autre site.
 Vue, CodeMirror, les polices (`portal/vendor/`) et Swagger UI (`swagger/vendor/`) sont
@@ -358,7 +374,7 @@ Seules ces routes ne demandent pas de JWT (un test unitaire le vérifie) :
     secret invalide toutes les sessions (app iOS et portail).
 
 - Servir l'API et le portail **uniquement en HTTPS** (JWT et mots de passe transitent
-  dans les requêtes ; la copie du token dans le portail exige HTTPS).
+  dans les requêtes ; le cookie de session du portail n'est marqué `Secure` qu'en HTTPS).
 - Ne pas exposer `data/`, `conf/`, `sql/`, `tests/` ni `tools/` par le serveur
   web.
 - Générer un `sync_token` long (l'onglet **Administration → Synchro** en crée un) et le

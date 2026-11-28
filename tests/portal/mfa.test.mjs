@@ -76,8 +76,8 @@ function loginContext() {
         opened: null,
         t: key => key,
         $nextTick: () => {},
-        openSession(token) {
-            this.opened = token;
+        openSession() {
+            this.opened = true;
         },
     };
     context.startMfaLogin({ mfa: 'verify', mfa_token: 'challenge', exp: 0 });
@@ -85,7 +85,7 @@ function loginContext() {
 }
 
 test('second step: the code and the trust of the browser are sent with the challenge', async () => {
-    const calls = mockFetch(() => new Response(JSON.stringify({ token: 'jwt' }), { status: 200 }));
+    const calls = mockFetch(() => new Response(JSON.stringify({ cookie: true }), { status: 200 }));
     globalThis.fetch = window.fetch;
     const context = loginContext();
     context.mfaCode = ' 123456 ';
@@ -94,14 +94,15 @@ test('second step: the code and the trust of the browser are sent with the chall
     await context.submitMfaLogin();
 
     assert.equal(calls[0].url, 'https://carbure.example.com/api/user/login/mfa');
-    assert.deepEqual(JSON.parse(calls[0].options.body), { mfa_token: 'challenge', code: '123456', trust: true });
+    // The session is kept in the HttpOnly cookie, as the first step
+    assert.deepEqual(JSON.parse(calls[0].options.body), { mfa_token: 'challenge', code: '123456', trust: true, cookie: true });
     assert.equal(calls[0].options.credentials, 'same-origin');
-    assert.equal(context.opened, 'jwt');
+    assert.equal(context.opened, true);
     assert.equal(context.mfaLogin, null);
 });
 
 test('second step: the recovery codes of an app registered at login are shown before the session', async () => {
-    mockFetch(() => new Response(JSON.stringify({ token: 'jwt', recovery_codes: ['abcde-fghij'] }), { status: 200 }));
+    mockFetch(() => new Response(JSON.stringify({ cookie: true, recovery_codes: ['abcde-fghij'] }), { status: 200 }));
     globalThis.fetch = window.fetch;
     const context = loginContext();
     context.mfaCode = '123456';
@@ -111,7 +112,7 @@ test('second step: the recovery codes of an app registered at login are shown be
     assert.equal(context.opened, null);
 
     await context.continueAfterRecoveryCodes();
-    assert.equal(context.opened, 'jwt');
+    assert.equal(context.opened, true);
     assert.deepEqual(context.mfaLoginRecoveryCodes, []);
 });
 

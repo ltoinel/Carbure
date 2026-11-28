@@ -691,7 +691,8 @@ export function createProfileModule(getApiService) {
 
                 this.savingProfile = true;
                 try {
-                    const { session, ...user } = await apiService.updateUser(
+                    // A new password closes the other sessions: the API renews the cookie of this one
+                    const { session: _session, ...user } = await apiService.updateUser(
                         this.currentUser.id,
                         this.profileForm.email,
                         this.profileForm.firstname,
@@ -702,8 +703,6 @@ export function createProfileModule(getApiService) {
                         undefined,
                         this.profileForm.theme
                     );
-                    // A new password closes the other sessions: this one goes on with a new token
-                    this.adoptSession(session);
                     this.currentUser = user;
                     this.profileForm.password = '';
                     applyTheme(this.currentUser.theme);

@@ -39,8 +39,9 @@ export function responseError(status, text, fallback) {
 /**
  * Creates an API service instance
  * @param {string} baseUrl - Base URL for API endpoints
- * @param {string} authToken - JWT authentication token
- * @param {Function} onUnauthorized - Called when the API answers 401 (expired or invalid token)
+ * @param {boolean} authenticated - A session is open: the API keeps it in an HttpOnly cookie
+ *   (never readable by the portal), sent by the browser with every request to the API
+ * @param {Function} onUnauthorized - Called when the API answers 401 (session expired or closed)
  * @param {Function} onSetupRequired - Called when the API answers that Carbure is not
  *   installed (503 {setup: true}, e.g. reinstalled from scratch at the same address)
  * @param {Function} onChanges - Called with the versions of the data of each answer
@@ -48,7 +49,7 @@ export function responseError(status, text, fallback) {
  *   changesModule
  * @returns {Object} API service methods
  */
-export function createApiService(baseUrl, authToken = null, onUnauthorized = null, onSetupRequired = null, onChanges = null) {
+export function createApiService(baseUrl, authenticated = false, onUnauthorized = null, onSetupRequired = null, onChanges = null) {
     /**
      * fetch() that reports a session that cannot be used: expired (HTTP 401), or
      * Carbure not installed (HTTP 503 {setup: true})
@@ -57,8 +58,9 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
      * @returns {Promise<Response>}
      */
     async function authFetch(url, options) {
-        const response = await window.fetch(url, options);
-        if (!authToken) {
+        // The session cookie goes with the requests to the API (same origin as the portal)
+        const response = await window.fetch(url, { credentials: 'same-origin', ...options });
+        if (!authenticated) {
             return response;
         }
         const changes = response.headers?.get?.('X-Carbure-Changes');
@@ -76,15 +78,6 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
     }
 
     /**
-     * Replaces the JWT of the next calls: the API gives a new one to the session that
-     * changes its own password, the previous tokens being revoked
-     * @param {string} token - The new JWT
-     */
-    function setAuthToken(token) {
-        authToken = token;
-    }
-
-    /**
      * Active AbortControllers for cancellable requests
      */
     const controllers = {
@@ -94,19 +87,13 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
     };
     
     /**
-     * Creates headers with authentication
+     * Headers of the requests: the session is the cookie of the browser, never a header
      * @returns {Object} Headers object
      */
     function getHeaders() {
-        const headers = {
+        return {
             'Content-Type': 'application/json'
         };
-        
-        if (authToken) {
-            headers['Authorization'] = `Bearer ${authToken}`;
-        }
-        
-        return headers;
     }
     
     /**
@@ -1379,10 +1366,19 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
     }
 
     /**
+     * Signs out this browser: the API removes the session cookie (also when the session
+     * has already expired)
+     * @returns {Promise<void>}
+     */
+    async function logout() {
+        await window.fetch(`${baseUrl}/user/logout`, { method: 'POST', credentials: 'same-origin', headers: getHeaders() });
+    }
+
+    /**
      * Closes every session of a user ("sign out everywhere"): the tokens issued so far are refused
      * @param {number} [id] - User (administrators only for another user); the caller by default
-     * @returns {Promise<{revoked: boolean, session?: {token: string}}>} session: the new
-     *   token of the caller, when the sessions closed are his own
+     * @returns {Promise<{revoked: boolean, session?: {cookie: boolean}}>} session: the caller
+     *   stays signed in (new session cookie), when the sessions closed are his own
      * @throws {Error} If request fails
      */
     async function signOutEverywhere(id = null) {
@@ -1758,7 +1754,7 @@ export function createApiService(baseUrl, authToken = null, onUnauthorized = nul
         previewImport,
         importTransactions,
         createUser,
-        setAuthToken,
+        logout,
         signOutEverywhere,
         updateUser,
         updateUserTheme,
