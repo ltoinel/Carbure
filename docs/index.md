@@ -28,20 +28,14 @@ vous. Les opérations sont récupérées automatiquement auprès des banques fra
 
 Tous s'appuient sur la même **API REST PHP** (`src/`).
 
-<a class="teaser" href="https://www.youtube.com/watch?v=PUCd27oJkig" data-youtube="PUCd27oJkig" title="Teaser de Carbure (1 min) sur YouTube">
-  <img src="assets/teaser-youtube.jpg" alt="Lire le teaser de Carbure (1 min, YouTube)" width="1280" height="720">
-  <span class="teaser__play" aria-hidden="true"></span>
-</a>
+[![Lire le teaser de Carbure (1 min, YouTube)](assets/teaser-youtube.jpg){ width="1280" height="720" }<span class="teaser__play" aria-hidden="true"></span>](https://www.youtube.com/watch?v=PUCd27oJkig){ .teaser data-youtube="PUCd27oJkig" title="Teaser de Carbure (1 min) sur YouTube" }
 
 *Carbure en une minute : synchronisation, catégorisation, budgets, flux du mois, tendances,
 insights, notifications, agent IA et foyer.*
 
 ![Flux du mois : des revenus aux dépenses, à l'épargne et au reste](assets/screenshot-flow.webp)
 
-<a class="teaser" href="https://www.youtube.com/watch?v=YqSUd7L9fPg" data-youtube="YqSUd7L9fPg" title="Carbure sur iPhone et Android : votre budget, dans votre poche (YouTube)">
-  <img src="assets/mobile-apps-youtube.jpg" alt="Lire la vidéo « Carbure sur iPhone et Android : votre budget, dans votre poche » (YouTube)" width="1280" height="720" loading="lazy">
-  <span class="teaser__play" aria-hidden="true"></span>
-</a>
+[![Lire la vidéo « Carbure sur iPhone et Android : votre budget, dans votre poche » (YouTube)](assets/mobile-apps-youtube.jpg){ width="1280" height="720" loading=lazy }<span class="teaser__play" aria-hidden="true"></span>](https://www.youtube.com/watch?v=YqSUd7L9fPg){ .teaser data-youtube="YqSUd7L9fPg" title="Carbure sur iPhone et Android : votre budget, dans votre poche (YouTube)" }
 
 *Les [applications iPhone et Android](applications-mobiles.md) : votre budget, dans votre
 poche. Transactions, budgets, aperçus et notifications du mois.*

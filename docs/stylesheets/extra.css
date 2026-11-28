@@ -200,6 +200,45 @@
   }
 }
 
+/* Every video of the channel (Support page): a grid of smaller players with their caption */
+.md-typeset .video-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+  gap: 1.6rem 1.2rem;
+  margin: 1.2em 0;
+}
+
+.md-typeset .video-grid figure {
+  display: block;
+  width: auto;
+  max-width: none;
+  margin: 0;
+}
+
+.md-typeset .video-grid p {
+  margin: 0;
+}
+
+.md-typeset .video-grid .teaser {
+  margin: 0 0 0.6em;
+}
+
+.md-typeset .video-grid .teaser__play {
+  width: 3.2rem;
+  height: 3.2rem;
+}
+
+.md-typeset .video-grid .teaser__play::after {
+  border-width: 0.6rem 0 0.6rem 1rem;
+}
+
+.md-typeset .video-grid figcaption {
+  max-width: none;
+  margin: 0;
+  text-align: left;
+  font-style: normal;
+}
+
 /* ===== Screenshots of the mobile apps, side by side (wrapped on narrow screens) ===== */
 .md-typeset .mobile-screens {
   display: flex;

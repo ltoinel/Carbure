@@ -28,20 +28,14 @@ home. Transactions are fetched automatically from French banks thanks to
 
 All of them rely on the same **PHP REST API** (`src/`).
 
-<a class="teaser" href="https://www.youtube.com/watch?v=PUCd27oJkig" data-youtube="PUCd27oJkig" title="Carbure teaser (1 min, in French) on YouTube">
-  <img src="assets/teaser-youtube.jpg" alt="Play the Carbure teaser (1 min, in French, YouTube)" width="1280" height="720">
-  <span class="teaser__play" aria-hidden="true"></span>
-</a>
+[![Play the Carbure teaser (1 min, in French, YouTube)](assets/teaser-youtube.jpg){ width="1280" height="720" }<span class="teaser__play" aria-hidden="true"></span>](https://www.youtube.com/watch?v=PUCd27oJkig){ .teaser data-youtube="PUCd27oJkig" title="Carbure teaser (1 min, in French) on YouTube" }
 
 *Carbure in one minute: synchronization, categorization, budgets, monthly flow, trends,
 insights, notifications, AI agent and household.*
 
 ![Monthly flow: from income to expenses, savings and what is left](assets/en/screenshot-flow.webp)
 
-<a class="teaser" href="https://www.youtube.com/watch?v=YqSUd7L9fPg" data-youtube="YqSUd7L9fPg" title="Carbure on iPhone and Android: your budget in your pocket (YouTube)">
-  <img src="assets/mobile-apps-youtube.jpg" alt="Play the video “Carbure on iPhone and Android: your budget in your pocket” (YouTube)" width="1280" height="720" loading="lazy">
-  <span class="teaser__play" aria-hidden="true"></span>
-</a>
+[![Play the video “Carbure on iPhone and Android: your budget in your pocket” (YouTube)](assets/mobile-apps-youtube.jpg){ width="1280" height="720" loading=lazy }<span class="teaser__play" aria-hidden="true"></span>](https://www.youtube.com/watch?v=YqSUd7L9fPg){ .teaser data-youtube="YqSUd7L9fPg" title="Carbure on iPhone and Android: your budget in your pocket (YouTube)" }
 
 *The [iPhone and Android apps](applications-mobiles.md): your budget in your pocket.
 Transactions, budgets, overviews and notifications of the month.*

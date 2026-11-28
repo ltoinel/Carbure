@@ -47,6 +47,8 @@ The last administrator cannot lose their role.
 
 ## Bank accounts and synchronization { #comptes-bancaires-et-synchronisation }
 
+[![Play the video “Carbure: your bank accounts synchronized at home” (YouTube, in French)](assets/videos/banques.jpg){ width="1280" height="720" loading=lazy }<span class="teaser__play" aria-hidden="true"></span>](https://www.youtube.com/watch?v=WctTx_2k4Cc){ .teaser data-youtube="WctTx_2k4Cc" title="Carbure: your bank accounts synchronized at home (YouTube, in French)" }
+
 ### Connecting to banks { #connexion-aux-banques }
 
 Carbure connects **directly** to each bank with [woob](https://woob.tech/), a piece of
@@ -119,6 +121,8 @@ transactions of the last month still without a category.
   ("already in progress").
 
 ## Transactions { #transactions }
+
+[![Play the video “Carbure: all your transactions, finally readable” (YouTube, in French)](assets/videos/transactions.jpg){ width="1280" height="720" loading=lazy }<span class="teaser__play" aria-hidden="true"></span>](https://www.youtube.com/watch?v=JRdQoLUGIKg){ .teaser data-youtube="JRdQoLUGIKg" title="Carbure: all your transactions, finally readable (YouTube, in French)" }
 
 - **List of the selected month**, most recent first: icon and color of the category
   (or of the transaction type if it is not categorized), label, date, category and amount.
@@ -310,6 +314,8 @@ the creation, modification and deletion of a category to other users
 
 ## Categorization rules { #regles-de-categorisation }
 
+[![Play the video “Carbure: categorization that works for you” (YouTube, in French)](assets/videos/regles.jpg){ width="1280" height="720" loading=lazy }<span class="teaser__play" aria-hidden="true"></span>](https://www.youtube.com/watch?v=GLg3n4zoRgI){ .teaser data-youtube="GLg3n4zoRgI" title="Carbure: categorization that works for you (YouTube, in French)" }
+
 A rule associates a **keyword** with a category: any transaction whose label
 **contains** this keyword receives the category ("CARREFOUR" → Supermarket).
 
@@ -343,6 +349,8 @@ A rule associates a **keyword** with a category: any transaction whose label
   keeping an eye on rent, a reimbursement or a subscription.
 
 ## Budgets { #budgets }
+
+[![Play the video “Carbure: a clear budget, every month” (YouTube, in French)](assets/videos/budgets.jpg){ width="1280" height="720" loading=lazy }<span class="teaser__play" aria-hidden="true"></span>](https://www.youtube.com/watch?v=KAwQ9K_AqSo){ .teaser data-youtube="KAwQ9K_AqSo" title="Carbure: a clear budget, every month (YouTube, in French)" }
 
 ![Budgets of the month per category, with the amount left to spend or the overspend](assets/en/screenshot-budget.webp)
 
@@ -391,6 +399,8 @@ Internal transfers (off-budget categories) are left out, except savings;
 uncategorized transactions remain visible. The same flows are available as a table.
 
 ## Trends { #tendances }
+
+[![Play the video “Carbure: understanding your budget, month after month” (YouTube, in French)](assets/videos/tendances.jpg){ width="1280" height="720" loading=lazy }<span class="teaser__play" aria-hidden="true"></span>](https://www.youtube.com/watch?v=7RzZ9iXamX0){ .teaser data-youtube="7RzZ9iXamX0" title="Carbure: understanding your budget, month after month (YouTube, in French)" }
 
 ![Trends of expenses, income and savings over several months](assets/screenshot-trends.webp)
 
@@ -541,6 +551,8 @@ prevents neither the other nor the synchronization.
 
 ## AI agents { #agents-ia }
 
+[![Play the video “Carbure: talk budget with your AI assistant (MCP)” (YouTube, in French)](assets/videos/agents.jpg){ width="1280" height="720" loading=lazy }<span class="teaser__play" aria-hidden="true"></span>](https://www.youtube.com/watch?v=iInIXN2Lxr8){ .teaser data-youtube="iInIXN2Lxr8" title="Carbure: talk budget with your AI assistant (MCP) (YouTube, in French)" }
+
 ![AI agent connected to the Carbure MCP server to query the household budget](assets/screenshot-agents.webp)
 
 A built-in **MCP server** lets an AI agent answer questions about the household's
@@ -564,6 +576,8 @@ are over budget this month?", "How are our savings evolving?".
     provider to be analyzed. Details: [AI agents (MCP)](mcp.md).
 
 ## Profile and account security { #profil-et-securite-des-comptes }
+
+[![Play the video “Carbure: your finances stay at home” (YouTube, in French)](assets/videos/securite.jpg){ width="1280" height="720" loading=lazy }<span class="teaser__play" aria-hidden="true"></span>](https://www.youtube.com/watch?v=NzkeusnHGnI){ .teaser data-youtube="NzkeusnHGnI" title="Carbure: your finances stay at home (YouTube, in French)" }
 
 - **My profile**, in four sub-tabs: **Profile** (email, first name, last name, password,
   language applied at each sign-in on every browser, theme), **Two-factor
