@@ -6,6 +6,8 @@ icon: material/shield-lock-outline
 
 # Sécurité
 
+[![Lire la vidéo « Carbure : vos finances restent chez vous » (YouTube)](assets/videos/securite.jpg){ width="1280" height="720" loading=lazy }<span class="teaser__play" aria-hidden="true"></span>](https://www.youtube.com/watch?v=NzkeusnHGnI){ .teaser data-youtube="NzkeusnHGnI" title="Carbure : vos finances restent chez vous (YouTube)" }
+
 ## Authentification
 
 - `POST /user/login` vérifie le mot de passe et renvoie un **JWT HS256** signé avec

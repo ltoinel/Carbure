@@ -18,6 +18,8 @@ restaurants this year?”, “Which categories are over budget this month?” or
 - **Under control**: disabled by default, an administrator enables it; each user
   creates their access tokens and revokes them whenever they want.
 
+[![Play the video “Carbure: talk budget with your AI assistant (MCP)” (YouTube, in French)](assets/videos/agents.jpg){ width="1280" height="720" loading=lazy }<span class="teaser__play" aria-hidden="true"></span>](https://www.youtube.com/watch?v=iInIXN2Lxr8){ .teaser data-youtube="iInIXN2Lxr8" title="Carbure: talk budget with your AI assistant (MCP) (YouTube, in French)" }
+
 !!! warning "Privacy"
     Carbure stays hosted at home, but the data an AI agent looks up (labels,
     amounts, categories) is sent to its provider to be analyzed. Only enable this

@@ -18,6 +18,8 @@ restaurants cette année ? », « Quelles catégories dépassent leur budget ce 
 - **Sous contrôle** : désactivé par défaut, un administrateur l'active ; chaque utilisateur
   crée ses jetons d'accès et les révoque quand il veut.
 
+[![Lire la vidéo « Carbure : parlez budget avec votre assistant IA (MCP) » (YouTube)](assets/videos/agents.jpg){ width="1280" height="720" loading=lazy }<span class="teaser__play" aria-hidden="true"></span>](https://www.youtube.com/watch?v=iInIXN2Lxr8){ .teaser data-youtube="iInIXN2Lxr8" title="Carbure : parlez budget avec votre assistant IA (MCP) (YouTube)" }
+
 !!! warning "Confidentialité"
     Carbure reste hébergé chez vous, mais les données qu'un agent IA consulte (libellés,
     montants, catégories) sont envoyées à son fournisseur pour être analysées. N'activez cet

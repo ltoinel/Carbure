@@ -47,6 +47,8 @@ Le dernier administrateur ne peut pas perdre son rôle.
 
 ## Comptes bancaires et synchronisation
 
+[![Lire la vidéo « Carbure : vos comptes bancaires synchronisés chez vous » (YouTube)](assets/videos/banques.jpg){ width="1280" height="720" loading=lazy }<span class="teaser__play" aria-hidden="true"></span>](https://www.youtube.com/watch?v=WctTx_2k4Cc){ .teaser data-youtube="WctTx_2k4Cc" title="Carbure : vos comptes bancaires synchronisés chez vous (YouTube)" }
+
 ### Connexion aux banques
 
 Carbure se connecte **directement** à chaque banque avec [woob](https://woob.tech/), un
@@ -119,6 +121,8 @@ transactions du dernier mois restées sans catégorie.
   (« déjà en cours »).
 
 ## Transactions
+
+[![Lire la vidéo « Carbure : toutes vos transactions, enfin lisibles » (YouTube)](assets/videos/transactions.jpg){ width="1280" height="720" loading=lazy }<span class="teaser__play" aria-hidden="true"></span>](https://www.youtube.com/watch?v=JRdQoLUGIKg){ .teaser data-youtube="JRdQoLUGIKg" title="Carbure : toutes vos transactions, enfin lisibles (YouTube)" }
 
 - **Liste du mois** choisi, la plus récente en premier : icône et couleur de la catégorie
   (ou du type d'opération si elle n'est pas catégorisée), libellé, date, catégorie et montant.
@@ -315,6 +319,8 @@ la création, la modification et la suppression d'une catégorie aux autres util
 
 ## Règles de catégorisation
 
+[![Lire la vidéo « Carbure : la catégorisation qui travaille pour vous » (YouTube)](assets/videos/regles.jpg){ width="1280" height="720" loading=lazy }<span class="teaser__play" aria-hidden="true"></span>](https://www.youtube.com/watch?v=GLg3n4zoRgI){ .teaser data-youtube="GLg3n4zoRgI" title="Carbure : la catégorisation qui travaille pour vous (YouTube)" }
+
 Une règle associe un **mot-clé** à une catégorie : toute transaction dont le libellé
 **contient** ce mot-clé reçoit la catégorie (« CARREFOUR » → Supermarché).
 
@@ -348,6 +354,8 @@ Une règle associe un **mot-clé** à une catégorie : toute transaction dont le
   un loyer, un remboursement ou un abonnement à surveiller.
 
 ## Budgets
+
+[![Lire la vidéo « Carbure : un budget clair, chaque mois » (YouTube)](assets/videos/budgets.jpg){ width="1280" height="720" loading=lazy }<span class="teaser__play" aria-hidden="true"></span>](https://www.youtube.com/watch?v=KAwQ9K_AqSo){ .teaser data-youtube="KAwQ9K_AqSo" title="Carbure : un budget clair, chaque mois (YouTube)" }
 
 ![Budgets du mois par catégorie, avec le reste à dépenser ou le dépassement](assets/screenshot-budget.webp)
 
@@ -396,6 +404,8 @@ Les virements internes (catégories hors budget) sont écartés, sauf l'épargne
 transactions non catégorisées restent visibles. Les mêmes flux existent en tableau.
 
 ## Tendances
+
+[![Lire la vidéo « Carbure : comprendre votre budget, mois après mois » (YouTube)](assets/videos/tendances.jpg){ width="1280" height="720" loading=lazy }<span class="teaser__play" aria-hidden="true"></span>](https://www.youtube.com/watch?v=7RzZ9iXamX0){ .teaser data-youtube="7RzZ9iXamX0" title="Carbure : comprendre votre budget, mois après mois (YouTube)" }
 
 ![Tendances des dépenses, des revenus et de l'épargne sur plusieurs mois](assets/screenshot-trends.webp)
 
@@ -550,6 +560,8 @@ n'empêche ni l'autre ni la synchronisation.
 
 ## Agents IA
 
+[![Lire la vidéo « Carbure : parlez budget avec votre assistant IA (MCP) » (YouTube)](assets/videos/agents.jpg){ width="1280" height="720" loading=lazy }<span class="teaser__play" aria-hidden="true"></span>](https://www.youtube.com/watch?v=iInIXN2Lxr8){ .teaser data-youtube="iInIXN2Lxr8" title="Carbure : parlez budget avec votre assistant IA (MCP) (YouTube)" }
+
 ![Agent IA connecté au serveur MCP de Carbure pour interroger le budget du foyer](assets/screenshot-agents.webp)
 
 Un **serveur MCP** intégré permet à un agent IA de répondre à des questions sur le budget du
@@ -573,6 +585,8 @@ dépassent leur budget ce mois-ci ? », « Comment évolue notre épargne ? ».
     fournisseur pour être analysées. Détails : [Agents IA (MCP)](mcp.md).
 
 ## Profil et sécurité des comptes
+
+[![Lire la vidéo « Carbure : vos finances restent chez vous » (YouTube)](assets/videos/securite.jpg){ width="1280" height="720" loading=lazy }<span class="teaser__play" aria-hidden="true"></span>](https://www.youtube.com/watch?v=NzkeusnHGnI){ .teaser data-youtube="NzkeusnHGnI" title="Carbure : vos finances restent chez vous (YouTube)" }
 
 - **Mon profil**, en quatre sous-onglets : **Profil** (e-mail, prénom, nom, mot de passe,
   langue appliquée à chaque connexion sur tous les navigateurs, thème), **Double

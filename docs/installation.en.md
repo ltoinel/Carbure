@@ -18,6 +18,8 @@ administrator account. No command is needed.
   without Docker or wizard.
 - **Existing web server** (PHP + MariaDB/MySQL), without Docker.
 
+[![Play the video “Installing Carbure in five minutes (Docker, Synology, YunoHost)” (YouTube, in French)](assets/videos/installer.jpg){ width="1280" height="720" loading=lazy }<span class="teaser__play" aria-hidden="true"></span>](https://www.youtube.com/watch?v=5hURMoSPuIg){ .teaser data-youtube="5hURMoSPuIg" title="Installing Carbure in five minutes (Docker, Synology, YunoHost) (YouTube, in French)" }
+
 Before installing, discover Carbure's [features](fonctionnalites.md) and its
 [comparison](comparatif.md) with other self-hosted budget managers.
 

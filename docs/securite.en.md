@@ -6,6 +6,8 @@ icon: material/shield-lock-outline
 
 # Security
 
+[![Play the video “Carbure: your finances stay at home” (YouTube, in French)](assets/videos/securite.jpg){ width="1280" height="720" loading=lazy }<span class="teaser__play" aria-hidden="true"></span>](https://www.youtube.com/watch?v=NzkeusnHGnI){ .teaser data-youtube="NzkeusnHGnI" title="Carbure: your finances stay at home (YouTube, in French)" }
+
 ## Authentication { #authentification }
 
 - `POST /user/login` checks the password and returns an **HS256 JWT** signed with
