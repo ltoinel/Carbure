@@ -40,12 +40,8 @@ test('an administrator reads the documentation of the API in the portal', async 
     await expect(swagger.locator('.opblock-summary-path[data-path="/api/category"]').first()).toBeVisible({ timeout: 15_000 });
 });
 
-test('"Try it out" calls the API with the session of the portal, never a token in a URL', async ({ adminPage: page }) => {
+test('"Try it out" calls the API with the session cookie of the portal, never a token', async ({ adminPage: page }) => {
     const swagger = await openApiDocs(page);
-    const token = await page.evaluate(() => localStorage.getItem('authToken'));
-
-    // Already authorized with the JWT of the portal
-    await expect(swagger.locator('.btn.authorize')).toHaveClass(/\blocked\b/, { timeout: 15_000 });
 
     await filterTag(swagger, 'Category');
     const operation = swagger.locator('.opblock-get').filter({ has: swagger.locator('.opblock-summary-path[data-path="/api/category"]') });
@@ -54,8 +50,10 @@ test('"Try it out" calls the API with the session of the portal, never a token i
     await operation.getByRole('button', { name: 'Execute' }).click();
     const received = await response;
     const sent = received.request();
-    expect(sent.headers()['authorization']).toBe(`Bearer ${token}`);
-    expect(sent.url()).not.toContain(token);
+    // The HttpOnly cookie, sent by the browser: no token known by the page
+    expect(sent.headers()['authorization']).toBeUndefined();
+    expect(sent.headers()['cookie'] ?? (await sent.allHeaders())['cookie']).toContain('carbure_session=');
+    expect(new URL(sent.url()).search).toBe('');
     expect(received.status()).toBe(200);
     // The answer is shown below the operation
     await expect(operation.locator('.live-responses-table')).toContainText('200');

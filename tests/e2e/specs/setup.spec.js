@@ -90,16 +90,18 @@ test('shows the wizard even with the session of a previous installation', async 
     // The API of a server not installed (the routes of the wizard are added after: they win)
     await page.route('**/api/**', route => route.fulfill({ status: 503, json: { error: 'Carbure is not installed yet', code: 503, setup: true } }));
     await notInstalled(page);
-    // Same address, token of an instance that was since reinstalled from scratch
+    // Same address, session of an instance that was since reinstalled from scratch
     await page.addInitScript(() => {
-        localStorage.setItem('authToken', 'token-of-a-previous-installation');
-        localStorage.setItem('username', 'admin');
+        if (!sessionStorage.getItem('e2e-init')) {
+            sessionStorage.setItem('e2e-init', '1');
+            localStorage.setItem('username', 'admin');
+        }
     });
     await page.goto('/portal/');
 
     await expect(page.getByRole('heading', { name: tr('setupTitle') })).toBeVisible();
     await expect(page.locator('.user-menu-name')).toHaveCount(0);
-    expect(await page.evaluate(() => localStorage.getItem('authToken'))).toBeNull();
+    expect(await page.evaluate(() => localStorage.getItem('username'))).toBeNull();
 });
 
 test('shows the login screen once installed', async ({ page }) => {

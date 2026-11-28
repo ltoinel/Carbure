@@ -6,17 +6,19 @@ import { createApiService } from '../../portal/services/apiService.js';
 
 const BASE = 'https://carbure.example.com/api';
 
-test('sends the token and decodes the JSON', async () => {
+test('sends the session cookie, never a token, and decodes the JSON', async () => {
     const calls = mockFetch(() => json([{ id: 1 }]));
-    const api = createApiService(BASE, 'jwt-token');
+    const api = createApiService(BASE, true);
 
     assert.deepEqual(await api.fetchCategories(), [{ id: 1 }]);
     assert.equal(calls[0].url, `${BASE}/category`);
-    assert.equal(calls[0].options.headers.Authorization, 'Bearer jwt-token');
+    // The session is the HttpOnly cookie of the browser: no Authorization header
+    assert.equal(calls[0].options.credentials, 'same-origin');
+    assert.equal(calls[0].options.headers.Authorization, undefined);
     assert.equal(calls[0].options.headers['Content-Type'], 'application/json');
 });
 
-test('without token, no Authorization header', async () => {
+test('without session, no Authorization header either', async () => {
     const calls = mockFetch(() => json({}));
     await createApiService(BASE).fetchMe();
     assert.equal(calls[0].options.headers.Authorization, undefined);
@@ -176,13 +178,13 @@ test('updateUser only sends the fields given', async () => {
     });
 });
 
-test('setAuthToken replaces the token of the next calls', async () => {
-    const calls = mockFetch(() => json({ id: 2 }));
-    const api = createApiService(BASE, 'old-token');
+test('logout asks the API to remove the session cookie', async () => {
+    const calls = mockFetch(() => json({ signed_out: true }));
 
-    api.setAuthToken('new-token');
-    await api.updateUserTheme(2, 'dark');
-    assert.equal(calls[0].options.headers.Authorization, 'Bearer new-token');
+    await createApiService(BASE, true).logout();
+    assert.equal(calls[0].url, `${BASE}/user/logout`);
+    assert.equal(calls[0].options.method, 'POST');
+    assert.equal(calls[0].options.credentials, 'same-origin');
 });
 
 test('syncBanks reads the progress events of one account', async () => {

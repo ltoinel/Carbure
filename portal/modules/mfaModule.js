@@ -182,7 +182,8 @@ export function createMfaModule(getApiService) {
                         headers: { 'Content-Type': 'application/json' },
                         // The cookie of a trusted browser is set by the answer
                         credentials: 'same-origin',
-                        body: JSON.stringify({ mfa_token: this.mfaLogin.token, code: this.mfaCode.trim(), trust: this.mfaTrust })
+                        // The session is kept in an HttpOnly cookie, as the first step
+                        body: JSON.stringify({ mfa_token: this.mfaLogin.token, code: this.mfaCode.trim(), trust: this.mfaTrust, cookie: true })
                     });
                     if (!response.ok) {
                         this.mfaLoginFailed(response.status);
@@ -195,7 +196,7 @@ export function createMfaModule(getApiService) {
                         this.$nextTick(() => document.getElementById('mfa-recovery-title')?.focus());
                         return;
                     }
-                    await this.finishMfaLogin(data);
+                    await this.finishMfaLogin();
                 } catch (error) {
                     this.loginError = this.t('loginError');
                 } finally {
@@ -226,21 +227,19 @@ export function createMfaModule(getApiService) {
              * @returns {Promise<void>}
              */
             async continueAfterRecoveryCodes() {
-                const session = this.mfaPendingSession;
                 this.mfaLoginRecoveryCodes = [];
                 this.mfaPendingSession = null;
-                await this.finishMfaLogin(session);
+                await this.finishMfaLogin();
             },
 
             /**
-             * Opens the session given by the second step
-             * @param {Object} session - {token, ...}
+             * Opens the session given by the second step (in the session cookie)
              * @returns {Promise<void>}
              */
-            async finishMfaLogin(session) {
+            async finishMfaLogin() {
                 this.mfaLogin = null;
                 this.mfaCode = '';
-                await this.openSession(session.token);
+                await this.openSession();
             },
 
             /**

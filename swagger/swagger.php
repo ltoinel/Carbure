@@ -47,6 +47,13 @@ class SwaggerGenerator {
                         'type' => 'http',
                         'scheme' => 'bearer',
                         'bearerFormat' => 'JWT'
+                    ],
+                    // Web portal: the JWT in an HttpOnly cookie, set by POST /user/login with cookie=true
+                    'SessionCookie' => [
+                        'type' => 'apiKey',
+                        'in' => 'cookie',
+                        'name' => 'carbure_session',
+                        'description' => 'Session of the web portal (POST /user/login with cookie=true). A write request needs Sec-Fetch-Site: same-origin or an Origin of this server.'
                     ]
                 ]
             ]
@@ -180,10 +187,11 @@ class SwaggerGenerator {
     private function addAccess(array $operation, ApiRoute $apiRoute): array {
         $operation['x-carbure-access'] = $apiRoute->access();
 
-        // Not public = requires a JWT
+        // Not public = requires a JWT: Authorization header, or the session cookie of the portal
         if (!$apiRoute->public) {
             $operation['security'] = [
-                ['BearerAuth' => []]
+                ['BearerAuth' => []],
+                ['SessionCookie' => []]
             ];
         }
 

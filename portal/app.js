@@ -165,7 +165,6 @@ const app = createApp({
             
             // Authentication state
             isAuthenticated: false,
-            authToken: null,
             username: localStorage.getItem('username'),
             loginForm: {
                 username: '',
@@ -691,10 +690,13 @@ const app = createApp({
                     // The portal supports the second factor: a challenge may come instead of the
                     // session; the cookie of a trusted browser is sent
                     credentials: 'same-origin',
+                    // The session is kept by the browser in an HttpOnly cookie: no token for the
+                    // scripts of the page
                     body: JSON.stringify({
                         username: this.loginForm.username,
                         password: this.loginForm.password,
-                        mfa: true
+                        mfa: true,
+                        cookie: true
                     })
                 });
 
@@ -712,11 +714,11 @@ const app = createApp({
                     return;
                 }
 
-                if (!data || !data.token) {
-                    throw new Error('Token non reçu');
+                if (!data || !data.cookie) {
+                    throw new Error(this.t('loginError'));
                 }
 
-                await this.openSession(data.token);
+                await this.openSession();
 
             } catch (error) {
                 console.error('Login error:', error);
@@ -740,17 +742,14 @@ const app = createApp({
         },
 
         /**
-         * Opens the session of the user of the login form with his JWT
-         * @param {string} token - JWT
+         * Opens the session of the user of the login form (the API has set the session cookie)
          * @returns {Promise<void>}
          */
-        async openSession(token) {
-            // Store authentication data
-            this.authToken = token;
+        async openSession() {
             this.isAuthenticated = true;
 
-            // Save to localStorage
-            localStorage.setItem('authToken', token);
+            // The name only (shown at the next visit while the session is checked): the
+            // session itself is the HttpOnly cookie, out of reach of the scripts
             localStorage.setItem('username', this.loginForm.username);
             this.username = this.loginForm.username;
 
@@ -758,20 +757,6 @@ const app = createApp({
             this.loginForm.password = '';
 
             await this.startSession();
-        },
-
-        /**
-         * Keeps the session open with the new token given by the API when the user changes
-         * his own password (the tokens issued before are revoked)
-         * @param {{token: string}} [session] - New session of the answer, if any
-         */
-        adoptSession(session) {
-            if (!session?.token) {
-                return;
-            }
-            this.authToken = session.token;
-            localStorage.setItem('authToken', session.token);
-            apiService.setAuthToken(session.token);
         },
 
         /**
@@ -791,19 +776,23 @@ const app = createApp({
         logout() {
             this.closeUserMenu();
             this.showNavDrawer = false;
+            const signedIn = this.isAuthenticated;
             this.isAuthenticated = false;
-            this.authToken = null;
             this.currentUser = null;
             this.activeTab = 'transactions';
             this.loginForm.password = '';
             this.mfaLogin = null;
             this.stopChangeWatch();
-            localStorage.removeItem('authToken');
             localStorage.removeItem('username');
             this.username = null;
-            
-            // Reinitialize services without token
-            apiService = createApiService(this.apiBaseUrl, null);
+
+            // The API removes the session cookie (unreadable by the portal)
+            if (signedIn) {
+                apiService.logout().catch(() => {});
+            }
+
+            // Reinitialize services without session
+            apiService = createApiService(this.apiBaseUrl, false);
             budgetStore = createBudgetStore(apiService);
         },
 
@@ -812,7 +801,7 @@ const app = createApp({
          * @returns {Promise<void>}
          */
         async startSession() {
-            apiService = createApiService(this.apiBaseUrl, this.authToken, () => this.sessionExpired(), () => this.setupRequired(),
+            apiService = createApiService(this.apiBaseUrl, true, () => this.sessionExpired(), () => this.setupRequired(),
                 (changes, written) => this.serverChanges(changes, written));
             budgetStore = createBudgetStore(apiService);
 
@@ -838,15 +827,22 @@ const app = createApp({
         },
 
         /**
-         * Checks if user is already authenticated from localStorage
+         * Reopens the session of the previous visit: the session cookie (HttpOnly) is
+         * checked by the first requests, a 401 going back to the login screen
          */
         checkAuthentication() {
             // URL of the API typed by older versions of the login screen
             localStorage.removeItem('apiUrl');
 
-            const token = localStorage.getItem('authToken');
-            if (token) {
-                this.authToken = token;
+            // Token kept by older versions in the storage of the page, readable by any
+            // script: removed, the user logs in once more to get the session cookie
+            if (localStorage.getItem('authToken') !== null) {
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('username');
+                this.username = null;
+                return;
+            }
+            if (localStorage.getItem('username')) {
                 this.isAuthenticated = true;
             }
         },

@@ -1,5 +1,5 @@
 // Login screen, logout, expired session and the tabs of each role
-const { test, expect, tr, asDemoInstance } = require('../fixtures');
+const { test, expect, tr, asDemoInstance, sessionCookie } = require('../fixtures');
 
 const ADMIN_TABS = ['tabRules', 'tabAccounts', 'tabAdministration'];
 const USER_TABS = ['tabTransactions', 'tabBudget', 'tabInsights', 'tabTrends', 'tabTags'];
@@ -20,7 +20,44 @@ test('logs in and out from the login screen', async ({ page }) => {
     await page.locator('.user-menu-toggle').click();
     await page.getByRole('menuitem', { name: tr('logout') }).click();
     await expect(page.getByRole('button', { name: tr('loginButton') })).toBeVisible();
+    // The session is removed by the API (HttpOnly cookie), nothing kept by the page
+    await expect.poll(() => sessionCookie(page)).toBeUndefined();
     expect(await page.evaluate(() => localStorage.getItem('authToken'))).toBeNull();
+});
+
+test('the session is an HttpOnly cookie that the scripts of the page cannot read', async ({ page }) => {
+    await page.goto('/portal/');
+    await page.getByLabel(tr('username')).fill('admin');
+    await page.getByLabel(tr('password')).fill('admin-password');
+    const login = page.waitForResponse(r => new URL(r.url()).pathname === '/api/user/login');
+    await page.getByRole('button', { name: tr('loginButton') }).click();
+    await expect(page.locator('.user-menu-name')).toHaveText('admin');
+
+    // No token in the answer of the login nor in the storage of the page
+    expect(await (await login).json()).not.toHaveProperty('token');
+    expect(await page.evaluate(() => JSON.stringify({ ...localStorage }))).not.toMatch(/\w+\.\w+\.[\w-]+/);
+    expect(await page.evaluate(() => document.cookie)).not.toContain('carbure_session');
+    const cookie = (await page.context().cookies()).find(c => c.name === 'carbure_session');
+    expect(cookie).toMatchObject({ httpOnly: true, sameSite: 'Strict', path: '/api' });
+
+    // The requests of the portal carry no Authorization header
+    const request = page.waitForRequest(r => new URL(r.url()).pathname === '/api/user/me');
+    await page.reload();
+    expect((await request).headers()['authorization']).toBeUndefined();
+    await expect(page.locator('.user-menu-name')).toHaveText('admin');
+});
+
+test('a write with the session cookie from another site is refused', async ({ adminPage: page, playwright, baseURL }) => {
+    const cookie = await sessionCookie(page);
+    const forged = await playwright.request.newContext({ baseURL, extraHTTPHeaders: { Cookie: `carbure_session=${cookie}` } });
+    try {
+        // A read is allowed; a write must come from the portal itself
+        expect((await forged.get('/api/user/me')).status()).toBe(200);
+        expect((await forged.post('/api/category', { data: { name: 'Forged' }, headers: { Origin: 'https://evil.example' } })).status()).toBe(401);
+        expect((await forged.post('/api/category', { data: { name: 'Forged' }, headers: { 'Sec-Fetch-Site': 'cross-site' } })).status()).toBe(401);
+    } finally {
+        await forged.dispose();
+    }
 });
 
 test('a demonstration instance shows its public account on the login screen', async ({ page }) => {
@@ -94,17 +131,36 @@ test('tells to wait when nginx limits the logins of this address (429)', async (
     await expect(page.locator('.user-menu-name')).toHaveText('admin');
 });
 
-test('goes back to the login screen when the session has expired', async ({ page }) => {
+test('goes back to the login screen when the session has expired', async ({ page, baseURL }) => {
+    await page.context().addCookies([{ name: 'carbure_session', value: 'expired.token.value', url: `${baseURL}/api/` }]);
     await page.addInitScript(() => {
-        localStorage.setItem('authToken', 'expired.token.value');
-        // Left by an older version of the login screen: ignored and removed
-        localStorage.setItem('apiUrl', 'https://elsewhere.invalid');
+        if (!sessionStorage.getItem('e2e-init')) {
+            sessionStorage.setItem('e2e-init', '1');
+            localStorage.setItem('username', 'admin');
+            // Left by an older version of the login screen: ignored and removed
+            localStorage.setItem('apiUrl', 'https://elsewhere.invalid');
+        }
     });
     await page.goto('/portal/');
 
     await expect(page.getByRole('alert')).toContainText(tr('sessionExpired'));
     await expect(page.getByRole('button', { name: tr('loginButton') })).toBeVisible();
     expect(await page.evaluate(() => localStorage.getItem('apiUrl'))).toBeNull();
+});
+
+test('the token kept by an older version is removed: one more login', async ({ page, request }) => {
+    const token = (await (await request.post('/api/user/login', { data: { username: 'admin', password: 'admin-password' } })).json()).token;
+    await page.addInitScript(token => {
+        if (!sessionStorage.getItem('e2e-init')) {
+            sessionStorage.setItem('e2e-init', '1');
+            localStorage.setItem('authToken', token);
+            localStorage.setItem('username', 'admin');
+        }
+    }, token);
+    await page.goto('/portal/');
+
+    await expect(page.getByRole('button', { name: tr('loginButton') })).toBeVisible();
+    expect(await page.evaluate(() => localStorage.getItem('authToken'))).toBeNull();
 });
 
 test('shows every tab to an administrator', async ({ adminPage: page }) => {

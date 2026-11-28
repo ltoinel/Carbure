@@ -162,7 +162,7 @@ export function createUserModule(getApiService) {
                 try {
                     if (this.userToEdit) {
                         // Update existing user
-                        const { session } = await apiService.updateUser(
+                        await apiService.updateUser(
                             this.userToEdit.id,
                             this.userFormData.email,
                             this.userFormData.firstname,
@@ -172,8 +172,6 @@ export function createUserModule(getApiService) {
                             null,
                             this.userFormData.is_admin
                         );
-                        // Administrators who change their own password here stay signed in
-                        this.adoptSession(session);
                         this.showToast(this.t('userUpdated'));
                         await this.loadUsers(); // Reload user list
                     } else {
@@ -207,14 +205,13 @@ export function createUserModule(getApiService) {
 
             /**
              * Closes every session of a user, or of the logged-in user ("sign out everywhere"):
-             * this browser then goes on with the new token of the answer
+             * this browser stays signed in (the API renews its session cookie)
              * @param {Object} [user] - User of the Users tab (administrators); the logged-in user by default
              * @returns {Promise<void>}
              */
             async signOutEverywhere(user = null) {
                 const own = !user || Number(user.id) === Number(this.currentUser?.id);
                 const params = { username: user?.username };
-                let result = null;
                 const closed = await this.askConfirm({
                     title: this.t(own ? 'signOutEverywhere' : 'signOutUser'),
                     message: this.t(own ? 'signOutEverywhereConfirm' : 'signOutUserConfirm', params),
@@ -223,11 +220,10 @@ export function createUserModule(getApiService) {
                     icon: 'logout',
                     danger: true,
                     action: async () => {
-                        result = await getApiService().signOutEverywhere(own ? null : user.id);
+                        await getApiService().signOutEverywhere(own ? null : user.id);
                     }
                 });
                 if (closed) {
-                    this.adoptSession(result?.session);
                     this.showToast(this.t(own ? 'signOutEverywhereDone' : 'signOutUserDone', params));
                 }
             },

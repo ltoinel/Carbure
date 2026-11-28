@@ -10,8 +10,10 @@ icon: material/api
 - **Format**: JSON in (body) and out. Parameters can also be passed in the query
   string; body and query string are merged.
 - **Authentication**: `Authorization: Bearer <token>` header (JWT obtained from
-  `POST /user/login`) on every route, except the **public** routes:
-  `POST /user/login`, `GET /bank/sync` (JWT or `sync_token`), `POST /mcp` and `GET /mcp`
+  `POST /user/login`) on every route, or, for the web portal, the `HttpOnly` cookie
+  `carbure_session` (login with `cookie: true`, see
+  [Security](securite.md#authentification)); except the **public** routes:
+  `POST /user/login`, `POST /user/login/mfa`, `POST /user/logout`, `GET /bank/sync` (JWT or `sync_token`), `POST /mcp` and `GET /mcp`
   (access token or JWT), `GET /health`, and the OAuth routes for AI agents (metadata
   `/.well-known/oauth-*`, `POST /oauth/register`, `GET /oauth/authorize`,
   `POST /oauth/token`). A unit test checks this list.
@@ -138,6 +140,7 @@ household uses the app and when the synchronization runs.
 | `password` | string | yes | Password |
 | `device` | object `{name, token, platform?, model?, os_version?, app_version?}` | no | Mobile device to register for notifications (see [the `device` object](#objet-device)) |
 | `mfa` | boolean | no | The client supports two-factor authentication (`true` for the portal) |
+| `cookie` | boolean | no | Keep the session in the `HttpOnly` cookie `carbure_session` (`true` for the portal): the response then holds `cookie: true` instead of `token` |
 
 ```bash
 curl -X POST https://exemple.fr/api/user/login \
@@ -214,6 +217,7 @@ Second step of the login: exchanges the challenge and the code for the session.
 | `mfa_token` | string | yes | Challenge returned by `POST /user/login` |
 | `code` | string | yes | 6-digit code from the authenticator app, or recovery code (`xxxxx-xxxxx`) |
 | `trust` | boolean | no | Trust this browser for 6 months (`HttpOnly` cookie) |
+| `cookie` | boolean | no | Session in the `carbure_session` cookie, as for `POST /user/login` |
 | `device` | object `{name, token, platform?, model?, os_version?, app_version?}` | no | Mobile device to register, as for `POST /user/login` (see [the `device` object](#objet-device)) |
 
 Response: the session, as for `POST /user/login` (`exp`, `sub`, `iat`, `token`), plus
@@ -294,7 +298,9 @@ Returns the updated user.
 
 A new password **closes every session of the user** (their tokens return `401`). When you
 change your own password, the response also holds `session` (`token`, `exp`, `sub`, `iat`,
-as `POST /user/login`): the client replaces its token with this one to stay signed in.
+as `POST /user/login`): the client replaces its token with this one to stay signed in. For
+the portal (session in the cookie), the new token is set in the cookie and `session` holds
+`cookie: true` instead of `token`.
 
 ### `DELETE /user/sessions` { #delete-usersessions }
 
@@ -314,8 +320,18 @@ curl -X DELETE "https://exemple.fr/api/user/sessions" -H "Authorization: Bearer 
 ```
 
 `session` is only returned for your own sessions: it is the new token of the device that
-made the request. `409` until the migration `2026-11-27_user_tokens_valid_after` is
-applied.
+made the request (set in the cookie for the portal, as for `PUT /user`). `409` until the
+migration `2026-11-27_user_tokens_valid_after` is applied.
+
+### `POST /user/logout` — public { #post-userlogout-publique }
+
+Signs the browser out: removes the session cookie of the portal (`carbure_session`), also
+for an already expired session. The other clients just forget their token; to revoke it,
+see `DELETE /user/sessions`.
+
+```json
+{ "signed_out": true }
+```
 
 ### `GET /user/notifications` { #get-usernotifications }
 
